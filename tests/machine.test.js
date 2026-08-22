@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOffer } from "../src/config.js";
+import { createOffer, createPrototypeOffer } from "../src/config.js";
 import { journeyFor, nextScreen, progressFor } from "../src/machine.js";
 
 const stateFor = (scenarioId, overrides = {}) => ({ offer: createOffer(scenarioId), screen: "INVITATION", devicePath: null, ...overrides });
@@ -34,5 +34,39 @@ describe("enrollment state machine", () => {
     const state = stateFor("rpm-shipping", { screen: "RPM_DEVICE_PATH", devicePath: "ship" });
     expect(progressFor(state).label).toBe("Home monitoring setup");
     expect(nextScreen(state)).toBe("RPM_ADDRESS_CONFIRMATION");
+  });
+
+  it("generates a single combined journey for CCM + RPM", () => {
+    const offer = createPrototypeOffer({ program: "CCM + RPM" });
+    const journey = journeyFor({ offer, screen: "INVITATION", devicePath: null });
+    expect(offer.pathway).toBe("CCM_RPM");
+    expect(offer.consent.services).toEqual(["Ongoing care support (CCM)", "Home monitoring (RPM)"]);
+    expect(journey.filter(screen => screen === "CONSENT_REVIEW")).toHaveLength(1);
+    expect(journey).toContain("RPM_DEVICE_PATH");
+  });
+
+  it("resolves PCM and PCM + RPM according to their capabilities", () => {
+    const pcm = createPrototypeOffer({ program: "PCM", condition: "Diabetes" });
+    const combined = createPrototypeOffer({ program: "PCM + RPM", condition: "Heart Failure" });
+    expect(pcm.qualifyingCondition.patientFriendlyName).toBe("diabetes");
+    expect(journeyFor({ offer: pcm, screen: "INVITATION" })).toContain("CLINICAL_VERIFICATION");
+    expect(journeyFor({ offer: combined, screen: "INVITATION", devicePath: null })).toContain("RPM_FIRST_READING");
+  });
+
+  it("keeps every selected clinical condition in the generated offer", () => {
+    const offer = createPrototypeOffer({
+      program: "CCM",
+      conditions: ["Hypertension", "Diabetes", "Chronic Kidney Disease", "Other"],
+      otherCondition: "Aortic aneurysm"
+    });
+    expect(offer.qualifyingConditions.map(item => item.name)).toEqual(["Hypertension", "Diabetes", "Chronic Kidney Disease", "Other"]);
+    expect(offer.qualifyingConditions.at(-1).patientFriendlyName).toBe("Aortic aneurysm");
+    expect(offer.clinicalProfile.baselineRequirements).toHaveLength(4);
+    expect(offer.onboardingModules).toEqual(expect.arrayContaining(["blood-pressure", "diabetes", "kidney-health", "other-condition"]));
+  });
+
+  it("only exposes an individual physician for physician referral scenarios", () => {
+    expect(createPrototypeOffer({ source: "Physician Referral", physician: "Dr. Martinez-Clark" }).physician.displayName).toBe("Dr. Martinez-Clark");
+    expect(createPrototypeOffer({ source: "ITERA Direct Outreach", physician: "Dr. Martinez-Clark" }).physician).toBeNull();
   });
 });

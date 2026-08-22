@@ -1,19 +1,20 @@
-import { createOffer } from "./config.js";
+import { createOffer, createPrototypeOffer } from "./config.js";
 
 const wait = (ms = 650) => new Promise(resolve => setTimeout(resolve, ms));
 const tx = prefix => `${prefix}_${Date.now().toString(36)}`;
 
 export class MockEnrollmentService {
-  constructor(scenarioId) { this.scenarioId = scenarioId; }
-  async getOffer() { await wait(350); const offer = createOffer(this.scenarioId); if (offer.fixture.tokenState) throw new Error(offer.fixture.tokenState); return offer; }
-  async verifyIdentity(input) { await wait(); return createOffer(this.scenarioId).fixture.identityFailure || input.zip !== "33176" ? { verified: false, remainingAttempts: 2 } : { verified: true, verificationId: tx("verify") }; }
+  constructor(scenarioId, prototypeConfig = null) { this.scenarioId = scenarioId; this.prototypeConfig = prototypeConfig; }
+  offer() { return this.prototypeConfig ? createPrototypeOffer(this.prototypeConfig) : createOffer(this.scenarioId); }
+  async getOffer() { await wait(350); const offer = this.offer(); if (offer.fixture.tokenState) throw new Error(offer.fixture.tokenState); return offer; }
+  async verifyIdentity(input) { await wait(); return this.offer().fixture.identityFailure || input.zip !== "33176" ? { verified: false, remainingAttempts: 2 } : { verified: true, verificationId: tx("verify") }; }
   async saveAcknowledgement() { await wait(250); return { saved: true }; }
-  async checkAccessEligibility() { await wait(1200); return { outcome: createOffer(this.scenarioId).fixture.accessOutcome || "eligible", transactionId: tx("elig") }; }
+  async checkAccessEligibility() { await wait(1200); return { outcome: this.offer().fixture.accessOutcome || "eligible", transactionId: tx("elig") }; }
   async saveConsent() { await wait(700); return { confirmed: true, consentId: tx("consent") }; }
   async createTraditionalEnrollment() { await wait(1200); return { status: "confirmed", enrollmentId: tx("enroll"), effectiveDate: "August 21, 2026" }; }
   async submitAccessAlignment() { await wait(1400); return { status: "confirmed", alignmentId: tx("align"), effectiveDate: "August 21, 2026" }; }
   async saveOnboarding() { await wait(350); return { saved: true }; }
-  async submitFirstReading() { await wait(1300); return createOffer(this.scenarioId).fixture.firstReading === "failed" ? { status: "failed", reason: "not_received" } : { status: "received", systolic: 120, diastolic: 80, receivedAt: new Date().toISOString() }; }
+  async submitFirstReading() { await wait(1300); return this.offer().fixture.firstReading === "failed" ? { status: "failed", reason: "not_received" } : { status: "received", systolic: 120, diastolic: 80, receivedAt: new Date().toISOString() }; }
 }
 
 export class DraftStore {

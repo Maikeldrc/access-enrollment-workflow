@@ -1,4 +1,4 @@
-import { I18N, SCENARIOS } from "./config.js";
+import { DEFAULT_PROTOTYPE_CONFIG, I18N, PROTOTYPE_OPTIONS, SCENARIOS } from "./config.js";
 import { MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
 import {
@@ -11,10 +11,13 @@ import {
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
 const scenarioId = params.get("scenario") || "access-happy";
+const DEMO_IDENTITY = { dob: "05/12/1954", dobIso: "1954-05-12", zip: "33176" };
 const draftStore = new DraftStore();
 let service = new MockEnrollmentService(scenarioId);
+let prototypeConfig = { ...DEFAULT_PROTOTYPE_CONFIG };
+let conditionMenuOpen = false;
 let state = {
-  scenarioId, screen: "OFFER_LOADING", offer: null, language: "en", role: "patient", identityVerified: false,
+  scenarioId, screen: params.has("scenario") ? "OFFER_LOADING" : "PROTOTYPE_SETUP", offer: null, language: "en", role: "patient", identityVerified: false,
   identityAttempts: 0, consentSaved: false, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   reading: null, callbackRequested: false, onboarding: {}, audit: [], busy: false, error: "", devOpen: false
@@ -51,8 +54,10 @@ const iconMap = {
 };
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
-const L = (en, es) => state.language === "es" ? es : en;
+const L = (en, es, ht = en) => state.language === "es" ? es : state.language === "ht" ? ht : en;
 const t = () => I18N[state.language];
+const languageCode = () => ({ en: "EN", es: "ES", ht: "KR" })[state.language] || "EN";
+const languageActionLabel = () => L("Change language to Spanish", "Cambiar idioma a criollo", "Chanje lang pou anglè");
 const cta = (label, action = "next", secondary = false) => `<button class="button ${secondary ? "secondary" : "primary"}" data-action="${action}">${label}${secondary ? "" : icon("arrowRight", "button-icon")}</button>`;
 const rows = items => `<div class="card-list">${items.map(([i, title, body]) => `<article class="info-row">${icon(i)}<div><strong>${title}</strong>${body ? `<p>${body}</p>` : ""}</div></article>`).join("")}</div>`;
 const choice = (value, i, title, body, checked = false) => `<label class="choice-card"><input type="radio" name="choice" value="${value}" ${checked ? "checked" : ""}><span class="choice-dot"></span>${icon(i)}<span><strong>${title}</strong><small>${body}</small></span></label>`;
@@ -81,32 +86,56 @@ const art = (kind = "shield", success = false) => {
 const providerCard = () => `<article class="provider-card"><img src="${state.offer.referringProvider.verifiedPhotoUrl}" alt=""><div><strong>Dr. Fresner <span aria-label="Verified provider">✓</span></strong><small>${L("Referring physician", "Médico remitente")}</small></div></article>`;
 const security = () => `<p class="security">${icon("lock")} ${t().secure}</p>`;
 const actions = (primary, back = true, secondary = "") => `<div class="actions">${secondary ? cta(secondary, "secondary", true) : back ? cta(t().back, "back", true) : ""}${cta(primary)}</div>`;
+const emmiAssistant = () => `<button class="emmi-assistant ${state.screen === "HELP_REQUESTED" ? "active" : ""}" data-action="${state.screen === "HELP_REQUESTED" ? "" : "help"}" aria-label="${L("Ask Emmi, AI assistant", "Preguntar a Emmi, asistente de IA", "Mande Emmi, asistan IA")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 
 function header() {
   if (state.screen === "OFFER_LOADING") return "";
-  if (state.screen === "INVITATION") return `<header class="app-header invitation-header"><div class="brand-row"><span></span><a class="brand" href="#" data-action="restart" aria-label="ITERA HEALTH home"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${L("Change language to Spanish", "Cambiar idioma a inglés")}">${icon("language")} ${state.language === "en" ? "EN" : "ES"}</button></div></header>`;
+  if (state.screen === "INVITATION") return "";
   const progress = progressFor(state);
   return `<header class="app-header">
-    <div class="brand-row"><button class="icon-button back-button" data-action="back" aria-label="${t().back}" ${state.screen === "INVITATION" ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="ITERA HEALTH home"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${L("Change language to Spanish", "Cambiar idioma a inglés")}">${icon("language")} ${state.language === "en" ? "EN" : "ES"}</button></div>
+    <div class="brand-row"><button class="icon-button back-button" data-action="back" aria-label="${t().back}" ${state.screen === "INVITATION" ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="ITERA HEALTH home"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
     <div class="progress-meta"><span>${progress.label}</span><span>${L("Step", "Paso")} ${progress.current} ${L("of", "de")} ${progress.total}</span></div>
     <div class="progress" role="progressbar" aria-valuemin="1" aria-valuemax="${progress.total}" aria-valuenow="${progress.current}" aria-label="${progress.label}"><span style="width:${Math.min(100, progress.current / progress.total * 100)}%"></span></div>
   </header>`;
 }
 
+function resolveTrustHero(offer) {
+  const source = offer.enrollmentSource;
+  const access = offer.pathway === "ACCESS";
+  const physicianName = offer.physician?.displayName || "";
+  if (access && source === "ITERA Direct Outreach") return { variant: "ACCESS_PARTICIPANT", src: "/images/enrollment/card-access-participant-hero.png", alt: "ITERA HEALTH connected Medicare ACCESS care" };
+  if (access && source === "Physician Referral" && physicianName) return { variant: "DOCTOR_RECOMMENDS_ACCESS", src: "/images/enrollment/card-doctor-recommends-hero.png", alt: "Your doctor recommends ACCESS care with ITERA HEALTH", overlayLabel: L("Recommended by", "Recomendado por", "Rekòmande pa"), physicianName };
+  if (!access && physicianName) return { variant: "PHYSICIAN_SUPERVISING", src: "/images/enrollment/card-physician-supervising-hero.png", alt: "Care coordinated with your physician and care team", overlayLabel: L("Coordinated with", "Coordinado con", "Kowòdone avèk"), physicianName };
+  return { variant: "GENERIC_ITERA_CARE", alt: "ITERA HEALTH connected care support" };
+}
+
+function TrustHeroCard() {
+  const hero = resolveTrustHero(state.offer);
+  const overlayText = hero.overlayLabel && hero.physicianName ? `${hero.overlayLabel} ${hero.physicianName}` : "";
+  const media = hero.src
+    ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}">${overlayText ? `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : ""}`
+    : `<div class="generic-trust-hero">${icon("shield")}<strong>${L("Connected care with ITERA HEALTH", "Cuidado conectado con ITERA HEALTH", "Swen konekte avèk ITERA HEALTH")}</strong><small>${L("Support designed around your health needs", "Apoyo diseñado según sus necesidades de salud", "Sipò ki fèt selon bezwen sante ou")}</small></div>`;
+  return `<section class="invitation-stage trust-hero-card" data-trust-source="${state.offer.enrollmentSource}" data-hero-variant="${hero.variant}">
+    <div class="stage-brand-row"><a class="brand stage-brand" href="#" data-action="restart" aria-label="ITERA HEALTH home"><b>ITERA.</b>HEALTH</a><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
+    <div class="trust-hero-media">${media}</div>
+  </section>`;
+}
+
 function invitation() {
-  return `<div class="invitation-stage" aria-hidden="true">
-      <span class="portrait-halo halo-one"></span><span class="portrait-halo halo-two"></span>
-      <div class="doctor-portrait"><img src="${state.offer.referringProvider.verifiedPhotoUrl}" alt=""><span class="portrait-verified">${icon("check")}</span></div>
-      <div class="invitation-trust-chip">${icon("shield")}<span><strong>${L("Doctor recommended", "Recomendado por su médico")}</strong><small>${L("Coordinated with Dr. Fresner", "Coordinado con el Dr. Fresner")}</small></span></div>
-    </div>
-    <div class="invitation-copy">${titleBlock(L("A new care option for your health", "Una nueva opción de cuidado para su salud"), L("Dr. Fresner’s care team invited you to learn about additional support available through Medicare.", "El equipo del Dr. Fresner le invita a conocer apoyo adicional disponible a través de Medicare."))}</div>
-    <section class="invitation-benefits" aria-label="${L("What this means for you", "Qué significa esto para usted")}">${[
-      ["physician", L("Keep your doctors", "Mantenga sus médicos"), L("Continue with the physicians you know", "Continúe con los médicos que conoce")],
-      ["home", L("Get support from home", "Reciba apoyo desde casa"), L("Personal guidance between office visits", "Orientación personal entre sus consultas")],
-      ["shield", L("Participation is voluntary", "La participación es voluntaria"), L("You can change your mind at any time", "Puede cambiar de opinión cuando quiera")]
+  const source = state.offer.enrollmentSource || "Physician Referral";
+  const physicianReferral = source === "Physician Referral";
+  const practiceOutreach = source === "Practice Outreach";
+  const physicianName = state.offer.physician?.displayName || state.offer.referringProvider?.name || L("your physician", "su médico", "doktè ou");
+  const intro = physicianReferral ? L(`${physicianName}’s care team invited you to learn about additional support available through Medicare.`, `El equipo de ${physicianName} le invita a conocer apoyo adicional disponible a través de Medicare.`, `Ekip swen ${physicianName} envite w aprann sou sipò anplis ki disponib atravè Medicare.`) : practiceOutreach ? L("Fresner Medical Group and ITERA HEALTH invite you to learn about additional support available through Medicare.", "Fresner Medical Group e ITERA HEALTH le invitan a conocer apoyo adicional disponible a través de Medicare.", "Fresner Medical Group ak ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.") : L("ITERA HEALTH invites you to learn about additional support available through Medicare.", "ITERA HEALTH le invita a conocer apoyo adicional disponible a través de Medicare.", "ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.");
+  return `${TrustHeroCard()}
+    <div class="invitation-copy">${titleBlock(L("A new care option for your health", "Una nueva opción de cuidado para su salud", "Yon nouvo opsyon swen pou sante ou"), intro)}</div>
+    <section class="invitation-benefits" aria-label="${L("What this means for you", "Qué significa esto para usted", "Sa sa vle di pou ou")}">${[
+      ["physician", L("Keep your doctors", "Mantenga sus médicos", "Kenbe doktè ou yo"), L("Continue seeing the doctors you know", "Continúe viendo a los médicos que conoce", "Kontinye wè doktè ou konnen yo")],
+      ["home", L("Get support from home", "Reciba apoyo desde casa", "Jwenn sipò lakay ou"), L("Ongoing support between office visits", "Apoyo continuo entre sus consultas", "Sipò kontinyèl ant vizit nan klinik")],
+      ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You’ll review the details before you enroll", "Revisará los detalles antes de inscribirse", "W ap revize detay yo anvan ou enskri")]
     ].map(([i,label,detail]) => `<div class="invitation-benefit">${icon(i)}<span><strong>${label}</strong><small>${detail}</small></span></div>`).join("")}</section>
-    ${actions(L("See how it works", "Vea cómo funciona"), false)}
-    <p class="contact-line">${L("Questions? Call", "¿Preguntas? Llame al")} <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>`;
+    ${actions(L("See how it works", "Vea cómo funciona", "Gade kijan sa fonksyone"), false)}
+    <p class="contact-line"><span>${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</span><a href="tel:+13053948070">${icon("phone", "contact-phone")}<span>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</span></a></p>`;
 }
 
 function decisionMaker() {
@@ -122,8 +151,8 @@ function identity() {
   const representative = state.role === "representative";
   return `${titleBlock(representative ? L("Confirm your authority", "Confirme su autoridad") : L("Let’s confirm it’s you", "Confirmemos su identidad"), representative ? L("We need to verify your authority before you can make a decision for the patient.", "Debemos verificar su autoridad antes de que pueda decidir por el paciente.") : L("Enter the patient’s information.", "Ingrese la información del paciente."))}
     <form id="identity-form" novalidate>
-      <div class="field"><label for="dob">${L("Date of birth", "Fecha de nacimiento")}</label><div class="date-control"><input id="dob" class="date-text" name="dob" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="MM/DD/YYYY" aria-describedby="identity-error"><input class="date-picker-native" type="date" min="1900-01-01" max="${localToday()}" aria-label="${L("Choose date of birth from calendar", "Elegir fecha de nacimiento del calendario")}">${icon("calendar", "date-picker-icon")}</div></div>
-      <label class="field"><span>${L("ZIP code", "Código postal")}</span><input name="zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="5-digit ZIP code" aria-describedby="identity-error"></label>
+      <div class="field"><label for="dob">${L("Date of birth", "Fecha de nacimiento")}</label><div class="date-control"><input id="dob" class="date-text" name="dob" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" value="${DEMO_IDENTITY.dob}" placeholder="MM/DD/YYYY" aria-describedby="identity-error"><input class="date-picker-native" type="date" min="1900-01-01" max="${localToday()}" value="${DEMO_IDENTITY.dobIso}" aria-label="${L("Choose date of birth from calendar", "Elegir fecha de nacimiento del calendario")}">${icon("calendar", "date-picker-icon")}</div></div>
+      <label class="field"><span>${L("ZIP code", "Código postal")}</span><input name="zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" value="${DEMO_IDENTITY.zip}" placeholder="5-digit ZIP code" aria-describedby="identity-error"></label>
       ${representative ? `<label class="field"><span>${L("Relationship to patient", "Relación con el paciente")}</span><select name="relationship"><option>Health care proxy</option><option>Legal guardian</option><option>Power of attorney</option></select></label>${check("authority", L("I confirm I have current legal authority", "Confirmo que tengo autoridad legal vigente"))}` : ""}
       <p class="form-error" id="identity-error" role="alert">${state.error}</p>
     </form>${actions(state.busy ? L("Checking…", "Verificando…") : t().continue)}${security()}`;
@@ -149,7 +178,7 @@ function helpScreen() {
       <a class="link-card" href="tel:+13053948070">${icon("phone")}<span><strong>${t().call}</strong><small>${state.offer.participantProvider.supportPhone}</small></span><b>›</b></a>
       <button class="link-card" data-action="callback">${icon("phone")}<span><strong>${L("Request a callback", "Solicitar una llamada")}</strong><small>${L(`We’ll call the number ending in ${state.offer.patient.phoneMasked.slice(-4)}`, `Llamaremos al número terminado en ${state.offer.patient.phoneMasked.slice(-4)}`)}</small></span><b>›</b></button>
       <details class="faq"><summary>${icon("question")}<span><strong>${L("See common questions", "Ver preguntas comunes")}</strong><small>${L("Quick answers about this care", "Respuestas rápidas sobre este cuidado")}</small></span></summary><p>${L("Participation is voluntary. You can ask questions or stop at any time.", "La participación es voluntaria. Puede hacer preguntas o detenerse cuando quiera.")}</p></details>
-    </div>${actions(L("Continue enrollment", "Continuar inscripción"), true)}`;
+    </div><p class="emmi-disclaimer">${icon("info")}<span>${L("Emmi is an AI assistant, not a clinician. For medical emergencies, call 911.", "Emmi es una asistente de IA, no una profesional clínica. Para emergencias médicas, llame al 911.", "Emmi se yon asistan IA, li pa yon pwofesyonèl klinik. Pou ijans medikal, rele 911.")}</span></p>${actions(L("Continue enrollment", "Continuar inscripción"), true)}`;
 }
 
 function disclosure() {
@@ -273,6 +302,63 @@ function stoppedOutcome() { return `${art("info")}${titleBlock(L("Your Medicare 
 
 function offerError() { const expired = state.screen === "OFFER_EXPIRED"; return `${art(expired ? "clock" : "lock")}${titleBlock(expired ? L("This secure link has expired", "Este enlace seguro venció") : L("We can’t open this secure link", "No podemos abrir este enlace seguro"), expired ? L("For your privacy, invitation links are available for a limited time.", "Por su privacidad, los enlaces están disponibles por tiempo limitado.") : L("The link may be incomplete or already used.", "El enlace puede estar incompleto o ya haberse usado."))}<a class="button primary" href="tel:+13053948070">${L("Call ITERA HEALTH", "Llamar a ITERA HEALTH")}</a><p class="contact-line">(305) 394-8070</p>`; }
 
+const optionTags = (items, selected) => items.map(item => {
+  const value = typeof item === "string" ? item : item.value;
+  const label = typeof item === "string" ? item : item.label;
+  return `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`;
+}).join("");
+const escapeHtml = value => String(value ?? "").replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
+
+function conditionValue() {
+  const conditions = prototypeConfig.conditions || [];
+  if (!conditions.length) return `<span class="condition-placeholder">Select conditions</span>`;
+  if (conditions.length === 1) return `<span class="condition-chip">${conditions[0]}</span>`;
+  if (conditions.length === 2) return conditions.map(condition => `<span class="condition-chip">${condition}</span>`).join("");
+  return `<span class="condition-chip">${conditions[0]}</span><span class="condition-count">+${conditions.length - 1}</span>`;
+}
+
+function prototypeSetup() {
+  const languageLabel = PROTOTYPE_OPTIONS.languages.find(item => item.value === prototypeConfig.language)?.label || "English";
+  const conditionSummary = prototypeConfig.conditions.length === 1 ? prototypeConfig.conditions[0] : `${prototypeConfig.conditions.length} conditions`;
+  const summary = [prototypeConfig.program, prototypeConfig.program === "ACCESS" ? prototypeConfig.accessTrack : null, prototypeConfig.source, prototypeConfig.source === "Physician Referral" ? prototypeConfig.physician : null, conditionSummary, prototypeConfig.coverage, languageLabel].filter(Boolean).join(" · ");
+  return `<main class="prototype-console">
+    <header class="prototype-header">
+      <a class="prototype-brand" href="#" aria-label="ITERA HEALTH"><b>ITERA.</b>HEALTH</a>
+      <span class="prototype-badge">Internal prototype</span>
+    </header>
+    <section class="prototype-intro">
+      <span class="prototype-eyebrow">ITERA Enrollment Prototype</span>
+      <h1>Configure the patient scenario</h1>
+      <p>Select the main enrollment settings below. The patient experience will be generated automatically.</p>
+    </section>
+    <form id="prototype-form" class="prototype-form" novalidate>
+      <fieldset class="prototype-programs">
+        <legend><span>1</span><strong>Program</strong><small>Required</small></legend>
+        <div class="program-grid">${PROTOTYPE_OPTIONS.programs.map(program => `<label class="program-option"><input type="radio" name="program" value="${program}" ${prototypeConfig.program === program ? "checked" : ""}><span>${icon(program.includes("RPM") ? "chart" : program === "ACCESS" ? "shield" : program === "PCM" ? "heart" : "people")}<strong>${program}</strong></span></label>`).join("")}</div>
+      </fieldset>
+      <div class="prototype-fields">
+        <label class="prototype-field"><span><b>Enrollment source</b><small>Required</small></span><select name="source">${optionTags(PROTOTYPE_OPTIONS.sources, prototypeConfig.source)}</select></label>
+        <div class="prototype-field condition-field"><span><b>Condition</b><small>Required</small></span>
+          <details class="condition-multiselect" ${conditionMenuOpen ? "open" : ""}>
+            <summary aria-label="Condition" title="${escapeHtml(prototypeConfig.conditions.join(", "))}"><span class="condition-value">${conditionValue()}</span><span class="condition-chevron">⌄</span></summary>
+            <div class="condition-options" role="group" aria-label="Clinical conditions">${PROTOTYPE_OPTIONS.conditions.map(condition => `<label class="condition-option"><input type="checkbox" name="conditions" value="${condition}" ${prototypeConfig.conditions.includes(condition) ? "checked" : ""}><span class="condition-checkbox">${icon("check")}</span><span>${condition}</span></label>`).join("")}</div>
+          </details>
+          ${prototypeConfig.conditions.includes("Other") ? `<label class="other-condition"><span>Specify condition</span><input type="text" name="otherCondition" value="${escapeHtml(prototypeConfig.otherCondition)}" placeholder="Enter condition"></label>` : ""}
+        </div>
+        <label class="prototype-field"><span><b>Coverage</b><small>Required</small></span><select name="coverage">${optionTags(PROTOTYPE_OPTIONS.coverage, prototypeConfig.coverage)}</select></label>
+        <label class="prototype-field"><span><b>Language</b><small>Required</small></span><select name="language">${optionTags(PROTOTYPE_OPTIONS.languages, prototypeConfig.language)}</select></label>
+        ${prototypeConfig.program === "ACCESS" ? `<label class="prototype-field conditional"><span><b>ACCESS track</b><small>Shown for ACCESS</small></span><select name="accessTrack">${optionTags(PROTOTYPE_OPTIONS.accessTracks, prototypeConfig.accessTrack)}</select></label>` : ""}
+        ${prototypeConfig.source === "Physician Referral" ? `<label class="prototype-field conditional"><span><b>Physician</b><small>Shown for referrals</small></span><select name="physician">${optionTags(PROTOTYPE_OPTIONS.physicians, prototypeConfig.physician)}</select></label>` : ""}
+      </div>
+      <p class="prototype-error" id="prototype-error" role="alert"></p>
+    </form>
+    <section class="scenario-footer">
+      <div class="scenario-summary" aria-live="polite"><span>Patient scenario</span><strong>${summary}</strong></div>
+      <button class="launch-button" type="button" data-action="launch-prototype">Launch Patient Experience ${icon("arrowRight", "button-icon")}</button>
+    </section>
+  </main>`;
+}
+
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, HELP_REQUESTED: helpScreen, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 
 function devPanel() {
@@ -281,14 +367,67 @@ function devPanel() {
 }
 
 function render() {
+  if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); return; }
   if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…")}</h1></main>`; return; }
   if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock("We need a moment", "Please call our care team for help.")}`);
-  app.innerHTML = `<main class="shell">${header()}<section class="screen" id="screen-content">${renderer()}</section><button class="floating-help" data-action="help" aria-label="${t().help}">?</button><div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
+  app.innerHTML = `<main class="shell">${header()}<section class="screen" id="screen-content">${renderer()}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
   requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
+
+function bindPrototypeSetup() {
+  const form = document.querySelector("#prototype-form");
+  document.querySelector(".condition-multiselect")?.addEventListener("toggle", event => { conditionMenuOpen = event.target.open; });
+  form?.addEventListener("input", event => {
+    if (event.target.name === "otherCondition") prototypeConfig.otherCondition = event.target.value;
+  });
+  form?.addEventListener("change", event => {
+    if (event.target.name === "otherCondition") { prototypeConfig.otherCondition = event.target.value; return; }
+    const data = Object.fromEntries(new FormData(form));
+    const conditions = new FormData(form).getAll("conditions");
+    conditionMenuOpen = event.target.name === "conditions";
+    prototypeConfig = {
+      ...prototypeConfig,
+      program: data.program || prototypeConfig.program,
+      source: data.source || prototypeConfig.source,
+      conditions,
+      otherCondition: data.otherCondition ?? prototypeConfig.otherCondition,
+      coverage: data.coverage || prototypeConfig.coverage,
+      language: data.language || prototypeConfig.language,
+      accessTrack: data.accessTrack || prototypeConfig.accessTrack,
+      physician: data.physician || prototypeConfig.physician
+    };
+    render();
+  });
+  document.querySelector('[data-action="launch-prototype"]')?.addEventListener("click", launchPrototype);
+}
+
+async function launchPrototype() {
+  if (!prototypeConfig.conditions.length) { document.querySelector("#prototype-error").textContent = "Select at least one condition."; return; }
+  const required = [prototypeConfig.program, prototypeConfig.source, prototypeConfig.coverage, prototypeConfig.language];
+  if (prototypeConfig.program === "ACCESS") required.push(prototypeConfig.accessTrack);
+  if (prototypeConfig.source === "Physician Referral") required.push(prototypeConfig.physician);
+  if (required.some(value => !value)) { document.querySelector("#prototype-error").textContent = "Complete all required fields before launching the patient experience."; return; }
+  localStorage.setItem("itera.prototype.config.v1", JSON.stringify(prototypeConfig));
+  service = new MockEnrollmentService("prototype", prototypeConfig);
+  state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, identityVerified: false, devicePath: null, audit: [], error: "" };
+  document.documentElement.lang = state.language;
+  render();
+  try {
+    state.offer = await service.getOffer();
+    state.screen = "INVITATION";
+    audit(state, "prototype_launched");
+    render();
+  } catch { state.screen = "OFFER_INVALID"; render(); }
+}
+
+document.addEventListener("click", event => {
+  if (state.screen !== "PROTOTYPE_SETUP" || event.target.closest(".condition-multiselect")) return;
+  conditionMenuOpen = false;
+  document.querySelector(".condition-multiselect")?.removeAttribute("open");
+});
 
 async function advance() {
   state.error = "";
@@ -336,6 +475,68 @@ async function runEnrollment() { const result = await service.createTraditionalE
 async function runAlignment() { const result = await service.submitAccessAlignment(); if (result.status === "confirmed") { state.alignmentConfirmed = true; state.enrollmentConfirmed = true; audit(state, "alignment", "confirmed"); state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render(); } }
 function showHelp() { state.returnScreen = state.screen; state.screen = "HELP_REQUESTED"; render(); }
 
+function bindEmmiDrag() {
+  const emmi = document.querySelector(".emmi-assistant");
+  const shell = document.querySelector(".shell");
+  if (!emmi || !shell) return;
+  const positionKey = "itera.emmi.position.v1";
+  const bounds = () => {
+    const shellRect = shell.getBoundingClientRect();
+    return { minX: shellRect.left + 6, maxX: shellRect.right - emmi.offsetWidth - 6, minY: 6, maxY: window.innerHeight - emmi.offsetHeight - 6 };
+  };
+  const place = (left, top) => {
+    const limit = bounds();
+    emmi.style.left = `${Math.min(limit.maxX, Math.max(limit.minX, left))}px`;
+    emmi.style.top = `${Math.min(limit.maxY, Math.max(limit.minY, top))}px`;
+    emmi.style.right = "auto";
+    emmi.style.bottom = "auto";
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem(positionKey) || "null");
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      const limit = bounds();
+      place(limit.minX + saved.x * Math.max(0, limit.maxX - limit.minX), limit.minY + saved.y * Math.max(0, limit.maxY - limit.minY));
+    }
+  } catch { /* Keep the default CSS position if storage is unavailable. */ }
+  let drag = null;
+  let suppressClick = false;
+  emmi.addEventListener("pointerdown", event => {
+    if (event.button !== undefined && event.button !== 0) return;
+    const rect = emmi.getBoundingClientRect();
+    drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, moved: false };
+    emmi.setPointerCapture?.(event.pointerId);
+    emmi.classList.add("dragging");
+  });
+  emmi.addEventListener("pointermove", event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 4) drag.moved = true;
+    if (!drag.moved) return;
+    event.preventDefault();
+    place(event.clientX - drag.offsetX, event.clientY - drag.offsetY);
+  });
+  const finishDrag = event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    suppressClick = drag.moved;
+    emmi.classList.remove("dragging");
+    if (drag.moved) {
+      const limit = bounds();
+      const rect = emmi.getBoundingClientRect();
+      const x = (rect.left - limit.minX) / Math.max(1, limit.maxX - limit.minX);
+      const y = (rect.top - limit.minY) / Math.max(1, limit.maxY - limit.minY);
+      try { localStorage.setItem(positionKey, JSON.stringify({ x, y })); } catch { /* Position persistence is optional. */ }
+      setTimeout(() => { suppressClick = false; }, 0);
+    }
+    drag = null;
+  };
+  emmi.addEventListener("pointerup", finishDrag);
+  emmi.addEventListener("pointercancel", finishDrag);
+  emmi.addEventListener("click", event => {
+    if (!suppressClick) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+}
+
 function bind() {
   document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", async event => {
     event.preventDefault(); const action = el.dataset.action;
@@ -344,7 +545,7 @@ function bind() {
     if (action === "help") showHelp();
     if (action === "callback") { state.callbackRequested = true; state.returnScreen = state.screen; state.screen = "CALLBACK_CONFIRMED"; audit(state, "callback_requested"); render(); }
     if (action === "return") { state.screen = state.returnScreen || "INVITATION"; render(); }
-    if (action === "language") { state.language = state.language === "en" ? "es" : "en"; document.documentElement.lang = state.language; render(); }
+    if (action === "language") { state.language = state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"; document.documentElement.lang = state.language; render(); }
     if (action === "restart") { state.screen = "INVITATION"; render(); }
     if (action === "secondary") { if (["ONBOARDING", "ACCESS_BASELINE"].includes(state.screen)) { draftStore.save(state); document.querySelector(".save-status").textContent = t().saved; } else showHelp(); }
     if (action === "finish") { draftStore.clear(); el.textContent = L("Done", "Listo"); el.disabled = true; }
@@ -365,6 +566,7 @@ function bind() {
   datePicker?.addEventListener("change", event => {
     if (dobInput && event.target.value) dobInput.value = displayDate(event.target.value);
   });
+  bindEmmiDrag();
 }
 
 async function boot() {
@@ -377,4 +579,5 @@ async function boot() {
   } catch (error) { state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID"; render(); }
 }
 
-render(); boot();
+render();
+if (params.has("scenario")) boot();
