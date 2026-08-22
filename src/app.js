@@ -58,6 +58,22 @@ const rows = items => `<div class="card-list">${items.map(([i, title, body]) => 
 const choice = (value, i, title, body, checked = false) => `<label class="choice-card"><input type="radio" name="choice" value="${value}" ${checked ? "checked" : ""}><span class="choice-dot"></span>${icon(i)}<span><strong>${title}</strong><small>${body}</small></span></label>`;
 const check = (name, label, checked = false) => `<label class="check-row"><input type="checkbox" name="${name}" ${checked ? "checked" : ""}><span class="check-box">✓</span><span>${label}</span></label>`;
 const titleBlock = (title, subtitle = "", eyebrow = "") => `${eyebrow ? `<span class="eyebrow">${eyebrow}</span>` : ""}<h1 tabindex="-1">${title}</h1>${subtitle ? `<p class="lead">${subtitle}</p>` : ""}`;
+const displayDate = isoDate => {
+  const [year, month, day] = isoDate.split("-");
+  return year && month && day ? `${month}/${day}/${year}` : "";
+};
+const typedDate = value => {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+const localToday = () => {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${today.getFullYear()}-${month}-${day}`;
+};
 const art = (kind = "shield", success = false) => {
   const deviceScene = ["device", "wifi"].includes(kind) ? `<div class="device-scene"><span class="cuff"><i></i></span><span class="monitor"><b>120</b><em>80</em><i></i></span>${kind === "wifi" ? '<span class="signal"><i></i><i></i><i></i></span>' : ""}</div>` : "";
   return `<div class="art art-${kind} ${success ? "success" : ""}" aria-hidden="true"><span class="sparkle s1">✦</span><span class="sparkle s2">✦</span><span class="sparkle s3">•</span><div class="art-orbit"></div>${deviceScene || `<div class="art-card"><span class="art-line one"></span><span class="art-line two"></span>${icon(kind, "art-icon")}</div>`}<span class="art-leaf left"></span><span class="art-leaf right"></span></div>`;
@@ -106,7 +122,7 @@ function identity() {
   const representative = state.role === "representative";
   return `${titleBlock(representative ? L("Confirm your authority", "Confirme su autoridad") : L("Let’s confirm it’s you", "Confirmemos su identidad"), representative ? L("We need to verify your authority before you can make a decision for the patient.", "Debemos verificar su autoridad antes de que pueda decidir por el paciente.") : L("Enter the patient’s information.", "Ingrese la información del paciente."))}
     <form id="identity-form" novalidate>
-      <label class="field"><span>${L("Date of birth", "Fecha de nacimiento")}</span><input name="dob" type="text" inputmode="numeric" autocomplete="bday" placeholder="MM / DD / YYYY" aria-describedby="identity-error"></label>
+      <div class="field"><label for="dob">${L("Date of birth", "Fecha de nacimiento")}</label><div class="date-control"><input id="dob" class="date-text" name="dob" type="text" inputmode="numeric" autocomplete="bday" maxlength="10" placeholder="MM/DD/YYYY" aria-describedby="identity-error"><input class="date-picker-native" type="date" min="1900-01-01" max="${localToday()}" aria-label="${L("Choose date of birth from calendar", "Elegir fecha de nacimiento del calendario")}">${icon("calendar", "date-picker-icon")}</div></div>
       <label class="field"><span>${L("ZIP code", "Código postal")}</span><input name="zip" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" placeholder="5-digit ZIP code" aria-describedby="identity-error"></label>
       ${representative ? `<label class="field"><span>${L("Relationship to patient", "Relación con el paciente")}</span><select name="relationship"><option>Health care proxy</option><option>Legal guardian</option><option>Power of attorney</option></select></label>${check("authority", L("I confirm I have current legal authority", "Confirmo que tengo autoridad legal vigente"))}` : ""}
       <p class="form-error" id="identity-error" role="alert">${state.error}</p>
@@ -337,6 +353,18 @@ function bind() {
   }));
   document.querySelector("#scenario-select")?.addEventListener("change", e => { location.search = `?scenario=${encodeURIComponent(e.target.value)}`; });
   document.querySelector("#screen-select")?.addEventListener("change", e => { state.screen = e.target.value; state.identityVerified = true; if (state.screen === "ACCESS_ELIGIBILITY_RESULT") state.accessOutcome = state.offer.fixture.accessOutcome || "eligible"; render(); });
+  const dobInput = document.querySelector(".date-text");
+  const datePicker = document.querySelector(".date-picker-native");
+  dobInput?.addEventListener("input", event => {
+    event.target.value = typedDate(event.target.value);
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(event.target.value) && datePicker) {
+      const [month, day, year] = event.target.value.split("/");
+      datePicker.value = `${year}-${month}-${day}`;
+    }
+  });
+  datePicker?.addEventListener("change", event => {
+    if (dobInput && event.target.value) dobInput.value = displayDate(event.target.value);
+  });
 }
 
 async function boot() {

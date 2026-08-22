@@ -145,6 +145,12 @@ p { margin:0; }
 .field input,.field select { width:100%; min-height:55px; padding:13px 14px; color:var(--text-primary); background:var(--surface-primary); border:1px solid var(--border-default); border-radius:9px; }
 .field input::placeholder { color:var(--text-placeholder); }
 .field input:focus,.field select:focus { border-color:var(--border-focus); box-shadow:0 0 0 4px var(--focus-ring); outline:none; }
+.date-control { position:relative; }
+.date-control .date-text { padding-right:62px; }
+.field .date-picker-native { position:absolute; z-index:2; top:0; right:0; width:58px; min-height:55px; padding:0; border:0; opacity:0; cursor:pointer; }
+.date-picker-icon { position:absolute; z-index:1; top:50%; right:9px; width:40px; height:40px; border-radius:10px; color:var(--primary-600); background:var(--primary-50); transform:translateY(-50%); pointer-events:none; }
+.date-picker-icon svg { width:22px; height:22px; stroke-width:2; }
+.date-control:has(.date-picker-native:focus-visible) .date-text { border-color:var(--border-focus); box-shadow:0 0 0 4px var(--focus-ring); outline:none; }
 .check-row { position:relative; display:flex; gap:11px; align-items:flex-start; margin:14px 0; cursor:pointer; font-size:.9rem; line-height:1.45; }
 .check-row input { position:absolute; opacity:0; }
 .check-box { display:grid; place-items:center; flex:0 0 22px; width:22px; height:22px; color:transparent; background:var(--surface-primary); border:1.5px solid var(--border-strong); border-radius:5px; }
