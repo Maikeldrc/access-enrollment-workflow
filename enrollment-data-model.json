@@ -1,0 +1,218 @@
+{
+  "enrollmentPayload": {
+    "invite": {
+      "inviteId": "pinv_01J...",
+      "tokenHash": "sha256-of-token-server-side",
+      "tokenStatus": "active",
+      "sentVia": "sms",
+      "sentAt": "2026-05-27T13:00:00-04:00",
+      "expiresAt": "2026-06-03T13:00:00-04:00",
+      "patientId": "pat_123",
+      "practitionerId": "prac_fresner",
+      "organizationId": "org_fresner_practice"
+    },
+    "patientConfirmation": {
+      "fullName": "John Smith",
+      "dateOfBirth": "1952-05-12",
+      "zipCode": "33176",
+      "email": "john.smith@example.com",
+      "confirmedCorrect": true
+    },
+    "selectedServices": [
+      {
+        "code": "CCM",
+        "display": "Chronic Care Management",
+        "selected": true
+      },
+      {
+        "code": "RPM",
+        "display": "Remote Patient Monitoring",
+        "selected": true
+      }
+    ],
+    "consent": {
+      "consentVersion": "ccm-rpm-enrollment-consent-v2026-05-27",
+      "voluntaryAcknowledged": true,
+      "hipaaAcknowledged": true,
+      "costSharingAcknowledged": true,
+      "notForEmergenciesAcknowledged": true,
+      "typedSignature": "John Smith",
+      "acceptedAt": "2026-05-27T17:30:00-04:00",
+      "ipAddress": "captured-server-side",
+      "userAgent": "captured-client-side",
+      "deviceMetadata": {
+        "viewport": "390x844",
+        "locale": "en-US",
+        "timezone": "America/New_York"
+      }
+    },
+    "appointment": {
+      "appointmentType": "care-manager-intake",
+      "start": "2026-05-27T09:00:00-04:00",
+      "end": "2026-05-27T09:30:00-04:00",
+      "channel": "phone-or-video",
+      "confirmationEmail": true,
+      "smsReminder": true
+    },
+    "preferences": {
+      "preferredLanguage": "en-US",
+      "allowSmsReminders": true,
+      "allowEmailReminders": true
+    }
+  },
+  "fhirR4Mapping": {
+    "Patient": {
+      "purpose": "Existing patient record linked by invite token; UI confirms only minimum demographics.",
+      "fields": [
+        "Patient.id",
+        "Patient.name",
+        "Patient.birthDate",
+        "Patient.address.postalCode",
+        "Patient.telecom[email]"
+      ]
+    },
+    "Practitioner": {
+      "purpose": "Dr. Fresner as ordering/recommending practitioner.",
+      "fields": [
+        "Practitioner.id",
+        "Practitioner.name"
+      ]
+    },
+    "Organization": {
+      "purpose": "Practice or provider group offering the service.",
+      "fields": [
+        "Organization.id",
+        "Organization.name"
+      ]
+    },
+    "CommunicationRequest": {
+      "purpose": "Outbound SMS invite request without unnecessary PHI.",
+      "fields": [
+        "CommunicationRequest.status=completed",
+        "CommunicationRequest.subject=Patient/{id}",
+        "CommunicationRequest.requester=Practitioner/{id}",
+        "CommunicationRequest.medium=sms",
+        "CommunicationRequest.payload=generic invitation text"
+      ]
+    },
+    "Communication": {
+      "purpose": "Record that the SMS was sent/delivered/opened when available.",
+      "fields": [
+        "Communication.status",
+        "Communication.sent",
+        "Communication.recipient",
+        "Communication.payload"
+      ]
+    },
+    "Questionnaire": {
+      "purpose": "Versioned enrollment form definition.",
+      "fields": [
+        "Questionnaire.url",
+        "Questionnaire.version",
+        "Questionnaire.item for demographics, services, consent, appointment preferences"
+      ]
+    },
+    "QuestionnaireResponse": {
+      "purpose": "Patient-submitted enrollment answers.",
+      "fields": [
+        "QuestionnaireResponse.status=completed",
+        "QuestionnaireResponse.subject=Patient/{id}",
+        "QuestionnaireResponse.authored",
+        "QuestionnaireResponse.item.answer"
+      ]
+    },
+    "Consent": {
+      "purpose": "Participation authorization and HIPAA-related consent evidence.",
+      "fields": [
+        "Consent.status=active",
+        "Consent.scope=patient-privacy",
+        "Consent.category=care-management-enrollment",
+        "Consent.patient=Patient/{id}",
+        "Consent.dateTime",
+        "Consent.sourceAttachment or sourceReference to signed artifact",
+        "Consent.policyRule",
+        "Consent.provision"
+      ]
+    },
+    "ServiceRequest": {
+      "purpose": "Requested CCM and RPM services.",
+      "fields": [
+        "ServiceRequest.status=active",
+        "ServiceRequest.intent=order",
+        "ServiceRequest.code=CCM or RPM",
+        "ServiceRequest.subject=Patient/{id}",
+        "ServiceRequest.requester=Practitioner/{id}"
+      ]
+    },
+    "CarePlan": {
+      "purpose": "Digital care management plan created after enrollment.",
+      "fields": [
+        "CarePlan.status=active",
+        "CarePlan.intent=plan",
+        "CarePlan.subject=Patient/{id}",
+        "CarePlan.author=Practitioner/{id}",
+        "CarePlan.activity referencing CCM/RPM ServiceRequest"
+      ]
+    },
+    "DeviceRequest": {
+      "purpose": "RPM connected device request when RPM is selected.",
+      "fields": [
+        "DeviceRequest.status=active",
+        "DeviceRequest.intent=order",
+        "DeviceRequest.subject=Patient/{id}",
+        "DeviceRequest.requester=Practitioner/{id}",
+        "DeviceRequest.codeCodeableConcept"
+      ]
+    },
+    "Device": {
+      "purpose": "Device assigned after fulfillment.",
+      "fields": [
+        "Device.status=active",
+        "Device.patient=Patient/{id}",
+        "Device.type",
+        "Device.identifier"
+      ]
+    },
+    "Appointment": {
+      "purpose": "First Care Manager appointment.",
+      "fields": [
+        "Appointment.status=booked",
+        "Appointment.serviceType=care-manager-intake",
+        "Appointment.start",
+        "Appointment.end",
+        "Appointment.participant for Patient and Care Manager"
+      ]
+    },
+    "Task": {
+      "purpose": "Care Manager follow-up after enrollment.",
+      "fields": [
+        "Task.status=requested",
+        "Task.intent=order",
+        "Task.for=Patient/{id}",
+        "Task.focus=Appointment/{id}",
+        "Task.owner=CareTeam or PractitionerRole",
+        "Task.description=Prepare first CCM/RPM intake"
+      ]
+    },
+    "Provenance": {
+      "purpose": "Trace who/what created Consent, QuestionnaireResponse, Appointment, ServiceRequest.",
+      "fields": [
+        "Provenance.target",
+        "Provenance.recorded",
+        "Provenance.agent[type=patient|device|system]",
+        "Provenance.signature for typed-signature evidence when supported"
+      ]
+    },
+    "AuditEvent": {
+      "purpose": "Security and compliance audit trail.",
+      "fields": [
+        "AuditEvent.type=rest",
+        "AuditEvent.action=C/R/U",
+        "AuditEvent.recorded",
+        "AuditEvent.agent",
+        "AuditEvent.source",
+        "AuditEvent.entity for token, consent, patient, appointment"
+      ]
+    }
+  }
+}
