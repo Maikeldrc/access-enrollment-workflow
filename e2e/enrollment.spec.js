@@ -42,6 +42,27 @@ test("direct outreach launches without an individual physician claim", async ({ 
   await expect(page.getByText("ITERA HEALTH invites you to learn about additional support available through Medicare.")).toBeVisible();
 });
 
+test("trust hero cards omit the ITERA logo and keep language near the top edge", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+  const hero = page.locator(".trust-hero-card");
+  await expect(hero).toBeVisible();
+  await expect(hero.locator(".stage-language")).toBeVisible();
+  await expect(hero.locator(".stage-brand")).toHaveCount(0);
+  await expect(hero.getByRole("link", { name: /ITERA HEALTH home/ })).toHaveCount(0);
+  const offset = await page.evaluate(() => {
+    const card = document.querySelector(".trust-hero-card").getBoundingClientRect();
+    const language = document.querySelector(".stage-language").getBoundingClientRect();
+    const style = getComputedStyle(document.querySelector(".stage-language"));
+    return { top: language.top - card.top, height: language.height, background: style.backgroundColor, color: style.color, iconCount: document.querySelectorAll(".stage-language .icon").length };
+  });
+  expect(offset.top).toBeLessThanOrEqual(10);
+  expect(offset.height).toBeLessThanOrEqual(34);
+  expect(offset.background).toBe("rgb(255, 70, 1)");
+  expect(offset.color).toBe("rgb(255, 255, 255)");
+  expect(offset.iconCount).toBe(0);
+});
+
 test("ACCESS physician referral uses doctor recommendation with dynamic physician", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
@@ -49,6 +70,15 @@ test("ACCESS physician referral uses doctor recommendation with dynamic physicia
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
   await expect(page.getByAltText("Your doctor recommends ACCESS care with ITERA HEALTH")).toBeVisible();
   await expect(page.locator(".trust-hero-overlay")).toHaveText("Recommended by Dr. Fresner");
+  const doctorLayout = await page.locator(".trust-hero-card").evaluate(card => {
+    const hero = card.getBoundingClientRect();
+    const language = card.querySelector(".stage-language").getBoundingClientRect();
+    const overlay = card.querySelector(".trust-hero-overlay").getBoundingClientRect();
+    return { languageRight: hero.right - language.right, overlayLeftRatio: (overlay.left - hero.left) / hero.width };
+  });
+  expect(doctorLayout.languageRight).toBeLessThanOrEqual(10);
+  expect(doctorLayout.overlayLeftRatio).toBeGreaterThanOrEqual(0.475);
+  expect(doctorLayout.overlayLeftRatio).toBeLessThanOrEqual(0.481);
 });
 
 test("traditional physician pathway uses supervising care card", async ({ page }) => {
@@ -59,6 +89,23 @@ test("traditional physician pathway uses supervising care card", async ({ page }
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "PHYSICIAN_SUPERVISING");
   await expect(page.getByAltText("Care coordinated with your physician and care team")).toBeVisible();
   await expect(page.locator(".trust-hero-overlay")).toHaveText("Coordinated with Dr. Fresner");
+  const languageRight = await page.locator(".trust-hero-card").evaluate(card => {
+    const hero = card.getBoundingClientRect();
+    const language = card.querySelector(".stage-language").getBoundingClientRect();
+    return hero.right - language.right;
+  });
+  expect(languageRight).toBeLessThanOrEqual(10);
+});
+
+test("every CCM RPM and PCM pathway uses the physician supervising card", async ({ page }) => {
+  for (const program of ["CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM"]) {
+    await page.goto("/");
+    await page.getByRole("radio", { name: program, exact: true }).check({ force: true });
+    await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+    await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "PHYSICIAN_SUPERVISING");
+    await expect(page.getByAltText("Care coordinated with your physician and care team")).toBeVisible();
+    await expect(page.locator(".generic-trust-hero")).toHaveCount(0);
+  }
 });
 
 test("trust hero cards use one compact premium image surface", async ({ page }) => {
@@ -66,6 +113,11 @@ test("trust hero cards use one compact premium image surface", async ({ page }) 
   const audits = [];
   const audit = async () => {
     await expect(page.locator(".trust-hero-card")).toBeVisible();
+    await expect(page.locator(".trust-hero-image")).toBeVisible();
+    await page.waitForFunction(() => {
+      const image = document.querySelector(".trust-hero-image");
+      return image?.complete && image.naturalWidth > 0;
+    });
     return page.evaluate(() => {
     const card = document.querySelector(".trust-hero-card");
     const media = document.querySelector(".trust-hero-media");
@@ -184,6 +236,24 @@ test("Emmi remains available throughout the patient experience", async ({ page }
   const emmi = page.getByRole("button", { name: "Ask Emmi, AI assistant" });
   await expect(emmi).toBeVisible();
   await expect(emmi.locator("img")).toHaveAttribute("src", "/assets/emmi-assistant.png");
+  const emmiSurface = await emmi.evaluate(button => {
+    const buttonStyle = getComputedStyle(button);
+    const avatarStyle = getComputedStyle(button.querySelector(".emmi-avatar"));
+    return {
+      buttonBackground: buttonStyle.backgroundColor,
+      buttonBorder: buttonStyle.borderTopWidth,
+      buttonRadius: buttonStyle.borderRadius,
+      avatarBackground: avatarStyle.backgroundColor,
+      avatarRadius: avatarStyle.borderRadius
+    };
+  });
+  expect(emmiSurface).toEqual({
+    buttonBackground: "rgba(0, 0, 0, 0)",
+    buttonBorder: "0px",
+    buttonRadius: "0px",
+    avatarBackground: "rgba(0, 0, 0, 0)",
+    avatarRadius: "0px"
+  });
   const initial = await emmi.boundingBox();
   await page.mouse.move(initial.x + initial.width / 2, initial.y + initial.height / 2);
   await page.mouse.down();

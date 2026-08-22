@@ -105,7 +105,7 @@ function resolveTrustHero(offer) {
   const physicianName = offer.physician?.displayName || "";
   if (access && source === "ITERA Direct Outreach") return { variant: "ACCESS_PARTICIPANT", src: "/images/enrollment/card-access-participant-hero.png", alt: "ITERA HEALTH connected Medicare ACCESS care" };
   if (access && source === "Physician Referral" && physicianName) return { variant: "DOCTOR_RECOMMENDS_ACCESS", src: "/images/enrollment/card-doctor-recommends-hero.png", alt: "Your doctor recommends ACCESS care with ITERA HEALTH", overlayLabel: L("Recommended by", "Recomendado por", "Rekòmande pa"), physicianName };
-  if (!access && physicianName) return { variant: "PHYSICIAN_SUPERVISING", src: "/images/enrollment/card-physician-supervising-hero.png", alt: "Care coordinated with your physician and care team", overlayLabel: L("Coordinated with", "Coordinado con", "Kowòdone avèk"), physicianName };
+  if (!access) return { variant: "PHYSICIAN_SUPERVISING", src: "/images/enrollment/card-physician-supervising-hero.png", alt: "Care coordinated with your physician and care team", overlayLabel: L("Coordinated with", "Coordinado con", "Kowòdone avèk"), physicianName };
   return { variant: "GENERIC_ITERA_CARE", alt: "ITERA HEALTH connected care support" };
 }
 
@@ -116,7 +116,7 @@ function TrustHeroCard() {
     ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}">${overlayText ? `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : ""}`
     : `<div class="generic-trust-hero">${icon("shield")}<strong>${L("Connected care with ITERA HEALTH", "Cuidado conectado con ITERA HEALTH", "Swen konekte avèk ITERA HEALTH")}</strong><small>${L("Support designed around your health needs", "Apoyo diseñado según sus necesidades de salud", "Sipò ki fèt selon bezwen sante ou")}</small></div>`;
   return `<section class="invitation-stage trust-hero-card" data-trust-source="${state.offer.enrollmentSource}" data-hero-variant="${hero.variant}">
-    <div class="stage-brand-row"><a class="brand stage-brand" href="#" data-action="restart" aria-label="ITERA HEALTH home"><b>ITERA.</b>HEALTH</a><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
+    <div class="stage-brand-row"><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${languageCode()}</button></div>
     <div class="trust-hero-media">${media}</div>
   </section>`;
 }
