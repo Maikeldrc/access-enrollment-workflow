@@ -350,10 +350,18 @@ p { margin:0; }
   box-shadow:none;
 }
 .stage-brand-row { position:absolute;z-index:6;inset:0 0 auto;display:flex;justify-content:flex-end;align-items:flex-start;min-height:0;padding:4px 7px 0;background:transparent;pointer-events:none; }
-.stage-language { justify-self:auto;width:auto;min-width:0;min-height:32px;height:32px;padding:0 11px;color:var(--surface-primary);border:1px solid var(--warning);border-radius:999px;background:var(--warning);box-shadow:0 2px 8px rgba(255,70,1,.18);pointer-events:auto; }
+.stage-language { justify-self:auto;width:auto;min-width:0;min-height:32px;height:32px;padding:0 5px;color:#000;border:0;border-radius:0;background:transparent;box-shadow:none;pointer-events:auto; }
 .trust-hero-media { position:absolute;inset:0;overflow:hidden;background:var(--surface-primary); }
 .trust-hero-image { position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center; }
-.trust-hero-overlay { position:absolute;z-index:2;margin:0;color:var(--text-primary);font-size:clamp(.58rem,2.55vw,.69rem);font-weight:600;line-height:1.25;text-align:left;max-height:2.5em;overflow:hidden; }
+.trust-hero-physician-photo { position:absolute;z-index:1;display:block;aspect-ratio:1;overflow:hidden;border:4px solid var(--surface-primary);border-radius:50%;background:var(--surface-primary);box-shadow:none; }
+.trust-hero-physician-photo img { display:block;width:100%;height:100%;object-fit:cover;object-position:50% 24%; }
+.trust-hero-physician-photo.custom img { object-position:35% 50%;transform:scale(1.9);transform-origin:35% 30%; }
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-physician-photo { left:9.9%;top:12.6%;width:33.5%; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-physician-photo { left:12.4%;top:16%;width:29.8%; }
+.trust-hero-badge-layer { position:absolute;z-index:2;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none; }
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-badge-layer { clip-path:circle(6.4% at 36.6% 67.2%); }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-badge-layer { clip-path:circle(6.4% at 37.2% 64%); }
+.trust-hero-overlay { position:absolute;z-index:3;margin:0;color:var(--text-primary);font-size:clamp(.58rem,2.55vw,.69rem);font-weight:600;line-height:1.25;text-align:left;max-height:2.5em;overflow:hidden; }
 .trust-hero-overlay strong { color:var(--primary-600);font-weight:700; }
 .trust-hero-overlay.long { font-size:clamp(.45rem,1.85vw,.56rem);line-height:1.15;letter-spacing:-.012em; }
 .trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-overlay { top:74.5%;left:47.8%;width:42%; }
@@ -487,15 +495,15 @@ p { margin:0; }
 .prototype-programs legend { display:flex;align-items:center;gap:9px;width:100%;margin:0 0 13px;font-size:.92rem; }
 .prototype-programs legend>span { display:grid;place-items:center;width:25px;height:25px;border-radius:8px;color:white;background:var(--primary-700);font-size:.72rem; }
 .prototype-programs legend small,.prototype-field small { margin-left:auto;color:var(--text-placeholder);font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.055em; }
-.program-grid { display:grid;grid-template-columns:repeat(6,1fr);gap:10px; }
+.program-grid { display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px; }
 .program-option { cursor:pointer; }
 .program-option input { position:absolute;opacity:0;pointer-events:none; }
-.program-option>span { display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:112px;padding:15px;border:1px solid var(--border-default);border-radius:15px;background:var(--surface-primary);box-shadow:0 4px 13px rgba(0,78,137,.035);transition:border-color .16s,background .16s,transform .16s; }
+.program-option>span { display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-height:112px;padding:13px;border:1px solid var(--border-default);border-radius:15px;background:var(--surface-primary);box-shadow:0 4px 13px rgba(0,78,137,.035);transition:border-color .16s,background .16s,transform .16s; }
 .program-option>span>.icon { width:38px;height:38px;margin-bottom:12px;border-radius:11px; }
 .program-option>span>.icon svg { width:20px;height:20px; }
 .program-option strong { font-family:"Manrope",sans-serif;font-size:.86rem;line-height:1.25; }
 .program-option:hover>span { transform:translateY(-2px);border-color:var(--primary-400); }
-.program-option input:checked+span { border:2px solid var(--primary-600);padding:14px;background:var(--primary-50);box-shadow:0 9px 22px var(--focus-ring); }
+.program-option input:checked+span { border:2px solid var(--primary-600);padding:12px;background:var(--primary-50);box-shadow:0 9px 22px var(--focus-ring); }
 .program-option input:focus-visible+span { outline:3px solid var(--primary-600);outline-offset:3px; }
 .prototype-fields { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px; }
 .prototype-field { display:grid;gap:8px; }
@@ -503,6 +511,15 @@ p { margin:0; }
 .prototype-field select { width:100%;min-height:54px;padding:0 43px 0 15px;border:1px solid var(--border-default);border-radius:11px;color:var(--text-primary);background:var(--surface-primary);font-size:.94rem;cursor:pointer; }
 .prototype-field select:focus { border-color:var(--primary-600);box-shadow:0 0 0 4px var(--focus-ring);outline:0; }
 .prototype-field.conditional { padding:15px;border:1px solid var(--primary-100);border-radius:15px;background:var(--surface-secondary); }
+.physician-photo-field { grid-column:1/-1; }
+.physician-photo-control { display:grid;grid-template-columns:82px minmax(0,1fr);gap:15px;align-items:center; }
+.physician-photo-control>img { width:82px;height:82px;border:2px solid var(--surface-primary);border-radius:50%;object-fit:cover;object-position:50% 24%;box-shadow:0 0 0 1px var(--border-default),0 7px 18px rgba(0,78,137,.1); }
+.physician-photo-control>div { display:grid;gap:4px;justify-items:start; }
+.physician-photo-control strong { font-size:.9rem; }
+.physician-photo-control small { color:var(--text-secondary);font-size:.75rem; }
+.physician-photo-upload { position:relative;display:inline-flex;align-items:center;min-height:36px;margin-top:5px;padding:0 12px;border:1px solid var(--primary-600);border-radius:9px;color:var(--primary-700);background:var(--surface-primary);font-size:.78rem;font-weight:800;cursor:pointer;overflow:hidden; }
+.physician-photo-upload input { position:absolute;width:1px;height:1px;opacity:0;pointer-events:none; }
+.physician-photo-upload:focus-within { box-shadow:0 0 0 4px var(--focus-ring); }
 .condition-field { position:relative;align-content:start; }
 .condition-multiselect { position:relative; }
 .condition-multiselect summary { display:grid;grid-template-columns:minmax(0,1fr) 24px;align-items:center;min-height:54px;padding:7px 13px 7px 10px;border:1px solid var(--border-default);border-radius:11px;color:var(--text-primary);background:var(--surface-primary);cursor:pointer;list-style:none; }
@@ -551,7 +568,7 @@ p { margin:0; }
   .prototype-console { width:min(100% - 28px,760px);border-radius:22px; }
   .prototype-header { padding:0 28px; }
   .prototype-intro,.prototype-form { padding-left:28px;padding-right:28px; }
-  .program-grid { grid-template-columns:repeat(3,1fr); }
+  .program-grid { grid-template-columns:repeat(4,1fr); }
   .scenario-footer { padding-left:28px;padding-right:28px; }
 }
 @media (max-width:599px) {

@@ -104,19 +104,20 @@ function resolveTrustHero(offer) {
   const access = offer.pathway === "ACCESS";
   const physicianName = offer.physician?.displayName || "";
   if (access && source === "ITERA Direct Outreach") return { variant: "ACCESS_PARTICIPANT", src: "/images/enrollment/card-access-participant-hero.png", alt: "ITERA HEALTH connected Medicare ACCESS care" };
-  if (access && source === "Physician Referral" && physicianName) return { variant: "DOCTOR_RECOMMENDS_ACCESS", src: "/images/enrollment/card-doctor-recommends-hero.png", alt: "Your doctor recommends ACCESS care with ITERA HEALTH", overlayLabel: L("Recommended by", "Recomendado por", "Rekòmande pa"), physicianName };
-  if (!access) return { variant: "PHYSICIAN_SUPERVISING", src: "/images/enrollment/card-physician-supervising-hero.png", alt: "Care coordinated with your physician and care team", overlayLabel: L("Coordinated with", "Coordinado con", "Kowòdone avèk"), physicianName };
+  if (access && source === "Physician Referral" && physicianName) return { variant: "DOCTOR_RECOMMENDS_ACCESS", src: "/images/enrollment/card-doctor-recommends-hero.png", alt: "Your doctor recommends ACCESS care with ITERA HEALTH", overlayLabel: L("Recommended by", "Recomendado por", "Rekòmande pa"), physicianName, physicianPhotoUrl: offer.referringProvider?.verifiedPhotoUrl };
+  if (!access) return { variant: "PHYSICIAN_SUPERVISING", src: "/images/enrollment/card-physician-supervising-hero.png", alt: "Care coordinated with your physician and care team", overlayLabel: L("Coordinated with", "Coordinado con", "Kowòdone avèk"), physicianName, physicianPhotoUrl: offer.referringProvider?.verifiedPhotoUrl };
   return { variant: "GENERIC_ITERA_CARE", alt: "ITERA HEALTH connected care support" };
 }
 
 function TrustHeroCard() {
   const hero = resolveTrustHero(state.offer);
   const overlayText = hero.overlayLabel && hero.physicianName ? `${hero.overlayLabel} ${hero.physicianName}` : "";
+  const customPhysicianPhoto = hero.physicianPhotoUrl && hero.physicianPhotoUrl !== DEFAULT_PROTOTYPE_CONFIG.physicianPhotoUrl;
   const media = hero.src
-    ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}">${overlayText ? `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : ""}`
+    ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}">${customPhysicianPhoto ? `<span class="trust-hero-physician-photo custom"><img src="${escapeHtml(hero.physicianPhotoUrl)}" alt=""></span><img class="trust-hero-badge-layer" src="${hero.src}" alt="" aria-hidden="true">` : ""}${overlayText ? `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : ""}`
     : `<div class="generic-trust-hero">${icon("shield")}<strong>${L("Connected care with ITERA HEALTH", "Cuidado conectado con ITERA HEALTH", "Swen konekte avèk ITERA HEALTH")}</strong><small>${L("Support designed around your health needs", "Apoyo diseñado según sus necesidades de salud", "Sipò ki fèt selon bezwen sante ou")}</small></div>`;
   return `<section class="invitation-stage trust-hero-card" data-trust-source="${state.offer.enrollmentSource}" data-hero-variant="${hero.variant}">
-    <div class="stage-brand-row"><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${languageCode()}</button></div>
+    <div class="stage-brand-row"><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
     <div class="trust-hero-media">${media}</div>
   </section>`;
 }
@@ -349,6 +350,7 @@ function prototypeSetup() {
         <label class="prototype-field"><span><b>Language</b><small>Required</small></span><select name="language">${optionTags(PROTOTYPE_OPTIONS.languages, prototypeConfig.language)}</select></label>
         ${prototypeConfig.program === "ACCESS" ? `<label class="prototype-field conditional"><span><b>ACCESS track</b><small>Shown for ACCESS</small></span><select name="accessTrack">${optionTags(PROTOTYPE_OPTIONS.accessTracks, prototypeConfig.accessTrack)}</select></label>` : ""}
         ${prototypeConfig.source === "Physician Referral" ? `<label class="prototype-field conditional"><span><b>Physician</b><small>Shown for referrals</small></span><select name="physician">${optionTags(PROTOTYPE_OPTIONS.physicians, prototypeConfig.physician)}</select></label>` : ""}
+        <div class="prototype-field physician-photo-field conditional"><span><b>Physician photo</b><small>Optional</small></span><div class="physician-photo-control"><img src="${escapeHtml(prototypeConfig.physicianPhotoUrl)}" alt="Physician photo preview"><div><strong>${prototypeConfig.physicianPhotoUrl === DEFAULT_PROTOTYPE_CONFIG.physicianPhotoUrl ? "Default physician photo" : "Custom physician photo"}</strong><small>PNG, JPG or WebP · maximum 5 MB</small><label class="physician-photo-upload">Choose another photo<input type="file" name="physicianPhoto" accept="image/png,image/jpeg,image/webp"></label></div></div></div>
       </div>
       <p class="prototype-error" id="prototype-error" role="alert"></p>
     </form>
@@ -383,8 +385,25 @@ function bindPrototypeSetup() {
   form?.addEventListener("input", event => {
     if (event.target.name === "otherCondition") prototypeConfig.otherCondition = event.target.value;
   });
-  form?.addEventListener("change", event => {
+  form?.addEventListener("change", async event => {
     if (event.target.name === "otherCondition") { prototypeConfig.otherCondition = event.target.value; return; }
+    if (event.target.name === "physicianPhoto") {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+        document.querySelector("#prototype-error").textContent = "Choose a PNG, JPG or WebP image smaller than 5 MB.";
+        return;
+      }
+      const physicianPhotoUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      prototypeConfig = { ...prototypeConfig, physicianPhotoUrl };
+      render();
+      return;
+    }
     const data = Object.fromEntries(new FormData(form));
     const conditions = new FormData(form).getAll("conditions");
     conditionMenuOpen = event.target.name === "conditions";
@@ -410,7 +429,8 @@ async function launchPrototype() {
   if (prototypeConfig.program === "ACCESS") required.push(prototypeConfig.accessTrack);
   if (prototypeConfig.source === "Physician Referral") required.push(prototypeConfig.physician);
   if (required.some(value => !value)) { document.querySelector("#prototype-error").textContent = "Complete all required fields before launching the patient experience."; return; }
-  localStorage.setItem("itera.prototype.config.v1", JSON.stringify(prototypeConfig));
+  const { physicianPhotoUrl, ...persistableConfig } = prototypeConfig;
+  localStorage.setItem("itera.prototype.config.v1", JSON.stringify(persistableConfig));
   service = new MockEnrollmentService("prototype", prototypeConfig);
   state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, identityVerified: false, devicePath: null, audit: [], error: "" };
   document.documentElement.lang = state.language;

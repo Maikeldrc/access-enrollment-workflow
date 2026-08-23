@@ -45,6 +45,24 @@ const pathways = {
     stopRules: ["Participation is voluntary", "You may stop monitoring at any time", "This service is not for emergencies"],
     modules: ["device", "setup", "reading"]
   },
+  ASM: {
+    invitation: "recommended advanced specialty support",
+    support: "ITERA HEALTH coordinates ongoing specialty support with your physician and care team.",
+    capabilities: [["doctor", "Specialty care coordination", "Support aligned with your specialist’s treatment plan"], ["calendar", "Support between visits", "Regular follow-up based on your care needs"], ["pill", "Treatment plan support", "Help staying on track with medications and next steps"], ["people", "Connected care team", "Important updates are shared with your doctors"]],
+    services: ["Advanced specialty management (ASM)"],
+    cost: "Medicare cost-sharing may apply. Your care team can help you understand your coverage.",
+    stopRules: ["Participation is voluntary", "You may stop this service at any time", "Your regular Medicare benefits do not change"],
+    modules: ["health", "medications", "goals"]
+  },
+  APCM: {
+    invitation: "recommended advanced primary care support",
+    support: "ITERA HEALTH coordinates comprehensive primary care support with your physician and care team.",
+    capabilities: [["people", "Comprehensive care coordination", "Your care team helps connect your health needs"], ["calendar", "Ongoing support", "Regular check-ins between office visits"], ["pill", "Treatment plan support", "Help staying on track with medications and goals"], ["doctor", "Your doctor stays involved", "Important updates are coordinated with your physician"]],
+    services: ["Advanced primary care management (APCM)"],
+    cost: "Medicare cost-sharing may apply. Your care team can help you understand your coverage.",
+    stopRules: ["Participation is voluntary", "You may stop this service at any time", "Your regular Medicare benefits do not change"],
+    modules: ["health", "medications", "goals"]
+  },
   ACCESS: {
     invitation: "recommended added support",
     support: "ITERA HEALTH provides this care in coordination with Dr. Fresner.",
@@ -84,7 +102,7 @@ const pathways = {
 };
 
 export const PROTOTYPE_OPTIONS = {
-  programs: ["ACCESS", "CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM"],
+  programs: ["ACCESS", "CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM", "ASM", "APCM"],
   sources: ["ITERA Direct Outreach", "Physician Referral", "Practice Outreach"],
   conditions: ["Hypertension", "Diabetes", "Heart Failure", "Chronic Kidney Disease", "Other"],
   coverage: ["Original Medicare", "Medicare Advantage"],
@@ -95,7 +113,8 @@ export const PROTOTYPE_OPTIONS = {
 
 export const DEFAULT_PROTOTYPE_CONFIG = {
   program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], otherCondition: "",
-  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", physician: "Dr. Fresner"
+  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", physician: "Dr. Fresner",
+  physicianPhotoUrl: "/assets/doctor-portrait-v2.png"
 };
 
 const pathwayKey = program => program.replaceAll(" + ", "_");
@@ -148,7 +167,7 @@ export function createPrototypeOffer(input = {}) {
       monitoringNeeds: unique(rules.map(rule => rule.monitoring))
     },
     payer: { type: config.coverage === "Original Medicare" ? "OriginalMedicare" : "MedicareAdvantage", mbiAvailable: true, mbiConfidence: "trusted" },
-    referringProvider: { ...shared.referringProvider, name: config.physician || "Dr. Fresner" },
+    referringProvider: { ...shared.referringProvider, name: config.physician || "Dr. Fresner", verifiedPhotoUrl: config.physicianPhotoUrl || shared.referringProvider.verifiedPhotoUrl },
     careCapabilities: program.capabilities.map(([icon, title, description], i) => ({ id: `cap-${i}`, icon, title, description: i === 0 && conditionSummary ? `${description} Focused on ${conditionSummary}.` : description })),
     consent: { ...shared.consent, services: program.services, costSharingText: program.cost, stopRules: program.stopRules },
     disclosures: { ...shared.disclosures, blocks: program.stopRules },

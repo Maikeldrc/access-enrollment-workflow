@@ -53,6 +53,21 @@ describe("enrollment state machine", () => {
     expect(journeyFor({ offer: combined, screen: "INVITATION", devicePath: null })).toContain("RPM_FIRST_READING");
   });
 
+  it("resolves ASM and APCM as clinical care-management pathways", () => {
+    const asm = createPrototypeOffer({ program: "ASM" });
+    const apcm = createPrototypeOffer({ program: "APCM" });
+    expect(asm.pathway).toBe("ASM");
+    expect(asm.consent.services).toEqual(["Advanced specialty management (ASM)"]);
+    expect(apcm.pathway).toBe("APCM");
+    expect(apcm.consent.services).toEqual(["Advanced primary care management (APCM)"]);
+    for (const offer of [asm, apcm]) {
+      const journey = journeyFor({ offer, screen: "INVITATION" });
+      expect(journey).toContain("CLINICAL_VERIFICATION");
+      expect(journey).not.toContain("ACCESS_PRE_ELIGIBILITY_NOTICE");
+      expect(journey).not.toContain("RPM_DEVICE_PATH");
+    }
+  });
+
   it("keeps every selected clinical condition in the generated offer", () => {
     const offer = createPrototypeOffer({
       program: "CCM",

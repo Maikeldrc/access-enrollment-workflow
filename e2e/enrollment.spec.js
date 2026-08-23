@@ -4,10 +4,49 @@ test("prototype setup shows defaults and conditional fields", async ({ page }) =
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Configure the patient scenario" })).toBeVisible();
   await expect(page.getByText("ACCESS · eCKM · ITERA Direct Outreach · Hypertension · Original Medicare · English")).toBeVisible();
+  await expect(page.getByRole("radio", { name: "ASM", exact: true })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "APCM", exact: true })).toBeVisible();
   await page.getByRole("radio", { name: "CCM + RPM", exact: true }).check({ force: true });
   await expect(page.getByRole("combobox", { name: /ACCESS track/ })).toHaveCount(0);
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
   await expect(page.getByRole("combobox", { name: /Physician/ })).toBeVisible();
+});
+
+test("prototype setup previews and applies a custom physician photo", async ({ page }) => {
+  await page.goto("/");
+  const preview = page.getByAltText("Physician photo preview");
+  await expect(preview).toHaveAttribute("src", "/assets/doctor-portrait-v2.png");
+  const customPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2n0AAAAAASUVORK5CYII=", "base64");
+  await page.locator('input[name="physicianPhoto"]').setInputFiles({ name: "alternate-physician.png", mimeType: "image/png", buffer: customPng });
+  await expect(preview).toHaveAttribute("src", /^data:image\/png;base64,/);
+  await expect(page.getByText("Custom physician photo", { exact: true })).toBeVisible();
+  await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
+  await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+  const heroPhoto = page.locator(".trust-hero-physician-photo.custom");
+  const badgeLayer = page.locator(".trust-hero-badge-layer");
+  await expect(heroPhoto).toBeVisible();
+  await expect(heroPhoto.locator("img")).toHaveAttribute("src", /^data:image\/png;base64,/);
+  await expect(heroPhoto.locator("img")).toHaveJSProperty("complete", true);
+  await expect(badgeLayer).toBeVisible();
+  await expect(badgeLayer).toHaveAttribute("src", "/images/enrollment/card-doctor-recommends-hero.png");
+  const layerOrder = await page.locator(".trust-hero-card").evaluate(card => ({
+    photo: Number(getComputedStyle(card.querySelector(".trust-hero-physician-photo")).zIndex),
+    badge: Number(getComputedStyle(card.querySelector(".trust-hero-badge-layer")).zIndex)
+  }));
+  expect(layerOrder.badge).toBeGreaterThan(layerOrder.photo);
+  const crop = await heroPhoto.evaluate(mask => {
+    const image = mask.querySelector("img");
+    const maskRect = mask.getBoundingClientRect();
+    const cardRect = mask.closest(".trust-hero-card").getBoundingClientRect();
+    const imageRect = image.getBoundingClientRect();
+    const maskStyle = getComputedStyle(mask);
+    return { objectFit: getComputedStyle(image).objectFit, scale: imageRect.width / maskRect.width, maskWidthRatio: maskRect.width / cardRect.width, borderWidth: maskStyle.borderTopWidth, boxShadow: maskStyle.boxShadow };
+  });
+  expect(crop.objectFit).toBe("cover");
+  expect(crop.scale).toBeGreaterThanOrEqual(1.7);
+  expect(crop.maskWidthRatio).toBeGreaterThanOrEqual(0.31);
+  expect(crop.borderWidth).toBe("4px");
+  expect(crop.boxShadow).toBe("none");
 });
 
 test("condition selector supports multiple selections and Other", async ({ page }) => {
@@ -58,9 +97,9 @@ test("trust hero cards omit the ITERA logo and keep language near the top edge",
   });
   expect(offset.top).toBeLessThanOrEqual(10);
   expect(offset.height).toBeLessThanOrEqual(34);
-  expect(offset.background).toBe("rgb(255, 70, 1)");
-  expect(offset.color).toBe("rgb(255, 255, 255)");
-  expect(offset.iconCount).toBe(0);
+  expect(offset.background).toBe("rgba(0, 0, 0, 0)");
+  expect(offset.color).toBe("rgb(0, 0, 0)");
+  expect(offset.iconCount).toBe(1);
 });
 
 test("ACCESS physician referral uses doctor recommendation with dynamic physician", async ({ page }) => {
@@ -69,6 +108,8 @@ test("ACCESS physician referral uses doctor recommendation with dynamic physicia
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
   await expect(page.getByAltText("Your doctor recommends ACCESS care with ITERA HEALTH")).toBeVisible();
+  await expect(page.locator(".trust-hero-physician-photo")).toHaveCount(0);
+  await expect(page.locator(".trust-hero-badge-layer")).toHaveCount(0);
   await expect(page.locator(".trust-hero-overlay")).toHaveText("Recommended by Dr. Fresner");
   const doctorLayout = await page.locator(".trust-hero-card").evaluate(card => {
     const hero = card.getBoundingClientRect();
@@ -97,8 +138,8 @@ test("traditional physician pathway uses supervising care card", async ({ page }
   expect(languageRight).toBeLessThanOrEqual(10);
 });
 
-test("every CCM RPM and PCM pathway uses the physician supervising card", async ({ page }) => {
-  for (const program of ["CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM"]) {
+test("every non-ACCESS clinical pathway uses the physician supervising card", async ({ page }) => {
+  for (const program of ["CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM", "ASM", "APCM"]) {
     await page.goto("/");
     await page.getByRole("radio", { name: program, exact: true }).check({ force: true });
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
