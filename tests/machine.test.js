@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOffer, createPrototypeOffer } from "../src/config.js";
+import { createOffer, createPrototypeOffer, normalizePrototypeConfig, scenarioRequiresPhysician } from "../src/config.js";
 import { journeyFor, nextScreen, progressFor } from "../src/machine.js";
 
 const stateFor = (scenarioId, overrides = {}) => ({ offer: createOffer(scenarioId), screen: "INVITATION", devicePath: null, ...overrides });
@@ -20,6 +20,29 @@ describe("enrollment state machine", () => {
     expect(journey.indexOf("ACCESS_ALIGNMENT_PROCESSING")).toBeLessThan(journey.indexOf("ENROLLMENT_CONFIRMED"));
   });
 
+  it("keeps eligible, disclosure, consent, alignment, and enrollment as separate ACCESS stages", () => {
+    const journey = journeyFor(stateFor("access-happy"));
+    const orderedStages = ["ACCESS_ELIGIBILITY_RESULT", "DISCLOSURE", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED"];
+    expect(orderedStages.map(screen => journey.indexOf(screen))).toEqual([...orderedStages.map(screen => journey.indexOf(screen))].sort((a, b) => a - b));
+    expect(new Set(orderedStages.map(screen => journey.indexOf(screen))).size).toBe(orderedStages.length);
+  });
+
+  it("keeps prototype eligibility separate from alignment and ends the not-eligible journey at its result", () => {
+    const eligibleOffer = createPrototypeOffer({ program: "ACCESS", accessEligibilityResult: "eligible" });
+    const notEligibleOffer = createPrototypeOffer({ program: "ACCESS", accessEligibilityResult: "notEligible" });
+    expect(eligibleOffer.fixture.accessOutcome).toBe("eligible");
+    expect(notEligibleOffer.fixture.accessOutcome).toBe("notEligible");
+    expect(eligibleOffer.prototypeConfig).not.toHaveProperty("accessAlignmentResult");
+    const eligibleJourney = journeyFor({ offer: eligibleOffer, screen: "ACCESS_ELIGIBILITY_RESULT", accessOutcome: "eligible" });
+    const notEligibleJourney = journeyFor({ offer: notEligibleOffer, screen: "ACCESS_ELIGIBILITY_RESULT", accessOutcome: "notEligible" });
+    expect(eligibleJourney).toContain("ACCESS_ALIGNMENT_PROCESSING");
+    expect(notEligibleJourney.at(-1)).toBe("ACCESS_ELIGIBILITY_RESULT");
+    expect(notEligibleJourney).not.toContain("DISCLOSURE");
+    expect(notEligibleJourney).not.toContain("CONSENT_REVIEW");
+    expect(notEligibleJourney).not.toContain("ACCESS_ALIGNMENT_PROCESSING");
+    expect(notEligibleJourney).not.toContain("ENROLLMENT_CONFIRMED");
+  });
+
   it("includes shipping only for the ship-device RPM branch", () => {
     expect(journeyFor(stateFor("rpm-shipping", { devicePath: "ship" }))).toContain("RPM_ADDRESS_CONFIRMATION");
     expect(journeyFor(stateFor("rpm-owned", { devicePath: "owned" }))).not.toContain("RPM_ADDRESS_CONFIRMATION");
@@ -30,10 +53,65 @@ describe("enrollment state machine", () => {
     expect(journeyFor(stateFor("access-happy"))).not.toContain("ACCESS_MEDICARE_IDENTIFIER");
   });
 
-  it("uses a separate setup progress phase", () => {
+  it("uses contextual labels and the resolved journey for progress", () => {
     const state = stateFor("rpm-shipping", { screen: "RPM_DEVICE_PATH", devicePath: "ship" });
-    expect(progressFor(state).label).toBe("Home monitoring setup");
+    const progress = progressFor(state);
+    expect(progress.label).toBe("Getting started");
+    expect(progress.total).toBe(journeyFor(state).length);
+    expect(progress.percent).toBeGreaterThan(0);
+    expect(progress.percent).toBeLessThanOrEqual(100);
     expect(nextScreen(state)).toBe("RPM_ADDRESS_CONFIRMATION");
+  });
+
+  it("labels role selection separately from identity confirmation", () => {
+    expect(progressFor(stateFor("access-happy", { screen: "DECISION_MAKER" })).label).toBe("Who’s completing");
+    expect(progressFor(stateFor("access-happy", { screen: "IDENTITY_VERIFICATION" })).label).toBe("Confirm identity");
+  });
+
+  it("inserts representative details only for the personal representative branch", () => {
+    const patientJourney = journeyFor(stateFor("access-happy", { completionRole: "patient", role: "patient" }));
+    const helperJourney = journeyFor(stateFor("access-happy", { completionRole: "helper", role: "helper" }));
+    const representativeState = stateFor("access-happy", { completionRole: "personalRepresentative", role: "representative", screen: "PERSONAL_REPRESENTATIVE_DETAILS" });
+    const representativeJourney = journeyFor(representativeState);
+    expect(patientJourney).not.toContain("PERSONAL_REPRESENTATIVE_DETAILS");
+    expect(helperJourney).not.toContain("PERSONAL_REPRESENTATIVE_DETAILS");
+    expect(representativeJourney).toContain("PERSONAL_REPRESENTATIVE_DETAILS");
+    expect(representativeJourney.indexOf("PERSONAL_REPRESENTATIVE_DETAILS")).toBe(representativeJourney.indexOf("DECISION_MAKER") + 1);
+    expect(representativeJourney.slice(2, 6)).toEqual(["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "IDENTITY_VERIFICATION"]);
+    expect(progressFor(representativeState).label).toBe("Your role");
+  });
+
+  it("keeps additional authority verification conditional", () => {
+    const standard = stateFor("access-happy", { completionRole: "personalRepresentative", role: "representative" });
+    const escalated = { ...standard, authorityAdditionalVerificationRequired: true };
+    expect(journeyFor(standard)).not.toContain("REPRESENTATIVE_AUTHORITY_ESCALATION");
+    expect(journeyFor(escalated)).toContain("REPRESENTATIVE_AUTHORITY_ESCALATION");
+    expect(journeyFor(escalated).indexOf("REPRESENTATIVE_AUTHORITY_ESCALATION")).toBe(journeyFor(escalated).indexOf("IDENTITY_VERIFICATION") - 1);
+  });
+
+  it("provides a short non-numeric progress label for every resolved screen", () => {
+    for (const scenario of ["ccm-happy", "rpm-shipping", "access-happy", "access-missing-mbi"]) {
+      const base = stateFor(scenario, { devicePath: scenario === "rpm-shipping" ? "ship" : null });
+      for (const screen of journeyFor(base)) {
+        const progress = progressFor({ ...base, screen });
+        expect(progress.label).toMatch(/^[A-Za-z ’']+$/);
+        expect(progress.label).not.toMatch(/\d|step|of/i);
+      }
+    }
+  });
+
+  it("keeps outcome branches anchored to eligibility progress", () => {
+    const base = stateFor("access-not-eligible");
+    const eligibility = progressFor({ ...base, screen: "ACCESS_ELIGIBILITY_RESULT" });
+    const stopped = progressFor({ ...base, screen: "OUTCOME_STOPPED" });
+    expect(stopped.label).toBe("Eligibility");
+    expect(stopped.percent).toBe(eligibility.percent);
+  });
+
+  it("keeps assistant support anchored to the originating enrollment stage", () => {
+    const base = stateFor("access-happy", { screen: "ASSISTANT_LAYER", returnScreen: "ACCESS_PRE_ELIGIBILITY_NOTICE" });
+    expect(progressFor(base).label).toBe("Eligibility");
+    expect(progressFor(base).label).not.toBe("Questions");
   });
 
   it("generates a single combined journey for CCM + RPM", () => {
@@ -68,20 +146,91 @@ describe("enrollment state machine", () => {
     }
   });
 
+  it("builds patient-friendly care capabilities for every pathway", () => {
+    const expectations = {
+      ACCESS: ["Regular health check-ins", "A personalized care plan", "Medication support", "Connected care team"],
+      CCM: ["Ongoing support between visits", "A personalized care plan", "Medication support", "Care coordination"],
+      RPM: ["Home health monitoring", "Reading review", "Support when readings need attention", "Connected care team"],
+      "CCM + RPM": ["Ongoing support between visits", "Home health monitoring", "Medication support", "Connected care team"],
+      PCM: ["Focused support for your main condition", "A personalized care plan", "Medication support", "Care coordination"]
+    };
+    for (const [program, titles] of Object.entries(expectations)) {
+      const offer = createPrototypeOffer({ program });
+      expect(offer.careCapabilities.map(item => item.title)).toEqual(titles);
+      expect(offer.careCapabilities.map(item => item.title).join(" ")).not.toMatch(/\b(?:CCM|RPM|PCM|CPT)\b/);
+    }
+  });
+
   it("keeps every selected clinical condition in the generated offer", () => {
     const offer = createPrototypeOffer({
       program: "CCM",
-      conditions: ["Hypertension", "Diabetes", "Chronic Kidney Disease", "Other"],
-      otherCondition: "Aortic aneurysm"
+      conditions: ["Hypertension", "Diabetes", "Heart Failure", "Chronic Kidney Disease"]
     });
-    expect(offer.qualifyingConditions.map(item => item.name)).toEqual(["Hypertension", "Diabetes", "Chronic Kidney Disease", "Other"]);
-    expect(offer.qualifyingConditions.at(-1).patientFriendlyName).toBe("Aortic aneurysm");
+    expect(offer.qualifyingConditions.map(item => item.name)).toEqual(["Hypertension", "Diabetes", "Heart Failure", "Chronic Kidney Disease"]);
+    expect(offer.qualifyingConditions.at(-1).patientFriendlyName).toBe("chronic kidney disease");
     expect(offer.clinicalProfile.baselineRequirements).toHaveLength(4);
-    expect(offer.onboardingModules).toEqual(expect.arrayContaining(["blood-pressure", "diabetes", "kidney-health", "other-condition"]));
+    expect(offer.onboardingModules).toEqual(expect.arrayContaining(["blood-pressure", "diabetes", "heart-failure", "kidney-health"]));
   });
 
   it("only exposes an individual physician for physician referral scenarios", () => {
     expect(createPrototypeOffer({ source: "Physician Referral", physician: "Dr. Martinez-Clark" }).physician.displayName).toBe("Dr. Martinez-Clark");
     expect(createPrototypeOffer({ source: "ITERA Direct Outreach", physician: "Dr. Martinez-Clark" }).physician).toBeNull();
+  });
+
+  it("builds ACCESS disclosure configuration from the resolved scenario", () => {
+    const defaults = createPrototypeOffer({ program: "ACCESS", source: "Physician Referral", physician: "Dr. Martinez-Clark", accessTrack: "CKM" });
+    expect(defaults.disclosures.accessConfig).toEqual({
+      costSharingType: "COST_SHARING_NONE",
+      costSharingAmount: null,
+      showClaimsSharing: false,
+      showTempoDisclosure: false,
+      tempoDisclosureText: "",
+      physicianDisplayName: "Dr. Martinez-Clark",
+      careTrack: "CKM"
+    });
+
+    const configured = createPrototypeOffer({
+      program: "ACCESS",
+      accessCostSharingType: "COST_SHARING_APPLIES",
+      accessCostSharingAmount: "$42",
+      showAccessClaimsSharing: true,
+      showAccessTempoDisclosure: true,
+      accessTempoDisclosureText: "Configured device disclosure."
+    });
+    expect(configured.disclosures.accessConfig).toMatchObject({
+      costSharingType: "COST_SHARING_APPLIES",
+      costSharingAmount: "$42",
+      showClaimsSharing: true,
+      showTempoDisclosure: true,
+      tempoDisclosureText: "Configured device disclosure."
+    });
+  });
+
+  it("normalizes invalid ACCESS coverage and controlled conditions before building an offer", () => {
+    const normalized = normalizePrototypeConfig({ program: "ACCESS", coverage: "Medicare Advantage", conditions: ["Diabetes", "Other"] });
+    expect(normalized.coverage).toBe("Original Medicare");
+    expect(normalized.conditions).toEqual(["Diabetes"]);
+    expect(createPrototypeOffer({ program: "ACCESS", coverage: "Medicare Advantage" }).payer.type).toBe("OriginalMedicare");
+  });
+
+  it("consolidates ACCESS referral sources while preserving non-ACCESS options", () => {
+    expect(normalizePrototypeConfig({ program: "ACCESS", source: "Physician Referral" })).toMatchObject({ source: "Provider / Practice Referral", referralOrigin: "physician" });
+    expect(normalizePrototypeConfig({ program: "ACCESS", source: "Practice Outreach" })).toMatchObject({ source: "Provider / Practice Referral", referralOrigin: "practiceStaff" });
+    expect(normalizePrototypeConfig({ program: "CCM", source: "Practice Outreach" })).toMatchObject({ source: "Practice Outreach", referralOrigin: null });
+    const offer = createPrototypeOffer({ program: "ACCESS", source: "Provider / Practice Referral", referralOrigin: "careTeam" });
+    expect(offer.enrollmentSource).toBe("Provider / Practice Referral");
+    expect(offer.referralOrigin).toBe("careTeam");
+  });
+
+  it("models physician involvement independently from the physician name and photo", () => {
+    expect(scenarioRequiresPhysician("ACCESS", "ITERA Direct Outreach")).toBe(false);
+    expect(scenarioRequiresPhysician("ACCESS", "Physician Referral")).toBe(true);
+    expect(scenarioRequiresPhysician("CCM", "ITERA Direct Outreach")).toBe(true);
+    const direct = createPrototypeOffer({ program: "ACCESS", source: "ITERA Direct Outreach", physicianDisplayName: "Dr. Hidden" });
+    const referral = createPrototypeOffer({ program: "ACCESS", source: "Physician Referral", physicianDisplayName: "Dr. Rivera", physicianPhotoUrl: "/doctor-rivera.jpg" });
+    expect(direct.physician).toBeNull();
+    expect(direct.referringProvider).toBeNull();
+    expect(referral.physician.displayName).toBe("Dr. Rivera");
+    expect(referral.referringProvider.verifiedPhotoUrl).toBe("/doctor-rivera.jpg");
   });
 });
