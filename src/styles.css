@@ -311,6 +311,9 @@ p { margin:0; }
 .disclosure-row { display:flex; gap:11px; align-items:flex-start; padding:12px 3px; border-bottom:1px solid var(--line); font-size:.85rem; line-height:1.45; }
 .disclosure-row:last-child { border:0; }
 .disclosure-row .icon { width:28px; height:28px; }
+.disclosure-row>div { min-width:0; }
+.disclosure-row>div strong { display:block; font-size:.9375rem; line-height:1.35; }
+.disclosure-row>div p { margin:3px 0 0; color:var(--text-muted); }
 .access-disclosure-card { padding:16px; }
 .access-disclosure-card h2 { margin-bottom:2px; font-size:1rem; }
 .access-disclosure-row { gap:12px; min-height:78px; padding:14px 3px; }
@@ -349,7 +352,7 @@ p { margin:0; }
 .consent-disclosure-row p { margin:4px 0 0; color:var(--text-muted); font-size:1rem; line-height:1.48; }
 .access-cost-row>.icon { color:var(--primary-600); background:var(--primary-50); }
 .signer-role { margin:16px 0 10px; padding:13px 15px; color:var(--text-primary); background:var(--surface-purple); border:1px solid var(--border-default); border-radius:10px; font-size:1.0625rem; line-height:1.45; }
-.access-consent-screen .check-row { min-height:52px; align-items:flex-start; font-size:1rem; line-height:1.48; }
+.consent-screen .check-row { min-height:52px; align-items:flex-start; font-size:1rem; line-height:1.48; }
 .access-consent-screen .actions .button { min-height:50px; font-size:1.0625rem; }
 .access-consent-terms summary { font-size:1rem;line-height:1.4; }
 .access-consent-terms summary .icon { width:22px;height:22px;background:transparent; }
@@ -361,6 +364,25 @@ p { margin:0; }
 .access-full-support a { display:inline-flex; align-items:center; gap:7px; min-height:44px; margin-top:7px; color:var(--primary-600); font-size:1rem; font-weight:700; text-decoration-thickness:1.5px; text-underline-offset:3px; }
 .access-full-support a .icon { width:22px; height:22px; background:transparent; }
 .access-disclosure-version { margin:15px 0 2px!important; color:var(--text-primary)!important; }
+/* Shared "Important information" screen — one senior-friendly layout for every program. */
+.important-information-card { padding:16px; }
+.important-information-card h2 { margin-bottom:2px; font-size:1rem; }
+.important-information-row { gap:12px; min-height:78px; padding:14px 3px; }
+.important-information-row .icon { flex:0 0 34px; width:34px; height:34px; }
+.important-information-row>div strong { font-size:1.0625rem; line-height:1.35; }
+.important-information-row>div p { margin:4px 0 0; font-size:1rem; line-height:1.48; }
+.important-information-screen .check-row { min-height:52px; align-items:flex-start; font-size:1rem; line-height:1.45; }
+.important-information-screen .actions .button { min-height:48px; font-size:1.0625rem; }
+.important-information-screen .full-terms summary { font-size:1rem; line-height:1.4; }
+.important-information-screen .full-terms summary .icon,.program-full-terms summary .icon { width:22px; height:22px; background:transparent; }
+.important-information-screen .full-terms p { font-size:1rem; line-height:1.5; }
+.disclosure-privacy-note { display:flex; gap:9px; align-items:flex-start; margin:12px 0 4px; color:var(--text-muted); font-size:.9375rem; line-height:1.5; }
+.disclosure-privacy-note .icon { flex:0 0 22px; width:22px; height:22px; background:transparent; }
+.program-full-terms summary { font-size:1rem; line-height:1.4; }
+.program-full-content { padding-top:4px; }
+.program-full-content p { padding:0; font-size:1rem; line-height:1.5; }
+.program-consent-summary { padding:16px; }
+.program-consent-summary h2 { margin:0 0 2px; padding:9px; background:var(--surface-purple); border-radius:6px; font-size:1rem; }
 .enrollment-consent-details summary { font-size:1rem; line-height:1.4; }
 .enrollment-consent-details summary .icon { width:22px; height:22px; background:transparent; }
 .enrollment-consent-details p { font-size:1rem; line-height:1.55; }
@@ -902,7 +924,7 @@ p { margin:0; }
   .recommendation-screen .note { padding-right:68px; }
   .care-works-screen .actions { margin-right:58px; }
   .care-works-screen .trust-note { padding-right:68px; }
-  .access-disclosure-screen .check-row,.access-disclosure-screen .actions { margin-right:58px; }
+  .important-information-screen .check-row,.important-information-screen .actions,.important-information-screen .disclosure-privacy-note { margin-right:58px; }
   .consent-screen .signer-role,.consent-screen #consent-form,.consent-screen .actions { margin-right:58px; }
   .access-notice-screen .check-row,.access-notice-screen .actions { margin-right:58px; }
   .representative-details-screen .actions,.representative-details-screen .representative-otp-links,.representative-details-screen .check-row { margin-right:58px; }

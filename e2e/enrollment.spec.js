@@ -2295,7 +2295,7 @@ test("traditional consent keeps a personal representative separate from the pati
   const cta = page.getByRole("button", { name: "Enroll now" });
   await expect(cta).toBeDisabled();
   await page.getByLabel(/authorized to make healthcare decisions for the patient/).check();
-  await page.getByLabel(/received and understand this important information/).check();
+  await page.getByLabel(/I have reviewed this information/).check();
   await page.getByLabel(/on behalf of the patient, to enroll the patient in the services/).check();
   await expect(cta).toBeEnabled();
 });
@@ -2369,10 +2369,26 @@ test("all traditional programs complete their implemented patient journey", asyn
     await expect(page.getByRole("heading", { name: "Your recommended care" })).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page.getByRole("heading", { name: "About your recommended care" })).toBeVisible();
+    const friendlyProgramName = {
+      CCM: "Chronic Care Management (CCM)",
+      RPM: "Remote Patient Monitoring (RPM)",
+      "CCM + RPM": "Chronic Care Management + Remote Patient Monitoring",
+      PCM: "Principal Care Management (PCM)",
+      "PCM + RPM": "Principal Care Management + Remote Patient Monitoring",
+      ASM: "Advanced Specialty Management (ASM)",
+      APCM: "Advanced Primary Care Management (APCM)"
+    }[program];
+    await expect(page.getByRole("heading", { name: "About your care" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: friendlyProgramName, exact: true })).toBeVisible();
+    await expect(page.locator("#screen-content")).not.toContainText(/CCM_RPM|PCM_RPM/);
+    const importantInformationCta = page.getByRole("button", { name: "Continue" });
+    await expect(importantInformationCta).toBeDisabled();
     await page.getByLabel(/I have reviewed this information/).check();
-    await page.getByRole("button", { name: "I understand" }).click();
-    await page.getByLabel(/received and understand this important information/).check();
+    await expect(importantInformationCta).toBeEnabled();
+    await importantInformationCta.click();
+    await expect(page.getByRole("heading", { name: "Review and agree", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: friendlyProgramName, exact: true })).toBeVisible();
+    await page.getByLabel(/I have reviewed this information/).check();
     await page.getByLabel(/agree to enroll in the services listed above/).check();
     await page.getByRole("button", { name: "Enroll now" }).click();
     await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible({ timeout: 5000 });
@@ -2389,9 +2405,12 @@ test("all traditional programs complete their implemented patient journey", asyn
     } else {
       await page.getByRole("button", { name: "Continue to set up care" }).click();
       await page.getByRole("button", { name: "Save and continue" }).click();
-      await page.getByRole("button", { name: "Continue" }).click();
-      await page.getByRole("button", { name: "Continue" }).click();
-      await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+      const completion = page.getByRole("heading", { name: "You’re off to a great start" });
+      // The care-setup modules vary by program, so advance until the completion screen appears.
+      for (let step = 0; step < 6 && !(await completion.isVisible()); step += 1) {
+        await page.getByRole("button", { name: "Continue", exact: true }).click();
+      }
+      await expect(completion).toBeVisible();
     }
     await expect(page.locator("#screen-content")).not.toContainText(/ACCESS Eligibility|ACCESS Model|Check my eligibility/);
   }

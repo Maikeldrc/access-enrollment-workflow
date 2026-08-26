@@ -12,6 +12,7 @@ import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
+import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
@@ -83,6 +84,8 @@ const iconMap = {
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
 const L = (en, es, ht) => localize(state.language, { en, es, ht }, en);
+// Resolves a { en, es, ht } entry from the shared program disclosure configuration.
+const localized = entry => (entry ? localize(state.language, entry, entry.en) : "");
 const offerText = (source, variables = {}) => localizeOfferText(state.language, source, variables);
 const t = () => commonMessagesFor(state.language);
 const languageCode = () => localeCode(state.language);
@@ -694,7 +697,7 @@ function assistantLayer() {
 }
 
 function disclosure() {
-  const label = state.offer.pathway === "ACCESS" ? "ACCESS" : state.offer.pathway;
+  const label = "ACCESS";
   if (state.offer.pathway === "ACCESS") {
     const config = state.offer.disclosures.accessConfig || {};
     const costCopy = config.costSharingType === "COST_SHARING_APPLIES"
@@ -716,11 +719,27 @@ function disclosure() {
       <details class="full-terms"><summary>${L("View full information", "Ver información completa", "Gade tout enfòmasyon yo")} ${icon("externalLink")}</summary><p>${L("Review the complete ACCESS information, including participation, Medicare benefits, costs, provider choice, timing rules, privacy, and any disclosures that apply to your care before you decide.", "Revise la información completa de ACCESS, incluida la participación, los beneficios de Medicare, los costos, la elección de proveedor, las reglas de tiempo, la privacidad y cualquier divulgación aplicable antes de decidir.", "Revize tout enfòmasyon ACCESS yo, tankou patisipasyon, benefis Medicare, depans, chwa founisè, règ sou delè, vi prive ak nenpòt lòt enfòmasyon ki aplike pou swen ou anvan ou deside.")}</p></details>
       ${check("acknowledge", L("I have reviewed this information", "He revisado esta información", "Mwen te revize enfòmasyon sa a"))}<p class="form-error" role="alert">${state.error}</p>${actions(L("Continue", "Continuar", "Kontinye"), true, "", true)}`;
   }
-  return `${titleBlock(L("About your recommended care", "Acerca de su cuidado recomendado", "Konsènan swen ou rekòmande a"), "", L("Important information", "Información importante", "Enfòmasyon enpòtan"))}
-    <section class="disclosure-card"><h2>${label}</h2>${state.offer.disclosures.blocks.map((x, i) => `<div class="disclosure-row">${icon(["people", "shield", "info"][i] || "check")}<p>${x}</p></div>`).join("")}${state.offer.pathway === "RPM" ? `<div class="disclosure-row">${icon("device")}<p>${L("Readings are sent automatically from a connected device. This service does not replace emergency care.", "Las lecturas se envían automáticamente desde un dispositivo conectado. Este servicio no reemplaza la atención de emergencia.", "Yo voye lekti yo otomatikman nan yon aparèy ki konekte. Sèvis sa a pa ranplase swen ijan.")}</p></div>` : ""}</section>
-    <details class="full-terms"><summary>${L("View full information", "Ver información completa", "Gade enfòmasyon konplè")} <span>↗</span></summary><p>${L("Your information is used to coordinate the care described here and is protected under applicable privacy rules. You may contact the care team before deciding.", "Su información se usa para coordinar el cuidado descrito y está protegida por las reglas de privacidad aplicables. Puede contactar al equipo antes de decidir.", "Enfòmasyon ou yo itilize pou kowòdone swen ki dekri isit la epi yo pwoteje dapre règleman sou vi prive ki aplikab yo. Ou ka kontakte ekip swen an anvan w deside.")}</p></details>
-    ${check("acknowledge", L("I have reviewed this information", "He revisado esta información", "Mwen te revize enfòmasyon sa a"))}<p class="form-error" role="alert">${state.error}</p>${actions(L("I understand", "Entiendo", "Mwen konprann"))}`;
+  return importantInformationScreen();
 }
+
+// Shared "Important information" screen for every non-ACCESS program. Content comes
+// entirely from programDisclosureConfig so the same rules feed "Review and agree".
+function importantInformationScreen() {
+  const config = programDisclosureConfig(state.offer.pathway);
+  if (!config) return "";
+  const copy = IMPORTANT_INFORMATION_COPY;
+  return `${titleBlock(localized(copy.title), localized(copy.lead))}
+    <section class="disclosure-card important-information-card"><h2>${localized(config.displayName)}</h2>${disclosureRowsMarkup(config.disclosures, "disclosure-row important-information-row")}</section>
+    ${programFullInformation(config)}
+    <p class="disclosure-privacy-note">${icon("lock")}<span>${localized(copy.privacyNote)}</span></p>
+    ${check("acknowledge", localized(copy.acknowledgement))}<p class="form-error" role="alert">${state.error}</p>${actions(localized(copy.continue), true, "", true)}`;
+}
+
+const disclosureRowsMarkup = (disclosures, rowClass) => disclosures
+  .map(row => `<div class="${rowClass}" data-disclosure-id="${row.id}">${icon(row.icon)}<div><strong>${localized(row.title)}</strong><p>${localized(row.body)}</p></div></div>`)
+  .join("");
+
+const programFullInformation = (config, extraClass = "") => `<details class="full-terms program-full-terms ${extraClass}"><summary>${localized(config.fullInformationLabel) || localized(IMPORTANT_INFORMATION_COPY.fullInformationFallback)} ${icon("externalLink")}</summary><div class="program-full-content">${config.fullInformation.map(part => `<section class="access-full-section"><h2>${localized(part.title)}</h2><p>${localized(part.body)}</p></section>`).join("")}<p class="access-disclosure-version"><strong>${L("Disclosure version", "Versión de divulgación", "Vèsyon enfòmasyon")}: ${state.offer.disclosures.version}</strong></p></div></details>`;
 
 function accessCostSummary(accessCost = {}) {
   const amount = Number.isFinite(Number(accessCost.expectedMonthlyAmount)) ? Number(accessCost.expectedMonthlyAmount) : 6;
@@ -808,11 +827,18 @@ function consent() {
   const traditionalAgreement = traditionalRepresentative
     ? L("I agree, on behalf of the patient, to enroll the patient in the services listed above", "Acepto, en nombre del paciente, inscribir al paciente en los servicios indicados", "Mwen dakò, nan non pasyan an, pou enskri pasyan an nan sèvis ki nan lis pi wo a")
     : L("I agree to enroll in the services listed above", "Acepto inscribirme en los servicios indicados", "Mwen dakò pou enskri nan sèvis ki nan lis pi wo a");
+  // The same programDisclosureConfig that drives "Important information" is reused here so
+  // the two screens can never diverge on voluntary participation, cost, or stopping rules.
+  const programConfig = programDisclosureConfig(state.offer.pathway);
+  const disclosureSummary = programConfig
+    ? `<section class="consent-summary program-consent-summary"><h2>${localized(programConfig.displayName)}</h2>${disclosureRowsMarkup(programConfig.disclosures, "consent-disclosure-row")}</section>${programFullInformation(programConfig, "program-consent-terms")}`
+    : `<section class="consent-summary"><p>${offerText(state.offer.consent.costSharingText)}</p>${state.offer.consent.stopRules.map(x => `<p>${icon("check")} ${offerText(x)}</p>`).join("")}</section>`;
   return `${titleBlock(L("Review and agree", "Revise y acepte", "Revize epi dakò"), traditionalIntro)}
     <section class="care-team-card">${providerCard()}<div class="provider-connector"></div><div class="itera-provider">${icon("people")}<span><strong>ITERA HEALTH</strong><small>${L("Care provider", "Proveedor de cuidado", "Founisè swen")}</small></span></div></section>
     <div class="service-chips">${state.offer.consent.services.map(x => `<span>${icon("check")} ${offerText(x)}</span>`).join("")}</div>
-    <section class="consent-summary"><p>${offerText(state.offer.consent.costSharingText)}</p>${state.offer.consent.stopRules.map(x => `<p>${icon("check")} ${offerText(x)}</p>`).join("")}<p class="signer-role"><strong>${L("Signer role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${role}</p></section>
-    <form id="consent-form">${traditionalAuthority}${check("consent", L("I received and understand this important information", "Recibí y comprendo esta información importante", "Mwen te resevwa ak konprann enfòmasyon enpòtan sa a"))}${check("enroll", traditionalAgreement)}</form>
+    ${disclosureSummary}
+    <p class="signer-role"><strong>${L("Signer role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${role}</p>
+    <form id="consent-form">${traditionalAuthority}${check("consent", localized(IMPORTANT_INFORMATION_COPY.acknowledgement))}${check("enroll", traditionalAgreement)}</form>
     <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Enroll now", "Inscribirme ahora", "Enskri kounye a"), true, "", true)}`;
 }
 
@@ -1230,7 +1256,7 @@ function render() {
   if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; return; }
   if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
-  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" && state.offer?.pathway === "ACCESS" ? "access-disclosure-screen" : state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : "";
+  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : state.screen === "ACCESS_MEASURE" && isBloodPressureAccessBaseline() ? "BP_HEALTH_DATA_SECURITY" : "";
   app.innerHTML = `<main class="shell">${header()}<section class="screen ${screenClass}" id="screen-content">${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
@@ -2448,7 +2474,7 @@ function bind() {
   const accessEligibilityCta = document.querySelector('.access-notice-screen [data-action="next"]');
   accessAcknowledgement?.addEventListener("change", event => { if (accessEligibilityCta) accessEligibilityCta.disabled = !event.target.checked; });
   const disclosureAcknowledgement = document.querySelector('[name="acknowledge"]');
-  const disclosureCta = document.querySelector('.access-disclosure-screen [data-action="next"]');
+  const disclosureCta = document.querySelector('.important-information-screen [data-action="next"]');
   disclosureAcknowledgement?.addEventListener("change", event => { if (disclosureCta) disclosureCta.disabled = !event.target.checked; });
   const representativeForm = document.querySelector("#representative-form");
   const representativeCta = document.querySelector('.representative-details-screen [data-action="next"]');
