@@ -4,6 +4,9 @@ export const SCENARIOS = {
   "rpm-owned": { label: "RPM · patient-owned device", pathway: "RPM", rpmDevice: "owned" },
   "rpm-transmission-fail": { label: "RPM · transmission support", pathway: "RPM", rpmDevice: "owned", firstReading: "failed" },
   "access-happy": { label: "ACCESS · eligible", pathway: "ACCESS", accessOutcome: "eligible" },
+  "access-bp-incompatible": { label: "ACCESS · incompatible BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceCompatibility: "incompatible" },
+  "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpReadingFailureAt: 2 },
+  "access-bp-escalation": { label: "ACCESS · BP clinical escalation", pathway: "ACCESS", accessOutcome: "eligible", bpClinicalReview: "escalation" },
   "access-disclosure-configured": { label: "ACCESS · configured disclosures", pathway: "ACCESS", accessOutcome: "eligible", accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: "$35", showAccessClaimsSharing: true, showAccessTempoDisclosure: true, accessTempoDisclosureText: "A connected device may be used to support your ACCESS care. Your care team will explain what is required." },
   "access-control": { label: "ACCESS · control group", pathway: "ACCESS", accessOutcome: "control" },
   "access-not-eligible": { label: "ACCESS · not eligible", pathway: "ACCESS", accessOutcome: "notEligible" },
@@ -20,7 +23,7 @@ export const SCENARIOS = {
 
 const shared = {
   id: "offer_demo_2026",
-  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en" },
+  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" } },
   referringProvider: { id: "dr-fresner", name: "Dr. Fresner", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
   participantProvider: { id: "itera", legalName: "ITERA HEALTH LLC", displayName: "ITERA HEALTH", supportPhone: "(305) 394-8070" },
   qualifyingCondition: { patientFriendlyName: "high blood pressure" },
@@ -116,11 +119,28 @@ export const PROTOTYPE_OPTIONS = {
   accessEligibilityResults: [{ value: "eligible", label: "Eligible" }, { value: "notEligible", label: "Not eligible" }]
 };
 
+export const ACCESS_COST_BY_TRACK = Object.freeze({ eCKM: 6, CKM: 7, BH: 3, MSK: 3 });
+export const SECONDARY_COVERAGE_STATUSES = Object.freeze({
+  NOT_VERIFIED: "SECONDARY_NOT_VERIFIED",
+  PRESENT_NOT_CONFIRMED: "SECONDARY_PRESENT_NOT_CONFIRMED",
+  VERIFIED: "SECONDARY_COVERAGE_VERIFIED"
+});
+
+export function resolveAccessCost(track = "eCKM", secondaryCoverageStatus = SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED) {
+  const resolvedTrack = Object.prototype.hasOwnProperty.call(ACCESS_COST_BY_TRACK, track) ? track : "eCKM";
+  const expectedMonthlyAmount = ACCESS_COST_BY_TRACK[resolvedTrack];
+  const status = Object.values(SECONDARY_COVERAGE_STATUSES).includes(secondaryCoverageStatus) ? secondaryCoverageStatus : SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED;
+  const displayValue = status === SECONDARY_COVERAGE_STATUSES.VERIFIED
+    ? "$0"
+    : `${status === SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED ? "up to " : ""}$${expectedMonthlyAmount} per month`;
+  return { track: resolvedTrack, expectedMonthlyAmount, displayValue, secondaryCoverageStatus: status };
+}
+
 export const DEFAULT_PROTOTYPE_CONFIG = {
   program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"],
   referralOrigin: null,
   coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner",
-  physicianPhotoUrl: "/assets/doctor-portrait-v2.png", accessCostSharingType: "COST_SHARING_NONE", accessCostSharingAmount: null,
+  physicianPhotoUrl: "/assets/doctor-portrait-v2.png", secondaryCoverageStatus: SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED, accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: null,
   showAccessClaimsSharing: false, showAccessTempoDisclosure: false, accessTempoDisclosureText: ""
 };
 
@@ -172,8 +192,10 @@ export function normalizePrototypeConfig(input = {}) {
   };
 }
 const accessDisclosureConfig = (config, physicianDisplayName, careTrack) => ({
+  accessCost: resolveAccessCost(careTrack, config.secondaryCoverageStatus),
   costSharingType: config.accessCostSharingType || "COST_SHARING_NONE",
   costSharingAmount: config.accessCostSharingAmount || null,
+  verifiedPatientCost: config.verifiedPatientCost || null,
   showClaimsSharing: Boolean(config.showAccessClaimsSharing),
   showTempoDisclosure: Boolean(config.showAccessTempoDisclosure),
   tempoDisclosureText: config.accessTempoDisclosureText || "",
@@ -196,6 +218,7 @@ export function createPrototypeOffer(input = {}) {
   const physicianRequired = scenarioRequiresPhysician(config.program, config.source);
   const physician = physicianRequired && config.physicianDisplayName ? { displayName: config.physicianDisplayName, id: config.physicianDisplayName.toLowerCase().replace(/[^a-z0-9]+/g, "-") } : null;
   const dynamicContent = { ...program, supportTemplate: physician ? program.support : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support, support: physician ? program.support.replaceAll("{physicianDisplayName}", physician.displayName) : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support };
+  const accessCost = isAccess ? resolveAccessCost(config.accessTrack, config.secondaryCoverageStatus) : undefined;
   return {
     ...shared,
     id: `offer_prototype_${Date.now()}`,
@@ -205,6 +228,7 @@ export function createPrototypeOffer(input = {}) {
     referralOrigin: config.referralOrigin,
     physician,
     accessTrack: isAccess ? config.accessTrack : undefined,
+    accessCost,
     selectedLanguage: config.language,
     qualifyingConditions: clinicalConditions,
     qualifyingCondition: clinicalConditions[0] || { patientFriendlyName: "your health needs" },
@@ -231,5 +255,7 @@ export function createOffer(scenarioId = "access-happy") {
   const fixture = SCENARIOS[scenarioId] || SCENARIOS["access-happy"];
   const program = pathways[fixture.pathway];
   const isAccess = fixture.pathway === "ACCESS";
-  return { ...shared, pathway: fixture.pathway, program: fixture.pathway, enrollmentSource: "Physician Referral", physician: { id: shared.referringProvider.id, displayName: shared.referringProvider.name }, accessTrack: isAccess ? "eCKM" : undefined, payer: fixture.missingMbi ? { type: "OriginalMedicare", mbiAvailable: false, mbiConfidence: "missing" } : shared.payer, careCapabilities: program.capabilities.map(([icon, title, description], i) => ({ id: `cap-${i}`, icon, title, description })), consent: { ...shared.consent, services: program.services, costSharingText: program.cost, stopRules: program.stopRules }, disclosures: { ...shared.disclosures, blocks: program.stopRules, accessConfig: isAccess ? accessDisclosureConfig(fixture, shared.referringProvider.name, "eCKM") : undefined }, onboardingModules: program.modules, content: { ...program, supportTemplate: program.support, support: program.support.replaceAll("{physicianDisplayName}", shared.referringProvider.name) }, fixture };
+  const accessTrack = isAccess ? "eCKM" : undefined;
+  const accessCost = isAccess ? resolveAccessCost(accessTrack, fixture.secondaryCoverageStatus) : undefined;
+  return { ...shared, pathway: fixture.pathway, program: fixture.pathway, enrollmentSource: "Physician Referral", physician: { id: shared.referringProvider.id, displayName: shared.referringProvider.name }, accessTrack, accessCost, payer: fixture.missingMbi ? { type: "OriginalMedicare", mbiAvailable: false, mbiConfidence: "missing" } : shared.payer, careCapabilities: program.capabilities.map(([icon, title, description], i) => ({ id: `cap-${i}`, icon, title, description })), consent: { ...shared.consent, services: program.services, costSharingText: program.cost, stopRules: program.stopRules }, disclosures: { ...shared.disclosures, blocks: program.stopRules, accessConfig: isAccess ? accessDisclosureConfig(fixture, shared.referringProvider.name, accessTrack) : undefined }, onboardingModules: program.modules, content: { ...program, supportTemplate: program.support, support: program.support.replaceAll("{physicianDisplayName}", shared.referringProvider.name) }, fixture };
 }

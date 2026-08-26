@@ -3,8 +3,7 @@ const startFor = s => [
   "DECISION_MAKER",
   ...(s.completionRole === "personalRepresentative" || s.role === "representative" ? ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", ...(s.authorityAdditionalVerificationRequired ? ["REPRESENTATIVE_AUTHORITY_ESCALATION"] : [])] : []),
   "IDENTITY_VERIFICATION",
-  "CARE_RECOMMENDATION",
-  "HOW_CARE_WORKS"
+  "CARE_RECOMMENDATION"
 ];
 const PROGRESS_STAGE_LABELS = {
   WHOS_COMPLETING: "Who’s completing",
@@ -43,6 +42,15 @@ const PROGRESS_STAGE_BY_SCREEN = {
   GOALS: "GETTING_STARTED",
   ACCESS_BASELINE: "GETTING_STARTED",
   ACCESS_MEASURE: "GETTING_STARTED",
+  ACCESS_BP_DEVICE_VERIFICATION: "GETTING_STARTED",
+  ACCESS_BP_DEVICE_RESULT: "GETTING_STARTED",
+  ACCESS_BP_DEVICE_INFO: "GETTING_STARTED",
+  ACCESS_BP_SHIPPING_ADDRESS: "GETTING_STARTED",
+  ACCESS_BP_FULFILLMENT_CONFIRMED: "GETTING_STARTED",
+  ACCESS_BP_GUIDED_SETUP: "GETTING_STARTED",
+  ACCESS_BP_MEASUREMENT: "GETTING_STARTED",
+  ACCESS_BP_BASELINE_RESULT: "GETTING_STARTED",
+  ACCESS_BP_ESCALATION: "GETTING_STARTED",
   RPM_DEVICE_PATH: "GETTING_STARTED",
   RPM_ADDRESS_CONFIRMATION: "GETTING_STARTED",
   RPM_DEVICE_SETUP: "GETTING_STARTED",
@@ -61,13 +69,34 @@ export function journeyFor(s) {
   if (p === "ACCESS") {
     const eligibility = [...start, "ACCESS_PRE_ELIGIBILITY_NOTICE", ...(s.offer.payer.mbiAvailable ? [] : ["ACCESS_MEDICARE_IDENTIFIER"]), "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"];
     if (s.accessOutcome === "notEligible") return eligibility;
-    return [...eligibility, "DISCLOSURE", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", "ONBOARDING_COMPLETE"];
+    const completedBpDestination = s.bpEscalationState?.status === "ACTIVE" ? ["ACCESS_BP_ESCALATION"] : ["ACCESS_BP_BASELINE_RESULT"];
+    const bpPath = s.bpDevicePath === "owned"
+      ? ["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", ...(s.bpDeviceVerificationStatus === "VERIFIED_COMPATIBLE" ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination] : [])]
+      : s.bpDevicePath === "help"
+        ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination]
+        : s.bpDevicePath === "needed"
+          ? ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]
+          : [];
+    return [...eligibility, "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", ...bpPath, "ONBOARDING_COMPLETE"];
   }
-  if (["RPM", "CCM_RPM", "PCM_RPM"].includes(p)) return [...start, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "RPM_DEVICE_PATH", ...(s.devicePath === "ship" ? ["RPM_ADDRESS_CONFIRMATION"] : []), "RPM_DEVICE_SETUP", "RPM_FIRST_READING", "RPM_MONITORING_READY"];
-  return [...start, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS", "ONBOARDING_COMPLETE"];
+  const traditionalStart = [...start, "HOW_CARE_WORKS"];
+  if (["RPM", "CCM_RPM", "PCM_RPM"].includes(p)) return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "RPM_DEVICE_PATH", ...(s.devicePath === "ship" ? ["RPM_ADDRESS_CONFIRMATION"] : []), "RPM_DEVICE_SETUP", "RPM_FIRST_READING", "RPM_MONITORING_READY"];
+  return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS", "ONBOARDING_COMPLETE"];
 }
 export function progressFor(s) {
   const journey = journeyFor(s);
+  if (s.offer?.pathway === "ACCESS" && s.screen === "ENROLLMENT_CONFIRMED") {
+    const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
+    return { stage, label: PROGRESS_STAGE_LABELS[stage], current: 1, total: 1, percent: 100 };
+  }
+  const careStartIndex = journey.indexOf("ACCESS_BASELINE");
+  const accessCareSetup = careStartIndex >= 0 ? journey.slice(careStartIndex) : [];
+  if (s.offer?.pathway === "ACCESS" && accessCareSetup.includes(s.screen)) {
+    const current = accessCareSetup.indexOf(s.screen) + 1;
+    const total = accessCareSetup.length;
+    const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
+    return { stage, label: PROGRESS_STAGE_LABELS[stage], current, total, percent: current / total * 100 };
+  }
   const progressAnchor = { CALLBACK_CONFIRMED: "ACCESS_ELIGIBILITY_RESULT", OUTCOME_STOPPED: "ACCESS_ELIGIBILITY_RESULT" }[s.screen];
   const fallbackScreen = journey.includes(s.returnScreen) ? s.returnScreen : journey.includes(progressAnchor) ? progressAnchor : journey[0];
   const resolvedScreen = journey.includes(s.screen) ? s.screen : fallbackScreen;

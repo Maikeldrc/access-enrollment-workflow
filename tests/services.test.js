@@ -22,6 +22,35 @@ describe("safe draft persistence", () => {
     expect(JSON.stringify(saved)).not.toContain("123456");
     expect(saved).not.toHaveProperty("representativeOtp");
   });
+
+  it("persists separate ACCESS notice, disclosure, and consent evidence", () => {
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { setItem, getItem: vi.fn(), removeItem: vi.fn() });
+    new DraftStore().save({ scenarioId: "access-happy", screen: "ACCESS_ALIGNMENT_PROCESSING", role: "patient", completionRole: "patient", language: "en", identityVerified: true, accessNoticeAcknowledgedAt: "2026-08-25T10:00:00.000Z", disclosureAcknowledgedAt: "2026-08-25T10:05:00.000Z", disclosureVersion: "2.1", consentTimestamp: "2026-08-25T10:05:01.000Z", consentVersion: "2.1", consentRole: "PATIENT", onboarding: {}, audit: [] });
+    const saved = JSON.parse(setItem.mock.calls[0][1]);
+    expect(saved).toMatchObject({ accessNoticeAcknowledgedAt: "2026-08-25T10:00:00.000Z", disclosureAcknowledgedAt: "2026-08-25T10:05:00.000Z", disclosureVersion: "2.1", consentTimestamp: "2026-08-25T10:05:01.000Z", consentVersion: "2.1", consentRole: "PATIENT" });
+  });
+
+  it("persists enrollment and baseline lifecycle states independently", () => {
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { setItem, getItem: vi.fn(), removeItem: vi.fn() });
+    new DraftStore().save({ scenarioId: "access-happy", screen: "ACCESS_BASELINE", role: "patient", completionRole: "patient", language: "en", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", enrollmentCompletedAt: "2026-08-25T10:00:00.000Z", baselineStatus: "NOT_STARTED", baselineDeferredAt: "2026-08-25T10:05:00.000Z", baselineResumeScreen: "ACCESS_BASELINE", baselineReminderStatus: "PENDING", onboarding: {}, audit: [] });
+    const saved = JSON.parse(setItem.mock.calls[0][1]);
+    expect(saved).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "NOT_STARTED", baselineResumeScreen: "ACCESS_BASELINE", baselineReminderStatus: "PENDING" });
+  });
+
+  it("persists BP workflow status without persisting manual or verified clinical readings", () => {
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { setItem, getItem: vi.fn(), removeItem: vi.fn() });
+    new DraftStore().save({ scenarioId: "access-happy", screen: "ACCESS_BP_MEASUREMENT", role: "patient", completionRole: "patient", language: "en", identityVerified: true, bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE", bpBaselineSourceType: "VERIFIED_DEVICE", clinicalReportedBloodPressure: { systolic: 145, diastolic: 90 }, accessBaselineBloodPressure: { systolic: 120, diastolic: 80 }, onboarding: {}, audit: [] });
+    const savedText = setItem.mock.calls[0][1];
+    const saved = JSON.parse(savedText);
+    expect(saved).toMatchObject({ bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE", bpBaselineSourceType: "VERIFIED_DEVICE" });
+    expect(savedText).not.toContain("145");
+    expect(savedText).not.toContain("systolic");
+    expect(saved).not.toHaveProperty("clinicalReportedBloodPressure");
+    expect(saved).not.toHaveProperty("accessBaselineBloodPressure");
+  });
 });
 
 describe("representative mobile verification", () => {

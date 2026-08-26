@@ -1,5 +1,30 @@
 import { test, expect } from "@playwright/test";
 
+async function openOwnedBpVerification(page, scenario = "access-happy") {
+  await page.goto(`/?scenario=${scenario}`);
+  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  await page.locator('.choice-card:has(input[value="owned"])').click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Let’s check your monitor" })).toBeVisible();
+}
+
+async function reachBpReadings(page, scenario = "access-happy") {
+  await openOwnedBpVerification(page, scenario);
+  await page.locator('.choice-card:has(input[value="manual"])').click();
+  await page.getByRole("button", { name: "Identify my monitor" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "I’m ready" }).click();
+  await expect(page.getByRole("heading", { name: "Take your blood pressure" })).toBeVisible();
+}
+
+async function openNeededMonitorDetails(page) {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  await page.locator('.choice-card:has(input[value="needed"])').click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Let’s find the right monitor for you" })).toBeVisible();
+}
+
 test("prototype setup shows defaults and conditional fields", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Configure the patient scenario" })).toBeVisible();
@@ -80,7 +105,7 @@ test("prototype ACCESS eligibility setting drives a terminal not-eligible patien
   await expect(page.locator("#screen-content")).not.toContainText(/ACCESS Eligibility Result|simulation|mock API|Not eligible scenario/i);
 
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  await page.getByLabel("I acknowledge this information and want to continue").check();
+  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "This ACCESS care option isn’t available to you right now" })).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Based on the Medicare eligibility check, you can’t continue with ACCESS enrollment at this time.")).toBeVisible();
@@ -90,7 +115,7 @@ test("prototype ACCESS eligibility setting drives a terminal not-eligible patien
   await expect(page.getByRole("button", { name: "Talk with our care team" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Return to start" })).toBeVisible();
   await expect(page.locator('.contextual-assurance[data-assurance-type="NOT_ELIGIBLE_REASSURANCE"]')).toContainText("This does not change your Medicare benefits");
-  await expect(page.locator("#screen-select option")).toHaveText(["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "HOW_CARE_WORKS", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"]);
+  await expect(page.locator("#screen-select option")).toHaveText(["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"]);
   await expect(page.locator("#screen-content")).not.toContainText(/Continue enrollment|Enroll now|Rejected|Denied|Medicare denied/i);
   await page.locator(".access-not-eligible-screen .actions").scrollIntoViewIfNeeded();
   const assistantOverlap = await page.evaluate(() => {
@@ -191,7 +216,8 @@ test("condition selector supports the four controlled multi-select conditions", 
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
-  await expect(page.getByText("Regular support based on your health needs.")).toBeVisible();
+  await expect(page.getByText("Blood pressure support", { exact: true })).toBeVisible();
+  await expect(page.getByText("Help monitoring and managing your blood pressure at home.")).toBeVisible();
 });
 
 test("condition selector requires at least one selection", async ({ page }) => {
@@ -210,14 +236,14 @@ test("direct outreach launches without an individual physician claim", async ({ 
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "ACCESS_PARTICIPANT");
   await expect(page.getByAltText("ITERA HEALTH connected Medicare ACCESS care")).toBeVisible();
   await expect(page.locator(".doctor-portrait")).toHaveCount(0);
-  await expect(page.getByText("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits — at no additional cost to you.")).toBeVisible();
+  await expect(page.getByText("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits.")).toBeVisible();
+  await expect(page.locator(".invitation-copy")).not.toContainText("at no additional cost to you");
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
-  await expect(page.getByText("ITERA helps coordinate your care with your existing doctors.")).toBeVisible();
-  await page.locator("#screen-select").selectOption("HOW_CARE_WORKS", { force: true });
-  await expect(page.getByText("ITERA HEALTH supports your ACCESS care and coordinates with your existing doctors.", { exact: true })).toBeVisible();
-  await expect(page.locator(".care-works-physician")).toHaveCount(0);
+  await expect(page.getByText("ITERA helps keep your care coordinated with the doctors you already see.")).toBeVisible();
+  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
+  await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("I agree to receive ACCESS care from ITERA HEALTH.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team .provider-card")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText("Dr. Fresner");
 
@@ -256,59 +282,435 @@ test("progress header uses contextual stages without exposing step counts", asyn
     ["DECISION_MAKER", "Who’s completing"],
     ["CARE_RECOMMENDATION", "Your care"],
     ["ACCESS_ELIGIBILITY_RESULT", "Eligibility"],
-    ["DISCLOSURE", "Important information"],
     ["CONSENT_REVIEW", "Consent"],
     ["ACCESS_BASELINE", "Getting started"]
   ];
   for (const [screen, stage] of checks) {
     await page.locator("#screen-select").selectOption(screen, { force: true });
     const meta = page.locator(".progress-meta");
-    await expect(meta.locator("span").first()).toHaveText("Enrollment");
+    await expect(meta.locator("span").first()).toHaveText(screen === "ACCESS_BASELINE" ? "Your care" : "Enrollment");
     await expect(meta.locator("span").last()).toHaveText(stage);
     await expect(meta).not.toContainText(/step|\d+\s*(?:of|\/)\s*\d+/i);
-    const progress = page.getByRole("progressbar", { name: "Enrollment progress" });
+    const progress = page.getByRole("progressbar", { name: screen === "ACCESS_BASELINE" ? "Your care progress" : "Enrollment progress" });
     await expect(progress).toHaveAttribute("aria-valuemax", "100");
     await expect(progress).toHaveAttribute("aria-valuetext", stage);
   }
 });
 
-test("ACCESS disclosure is clear, conditional, and requires review before continuing", async ({ page }) => {
+test("ACCESS enrollment confirmation closes enrollment and transitions into care activation", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
-  await page.locator("#screen-select").selectOption("DISCLOSURE", { force: true });
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment complete");
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
+  await expect(page.getByRole("progressbar", { name: "Enrollment progress" })).toHaveAttribute("aria-valuenow", "100");
+  await expect(page.getByRole("heading", { name: "You’re enrolled in ACCESS with ITERA HEALTH" })).toBeVisible();
+  await expect(page.getByText("ITERA HEALTH coordinates your ACCESS care with Dr. Fresner.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your care team will call you within 2 business days", { exact: true })).toBeVisible();
+  await expect(page.getByText("We’ll review your personalized care plan", { exact: true })).toBeVisible();
+  await expect(page.getByText("You’ll continue seeing your regular doctors", { exact: true })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText("We’ll confirm your personalized care plan");
+
+  const details = page.locator(".enrollment-consent-details");
+  await expect(details.getByText("View enrollment and consent details", { exact: false })).toBeVisible();
+  await details.locator("summary").click();
+  await expect(details).toContainText("Enrollment confirmation: Confirmed");
+  await expect(details).toContainText("Consent details: Version 2.1");
+  await expect(details).toContainText("Consent timestamp:");
+  await expect(details).toContainText("Signing role: Patient");
+  await expect(details).toContainText("Applicable disclosures: Version 2.1");
+
+  await page.getByRole("button", { name: "Start health check" }).click();
+  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "NOT_STARTED", screen: "ACCESS_BASELINE" });
+});
+
+test("ACCESS enrollment confirmation does not invent physician involvement for direct outreach", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await expect(page.getByText("ITERA HEALTH coordinates this care with your existing doctors.", { exact: true })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText("Dr. Fresner");
+});
+
+test("ACCESS enrollment confirmation copy is localized in Spanish and Kreyòl", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Inscripción completa");
+  await expect(page.getByRole("heading", { name: "Está inscrito en ACCESS con ITERA HEALTH" })).toBeVisible();
+  await expect(page.getByText("Revisaremos su plan de cuidado personalizado", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ver detalles de inscripción y consentimiento", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Enskripsyon fini");
+  await expect(page.getByRole("heading", { name: "Ou enskri nan ACCESS avèk ITERA HEALTH" })).toBeVisible();
+  await expect(page.getByText("N ap revize plan swen pèsonalize ou", { exact: true })).toBeVisible();
+  await expect(page.getByText("Gade detay enskripsyon ak konsantman", { exact: false })).toBeVisible();
+});
+
+test("ACCESS first health check is post-enrollment, deferrable, resumable, and independently measurable", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_BASELINE", { force: true });
+
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
+  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  await expect(page.getByText("This helps your ACCESS care team understand your starting point and personalize your care.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Questions about your health", { exact: true })).toBeVisible();
+  await expect(page.getByText("Usually takes about 10 minutes", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your progress is saved if you finish later.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your health information is secure", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "I’ll do this later" }).click();
+  await expect(page.locator(".save-status")).toHaveText("Your health check is saved for later.");
+  let lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ screen: "ACCESS_BASELINE", enrollmentStatus: "COMPLETED", baselineStatus: "NOT_STARTED", baselineResumeScreen: "ACCESS_BASELINE", baselineReminderStatus: "PENDING" });
+  expect(lifecycle.audit.some(event => event.eventType === "baseline_deferred")).toBe(true);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  await page.getByRole("button", { name: "Start health check" }).click();
+  await expect(page.getByRole("heading", { name: /starting point/i })).toBeVisible();
+  lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", baselineResumeScreen: "ACCESS_MEASURE", baselineReminderStatus: "NOT_SCHEDULED" });
+  expect(lifecycle.audit.some(event => event.eventType === "baseline_started")).toBe(true);
+
+  await page.locator('.choice-card:has(input[value="owned"])').click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Let’s check your monitor" })).toBeVisible();
+  await page.locator('.choice-card:has(input[value="manual"])').click();
+  await page.getByRole("button", { name: "Identify my monitor" }).click();
+  await expect(page.getByRole("heading", { name: "Your monitor can be used" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Prepare your monitor" })).toBeVisible();
+  await page.getByRole("button", { name: "I’m ready" }).click();
+  await expect(page.getByRole("heading", { name: "Take your blood pressure" })).toBeVisible();
+  await page.getByRole("button", { name: "Start first reading" }).click();
+  await expect(page.getByText("First reading received", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Continue to reading 2" }).click();
+  await page.getByRole("button", { name: "Listen for my reading" }).click();
+  await expect(page.getByText("Second reading received", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Continue to reading 3" }).click();
+  await page.getByRole("button", { name: "Listen for my reading" }).click();
+  await expect(page.getByText("Third reading received", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Calculate my starting point" }).click();
+  await expect(page.getByRole("heading", { name: "Your starting blood pressure is ready" })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText("123 / 77", { exact: false })).toBeVisible();
+  await expect(page.getByText("Average of 3 readings", { exact: true })).toBeVisible();
+  lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "COMPLETED", bpBaselineStatus: "COMPLETED", bpBaselineSourceType: "VERIFIED_DEVICE", bpReadingCount: 3, baselineResumeScreen: "", baselineReminderStatus: "NOT_NEEDED" });
+  expect(lifecycle.bpReadingReceipts).toHaveLength(3);
+  expect(JSON.stringify(lifecycle)).not.toContain('"systolic"');
+  expect(lifecycle.audit.some(event => event.eventType === "baseline_completed")).toBe(true);
+});
+
+test("ACCESS blood pressure starting point uses a verified-device workflow and no manual BP entry", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await expect(page.locator(".eyebrow")).toHaveText("Blood pressure health check");
+  await expect(page.getByRole("heading", { name: "Your blood pressure starting point" })).toBeVisible();
+  await expect(page.getByText("This helps your care team understand your blood pressure today and personalize your care.", { exact: true })).toBeVisible();
+  await expect(page.getByText("I already have a blood pressure monitor", { exact: true })).toBeVisible();
+  await expect(page.getByText("I have a monitor but need help", { exact: true })).toBeVisible();
+  await expect(page.getByText("I need a blood pressure monitor", { exact: true })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText(/eCKM|recent reading|systolic|diastolic|monitor from ITERA/i);
+  await expect(page.locator('input[name="systolic"], input[name="diastolic"], input[type="date"]')).toHaveCount(0);
+});
+
+test("ACCESS blood pressure baseline copy is complete in Spanish and Kreyòl", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Su cuidado");
+  await expect(page.locator(".eyebrow")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Su presión arterial inicial" })).toBeVisible();
+  await expect(page.getByText("Esto ayuda a su equipo de atención a conocer su presión arterial actual y personalizar su cuidado.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ya tengo un monitor de presión arterial", { exact: true })).toBeVisible();
+  await expect(page.getByText("Verificaremos si su monitor puede utilizarse para sus mediciones de ACCESS.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Tengo un monitor, pero necesito ayuda", { exact: true })).toBeVisible();
+  await expect(page.getByText("Le ayudaremos a configurarlo y a tomar sus mediciones correctamente.", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA puede ayudarle a obtener uno.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Su información de salud está protegida", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Swen ou");
+  await expect(page.locator(".eyebrow")).toHaveText("Tchekòp tansyon");
+  await expect(page.getByRole("heading", { name: "Pwen depa tansyon ou" })).toBeVisible();
+  await expect(page.getByText("Mwen bezwen yon aparèy pou mezire tansyon", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA ka ede fè aranjman pou ou jwenn youn.", { exact: true })).toBeVisible();
+});
+
+test("ACCESS device-needed branch keeps enrollment complete and BP pending without blocking baseline continuation", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "No", exact: true }).check();
+  await expect(page.getByRole("heading", { name: "Measure around your upper arm" })).toBeVisible();
+  const circumference = page.getByLabel("Arm circumference");
+  await expect(circumference).toHaveAttribute("inputmode", "decimal");
+  await expect(circumference).toHaveAttribute("step", "0.1");
+  expect(await circumference.evaluate(input => ({ height: input.getBoundingClientRect().height, appearance: getComputedStyle(input).appearance }))).toMatchObject({ height: 58, appearance: "textfield" });
+  await circumference.fill("32");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Where would you like your monitor delivered?" })).toBeVisible();
+  await expect(page.locator(".address-card")).toContainText("123 Oak Avenue");
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await expect(page.getByRole("heading", { name: "Your monitor is being prepared" })).toBeVisible();
+  await expect(page.getByText("Request received", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cuff information recorded", { exact: true })).toBeVisible();
+  await expect(page.getByText("Address confirmed", { exact: true })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "PENDING_DEVICE", armCircumferenceValue: "32", armCircumferenceUnit: "cm", armMeasurementStatus: "COMPLETED", armRestrictionReported: "NO", restrictedArm: "NONE", measurementArm: "PENDING", cuffSizeSelected: null, deviceModelSelected: null, shippingAddressConfirmed: true, deviceFulfillmentStatus: "REQUESTED", bpDeviceFulfillmentStatus: "REQUESTED", baselineReminderStatus: "PENDING_DEVICE" });
+  expect(lifecycle.bpDeviceFulfillmentRequestedAt).toBeTruthy();
+  expect(lifecycle.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["bp_device_information_saved", "bp_device_fulfillment_requested"]));
+  await page.getByRole("button", { name: "Continue my health check" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+});
+
+test("ACCESS monitor fulfillment allows measuring help and creates a care team task", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "No", exact: true }).check();
+  await page.getByRole("button", { name: "I need help measuring" }).click();
+  await page.getByRole("button", { name: "I don’t have a measuring tape" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await expect(page.getByText("We’ll confirm the cuff size with you", { exact: true })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ armMeasurementStatus: "NEEDS_ASSISTANCE", armMeasurementHelpReason: "NO_MEASURING_TAPE", bpBaselineStatus: "PENDING_DEVICE", enrollmentStatus: "COMPLETED" });
+  expect(lifecycle.careTeamTasks.map(task => task.type)).toEqual(expect.arrayContaining(["ARM_MEASUREMENT_ASSISTANCE", "CUFF_CONFIGURATION_REVIEW"]));
+});
+
+test("ACCESS monitor fulfillment lets the patient defer remaining health-check tasks", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "No", exact: true }).check();
+  await page.getByRole("button", { name: "I need help measuring" }).click();
+  await page.getByRole("button", { name: "I’m not sure how to measure" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await page.getByRole("button", { name: "I’ll do this later" }).click();
+  await expect(page.locator(".save-status")).toHaveText("Your remaining health check is saved for later.");
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "PENDING_DEVICE", baselineResumeScreen: "ONBOARDING", baselineReminderStatus: "PENDING_DEVICE" });
+});
+
+test("ACCESS monitor fulfillment records a left-arm restriction for care team review", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "Yes", exact: true }).check();
+  await page.getByRole("radio", { name: "Left arm", exact: true }).check();
+  await expect(page.getByRole("heading", { name: "Measure around your right upper arm" })).toBeVisible();
+  await page.getByLabel("Arm circumference").fill("31.5");
+  await page.getByRole("button", { name: "Continue" }).click();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ armCircumferenceValue: "31.5", armRestrictionReported: "YES", restrictedArm: "LEFT", measurementArm: "RIGHT" });
+  expect(lifecycle.careTeamTasks.some(task => task.type === "ARM_RESTRICTION_REVIEW")).toBe(true);
+});
+
+test("ACCESS monitor fulfillment sends an unsure arm restriction for review", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "I’m not sure", exact: true }).check();
+  await expect(page.getByText("We’ll help confirm the best way to take your blood pressure.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Continue with the rest of my health check" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ armRestrictionReported: "UNSURE", restrictedArm: "NONE", measurementArm: "PENDING", armMeasurementStatus: "PENDING_CLINICAL_REVIEW", enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS" });
+  expect(lifecycle.careTeamTasks.some(task => task.type === "ARM_CLINICAL_REVIEW")).toBe(true);
+});
+
+test("ACCESS monitor fulfillment never asks for a measurement when both arms are restricted", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "Yes", exact: true }).check();
+  await page.getByRole("radio", { name: "Both arms", exact: true }).check();
+  await expect(page.getByLabel("Arm circumference")).toHaveCount(0);
+  await expect(page.getByText("We’ll help confirm the best way to take your blood pressure.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(2);
+  await page.getByRole("button", { name: "Continue with the rest of my health check" }).click();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ armRestrictionReported: "YES", restrictedArm: "BOTH", measurementArm: "PENDING", armMeasurementStatus: "PENDING_CLINICAL_REVIEW", enrollmentStatus: "COMPLETED" });
+  expect(lifecycle.careTeamTasks.some(task => task.type === "ARM_CLINICAL_REVIEW")).toBe(true);
+});
+
+test("ACCESS monitor fulfillment validates and persists a different shipping address", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("radio", { name: "No", exact: true }).check();
+  await page.getByRole("button", { name: "I need help measuring" }).click();
+  await page.getByRole("button", { name: "I’m not sure how to measure" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.locator('.choice-card:has(input[value="other"])').click();
+  await page.getByLabel("Street address").fill("500 Palm Street");
+  await page.getByLabel("Apartment / Unit").fill("Unit 7");
+  await page.getByLabel("City").fill("Miami");
+  await page.getByLabel("State").fill("fl");
+  await page.getByLabel("ZIP code").fill("33130");
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await expect(page.getByRole("heading", { name: "Your monitor is being prepared" })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ shippingAddressMode: "other", shippingAddressConfirmed: true, shippingAddress: { line1: "500 Palm Street", unit: "Unit 7", city: "Miami", state: "FL", zip: "33130" }, deviceFulfillmentStatus: "REQUESTED" });
+});
+
+test("ACCESS monitor fulfillment is localized in Spanish and Kreyòl", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.getByRole("heading", { name: "Encontremos el monitor adecuado para usted" })).toBeVisible();
+  await page.getByRole("radio", { name: "No", exact: true }).check();
+  await expect(page.getByText("Mida alrededor de la parte superior de su brazo", { exact: true })).toBeVisible();
+  await expect(page.getByText("Su información de salud está protegida", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Necesito ayuda para medir" }).click();
+  await page.getByRole("button", { name: "No tengo una cinta métrica" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("heading", { name: "¿Dónde desea recibir su monitor?" })).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.getByRole("heading", { name: "Ki kote ou vle resevwa aparèy ou a?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mande aparèy mwen an" })).toBeVisible();
+});
+
+test("ACCESS incompatible monitor requests a compatible device without reopening enrollment", async ({ page }) => {
+  await openOwnedBpVerification(page, "access-bp-incompatible");
+  await page.locator('.choice-card:has(input[value="manual"])').click();
+  await page.getByRole("button", { name: "Identify my monitor" }).click();
+  await expect(page.getByRole("heading", { name: "This monitor can’t send the readings needed for ACCESS" })).toBeVisible();
+  await page.getByRole("button", { name: "Request a monitor" }).click();
+  await expect(page.getByRole("heading", { name: "Let’s find the right monitor for you" })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "DEVICE_VERIFICATION", bpDeviceVerificationStatus: "VERIFIED_INCOMPATIBLE", deviceFulfillmentStatus: "NOT_REQUESTED", bpDeviceFulfillmentStatus: "NOT_STARTED" });
+});
+
+test("ACCESS unsure monitor requests assistance and allows the remaining health check", async ({ page }) => {
+  await openOwnedBpVerification(page);
+  await page.locator('.choice-card:has(input[value="unsure"])').click();
+  await page.getByRole("button", { name: "Identify my monitor" }).click();
+  await expect(page.getByRole("heading", { name: "We can help identify your monitor" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue health check" }).click();
+  await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "DEVICE_VERIFICATION", bpDeviceVerificationStatus: "ASSISTANCE_REQUESTED", baselineReminderStatus: "CARE_TEAM_ASSISTANCE" });
+});
+
+test("ACCESS BP transmission retry preserves earlier verified readings", async ({ page }) => {
+  await reachBpReadings(page, "access-bp-reading-failure");
+  await page.getByRole("button", { name: "Start first reading" }).click();
+  await page.getByRole("button", { name: "Continue to reading 2" }).click();
+  await page.getByRole("button", { name: "Listen for my reading" }).click();
+  await expect(page.getByText("We didn’t receive this reading", { exact: true })).toBeVisible();
+  let lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ bpReadingCount: 1, bpBaselineStatus: "READING_2", screen: "ACCESS_BP_MEASUREMENT" });
+  await page.getByRole("button", { name: "Try receiving this reading again" }).click();
+  await expect(page.getByText("Second reading received", { exact: false })).toBeVisible();
+  lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle.bpReadingCount).toBe(2);
+});
+
+test("ACCESS BP reading progress resumes after leaving after reading one", async ({ page }) => {
+  await reachBpReadings(page);
+  await page.getByRole("button", { name: "Start first reading" }).click();
+  await expect(page.getByText("First reading received", { exact: false })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("First reading received", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Continue to reading 2" }).click();
+  await expect(page.getByText("Reading 2 of 3", { exact: true })).toBeVisible();
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle.bpReadingCount).toBe(1);
+  expect(lifecycle.bpReadingReceipts).toHaveLength(1);
+  expect(JSON.stringify(lifecycle)).not.toContain('"systolic"');
+});
+
+test("ACCESS configured clinical review interrupts generic baseline success", async ({ page }) => {
+  await reachBpReadings(page, "access-bp-escalation");
+  await page.getByRole("button", { name: "Start first reading" }).click();
+  await page.getByRole("button", { name: "Continue to reading 2" }).click();
+  await page.getByRole("button", { name: "Listen for my reading" }).click();
+  await page.getByRole("button", { name: "Continue to reading 3" }).click();
+  await page.getByRole("button", { name: "Listen for my reading" }).click();
+  await expect(page.getByText("Third reading received", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Calculate my starting point" }).click();
+  await expect(page.getByRole("heading", { name: "Your care team is reviewing your readings" })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText("Your starting blood pressure is ready");
+  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "PROCESSING", bpEscalationState: { status: "ACTIVE", careTeamNotified: true } });
+  expect(lifecycle.audit.some(event => event.eventType === "bp_clinical_escalation")).toBe(true);
+});
+
+test("ACCESS connected BP workflow is localized across Spanish and Kreyòl", async ({ page }) => {
+  await openOwnedBpVerification(page);
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".eyebrow")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Revisemos su monitor" })).toBeVisible();
+  await expect(page.getByText("Confirmemos que su monitor puede enviar las mediciones necesarias para su cuidado ACCESS.", { exact: true })).toBeVisible();
+  await page.locator('.choice-card:has(input[value="manual"])').click();
+  await page.getByRole("button", { name: "Identificar mi monitor" }).click();
+  await expect(page.getByRole("heading", { name: "Su monitor puede utilizarse" })).toBeVisible();
+  await page.getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("heading", { name: "Prepare su monitor" })).toBeVisible();
+  await expect(page.getByText("No cruce las piernas.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Estoy listo" }).click();
+  await expect(page.getByText("Necesitamos tres lecturas para establecer su presión arterial inicial.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.getByRole("heading", { name: "Pran tansyon ou" })).toBeVisible();
+  await expect(page.getByText("Aparèy ou a ap voye mezi yo otomatikman", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kòmanse premye mezi a" })).toBeVisible();
+});
+
+test("ACCESS first health check copy is localized in Spanish and Kreyòl", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_BASELINE", { force: true });
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.getByRole("heading", { name: "Su primera evaluación de salud" })).toBeVisible();
+  await expect(page.getByText("Preguntas sobre su salud", { exact: true })).toBeVisible();
+  await expect(page.getByText("Generalmente toma unos 10 minutos", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.getByRole("heading", { name: "Premye tchekòp sante ou" })).toBeVisible();
+  await expect(page.getByText("Kesyon sou sante ou", { exact: true })).toBeVisible();
+  await expect(page.getByText("Anjeneral li pran anviwon 10 minit", { exact: true })).toBeVisible();
+});
+
+test("ACCESS final review consolidates disclosure and consent without losing essential terms", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
 
   await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment");
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Important information");
-  await expect(page.getByRole("heading", { name: "About your recommended care" })).toBeVisible();
-  await expect(page.locator(".access-disclosure-card > h2")).toHaveText("ACCESS");
-  await expect(page.locator(".access-disclosure-row")).toHaveCount(5);
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Consent");
+  await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
+  await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
+  await expect(page.locator("#screen-select option[value='DISCLOSURE']")).toHaveCount(0);
+  await expect(page.locator(".consent-disclosure-row")).toHaveCount(5);
   await expect(page.getByText("Participation is voluntary", { exact: true })).toBeVisible();
-  await expect(page.getByText("You choose whether to enroll in ACCESS with ITERA HEALTH.", { exact: true })).toBeVisible();
+  await expect(page.getByText("You choose whether to enroll in ACCESS.", { exact: true })).toBeVisible();
   await expect(page.getByText("Your Medicare benefits stay the same", { exact: true })).toBeVisible();
-  await expect(page.getByText("Your decision to enroll or not enroll does not affect your Medicare benefits.", { exact: true })).toBeVisible();
-  await expect(page.getByText("$0 ACCESS cost-sharing from ITERA HEALTH.", { exact: true })).toBeVisible();
-  await expect(page.getByText("One ACCESS provider per care track", { exact: true })).toBeVisible();
-  await expect(page.getByText("Beginning 90 days after enrollment, you may end your ACCESS participation or switch to another participating provider.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
+  await expect(page.locator(".access-care-chip")).toHaveCount(0);
+  await expect(page.getByText("$6 per month", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
+  await expect(page.getByText("You can have one ACCESS provider for this type of care at a time.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("You may stop participating at any time");
   await expect(page.getByText("Medicare claims information", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Connected device information", { exact: true })).toHaveCount(0);
 
-  const continueButton = page.getByRole("button", { name: "Continue" });
+  const continueButton = page.getByRole("button", { name: "Agree and continue" });
   await expect(continueButton).toBeDisabled();
-  await page.getByLabel("I have reviewed this information").check();
+  await page.getByLabel("I have reviewed this important information.").check();
+  await expect(continueButton).toBeDisabled();
+  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(continueButton).toBeEnabled();
   await expect(page.locator('.contextual-assurance[data-assurance-type="ENROLLMENT_CHOICE"]')).toContainText("You choose whether to enroll");
 
-  await page.getByText("View full information", { exact: false }).click();
-  await expect(page.getByText(/Review the complete ACCESS information/)).toBeVisible();
+  await page.getByText("View full ACCESS information", { exact: false }).click();
+  await expect(page.getByText(/Your expected beneficiary share for this ACCESS care is \$6 per month/)).toBeVisible();
+  await expect(page.getByText("Disclosure version: 2.1", { exact: true })).toBeVisible();
   await page.locator(".emmi-assistant").click();
-  for (const question of ["What does voluntary mean?", "Will my Medicare benefits change?", "Will this cost me anything?", "Can I change ACCESS providers?"]) {
+  for (const question of ["What am I agreeing to?", "Can I change my mind?", "What will this cost?", "Does this change my Medicare?"]) {
     await expect(page.getByRole("button", { name: question })).toBeVisible();
   }
 
-  const typography = await page.locator(".access-disclosure-screen").evaluate(screen => ({
-    headline: Math.min(...[...screen.querySelectorAll(".access-disclosure-row strong")].map(element => parseFloat(getComputedStyle(element).fontSize))),
-    copy: Math.min(...[...screen.querySelectorAll(".access-disclosure-row p")].map(element => parseFloat(getComputedStyle(element).fontSize))),
+  const typography = await page.locator(".access-consent-screen").evaluate(screen => ({
+    headline: Math.min(...[...screen.querySelectorAll(".consent-disclosure-row strong")].map(element => parseFloat(getComputedStyle(element).fontSize))),
+    copy: Math.min(...[...screen.querySelectorAll(".consent-disclosure-row p")].map(element => parseFloat(getComputedStyle(element).fontSize))),
     checkbox: parseFloat(getComputedStyle(screen.querySelector(".check-row")).fontSize),
     buttonHeight: screen.querySelector('.actions [data-action="next"]').getBoundingClientRect().height,
     overflow: document.documentElement.scrollWidth > innerWidth
@@ -320,10 +722,13 @@ test("ACCESS disclosure is clear, conditional, and requires review before contin
   expect(typography.overflow).toBe(false);
 });
 
-test("ACCESS disclosure renders configured cost, claims, and device information", async ({ page }) => {
+test("ACCESS final review renders configured cost, claims, and device information", async ({ page }) => {
   await page.goto("/?scenario=access-disclosure-configured");
-  await page.locator("#screen-select").selectOption("DISCLOSURE", { force: true });
-  await expect(page.getByText("Your cost may be up to $35 per month.", { exact: true })).toBeVisible();
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await expect(page.getByText("$6 per month", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText("$35");
+  await expect(page.locator("#screen-content")).not.toContainText("$0 per month");
   await expect(page.getByText("Medicare claims information", { exact: true })).toBeVisible();
   await expect(page.getByText("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", { exact: true })).toBeVisible();
   await expect(page.getByText("Connected device information", { exact: true })).toBeVisible();
@@ -338,17 +743,18 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
 
   await expect(page.locator(".progress-meta span").last()).toHaveText("Consent");
   await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
-  await expect(page.getByText("I agree to receive ACCESS care from ITERA HEALTH, with support coordinated with Dr. Fresner.", { exact: true })).toBeVisible();
-  await expect(page.locator(".access-consent-care-team")).toContainText("Dr. Fresner ✓");
-  await expect(page.locator(".access-consent-care-team")).toContainText("Your doctor");
-  await expect(page.locator(".access-consent-care-team")).toContainText("ACCESS care provider");
-  await expect(page.locator(".access-care-chip")).toHaveText(/ACCESS care for high blood pressure/);
+  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
+  await expect(page.locator(".access-care-chip")).toHaveCount(0);
+  await expect(page.locator(".access-consent-summary")).not.toContainText("ACCESS care provider");
+  await expect(page.locator(".access-consent-summary")).not.toContainText("ACCESS care for high blood pressure");
   await expect(page.locator(".consent-disclosure-row")).toHaveCount(5);
   await expect(page.getByText("Participation is voluntary", { exact: true })).toBeVisible();
   await expect(page.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
-  await expect(page.getByText("$0 per month", { exact: true })).toBeVisible();
-  await expect(page.getByText("One ACCESS provider per care track", { exact: true })).toBeVisible();
-  await expect(page.getByText("Beginning 90 days after enrollment, you may end your ACCESS participation or switch to another participating provider.", { exact: true })).toBeVisible();
+  await expect(page.getByText("$6 per month", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
+  await expect(page.getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("Your regular Medicare benefits and cost-sharing continue to apply");
   await expect(page.locator("#screen-content")).not.toContainText("You may stop participating at any time");
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Patient");
@@ -356,7 +762,7 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
 
   const cta = page.getByRole("button", { name: "Agree and continue" });
   await expect(cta).toBeDisabled();
-  await page.getByLabel("I have reviewed this important information").check();
+  await page.getByLabel("I have reviewed this important information.").check();
   await expect(cta).toBeDisabled();
   await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(cta).toBeEnabled();
@@ -380,6 +786,34 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
   await cta.click();
   await expect(page.getByRole("heading", { name: "Completing your enrollment with Medicare" })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("You’re enrolled");
+  const consentEvidence = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(consentEvidence.disclosureAcknowledgedAt).toBeTruthy();
+  expect(consentEvidence.disclosureVersion).toBe("2.1");
+  expect(consentEvidence.consentTimestamp).toBeTruthy();
+  expect(consentEvidence.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["disclosure_acknowledged", "consent_saved"]));
+});
+
+test("ACCESS patient completes the simplified journey without redundant education or disclosure screens", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?scenario=access-happy");
+  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("radio", { name: /For myself/ }).check();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Before Medicare checks your eligibility" })).toBeVisible();
+  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
+  await page.getByRole("button", { name: "Check my eligibility" }).click();
+  await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
+  await page.getByLabel("I have reviewed this important information.").check();
+  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByRole("button", { name: "Agree and continue" }).click();
+  await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
+  await expect(page.locator("#screen-select option[value='DISCLOSURE']")).toHaveCount(0);
 });
 
 test("ACCESS personal representative must complete the authority attestation", async ({ page }) => {
@@ -388,7 +822,7 @@ test("ACCESS personal representative must complete the authority attestation", a
   await expect(page.getByText("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Personal representative");
   const authority = page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.");
-  const reviewed = page.getByLabel("I have reviewed this important information");
+  const reviewed = page.getByLabel("I have reviewed this important information.");
   const agreement = page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
   const cta = page.getByRole("button", { name: "Agree and continue" });
   await reviewed.check();
@@ -398,13 +832,51 @@ test("ACCESS personal representative must complete the authority attestation", a
   await expect(cta).toBeEnabled();
 });
 
-test("ACCESS agreement renders configured cost and claims information", async ({ page }) => {
+test("ACCESS agreement keeps track-based cost guidance with configured claims information", async ({ page }) => {
   await page.goto("/?scenario=access-disclosure-configured");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("Up to $35 per month", { exact: true })).toBeVisible();
+  await expect(page.getByText("$6 per month", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
   await expect(page.getByText("Medicare claims information", { exact: true })).toBeVisible();
   await expect(page.getByText("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", { exact: true })).toBeVisible();
+  await expect(page.locator("#screen-content")).not.toContainText("$35");
   await expect(page.locator("#screen-content")).not.toContainText("$0 per month");
+});
+
+test("ACCESS expected monthly cost follows the configured care track", async ({ page }) => {
+  for (const [track, expected] of [["eCKM", "$6 per month"], ["CKM", "$7 per month"], ["BH", "$3 per month"], ["MSK", "$3 per month"]]) {
+    await page.goto("/");
+    await page.getByRole("combobox", { name: /ACCESS track/ }).selectOption(track);
+    await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+    await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+    await expect(page.locator(".access-cost-amount")).toHaveText(expected);
+  }
+});
+
+test("ACCESS cost supports supplemental coverage verification states", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_PRESENT_NOT_CONFIRMED" })));
+  await page.goto("/?prototype=1");
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await expect(page.locator(".access-cost-amount")).toHaveText("Up to $6 per month");
+  await expect(page.getByText("Medicare covers most of the cost of this care. Your supplemental coverage may reduce this amount.", { exact: true })).toBeVisible();
+
+  await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_COVERAGE_VERIFIED" })));
+  await page.reload();
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await expect(page.locator(".access-cost-amount")).toHaveText("Estimated out-of-pocket cost: $0");
+  await expect(page.getByText("Your Medicare and supplemental coverage are expected to cover this ACCESS cost.", { exact: true })).toBeVisible();
+});
+
+test("ACCESS expected cost copy is localized in Spanish and Kreyòl", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".access-cost-amount")).toHaveText("$6 al mes");
+  await expect(page.getByText(/puede cubrir parte o la totalidad de su parte mensual de \$6/)).toBeVisible();
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.locator(".access-cost-amount")).toHaveText("$6 pa mwa");
+  await expect(page.getByText(/li ka kouvri yon pati oswa tout pati \$6 ou peye chak mwa a/)).toBeVisible();
 });
 
 test("role selection branches only personal representatives into representative details", async ({ page }) => {
@@ -476,7 +948,7 @@ test("role selection branches only personal representatives into representative 
   expect(representativeDraft.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["completion_role_selected", "representative_details_confirmed", "representative_phone_otp_sent", "representative_phone_otp_verified", "representative_authority_attested"]));
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.").check();
-  await page.getByLabel("I have reviewed this important information").check();
+  await page.getByLabel("I have reviewed this important information.").check();
   await page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
   await page.getByRole("button", { name: "Agree and continue" }).click();
   await expect(page.getByRole("heading", { name: "Completing your enrollment with Medicare" })).toBeVisible();
@@ -570,17 +1042,21 @@ test("personal representative screens remain senior-friendly and clear of Emmi",
   }
 });
 
-test("recommended care is patient-friendly, contextual, and assistant-accessible", async ({ page }) => {
+test("ACCESS care inclusions are patient-friendly, contextual, and assistant-accessible", async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 851 });
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
-  await expect(page.getByRole("heading", { name: "Your recommended care" })).toBeVisible();
-  await expect(page.getByText("Based on your health needs, your recommended care includes:")).toBeVisible();
-  await expect(page.getByText("Regular support to help manage your blood pressure.")).toBeVisible();
-  await expect(page.getByText("Goals and next steps for your health.")).toBeVisible();
-  await expect(page.getByText("Help keeping treatment on track.")).toBeVisible();
-  await expect(page.getByText("ITERA coordinates with Dr. Fresner.")).toBeVisible();
-  await expect(page.getByText("These services work together as part of your recommended care.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+  await expect(page.getByText("Your ACCESS care is designed to support you at home and between doctor visits.")).toBeVisible();
+  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
+  await expect(page.getByText("Blood pressure support")).toBeVisible();
+  await expect(page.getByText("Help monitoring and managing your blood pressure at home.")).toBeVisible();
+  await expect(page.getByText("A care plan built around you")).toBeVisible();
+  await expect(page.getByText("Goals and next steps based on your health needs.")).toBeVisible();
+  await expect(page.getByText("Connected with your doctors")).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Fresner to help keep your care coordinated.")).toBeVisible();
+  await expect(page.getByText("Your care continues between visits, while your doctors remain part of your care.")).toBeVisible();
+  await expect(page.locator(".recommendation-screen")).not.toContainText("recommended care");
   await expect(page.locator(".recommendation-screen")).not.toContainText(/\b(?:CCM|RPM|PCM|CPT)\b/);
   await expect(page.locator(".progress-meta span").last()).toHaveText("Your care");
   const assistant = page.locator(".emmi-assistant");
@@ -601,7 +1077,7 @@ test("recommended care is patient-friendly, contextual, and assistant-accessible
   await assistant.click();
   await expect(page.getByRole("heading", { name: "Hi, I’m Emmi. How can I help?" })).toBeVisible();
   await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
-  await expect(page.getByText("What does recommended care mean?")).toBeVisible();
+  await expect(page.getByText("What does ACCESS care include?")).toBeVisible();
   await expect(page.getByText("Will I keep seeing my doctor?")).toBeVisible();
   await expect(page.getByText("Talk to our care team")).toBeVisible();
   await expect(page.getByText("Call (305) 394-8070")).toBeVisible();
@@ -618,30 +1094,24 @@ test("recommended care avoids individual physician claims for practice outreach"
   await expect(page.locator(".recommendation-screen")).not.toContainText("ITERA coordinates with Dr. Fresner.");
 });
 
-test("How your care works explains ACCESS coordination with a dynamic physician", async ({ page }) => {
+test("ACCESS merges care coordination into What your care includes with a dynamic physician", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   await page.getByPlaceholder("Enter physician name").fill("Dr. Humberto Machado Jr.");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await page.locator("#screen-select").selectOption("HOW_CARE_WORKS", { force: true });
+  await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
 
-  await expect(page.getByRole("heading", { name: "How your care works" })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH works with Dr. Humberto Machado Jr. to support your ACCESS care.")).toBeVisible();
-  const physicianCard = page.locator(".care-works-physician");
-  await expect(physicianCard).toContainText("Dr. Humberto Machado Jr. ✓");
-  await expect(physicianCard).toContainText("Your doctor");
-  await expect(physicianCard).not.toContainText("Referring physician");
-  await expect(page.getByText("We stay in touch and follow your care plan.")).toBeVisible();
-  await expect(page.getByText("Get help with questions and next steps.")).toBeVisible();
-  await expect(page.getByText("We share important updates with your doctor.")).toBeVisible();
-  await expect(page.locator(".trust-note")).toContainText("ITERA provides additional support between doctor visits.");
-  await expect(page.locator(".contextual-assurance")).toContainText("Your doctor remains part of your care");
-  await expect(page.locator(".care-works-screen")).not.toContainText("I have questions");
+  await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Humberto Machado Jr. to help keep your care coordinated.")).toBeVisible();
+  await expect(page.locator(".note")).toContainText("Your care continues between visits, while your doctors remain part of your care.");
+  await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
+  await expect(page.locator(".recommendation-screen")).not.toContainText("I have questions");
 
-  const layout = await page.locator(".care-works-screen").evaluate(screen => {
+  const layout = await page.locator(".recommendation-screen").evaluate(screen => {
     const assistant = document.querySelector(".emmi-assistant").getBoundingClientRect();
-    const protectedElements = [...screen.querySelectorAll(".info-row,.trust-note,.actions,.contextual-assurance")];
+    const protectedElements = [...screen.querySelectorAll(".info-row,.note,.actions,.contextual-assurance")];
     const overlaps = protectedElements.some(element => {
       const rect = element.getBoundingClientRect();
       return !(assistant.right <= rect.left || assistant.left >= rect.right || assistant.bottom <= rect.top || assistant.top >= rect.bottom);
@@ -649,29 +1119,29 @@ test("How your care works explains ACCESS coordination with a dynamic physician"
     return {
       overlaps,
       descriptionFonts: [...screen.querySelectorAll(".info-row p")].map(element => parseFloat(getComputedStyle(element).fontSize)),
-      descriptionLines: [...screen.querySelectorAll(".info-row p")].map(element => element.getBoundingClientRect().height / parseFloat(getComputedStyle(element).lineHeight)),
       horizontalOverflow: document.documentElement.scrollWidth > innerWidth
     };
   });
   expect(layout.overlaps).toBe(false);
   expect(Math.min(...layout.descriptionFonts)).toBeGreaterThanOrEqual(16);
-  expect(Math.max(...layout.descriptionLines)).toBeLessThanOrEqual(2.1);
   expect(layout.horizontalOverflow).toBe(false);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("I agree to receive ACCESS care from ITERA HEALTH, with support coordinated with Dr. Humberto Machado Jr.", { exact: true })).toBeVisible();
-  await expect(page.locator(".access-consent-care-team")).toContainText("Dr. Humberto Machado Jr.");
+  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
+  await expect(page.locator(".access-care-chip")).toHaveCount(0);
+  await expect(page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
   await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
   await expect(page.getByText("You continue working with Dr. Humberto Machado Jr.", { exact: true })).toBeVisible();
 });
 
-test("recommended care adapts its support description to the configured condition", async ({ page }) => {
+test("ACCESS care inclusions adapt to the configured condition and direct outreach source", async ({ page }) => {
   const cases = [
-    ["Diabetes", "Regular support to help manage your diabetes."],
-    ["Heart Failure", "Regular support focused on your heart health."],
-    ["Chronic Kidney Disease", "Regular support focused on your kidney health."]
+    ["Diabetes", "Diabetes support", "Help monitoring and managing your diabetes at home."],
+    ["Heart Failure", "Heart health support", "Help monitoring symptoms and supporting your heart health at home."],
+    ["Chronic Kidney Disease", "Kidney health support", "Help monitoring and supporting your kidney health at home."]
   ];
-  for (const [condition, description] of cases) {
+  for (const [condition, title, description] of cases) {
     await page.goto("/");
     await page.evaluate(() => localStorage.removeItem("itera.prototype.config.v1"));
     await page.reload();
@@ -681,7 +1151,10 @@ test("recommended care adapts its support description to the configured conditio
     await options.getByText(condition, { exact: true }).click();
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
+    await expect(page.getByText(title, { exact: true })).toBeVisible();
     await expect(page.getByText(description)).toBeVisible();
+    await expect(page.getByText("ITERA helps keep your care coordinated with the doctors you already see.")).toBeVisible();
+    await expect(page.locator(".recommendation-screen")).not.toContainText("Dr. Fresner");
   }
 });
 
@@ -1081,18 +1554,29 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
 test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do not fall back to English", async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem("itera.enrollment.language.v1"));
   for (const locale of [
-    { clicks: 1, code: "ES", care: "Controles de salud periódicos", eligibility: "Elegibilidad", consent: "Revise y acepte", assistant: "Asistente de cuidado" },
-    { clicks: 2, code: "KR", care: "Tcheke sante regilyèman", eligibility: "Elijibilite", consent: "Revize epi dakò", assistant: "Asistan swen" }
+    { clicks: 1, code: "ES", care: "Seguimiento regular", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS está diseñado para apoyarle en casa y entre visitas al médico.", careNote: "Su cuidado continúa entre visitas, mientras sus médicos siguen siendo parte de su cuidado.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Si tiene un seguro suplementario, puede cubrir parte o la totalidad de su parte mensual de $6, lo que podría reducir su costo de bolsillo a $0.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
+    { clicks: 2, code: "KR", care: "Tcheke regilyèman", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou fèt pou sipòte w lakay ou ak ant vizit kay doktè.", careNote: "Swen ou kontinye ant vizit yo, pandan doktè ou yo rete yon pati nan swen ou.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Medicare kouvri pifò nan depans swen sa a. Si ou gen asirans siplemantè, li ka kouvri yon pati oswa tout pati $6 ou peye chak mwa a, sa ki ka diminye depans ou peye nan pòch ou rive $0.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
   ]) {
     await page.goto("/?scenario=access-happy");
     for (let i = 0; i < locale.clicks; i += 1) await page.locator(".stage-language").click();
     await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
+    await expect(page.getByRole("heading", { name: locale.careHeading })).toBeVisible();
+    await expect(page.getByText(locale.careSupport)).toBeVisible();
     await expect(page.getByText(locale.care)).toBeVisible();
+    await expect(page.getByText(locale.careNote)).toBeVisible();
     await expect(page.locator("#app")).not.toContainText("⟦");
+    await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
+    await expect(page.getByText(locale.precheck)).toBeVisible();
+    await expect(page.getByLabel(locale.precheckAck)).toBeVisible();
     await page.locator("#screen-select").selectOption("ACCESS_ELIGIBILITY_PROCESSING", { force: true });
     await expect(page.locator(".progress-meta span").last()).toHaveText(locale.eligibility);
     await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
     await expect(page.getByRole("heading", { name: locale.consent })).toBeVisible();
+    await expect(page.getByText(locale.consentIntro)).toBeVisible();
+    await expect(page.getByText(locale.providerRule, { exact: true })).toBeVisible();
+    await expect(page.getByText(locale.changeRule)).toBeVisible();
+    await expect(page.getByText(locale.cost)).toBeVisible();
+    await expect(page.getByText(locale.fullTerms, { exact: false })).toBeVisible();
     await page.locator(".emmi-assistant").click();
     await expect(page.locator(".assistant-header")).toContainText(locale.assistant);
     await expect(page.locator("#app")).not.toContainText("⟦");
@@ -1129,7 +1613,7 @@ test("ACCESS does not confirm enrollment at eligibility", async ({ page }) => {
   expect(layout.overlaps).toBe(false);
   expect(layout.horizontalOverflow).toBe(false);
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Important information");
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Consent");
 });
 
 test("non-eligible ACCESS outcomes retain their existing Medicare reassurance", async ({ page }) => {
@@ -1169,7 +1653,7 @@ test("ACCESS eligibility processing uses patient-friendly real status states", a
 test("ACCESS eligibility processing provides a safe retry state", async ({ page }) => {
   await page.goto("/?scenario=access-check-failure");
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  await page.getByLabel("I acknowledge this information and want to continue").check();
+  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "We couldn’t complete the check right now." })).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Your information is safe. Please try again or contact our care team.")).toBeVisible();
@@ -1187,15 +1671,17 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
 
   await expect(page.getByRole("heading", { name: "Before Medicare checks your eligibility" })).toBeVisible();
-  await expect(page.getByText("ACCESS is a Medicare care model being evaluated by the Centers for Medicare & Medicaid Services (CMS)." )).toBeVisible();
-  await expect(page.getByText("ITERA may share health information with CMS, and CMS may request information to evaluate ACCESS. Federal privacy and security protections apply.")).toBeVisible();
-  await expect(page.getByText("CMS may randomly assign you to a comparison group. If that happens, you won’t be able to enroll in ACCESS for 12 months.")).toBeVisible();
-  await expect(page.getByText("Your Medicare benefits, rights, and coverage will stay the same.")).toBeVisible();
+  await expect(page.getByText("Please review these important details about the ACCESS evaluation.")).toBeVisible();
+  await expect(page.getByText("CMS is evaluating ACCESS. ITERA may securely share health information with CMS, and CMS may request information for this evaluation.")).toBeVisible();
+  await expect(page.getByText("CMS may place you in a comparison group. If that happens, you won’t be able to enroll in ACCESS for 12 months.")).toBeVisible();
+  await expect(page.getByText("This eligibility check does not change your Medicare benefits, coverage, or rights.")).toBeVisible();
+  await expect(page.locator(".access-precheck-row")).toHaveCount(3);
+  await expect(page.locator(".access-notice-screen details")).toHaveCount(0);
   const assurance = page.locator('.contextual-assurance[data-assurance-type="MEDICARE_PROTECTION"]');
   await expect(assurance).toContainText("This check won’t affect your Medicare benefits");
   await expect(assurance.locator(".icon")).toHaveCount(1);
 
-  const acknowledgement = page.getByLabel("I acknowledge this information and want to continue");
+  const acknowledgement = page.getByLabel("I understand and want Medicare to check my eligibility");
   const eligibilityCta = page.getByRole("button", { name: "Check my eligibility" });
   await expect(eligibilityCta).toBeDisabled();
   await acknowledgement.check();
@@ -1211,8 +1697,8 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
     return {
       overlaps,
       leadFont: parseFloat(getComputedStyle(screen.querySelector(".lead")).fontSize),
-      titleFonts: [...screen.querySelectorAll(".accordion-list strong")].map(element => parseFloat(getComputedStyle(element).fontSize)),
-      bodyFonts: [...screen.querySelectorAll(".accordion-list small")].map(element => parseFloat(getComputedStyle(element).fontSize)),
+      titleFonts: [...screen.querySelectorAll(".access-precheck-row strong")].map(element => parseFloat(getComputedStyle(element).fontSize)),
+      bodyFonts: [...screen.querySelectorAll(".access-precheck-row p")].map(element => parseFloat(getComputedStyle(element).fontSize)),
       checkboxFont: parseFloat(getComputedStyle(screen.querySelector(".check-row")).fontSize),
       horizontalOverflow: document.documentElement.scrollWidth > innerWidth
     };
@@ -1223,6 +1709,12 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
   expect(Math.min(...layout.bodyFonts)).toBeGreaterThanOrEqual(16);
   expect(layout.checkboxFont).toBeGreaterThanOrEqual(16);
   expect(layout.horizontalOverflow).toBe(false);
+
+  await eligibilityCta.click();
+  await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
+  const noticeEvidence = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(noticeEvidence.accessNoticeAcknowledgedAt).toBeTruthy();
+  expect(noticeEvidence.audit.map(event => event.eventType)).toContain("access_eligibility_notice_acknowledged");
 });
 
 test("RPM shipping branch exposes address confirmation", async ({ page }) => {
@@ -1285,7 +1777,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  const acknowledgement = page.getByLabel("I acknowledge this information and want to continue");
+  const acknowledgement = page.getByLabel("I understand and want Medicare to check my eligibility");
   await acknowledgement.check();
   await page.evaluate(() => window.scrollTo(0, 120));
   const scrollBefore = await page.evaluate(() => window.scrollY);
@@ -1425,9 +1917,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     ["DECISION_MAKER", "ROLE_GUIDANCE", "We’ll guide you through the right steps"],
     ["IDENTITY_VERIFICATION", "SECURITY", "Your information is secure"],
     ["CARE_RECOMMENDATION", "NO_COMMITMENT_YET", "You’ll review the details before you enroll"],
-    ["HOW_CARE_WORKS", "PHYSICIAN_CONTINUITY", "Your doctor remains part of your care"],
     ["ACCESS_ELIGIBILITY_RESULT", "NO_COMMITMENT_YET", "You’ll review the details before you enroll"],
-    ["DISCLOSURE", "ENROLLMENT_CHOICE", "You choose whether to enroll"],
     ["CONSENT_REVIEW", "ENROLLMENT_CHOICE", "You choose whether to enroll"],
     ["ACCESS_BASELINE", "HEALTH_DATA_SECURITY", "Your health information is secure"]
   ];
@@ -1638,7 +2128,7 @@ test("ACCESS screens stay readable and free of horizontal overflow at required m
     { width: 393, height: 852 },
     { width: 430, height: 932 }
   ];
-  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "HOW_CARE_WORKS", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT", "DISCLOSURE", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", "ONBOARDING_COMPLETE"];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", "ONBOARDING_COMPLETE"];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto("/?scenario=access-happy");
@@ -1667,7 +2157,7 @@ test("core mobile screens tolerate 125 and 150 percent content scaling", async (
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/?scenario=access-happy");
   for (const scale of [1.25, 1.5]) {
-    for (const screen of ["IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "DISCLOSURE", "CONSENT_REVIEW"]) {
+    for (const screen of ["IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW"]) {
       await page.locator("#screen-select").selectOption(screen, { force: true });
       await page.evaluate(value => { document.documentElement.style.fontSize = `${value * 100}%`; }, scale);
       const audit = await page.evaluate(() => ({

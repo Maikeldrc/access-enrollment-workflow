@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOffer, createPrototypeOffer, normalizePrototypeConfig, scenarioRequiresPhysician } from "../src/config.js";
+import { ACCESS_COST_BY_TRACK, SECONDARY_COVERAGE_STATUSES, createOffer, createPrototypeOffer, normalizePrototypeConfig, resolveAccessCost, scenarioRequiresPhysician } from "../src/config.js";
 import { journeyFor, nextScreen, progressFor } from "../src/machine.js";
 
 const stateFor = (scenarioId, overrides = {}) => ({ offer: createOffer(scenarioId), screen: "INVITATION", devicePath: null, ...overrides });
@@ -20,11 +20,16 @@ describe("enrollment state machine", () => {
     expect(journey.indexOf("ACCESS_ALIGNMENT_PROCESSING")).toBeLessThan(journey.indexOf("ENROLLMENT_CONFIRMED"));
   });
 
-  it("keeps eligible, disclosure, consent, alignment, and enrollment as separate ACCESS stages", () => {
+  it("consolidates ACCESS education and disclosure without merging eligibility or consent", () => {
     const journey = journeyFor(stateFor("access-happy"));
-    const orderedStages = ["ACCESS_ELIGIBILITY_RESULT", "DISCLOSURE", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED"];
+    const orderedStages = ["ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED"];
     expect(orderedStages.map(screen => journey.indexOf(screen))).toEqual([...orderedStages.map(screen => journey.indexOf(screen))].sort((a, b) => a - b));
     expect(new Set(orderedStages.map(screen => journey.indexOf(screen))).size).toBe(orderedStages.length);
+    expect(journey).not.toContain("HOW_CARE_WORKS");
+    expect(journey).not.toContain("DISCLOSURE");
+    const traditionalJourney = journeyFor(stateFor("ccm-happy"));
+    expect(traditionalJourney).toContain("HOW_CARE_WORKS");
+    expect(traditionalJourney).toContain("DISCLOSURE");
   });
 
   it("keeps prototype eligibility separate from alignment and ends the not-eligible journey at its result", () => {
@@ -66,6 +71,32 @@ describe("enrollment state machine", () => {
   it("labels role selection separately from identity confirmation", () => {
     expect(progressFor(stateFor("access-happy", { screen: "DECISION_MAKER" })).label).toBe("Who’s completing");
     expect(progressFor(stateFor("access-happy", { screen: "IDENTITY_VERIFICATION" })).label).toBe("Confirm identity");
+  });
+
+  it("uses a separate three-part care activation progress after ACCESS enrollment", () => {
+    const baseline = progressFor(stateFor("access-happy", { screen: "ACCESS_BASELINE" }));
+    const measure = progressFor(stateFor("access-happy", { screen: "ACCESS_MEASURE" }));
+    expect(baseline).toMatchObject({ label: "Getting started", current: 1, total: 3 });
+    expect(measure).toMatchObject({ label: "Getting started", current: 2, total: 3 });
+    expect(measure.percent).toBeGreaterThan(baseline.percent);
+  });
+
+  it("marks ACCESS enrollment confirmation as a completed transition before care activation", () => {
+    const confirmation = progressFor(stateFor("access-happy", { screen: "ENROLLMENT_CONFIRMED" }));
+    expect(confirmation).toMatchObject({ label: "Getting started", current: 1, total: 1, percent: 100 });
+    expect(progressFor(stateFor("access-happy", { screen: "ACCESS_BASELINE" })).percent).toBeLessThan(100);
+  });
+
+  it("branches the ACCESS blood-pressure baseline by device path", () => {
+    const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE" }));
+    const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));
+    const needed = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "needed" }));
+    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT"]));
+    expect(help).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
+    expect(help).toEqual(expect.arrayContaining(["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"]));
+    expect(needed).not.toContain("ACCESS_BP_MEASUREMENT");
+    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(needed).toContain("ONBOARDING_COMPLETE");
   });
 
   it("inserts representative details only for the personal representative branch", () => {
@@ -180,8 +211,10 @@ describe("enrollment state machine", () => {
   it("builds ACCESS disclosure configuration from the resolved scenario", () => {
     const defaults = createPrototypeOffer({ program: "ACCESS", source: "Physician Referral", physician: "Dr. Martinez-Clark", accessTrack: "CKM" });
     expect(defaults.disclosures.accessConfig).toEqual({
-      costSharingType: "COST_SHARING_NONE",
+      accessCost: { track: "CKM", expectedMonthlyAmount: 7, displayValue: "$7 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" },
+      costSharingType: "COST_SHARING_APPLIES",
       costSharingAmount: null,
+      verifiedPatientCost: null,
       showClaimsSharing: false,
       showTempoDisclosure: false,
       tempoDisclosureText: "",
@@ -193,6 +226,7 @@ describe("enrollment state machine", () => {
       program: "ACCESS",
       accessCostSharingType: "COST_SHARING_APPLIES",
       accessCostSharingAmount: "$42",
+      verifiedPatientCost: { status: "verified", displayText: { en: "$18 verified patient cost", es: "$18 de costo verificado", ht: "$18 depans verifye" } },
       showAccessClaimsSharing: true,
       showAccessTempoDisclosure: true,
       accessTempoDisclosureText: "Configured device disclosure."
@@ -200,10 +234,19 @@ describe("enrollment state machine", () => {
     expect(configured.disclosures.accessConfig).toMatchObject({
       costSharingType: "COST_SHARING_APPLIES",
       costSharingAmount: "$42",
+      verifiedPatientCost: { status: "verified", displayText: { en: "$18 verified patient cost", es: "$18 de costo verificado", ht: "$18 depans verifye" } },
       showClaimsSharing: true,
       showTempoDisclosure: true,
       tempoDisclosureText: "Configured device disclosure."
     });
+  });
+
+  it("centralizes expected ACCESS cost by track and secondary coverage status", () => {
+    expect(ACCESS_COST_BY_TRACK).toEqual({ eCKM: 6, CKM: 7, BH: 3, MSK: 3 });
+    expect(resolveAccessCost("eCKM")).toEqual({ track: "eCKM", expectedMonthlyAmount: 6, displayValue: "$6 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" });
+    expect(resolveAccessCost("CKM", SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED)).toMatchObject({ expectedMonthlyAmount: 7, displayValue: "up to $7 per month", secondaryCoverageStatus: "SECONDARY_PRESENT_NOT_CONFIRMED" });
+    expect(resolveAccessCost("BH", SECONDARY_COVERAGE_STATUSES.VERIFIED)).toMatchObject({ expectedMonthlyAmount: 3, displayValue: "$0", secondaryCoverageStatus: "SECONDARY_COVERAGE_VERIFIED" });
+    expect(createOffer("access-happy").accessCost).toMatchObject({ track: "eCKM", expectedMonthlyAmount: 6 });
   });
 
   it("normalizes invalid ACCESS coverage and controlled conditions before building an offer", () => {
