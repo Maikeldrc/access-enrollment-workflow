@@ -75,6 +75,35 @@ For production:
 5. Send only allow-listed, non-PHI analytics events. Never attach patient identifiers or clinical values.
 6. Complete legal, CMS, HIPAA/security, accessibility, device-validation, and clinical-content reviews before launch.
 
+## EMMI multimodal prototype
+
+EMMI is a contextual prototype assistant that can explain the current screen, guide the patient, read authoritative fictional enrollment/device/cost data through mock tools, request human follow-up after confirmation, and escalate predefined mock safety scenarios. It cannot consent, enroll, attest representative authority, change eligibility, diagnose, prescribe, or silently create clinical actions.
+
+All EMMI fixtures are fictional (`DEMO-P001` through `DEMO-P006`). Do not enter or connect real patient data. The browser receives only a short-lived Gemini Live token; `GEMINI_API_KEY` stays in the server-side token handler.
+
+Copy `.env.example` to `.env.local` and provide a development Gemini API key to test voice:
+
+```bash
+GEMINI_API_KEY=your-development-key
+GEMINI_LIVE_MODEL=gemini-3.1-flash-live-preview
+EMMI_PROTOTYPE_MODE=true
+EMMI_ALLOW_REAL_PATIENT_DATA=false
+```
+
+Relevant flags are `EMMI_ENABLE_VOICE`, `EMMI_ENABLE_TEXT`, `EMMI_ENABLE_TOOLS`, and `EMMI_SESSION_MAX_MINUTES`. To disable voice while retaining the deterministic text assistant, set `EMMI_ENABLE_VOICE=false` and restart the development server.
+
+Architecture:
+
+- `api/emmi/live-token.js` and `server/emmiLiveToken.js`: POST-only ephemeral-token boundary with a one-use token, short lifetime, safe prototype checks, and no-cache response.
+- `src/emmi/liveClient.js`: browser microphone capture, 16 kHz PCM input, 24 kHz PCM playback, interruption, state management, transcriptions, tool responses, mute, timeout, and graceful text fallback.
+- `src/emmi/systemPrompt.js`: centralized safety and conversational policy.
+- `src/emmi/tools.js`: allow-listed mock tool declarations, deterministic orchestration, confirmations, and local prototype audit records.
+- `src/mock/emmiFixtures.js`: authoritative fictional patients, costs, ACCESS disclosures, and device states.
+
+The development-only visual preview supports `?emmiState=LISTENING`, `EMMI_SPEAKING`, or `TOOL_RUNNING` after opening EMMI. Error fallbacks can be exercised with `?emmiFailure=microphone-denied`, `429`, or `connection`. These query parameters simulate UI states only and are excluded from production builds.
+
+The local prototype audit record is stored under `itera.emmi.prototype.audit.v1` and includes conversation/session IDs, demo patient ID, locale, current screen, timestamps, transcripts, tool calls/results, action flags, model, and prompt version. It never stores audio, an API key, or an ephemeral token. Production requires an approved encrypted audit service, retention policy, access control, redaction, consent/privacy review, observability, and clinical safety validation.
+
 ## Acceptance evidence
 
 - Unit coverage verifies no program-selection state exists, ACCESS alignment precedes success, RPM shipping branches correctly, MBI is requested only when missing, and safe drafts omit sensitive values.

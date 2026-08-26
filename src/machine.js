@@ -39,6 +39,8 @@ const PROGRESS_STAGE_BY_SCREEN = {
   ENROLLMENT_CONFIRMED: "GETTING_STARTED",
   ONBOARDING: "GETTING_STARTED",
   CLINICAL_VERIFICATION: "GETTING_STARTED",
+  MEDICATIONS_REVIEW: "GETTING_STARTED",
+  CARE_PREFERENCES: "GETTING_STARTED",
   GOALS: "GETTING_STARTED",
   ACCESS_BASELINE: "GETTING_STARTED",
   ACCESS_MEASURE: "GETTING_STARTED",
@@ -69,19 +71,21 @@ export function journeyFor(s) {
   if (p === "ACCESS") {
     const eligibility = [...start, "ACCESS_PRE_ELIGIBILITY_NOTICE", ...(s.offer.payer.mbiAvailable ? [] : ["ACCESS_MEDICARE_IDENTIFIER"]), "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"];
     if (s.accessOutcome === "notEligible") return eligibility;
-    const completedBpDestination = s.bpEscalationState?.status === "ACTIVE" ? ["ACCESS_BP_ESCALATION"] : ["ACCESS_BP_BASELINE_RESULT"];
+    const completedBpDestination = s.bpEscalationState?.status === "ACTIVE" ? ["ACCESS_BP_ESCALATION"] : s.bpBaselineStatus === "COMPLETED" ? ["ACCESS_BP_BASELINE_RESULT"] : [];
+    const deviceResultAvailable = ["ASSIGNED", "PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED", "FAILED", "DEVICE_MISMATCH", "SOURCE_MISMATCH", "NEEDS_REVIEW", "INACTIVE", "UNSUPPORTED"].includes(s.deviceVerificationStatus);
+    const remainingCareSetup = ["ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"];
     const bpPath = s.bpDevicePath === "owned"
-      ? ["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", ...(s.bpDeviceVerificationStatus === "VERIFIED_COMPATIBLE" ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination] : [])]
+      ? ["ACCESS_BP_DEVICE_VERIFICATION", ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []), ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup] : [])]
       : s.bpDevicePath === "help"
-        ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination]
+        ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup]
         : s.bpDevicePath === "needed"
-          ? ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]
+          ? ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", ...remainingCareSetup]
           : [];
     return [...eligibility, "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", ...bpPath, "ONBOARDING_COMPLETE"];
   }
   const traditionalStart = [...start, "HOW_CARE_WORKS"];
   if (["RPM", "CCM_RPM", "PCM_RPM"].includes(p)) return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "RPM_DEVICE_PATH", ...(s.devicePath === "ship" ? ["RPM_ADDRESS_CONFIRMATION"] : []), "RPM_DEVICE_SETUP", "RPM_FIRST_READING", "RPM_MONITORING_READY"];
-  return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS", "ONBOARDING_COMPLETE"];
+  return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE"];
 }
 export function progressFor(s) {
   const journey = journeyFor(s);

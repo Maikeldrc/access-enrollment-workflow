@@ -1,12 +1,42 @@
+export const BP_FULFILLMENT_DEVICE_MODELS = [
+  {
+    id: "TENOVI_BPM_GEN3",
+    vendor: "TENOVI",
+    displayName: "Tenovi Blood Pressure Monitor Gen 3",
+    availableForFulfillment: true,
+    cuffOptions: [
+      { id: "TENOVI_XS", labelKey: "extraSmall", minArmCircumference: 15, maxArmCircumference: 28, unit: "cm", compatibleDeviceModels: ["TENOVI_BPM_GEN3"], inventoryStatus: "AVAILABLE" },
+      { id: "TENOVI_WIDE", labelKey: "standard", minArmCircumference: 22, maxArmCircumference: 42, unit: "cm", compatibleDeviceModels: ["TENOVI_BPM_GEN3"], inventoryStatus: "AVAILABLE" },
+      { id: "TENOVI_XL", labelKey: "extraLarge", minArmCircumference: 32, maxArmCircumference: 52, unit: "cm", compatibleDeviceModels: ["TENOVI_BPM_GEN3"], inventoryStatus: "AVAILABLE" }
+    ]
+  },
+  {
+    id: "PYLO_802_LTE",
+    vendor: "PYLO",
+    displayName: "Pylo 802-LTE Blood Pressure Monitor",
+    availableForFulfillment: true,
+    cuffOptions: [
+      { id: "PYLO_STANDARD", labelKey: "standard", minArmCircumference: 22, maxArmCircumference: 32, unit: "cm", compatibleDeviceModels: ["PYLO_802_LTE"], inventoryStatus: "AVAILABLE" },
+      { id: "PYLO_LARGE", labelKey: "large", minArmCircumference: 22, maxArmCircumference: 42, unit: "cm", compatibleDeviceModels: ["PYLO_802_LTE"], inventoryStatus: "AVAILABLE" },
+      { id: "PYLO_XL", labelKey: "extraLarge", minArmCircumference: 22, maxArmCircumference: 45, unit: "cm", compatibleDeviceModels: ["PYLO_802_LTE"], inventoryStatus: "AVAILABLE" }
+    ]
+  }
+];
+
 export const SCENARIOS = {
   "ccm-happy": { label: "CCM · happy path", pathway: "CCM" },
   "rpm-shipping": { label: "RPM · device shipping", pathway: "RPM", rpmDevice: "ship" },
   "rpm-owned": { label: "RPM · patient-owned device", pathway: "RPM", rpmDevice: "owned" },
   "rpm-transmission-fail": { label: "RPM · transmission support", pathway: "RPM", rpmDevice: "owned", firstReading: "failed" },
   "access-happy": { label: "ACCESS · eligible", pathway: "ACCESS", accessOutcome: "eligible" },
-  "access-bp-incompatible": { label: "ACCESS · incompatible BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceCompatibility: "incompatible" },
-  "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpReadingFailureAt: 2 },
-  "access-bp-escalation": { label: "ACCESS · BP clinical escalation", pathway: "ACCESS", accessOutcome: "eligible", bpClinicalReview: "escalation" },
+  "access-bp-incompatible": { label: "ACCESS · patient-owned BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "patient-owned-unsupported", bpDeviceAssignment: "patient-owned" },
+  "access-bp-none": { label: "ACCESS · no BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "none", bpDeviceAssignment: "none" },
+  "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceLookupFailure: true },
+  "access-bp-pylo": { label: "ACCESS · Pylo monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceVendor: "PYLO" },
+  "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpReadingFailureAt: 1 },
+  "access-bp-source-mismatch": { label: "ACCESS · BP source mismatch", pathway: "ACCESS", accessOutcome: "eligible", bpSourceMismatch: true },
+  "access-bp-background-complete": { label: "ACCESS · BP background completion", pathway: "ACCESS", accessOutcome: "eligible", bpBackgroundReadings: 2 },
+  "access-bp-escalation": { label: "ACCESS · BP clinical escalation", pathway: "ACCESS", accessOutcome: "eligible", bpClinicalReview: "escalation", bpBackgroundReadings: 2 },
   "access-disclosure-configured": { label: "ACCESS · configured disclosures", pathway: "ACCESS", accessOutcome: "eligible", accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: "$35", showAccessClaimsSharing: true, showAccessTempoDisclosure: true, accessTempoDisclosureText: "A connected device may be used to support your ACCESS care. Your care team will explain what is required." },
   "access-control": { label: "ACCESS · control group", pathway: "ACCESS", accessOutcome: "control" },
   "access-not-eligible": { label: "ACCESS · not eligible", pathway: "ACCESS", accessOutcome: "notEligible" },
@@ -116,7 +146,13 @@ export const PROTOTYPE_OPTIONS = {
   coverage: ["Original Medicare", "Medicare Advantage"],
   languages: [{ value: "en", label: "English" }, { value: "es", label: "Spanish" }, { value: "ht", label: "Creole" }],
   accessTracks: ["eCKM", "CKM", "BH", "MSK"],
-  accessEligibilityResults: [{ value: "eligible", label: "Eligible" }, { value: "notEligible", label: "Not eligible" }]
+  accessEligibilityResults: [{ value: "eligible", label: "Eligible" }, { value: "notEligible", label: "Not eligible" }],
+  bpDeviceScenarios: [
+    { value: "none", label: "No monitor" },
+    { value: "itera-tenovi", label: "ITERA Tenovi monitor" },
+    { value: "itera-pylo", label: "ITERA Pylo monitor" },
+    { value: "patient-owned-unsupported", label: "Patient-owned monitor (not connected to ITERA)" }
+  ]
 };
 
 export const ACCESS_COST_BY_TRACK = Object.freeze({ eCKM: 6, CKM: 7, BH: 3, MSK: 3 });
@@ -139,7 +175,7 @@ export function resolveAccessCost(track = "eCKM", secondaryCoverageStatus = SECO
 export const DEFAULT_PROTOTYPE_CONFIG = {
   program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"],
   referralOrigin: null,
-  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner",
+  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner", bpDeviceScenario: "itera-tenovi",
   physicianPhotoUrl: "/assets/doctor-portrait-v2.png", secondaryCoverageStatus: SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED, accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: null,
   showAccessClaimsSharing: false, showAccessTempoDisclosure: false, accessTempoDisclosureText: ""
 };
@@ -161,6 +197,7 @@ const unique = values => [...new Set(values.filter(Boolean))];
 export const ACCESS_PROVIDER_REFERRAL = "Provider / Practice Referral";
 export const isProviderReferralSource = source => source === "Physician Referral" || source === ACCESS_PROVIDER_REFERRAL;
 export const scenarioRequiresPhysician = (program, source) => isProviderReferralSource(source) || program !== "ACCESS";
+export const scenarioUsesBloodPressureMonitoring = config => config.program === "ACCESS" && config.accessTrack === "eCKM" && config.conditions.includes("Hypertension");
 export function normalizePrototypeConfig(input = {}) {
   const merged = { ...DEFAULT_PROTOTYPE_CONFIG, ...input };
   const requestedSource = String(merged.source || "");
@@ -182,13 +219,15 @@ export function normalizePrototypeConfig(input = {}) {
       : merged.physicianDisplayName;
   const requestedConditions = Array.isArray(input.conditions) ? input.conditions : input.condition ? [input.condition] : merged.conditions;
   const conditions = unique(requestedConditions.filter(condition => PROTOTYPE_OPTIONS.conditions.includes(condition)));
+  const bpDeviceScenario = PROTOTYPE_OPTIONS.bpDeviceScenarios.some(option => option.value === merged.bpDeviceScenario) ? merged.bpDeviceScenario : DEFAULT_PROTOTYPE_CONFIG.bpDeviceScenario;
   return {
     ...merged,
     source,
     referralOrigin,
     coverage: merged.program === "ACCESS" ? "Original Medicare" : merged.coverage,
     conditions,
-    physicianDisplayName
+    physicianDisplayName,
+    bpDeviceScenario
   };
 }
 const accessDisclosureConfig = (config, physicianDisplayName, careTrack) => ({
@@ -219,6 +258,12 @@ export function createPrototypeOffer(input = {}) {
   const physician = physicianRequired && config.physicianDisplayName ? { displayName: config.physicianDisplayName, id: config.physicianDisplayName.toLowerCase().replace(/[^a-z0-9]+/g, "-") } : null;
   const dynamicContent = { ...program, supportTemplate: physician ? program.support : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support, support: physician ? program.support.replaceAll("{physicianDisplayName}", physician.displayName) : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support };
   const accessCost = isAccess ? resolveAccessCost(config.accessTrack, config.secondaryCoverageStatus) : undefined;
+  const bpDeviceFixture = {
+    none: { bpDeviceScenario: "none", bpDeviceAssignment: "none", patientHasBloodPressureMonitor: false, deviceSource: "NONE", assignedDeviceId: null, deviceVendor: null, deviceStatus: null, integrationProvider: "NONE", integrationStatus: "NOT_CONNECTED" },
+    "itera-tenovi": { bpDeviceScenario: "itera-tenovi", patientHasBloodPressureMonitor: true, deviceSource: "ITERA_ASSIGNED", assignedDeviceId: "tenovi-bp-8842", deviceVendor: "TENOVI", deviceStatus: "ACTIVE", integrationProvider: "TENOVI", integrationStatus: "CONNECTED" },
+    "itera-pylo": { bpDeviceScenario: "itera-pylo", patientHasBloodPressureMonitor: true, deviceSource: "ITERA_ASSIGNED", assignedDeviceId: "pylo-bp-6719", deviceVendor: "PYLO", deviceStatus: "ACTIVE", integrationProvider: "PYLO", integrationStatus: "CONNECTED" },
+    "patient-owned-unsupported": { bpDeviceScenario: "patient-owned-unsupported", bpDeviceAssignment: "patient-owned", patientHasBloodPressureMonitor: true, deviceSource: "PATIENT_OWNED", assignedDeviceId: null, deviceVendor: "OTHER", deviceStatus: "ACTIVE", integrationProvider: "OTHER", integrationStatus: "UNSUPPORTED" }
+  }[config.bpDeviceScenario] || {};
   return {
     ...shared,
     id: `offer_prototype_${Date.now()}`,
@@ -247,7 +292,7 @@ export function createPrototypeOffer(input = {}) {
     onboardingModules: unique([...program.modules, ...rules.map(rule => rule.module)]),
     content: dynamicContent,
     prototypeConfig: { ...config, conditions: selectedConditions },
-    fixture: { pathway, accessOutcome: isAccess ? config.accessEligibilityResult : undefined }
+    fixture: { pathway, accessOutcome: isAccess ? config.accessEligibilityResult : undefined, ...(isAccess ? bpDeviceFixture : {}) }
   };
 }
 

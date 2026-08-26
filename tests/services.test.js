@@ -42,10 +42,10 @@ describe("safe draft persistence", () => {
   it("persists BP workflow status without persisting manual or verified clinical readings", () => {
     const setItem = vi.fn();
     vi.stubGlobal("localStorage", { setItem, getItem: vi.fn(), removeItem: vi.fn() });
-    new DraftStore().save({ scenarioId: "access-happy", screen: "ACCESS_BP_MEASUREMENT", role: "patient", completionRole: "patient", language: "en", identityVerified: true, bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE", bpBaselineSourceType: "VERIFIED_DEVICE", clinicalReportedBloodPressure: { systolic: 145, diastolic: 90 }, accessBaselineBloodPressure: { systolic: 120, diastolic: 80 }, onboarding: {}, audit: [] });
+    new DraftStore().save({ scenarioId: "access-happy", screen: "ACCESS_BP_MEASUREMENT", role: "patient", completionRole: "patient", language: "en", identityVerified: true, bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "SOURCE_VERIFIED", deviceSource: "ITERA_ASSIGNED", deviceVerificationStatus: "SOURCE_VERIFIED", integrationProvider: "TENOVI", assignedDeviceId: "tenovi-bp-8842", last4DeviceId: "8842", patientDeviceConfirmed: true, patientDeviceConfirmedAt: "2026-08-25T13:45:00.000Z", confirmedDeviceId: "tenovi-bp-8842", firstTransmissionVerified: true, firstTransmissionDeviceId: "tenovi-bp-8842", firstTransmissionAt: "2026-08-25T13:50:00.000Z", deviceVendor: "TENOVI", deviceModel: "Tenovi Connected Blood Pressure Monitor", deviceStatus: "active", integrationStatus: "CONNECTED", lastTransmissionAt: "2026-08-25T13:42:00.000Z", bpBaselineSourceType: "VERIFIED_DEVICE", clinicalReportedBloodPressure: { systolic: 145, diastolic: 90 }, accessBaselineBloodPressure: { systolic: 120, diastolic: 80 }, onboarding: {}, audit: [] });
     const savedText = setItem.mock.calls[0][1];
     const saved = JSON.parse(savedText);
-    expect(saved).toMatchObject({ bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE", bpBaselineSourceType: "VERIFIED_DEVICE" });
+    expect(saved).toMatchObject({ bpBaselineStatus: "READY_FOR_MEASUREMENT", bpDevicePath: "owned", bpDeviceVerificationStatus: "SOURCE_VERIFIED", deviceSource: "ITERA_ASSIGNED", deviceVerificationStatus: "SOURCE_VERIFIED", integrationProvider: "TENOVI", assignedDeviceId: "tenovi-bp-8842", last4DeviceId: "8842", patientDeviceConfirmed: true, confirmedDeviceId: "tenovi-bp-8842", firstTransmissionVerified: true, firstTransmissionDeviceId: "tenovi-bp-8842", deviceVendor: "TENOVI", deviceStatus: "active", integrationStatus: "CONNECTED", bpBaselineSourceType: "VERIFIED_DEVICE" });
     expect(savedText).not.toContain("145");
     expect(savedText).not.toContain("systolic");
     expect(saved).not.toHaveProperty("clinicalReportedBloodPressure");
@@ -65,6 +65,45 @@ describe("representative mobile verification", () => {
     expect(limited).toMatchObject({ sent: false, reason: "rate_limited" });
     await expect(service.verifyRepresentativeOtp({ deliveryId: sent.deliveryId, phone: "3055550123", code: "000000" })).resolves.toMatchObject({ verified: false, reason: "invalid" });
     await expect(service.verifyRepresentativeOtp({ deliveryId: sent.deliveryId, phone: "3055550123", code: "123456" })).resolves.toMatchObject({ verified: true });
+  });
+});
+
+describe("ACCESS assigned device lookup", () => {
+  it("resolves active Tenovi and Pylo assignments by patient and device ID", async () => {
+    for (const [scenario, vendor] of [["access-happy", "TENOVI"], ["access-bp-pylo", "PYLO"]]) {
+      const service = new MockEnrollmentService(scenario);
+      const assignment = await service.getActiveDeviceAssignment("patient_demo");
+      expect(assignment).toMatchObject({ status: "active", assignment: { patientId: "patient_demo" } });
+      const device = await service.getDeviceById(assignment.assignment.assignedDeviceId);
+      expect(device).toMatchObject({ status: "active", vendor, integrationStatus: "CONNECTED" });
+    }
+  });
+
+  it("returns the patient-owned unsupported scenario without inventing an assignment", async () => {
+    const service = new MockEnrollmentService("access-bp-incompatible");
+    await expect(service.getActiveDeviceAssignment("patient_demo")).resolves.toEqual({ status: "not_found", assignment: null, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", deviceVendor: "OTHER", deviceStatus: "ACTIVE", integrationProvider: "OTHER", integrationStatus: "UNSUPPORTED" });
+    expect(service.getScenarioDeviceContext()).toMatchObject({ found: false, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", assignedDeviceId: null, integrationStatus: "UNSUPPORTED" });
+  });
+
+  it("keeps no-monitor and patient-owned monitor states distinct", async () => {
+    const noMonitor = new MockEnrollmentService("prototype", { program: "ACCESS", conditions: ["Hypertension"], accessTrack: "eCKM", bpDeviceScenario: "none" });
+    const patientOwned = new MockEnrollmentService("prototype", { program: "ACCESS", conditions: ["Hypertension"], accessTrack: "eCKM", bpDeviceScenario: "patient-owned-unsupported" });
+    await expect(noMonitor.getActiveDeviceAssignment("patient_demo")).resolves.toMatchObject({ status: "not_found", patientOwnsMonitor: false, deviceSource: "NONE" });
+    await expect(patientOwned.getActiveDeviceAssignment("patient_demo")).resolves.toMatchObject({ status: "not_found", patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", integrationStatus: "UNSUPPORTED" });
+  });
+
+  it("stores verified BP observations idempotently by observation ID", async () => {
+    const service = new MockEnrollmentService("access-happy");
+    const observation = await service.receiveAccessBpReading({ readingNumber: 1, deviceId: "tenovi-bp-8842", deviceModel: "Tenovi Connected Blood Pressure Monitor" });
+    await expect(service.recordAccessBpObservation(observation)).resolves.toMatchObject({ stored: true, duplicate: false, observationId: observation.observationId });
+    await expect(service.recordAccessBpObservation({ ...observation, systolic: 999 })).resolves.toMatchObject({ stored: false, duplicate: true, observationId: observation.observationId });
+    expect(service.getStoredAccessBpObservations({ deviceId: "tenovi-bp-8842" })).toEqual([expect.objectContaining({ observationId: observation.observationId, systolic: observation.systolic, diastolic: observation.diastolic, deviceId: "tenovi-bp-8842", sourceVerified: true })]);
+  });
+
+  it("validates cuff selection against the configured device and available inventory", async () => {
+    const service = new MockEnrollmentService("access-happy");
+    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", armRestrictionReported: "NO", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "TENOVI_WIDE", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "SELECTED", selectedCuffOption: "TENOVI_WIDE", deviceModelSelected: "TENOVI_BPM_GEN3" });
+    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", armRestrictionReported: "NO", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "PYLO_XL", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "CARE_TEAM_REVIEW_REQUIRED", selectedCuffOption: null, deviceModelSelected: "TENOVI_BPM_GEN3" });
   });
 });
 

@@ -88,10 +88,13 @@ describe("enrollment state machine", () => {
   });
 
   it("branches the ACCESS blood-pressure baseline by device path", () => {
-    const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", bpDeviceVerificationStatus: "VERIFIED_COMPATIBLE" }));
+    const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", deviceVerificationStatus: "PATIENT_CONFIRMED", bpDeviceVerificationStatus: "PATIENT_CONFIRMED" }));
     const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));
     const needed = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "needed" }));
-    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT"]));
+    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(owned).not.toContain("ACCESS_BP_BASELINE_RESULT");
+    const completed = journeyFor(stateFor("access-happy", { bpDevicePath: "owned", deviceVerificationStatus: "SOURCE_VERIFIED", bpBaselineStatus: "COMPLETED" }));
+    expect(completed).toContain("ACCESS_BP_BASELINE_RESULT");
     expect(help).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
     expect(help).toEqual(expect.arrayContaining(["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"]));
     expect(needed).not.toContain("ACCESS_BP_MEASUREMENT");
@@ -254,6 +257,14 @@ describe("enrollment state machine", () => {
     expect(normalized.coverage).toBe("Original Medicare");
     expect(normalized.conditions).toEqual(["Diabetes"]);
     expect(createPrototypeOffer({ program: "ACCESS", coverage: "Medicare Advantage" }).payer.type).toBe("OriginalMedicare");
+  });
+
+  it("models all prototype blood-pressure device scenarios without fake assignments", () => {
+    const patientOwned = createPrototypeOffer({ program: "ACCESS", conditions: ["Hypertension"], accessTrack: "eCKM", bpDeviceScenario: "patient-owned-unsupported" });
+    expect(patientOwned.fixture).toMatchObject({ bpDeviceAssignment: "patient-owned", patientHasBloodPressureMonitor: true, deviceSource: "PATIENT_OWNED", assignedDeviceId: null, deviceVendor: "OTHER", deviceStatus: "ACTIVE", integrationProvider: "OTHER", integrationStatus: "UNSUPPORTED" });
+    expect(createPrototypeOffer({ bpDeviceScenario: "itera-tenovi" }).fixture).toMatchObject({ assignedDeviceId: "tenovi-bp-8842", deviceVendor: "TENOVI", integrationStatus: "CONNECTED" });
+    expect(createPrototypeOffer({ bpDeviceScenario: "itera-pylo" }).fixture).toMatchObject({ assignedDeviceId: "pylo-bp-6719", deviceVendor: "PYLO", integrationStatus: "CONNECTED" });
+    expect(createPrototypeOffer({ bpDeviceScenario: "none" }).fixture).toMatchObject({ bpDeviceAssignment: "none", patientHasBloodPressureMonitor: false, assignedDeviceId: null });
   });
 
   it("consolidates ACCESS referral sources while preserving non-ACCESS options", () => {
