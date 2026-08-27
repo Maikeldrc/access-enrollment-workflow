@@ -724,13 +724,24 @@ p { margin:0; }
 .emmi-guide-actions button:focus-visible,.emmi-guide-link:focus-visible { outline:3px solid var(--focus-ring);outline-offset:1px; }
 /* Secondary actions are text links so "Turn voice off" never dominates the guide. */
 .emmi-guide-links { display:flex;flex-wrap:wrap;gap:0 16px;align-items:center;min-height:0; }
-.emmi-guide-link { min-height:44px;padding:0;border:0;background:none;color:var(--primary-600);font:inherit;font-size:.86rem;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer; }
+.emmi-guide-link { min-height:44px;padding:0 2px;border:0;background:none;color:var(--primary-600);font:inherit;font-size:.9rem;font-weight:700;cursor:pointer; }
+.emmi-guide-link:hover { text-decoration:underline;text-underline-offset:3px; }
 .emmi-guide-off-link { color:var(--text-secondary);font-weight:600; }
 .emmi-guide-transcript { margin:0;padding:9px 10px;border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font-size:.94rem;line-height:1.5; }
-.emmi-guide-off { display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 12px; }
-.emmi-guide-off .emmi-guide-avatar { width:28px;height:28px; }
-.emmi-guide-off-copy { color:var(--text-secondary);font-size:.9rem;font-weight:600; }
-.emmi-guide-off-actions { display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-left:auto; }
+.emmi-guide-off { gap:8px;padding:10px 12px; }
+.emmi-guide-off .emmi-guide-avatar { width:30px;height:30px; }
+.emmi-guide-off-copy { color:var(--text-primary);font-size:1rem;font-weight:700; }
+/* Two columns when both labels fit, stacking to full width when they do not. The minimum
+   keeps long Spanish labels ("Preguntar a EMMI", "Guíeme con voz") on one line at 384px. */
+.emmi-guide-off-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px; }
+.emmi-guide-button { display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:46px;padding:8px 12px;border:1px solid var(--primary-600);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:600;line-height:1.25;text-align:center;cursor:pointer; }
+.emmi-guide-button-lead { border-width:2px;font-weight:700; }
+.emmi-guide-button:hover { background:var(--primary-50); }
+.emmi-guide-button:active { transform:translateY(1px); }
+.emmi-guide-button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.emmi-guide-button:disabled { opacity:.55;cursor:not-allowed; }
+.emmi-guide-button-icon { width:20px;height:20px;flex:0 0 20px;border-radius:0;color:inherit;background:transparent; }
+.emmi-guide-button-icon svg { width:19px;height:19px; }
 .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar { animation:emmi-guide-pulse 1.6s ease-in-out infinite; }
 @keyframes emmi-guide-pulse { 50% { opacity:.55; } }
 @media (prefers-reduced-motion:reduce) { .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar { animation:none; } }

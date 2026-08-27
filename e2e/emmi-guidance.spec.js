@@ -192,3 +192,57 @@ test("localizes the EMMI welcome in Spanish and Kreyòl without mixing languages
   await expect(page.getByRole("heading", { name: "Bonjou, mwen se EMMI." })).toBeVisible();
   await expect(page.getByRole("button", { name: "Gide m ak vwa" })).toBeVisible();
 });
+
+test("EMMI actions are real buttons rather than underlined links", async ({ page }) => {
+  // 384x824 is the primary mobile reference, and Spanish carries the longest labels.
+  for (const [width, height] of [[360, 800], [384, 824], [430, 932]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/?scenario=access-happy");
+    // A draft left by an earlier test would restore a later screen instead of Home.
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.getByRole("button", { name: /See how it works/i }).click();
+    await page.locator('[data-action="language"]').first().click();
+
+    const card = page.locator(".emmi-guide-off");
+    await expect(card).toBeVisible();
+    const ask = card.getByRole("button", { name: "Preguntar a EMMI" });
+    const voice = card.getByRole("button", { name: /Guíeme con voz/ });
+    await expect(ask).toBeVisible();
+    await expect(voice).toBeVisible();
+
+    const audit = await card.evaluate(node => {
+      const buttons = [...node.querySelectorAll(".emmi-guide-button")];
+      const cardRect = node.getBoundingClientRect();
+      return {
+        count: buttons.length,
+        allButtons: buttons.every(button => button.tagName === "BUTTON"),
+        // Actions must not read as hyperlinks.
+        underlined: buttons.some(button => getComputedStyle(button).textDecorationLine.includes("underline")),
+        bordered: buttons.every(button => parseFloat(getComputedStyle(button).borderTopWidth) > 0),
+        minHeight: Math.min(...buttons.map(button => button.getBoundingClientRect().height)),
+        minFont: Math.min(...buttons.map(button => parseFloat(getComputedStyle(button).fontSize))),
+        clipped: buttons.some(button => button.scrollWidth > button.clientWidth + 1),
+        contained: buttons.every(button => {
+          const rect = button.getBoundingClientRect();
+          return rect.left >= cardRect.left - 1 && rect.right <= cardRect.right + 1;
+        }),
+        // Only the voice action carries an icon, so the pair does not feel over-decorated.
+        iconCount: buttons.filter(button => button.querySelector("svg")).length,
+        cardHeight: cardRect.height
+      };
+    });
+
+    expect(audit.count, `${width}px`).toBe(2);
+    expect(audit.allButtons, `${width}px semantics`).toBe(true);
+    expect(audit.underlined, `${width}px underline`).toBe(false);
+    expect(audit.bordered, `${width}px border`).toBe(true);
+    expect(audit.minHeight, `${width}px touch target`).toBeGreaterThanOrEqual(44);
+    expect(audit.minFont, `${width}px font`).toBeGreaterThanOrEqual(16);
+    expect(audit.clipped, `${width}px clipped label`).toBe(false);
+    expect(audit.contained, `${width}px containment`).toBe(true);
+    expect(audit.iconCount, `${width}px icons`).toBe(1);
+    expect(audit.cardHeight, `${width}px card height`).toBeLessThanOrEqual(150);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${width}px overflow`).toBe(false);
+  }
+});

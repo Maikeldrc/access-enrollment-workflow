@@ -1031,7 +1031,12 @@ function voiceGuidancePanel() {
   const guideLabel = L("EMMI contextual guidance", "Orientación contextual de EMMI", "Gid kontèks EMMI");
   // Voice off: a small affordance, never the full card.
   if (!state.emmiVoiceGuidance) {
-    return `<section class="emmi-guide emmi-guide-off" aria-label="${guideLabel}"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><span class="emmi-guide-off-copy">${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</span><span class="emmi-guide-off-actions"><button type="button" class="emmi-guide-link" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" class="emmi-guide-link" data-action="enable-emmi-guidance">${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></span></section>`;
+    // Real buttons, not hyperlinks: these are direct actions, and long Spanish labels need a
+    // comfortable touch target rather than an underlined run of text.
+    return `<section class="emmi-guide emmi-guide-off" aria-label="${guideLabel}">
+      <div class="emmi-guide-row"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><span class="emmi-guide-off-copy">${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</span></div>
+      <div class="emmi-guide-off-actions"><button type="button" class="emmi-guide-button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" class="emmi-guide-button emmi-guide-button-lead" data-action="enable-emmi-guidance">${icon("mic", "emmi-guide-button-icon")}<span>${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</span></button></div>
+    </section>`;
   }
   const guideState = emmiGuideState();
   const narration = buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
