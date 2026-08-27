@@ -115,7 +115,7 @@ test("the patient can switch from a prior confirmation to reporting a change", a
 
 test("Ask EMMI opens health-review guidance with safe clinical boundaries", async ({ page }) => {
   await page.getByRole("button", { name: "I need help reviewing this" }).click();
-  await page.getByRole("button", { name: /Ask EMMI/ }).click();
+  await page.locator("[data-action=\"health-ask-emmi\"]").click();
   await expect(page.getByRole("button", { name: "What does high blood pressure mean?" })).toBeVisible();
   await page.getByRole("button", { name: "Can EMMI confirm this information?" }).click();
   await expect(page.getByText(/can’t confirm a diagnosis or change your clinical record/i)).toBeVisible();

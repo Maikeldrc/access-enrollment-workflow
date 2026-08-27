@@ -64,7 +64,7 @@ let state = {
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
   assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiContextualNudgeVisible: false
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiContextualNudgeVisible: false
 };
 let emmiAuditLog = null;
 let emmiTools = null;
@@ -881,12 +881,53 @@ const emmiGuidancePrompt = message => L(
 
 // EMMI is introduced on the Home screen. Everywhere after it, this is a compact contextual
 // control that must not compete with the screen's own question.
-function voiceGuidancePanel() {
-  if (!state.emmiVoiceGuidance || state.screen === "INVITATION") return "";
-  const voiceConnected = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
-  const status = state.emmiVoiceGuidancePaused ? L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz") : emmiHomeVoiceStatus();
-  return `<section class="emmi-guidance-bar" aria-label="${L("EMMI voice guidance controls", "Controles de guía por voz de EMMI", "Kontwòl gid vwa EMMI")}"><div class="emmi-guidance-heading"><img src="/assets/emmi-assistant.png" alt=""><div><strong>${status}</strong><small>${L("EMMI is here if you need help.", "EMMI está aquí si necesita ayuda.", "EMMI la si ou bezwen èd.")}</small></div></div>${state.emmiGuidanceTranscript ? `<p class="emmi-guidance-transcript">${escapeHtml(state.emmiGuidanceTranscript)}</p>` : ""}<div class="emmi-guidance-actions"><button type="button" data-action="toggle-emmi-guidance-pause">${state.emmiVoiceGuidancePaused ? L("Resume", "Reanudar", "Rekòmanse") : L("Pause", "Pausar", "Poze")}</button><button type="button" data-action="repeat-emmi-guidance" ${!voiceConnected && state.assistantVoiceError ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn off", "Desactivar", "Etenn")}</button></div></section>`;
+// After Home, EMMI is a contextual guide rather than an introduction card: one short line
+// about this screen, three actions, and the full narration only on request. The task stays
+// the visual priority.
+function emmiGuideState() {
+  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return "ERROR";
+  if (state.emmiVoiceGuidancePaused) return "PAUSED";
+  if (state.assistantVoiceState === "EMMI_SPEAKING") return "SPEAKING";
+  if (state.assistantVoiceState === "USER_SPEAKING") return "LISTENING";
+  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return "THINKING";
+  return "ACTIVE_IDLE";
 }
+
+const emmiGuideStatusLabel = guideState => ({
+  SPEAKING: L("EMMI is explaining this step…", "EMMI está explicando este paso…", "EMMI ap eksplike etap sa a…"),
+  LISTENING: L("Listening…", "Le escucho…", "M ap koute w…"),
+  THINKING: L("EMMI is preparing an answer…", "EMMI está preparando una respuesta…", "EMMI ap prepare yon repons…"),
+  PAUSED: L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz"),
+  ERROR: L("Voice guidance is temporarily unavailable", "La guía por voz no está disponible por ahora", "Gid vwa a pa disponib pou kounye a")
+})[guideState] || L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+
+function voiceGuidancePanel() {
+  if (state.screen === "INVITATION") return "";
+  const guideLabel = L("EMMI contextual guidance", "Orientación contextual de EMMI", "Gid kontèks EMMI");
+  // Voice off: a small affordance, never the full card.
+  if (!state.emmiVoiceGuidance) {
+    return `<section class="emmi-guide emmi-guide-off" aria-label="${guideLabel}"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><span class="emmi-guide-off-copy">${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</span><span class="emmi-guide-off-actions"><button type="button" class="emmi-guide-link" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" class="emmi-guide-link" data-action="enable-emmi-guidance">${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></span></section>`;
+  }
+  const guideState = emmiGuideState();
+  const narration = buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
+  const summary = narration?.shortSummary || L("EMMI is here if you need help.", "EMMI está aquí si necesita ayuda.", "EMMI la si ou bezwen èd.");
+  const transcript = state.emmiGuidanceTranscript || narration?.narrationText || "";
+  const busy = guideState === "SPEAKING" || guideState === "THINKING";
+  const primary = guideState === "PAUSED"
+    ? `<button type="button" data-action="toggle-emmi-guidance-pause">${L("Resume", "Reanudar", "Rekòmanse")}</button>`
+    : `<button type="button" data-action="toggle-emmi-guidance-pause">${L("Pause", "Pausar", "Poze")}</button>`;
+  const retry = guideState === "ERROR" ? `<button type="button" data-action="repeat-emmi-guidance">${L("Try again", "Intentar de nuevo", "Eseye ankò")}</button>` : "";
+  return `<section class="emmi-guide" data-guide-state="${guideState}" aria-label="${guideLabel}">
+    <div class="emmi-guide-row">
+      <img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt="">
+      <div class="emmi-guide-copy"><strong role="status" aria-live="polite">${emmiGuideStatusLabel(guideState)}</strong><span>${summary}</span></div>
+    </div>
+    <div class="emmi-guide-actions">${retry || primary}${retry ? "" : `<button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button>`}<button type="button" class="emmi-guide-ask" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button></div>
+    <div class="emmi-guide-links">${transcript ? `<button type="button" class="emmi-guide-link" data-action="toggle-emmi-transcript" aria-expanded="${state.emmiTranscriptOpen ? "true" : "false"}" aria-controls="emmi-guide-transcript">${state.emmiTranscriptOpen ? L("Hide message", "Ocultar mensaje", "Kache mesaj la") : L("Read message", "Leer mensaje", "Li mesaj la")}</button>` : ""}<button type="button" class="emmi-guide-link emmi-guide-off-link" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar guía por voz", "Etenn gid vwa a")}</button></div>
+    ${state.emmiTranscriptOpen && transcript ? `<p class="emmi-guide-transcript" id="emmi-guide-transcript">${escapeHtml(transcript)}</p>` : ""}
+  </section>`;
+}
+
 
 // While the compact control is on screen there is no reason to also float the EMMI button:
 // two EMMI affordances at once is noise, and the floating one can crowd the actions row.
@@ -895,7 +936,7 @@ function syncFloatingEmmiVisibility() {
   if (!floating) return;
   emmiGuidanceVisibilityObserver?.disconnect();
   emmiGuidanceVisibilityObserver = null;
-  const bar = document.querySelector(".emmi-guidance-bar");
+  const bar = document.querySelector(".emmi-guide:not(.emmi-guide-off)");
   if (!bar) { floating.classList.remove("emmi-assistant-suppressed"); return; }
   floating.classList.add("emmi-assistant-suppressed");
   if (typeof IntersectionObserver !== "function") return;
@@ -906,12 +947,12 @@ function syncFloatingEmmiVisibility() {
 }
 
 function refreshVoiceGuidanceControls() {
-  const current = document.querySelector(".emmi-guidance-bar");
+  const current = document.querySelector(".emmi-guide");
   if (current) {
     current.outerHTML = voiceGuidancePanel();
     // The replacement nodes carry no listeners, so Pause / Repeat / Ask EMMI / Turn off would
     // silently stop working after the first voice-state update without this rebind.
-    const replacement = document.querySelector(".emmi-guidance-bar");
+    const replacement = document.querySelector(".emmi-guide");
     if (replacement) bindActions(replacement);
     syncFloatingEmmiVisibility();
   }
@@ -3016,6 +3057,7 @@ function bind() {
       render();
       return;
     }
+    if (action === "toggle-emmi-transcript") { state.emmiTranscriptOpen = !state.emmiTranscriptOpen; render(); return; }
     if (action === "toggle-emmi-guidance-pause") {
       state.emmiVoiceGuidancePaused = !state.emmiVoiceGuidancePaused;
       if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) {

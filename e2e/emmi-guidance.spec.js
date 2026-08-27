@@ -52,23 +52,21 @@ test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", 
   await page.reload();
   await page.getByRole("button", { name: /See how it works/i }).click();
 
-  const transcript = page.locator(".emmi-guidance-transcript");
-  await expect(transcript).toContainText("who is filling this out today");
-  await expect(transcript).toContainText("you still make the decisions about your care");
+  const summary = page.locator(".emmi-guide-copy span");
+  await expect(summary).toHaveText("We’ll help you choose who should complete this process.");
 
   // Switching language must move the whole EMMI experience, not just the surrounding UI.
   await page.locator('[data-action="language"]').first().click();
-  await expect(page.locator(".emmi-guidance-bar")).toContainText("La guía por voz está activa");
-  await expect(transcript).toContainText("quién está completando esto hoy");
-  await expect(transcript).not.toContainText("who is filling this out today");
+  await expect(page.locator(".emmi-guide")).toContainText("La guía por voz está activa");
+  await expect(summary).toHaveText("Le ayudaremos a elegir quién debe completar este proceso.");
 
   // KR is Haitian Creole in this product, never Korean.
   await page.locator('[data-action="language"]').first().click();
-  await expect(transcript).toContainText("ki moun k ap ranpli sa a jodi a");
-  await expect(transcript).not.toContainText(/[가-힯]/);
+  await expect(summary).toHaveText("N ap ede w chwazi ki moun ki dwe ranpli pwosesis sa a.");
+  await expect(summary).not.toContainText(/[가-힯]/);
 
   // Ask EMMI opens in the active language too.
-  await page.locator('.emmi-guidance-bar [data-action="help"]').click();
+  await page.locator('.emmi-guide [data-action="help"]').click();
   const assistant = page.locator(".assistant-layer");
   await expect(assistant).toContainText("Bonjou, mwen se EMMI. Kijan mwen ka ede?");
   await expect(assistant).toContainText("Mande m nenpòt bagay sou enskripsyon oswa swen ou.");
@@ -107,20 +105,29 @@ test("shows persistent, accessible guidance controls after opt-in", async ({ pag
   await page.reload();
   await page.getByRole("button", { name: /See how it works/i }).click();
 
-  const controls = page.locator(".emmi-guidance-bar");
+  const controls = page.locator(".emmi-guide");
   await expect(controls).toBeVisible();
   await expect(controls.getByText("Voice guidance is on")).toBeVisible();
-  await expect(controls.getByText("EMMI is here if you need help.")).toBeVisible();
+  await expect(controls.getByText("We’ll help you choose who should complete this process.")).toBeVisible();
   await expect(controls.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Repeat", exact: true })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(controls.getByRole("button", { name: "Turn off", exact: true })).toBeVisible();
-  await expect(controls).toContainText("who is filling this out today");
+  await expect(controls.getByRole("button", { name: "Turn voice off", exact: true })).toBeVisible();
+  // The guide shows one short line; the full narration is disclosed on request.
+  await expect(controls).toContainText("We’ll help you choose who should complete this process.");
+  await expect(controls).not.toContainText("Before we continue");
+  await controls.getByRole("button", { name: "Read message" }).click();
+  await expect(controls.locator(".emmi-guide-transcript")).toContainText("Before we continue, we just need to know who is filling this out today.");
+  await controls.getByRole("button", { name: "Hide message" }).click();
+  await expect(controls.locator(".emmi-guide-transcript")).toHaveCount(0);
 
   // The compact control replaces the floating EMMI while it is on screen.
   await expect(page.locator(".emmi-assistant")).toBeHidden();
   const barHeight = await controls.evaluate(element => element.getBoundingClientRect().height);
   expect(barHeight).toBeLessThan(200);
+  // The task must sit above the fold with the guide, not be pushed off by it.
+  expect(await page.locator("#screen-content h1").evaluate(node => node.getBoundingClientRect().top))
+    .toBeLessThan(await controls.evaluate(node => node.getBoundingClientRect().top));
   for (const button of await controls.getByRole("button").all()) {
     expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
   }

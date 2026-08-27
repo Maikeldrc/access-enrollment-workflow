@@ -22,13 +22,18 @@ export const NARRATION_SECONDS = Object.freeze({
   TRANSITION: [15, 20]
 });
 
-const objective = ({ purpose, benefit, reassurance, action, tone = "reassuring", risk = "low", length = "CONCEPTUAL", dynamic = [] }) =>
-  Object.freeze({ purpose, benefit, reassurance, action, tone, risk, length, dynamic });
+const objective = ({ summary, purpose, benefit, reassurance, action, tone = "reassuring", risk = "low", length = "CONCEPTUAL", dynamic = [] }) =>
+  Object.freeze({ summary, purpose, benefit, reassurance, action, tone, risk, length, dynamic });
 
 // One narration per screen, authored as a whole so each language flows naturally.
 // `dynamic` lists the runtime fields the narration may reference when they are available.
 export const NARRATIVE_OBJECTIVES = Object.freeze({
   DECISION_MAKER: objective({
+    summary: T(
+      "We’ll help you choose who should complete this process.",
+      "Le ayudaremos a elegir quién debe completar este proceso.",
+      "N ap ede w chwazi ki moun ki dwe ranpli pwosesis sa a."
+    ),
     length: "CONCEPTUAL",
     purpose: T(
       "Before we continue, we just need to know who is filling this out today.",
@@ -53,6 +58,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   PERSONAL_REPRESENTATIVE_DETAILS: objective({
+    summary: T(
+      "This is for someone authorized to decide for the patient.",
+      "Esto es para alguien autorizado a decidir por el paciente.",
+      "Sa a se pou yon moun ki otorize pou deside pou pasyan an."
+    ),
     risk: "medium",
     purpose: T(
       "A personal representative is different from someone who is simply helping today.",
@@ -77,6 +87,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   IDENTITY_VERIFICATION: objective({
+    summary: T(
+      "This verification helps protect your information.",
+      "Esta verificación ayuda a proteger su información.",
+      "Verifikasyon sa a ede pwoteje enfòmasyon ou."
+    ),
     length: "SIMPLE_TASK",
     purpose: T(
       "This is a quick identity check so we know we are working with the right record.",
@@ -101,6 +116,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   CARE_RECOMMENDATION: objective({
+    summary: T(
+      "Here is the support available between doctor visits.",
+      "Este es el apoyo disponible entre visitas al médico.",
+      "Men sipò ki disponib ant vizit kay doktè."
+    ),
     purpose: T(
       "Here you can see the kind of support your care team can provide between doctor visits.",
       "Aquí puede ver el tipo de apoyo que su equipo de cuidado puede brindarle entre visitas al médico.",
@@ -124,6 +144,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_PRE_ELIGIBILITY_NOTICE: objective({
+    summary: T(
+      "This check does not change your Medicare benefits.",
+      "Esta verificación no cambia sus beneficios de Medicare.",
+      "Verifikasyon sa a pa chanje benefis Medicare ou."
+    ),
     risk: "medium",
     purpose: T(
       "This quick Medicare check tells us whether this care option is available to you.",
@@ -148,6 +173,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_ELIGIBILITY_RESULT: objective({
+    summary: T(
+      "Being eligible does not mean you are enrolled yet.",
+      "Ser elegible no significa que ya esté inscrito.",
+      "Si ou kalifye sa pa vle di ou deja enskri."
+    ),
     risk: "high",
     purpose: T(
       "This is the result of the Medicare check.",
@@ -172,6 +202,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   DISCLOSURE: objective({
+    summary: T(
+      "The key details to know before you decide.",
+      "Los detalles clave que debe conocer antes de decidir.",
+      "Detay kle pou konnen anvan ou deside."
+    ),
     risk: "medium",
     purpose: T(
       "This page highlights the most important things to know before you decide.",
@@ -196,6 +231,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   CONSENT_REVIEW: objective({
+    summary: T(
+      "Enrolling is your choice. Take your time here.",
+      "Inscribirse es su decisión. Tómese su tiempo aquí.",
+      "Enskri se chwa ou. Pran tan ou isit la."
+    ),
     risk: "high",
     purpose: T(
       "You are at the final decision step.",
@@ -220,6 +260,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ENROLLMENT_CONFIRMED: objective({
+    summary: T(
+      "Your enrollment is complete. Here is what comes next.",
+      "Su inscripción está completa. Esto es lo que sigue.",
+      "Enskripsyon ou fini. Men sa k ap vini apre."
+    ),
     tone: "celebratory",
     length: "TRANSITION",
     dynamic: ["nextStepLabel", "estimatedDuration"],
@@ -246,6 +291,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   CLINICAL_VERIFICATION: objective({
+    summary: T(
+      "Check the health information we have on file.",
+      "Revise la información de salud que tenemos registrada.",
+      "Tcheke enfòmasyon sante nou genyen nan dosye a."
+    ),
     purpose: T(
       "Here we are checking the health information we already have on file for you.",
       "Aquí estamos revisando la información de salud que ya tenemos registrada.",
@@ -269,6 +319,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   MEDICATIONS_REVIEW: objective({
+    summary: T(
+      "Review what you’re currently taking.",
+      "Revise los medicamentos que está tomando actualmente.",
+      "Revize medikaman w ap pran kounye a."
+    ),
     risk: "high",
     dynamic: ["medicationCount"],
     purpose: T(
@@ -294,6 +349,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   CARE_PREFERENCES: objective({
+    summary: T(
+      "Tell us how you prefer to be contacted.",
+      "Díganos cómo prefiere que le contactemos.",
+      "Di nou kijan ou prefere nou kontakte w."
+    ),
     length: "SIMPLE_TASK",
     purpose: T(
       "These questions help us understand how you prefer to be contacted and supported.",
@@ -318,6 +378,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   GOALS: objective({
+    summary: T(
+      "Choose what matters most to you.",
+      "Elija las metas que más le importan.",
+      "Chwazi sa ki pi enpòtan pou ou."
+    ),
     tone: "encouraging",
     purpose: T(
       "This part is about what matters to you.",
@@ -342,6 +407,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_BASELINE: objective({
+    summary: T(
+      "This helps your care team understand your starting point.",
+      "Esto ayuda a su equipo a conocer su punto de partida.",
+      "Sa ede ekip swen ou konprann pwen depa ou."
+    ),
     dynamic: ["estimatedDuration"],
     purpose: T(
       "This health check helps your care team understand your starting point.",
@@ -366,6 +436,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   RPM_DEVICE_PATH: objective({
+    summary: T(
+      "We’ll help you get your monitor ready.",
+      "Le ayudaremos a preparar su monitor.",
+      "N ap ede w prepare monitè ou."
+    ),
     dynamic: ["deviceVendor"],
     purpose: T(
       "A connected monitor lets your care team receive readings from home between visits.",
@@ -390,6 +465,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_BP_DEVICE_RESULT: objective({
+    summary: T(
+      "Confirm this is the monitor you have with you.",
+      "Confirme que este es el monitor que tiene con usted.",
+      "Konfime se monitè sa a ou genyen avèk ou."
+    ),
     dynamic: ["deviceVendor"],
     purpose: T(
       "We found the monitor assigned to your care.",
@@ -414,6 +494,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_BP_GUIDED_SETUP: objective({
+    summary: T(
+      "We’ll get your monitor ready, one step at a time.",
+      "Prepararemos su monitor, un paso a la vez.",
+      "N ap prepare monitè ou, yon etap alafwa."
+    ),
     length: "SIMPLE_TASK",
     purpose: T(
       "Let us get your monitor ready to take a reading.",
@@ -438,6 +523,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_BP_MEASUREMENT: objective({
+    summary: T(
+      "This first reading confirms your monitor is connected.",
+      "Esta primera medición confirma que su monitor está conectado.",
+      "Premye mezi sa a konfime monitè ou konekte."
+    ),
     risk: "medium",
     purpose: T(
       "This first reading confirms that your monitor can send information to ITERA.",
@@ -462,6 +552,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   CARE_CIRCLE_INVITE: objective({
+    summary: T(
+      "You stay in control of your care.",
+      "Usted mantiene el control de su cuidado.",
+      "Se ou ki gen kontwòl swen ou."
+    ),
     risk: "medium",
     purpose: T(
       "You can invite someone you trust to help with things like reminders, setup, or next steps.",
@@ -486,6 +581,11 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ONBOARDING_COMPLETE: objective({
+    summary: T(
+      "This part is finished. Here is what happens next.",
+      "Esta parte está completa. Esto es lo que sigue.",
+      "Pati sa a fini. Men sa k ap pase apre."
+    ),
     tone: "celebratory",
     length: "TRANSITION",
     purpose: T(
@@ -637,6 +737,8 @@ export function buildNarration({ screen, locale = "EN", runtime = {} } = {}) {
   ]);
   return {
     narrationText,
+    // One short line for the UI. The full narration stays audio, reachable via "Read message".
+    shortSummary: pick(spec.summary, locale),
     narrationPurpose: screen,
     tone: spec.tone,
     riskLevel: spec.risk,
