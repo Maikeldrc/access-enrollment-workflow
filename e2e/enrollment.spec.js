@@ -2746,3 +2746,45 @@ test("the floating assistant never covers an action once the patient reaches it"
     }
   }
 });
+
+test("patient screens end with their content instead of an empty scroll tail", async ({ page }) => {
+  const viewports = [
+    { width: 360, height: 800 },
+    { width: 375, height: 812 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+    { width: 430, height: 932 }
+  ];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ONBOARDING_COMPLETE"];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/?scenario=access-happy");
+    for (const screen of screens) {
+      await page.locator("#screen-select").selectOption(screen, { force: true });
+      const audit = await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        const root = document.querySelector("#screen-content");
+        const meaningful = [...root.querySelectorAll("*")].filter(node => {
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.visibility === "hidden" || style.position === "fixed") return false;
+          const rect = node.getBoundingClientRect();
+          return rect.height > 4 && rect.width > 4 && (node.textContent.trim() || node.tagName === "IMG" || node.tagName === "BUTTON");
+        });
+        const contentBottom = Math.max(...meaningful.map(node => node.getBoundingClientRect().bottom));
+        const documentHeight = document.documentElement.scrollHeight;
+        return {
+          // Only counts when the page actually scrolls: a viewport taller than the content is
+          // the device, not manufactured height.
+          scrolls: documentHeight > innerHeight + 1,
+          tail: documentHeight - contentBottom,
+          bottomPadding: parseFloat(getComputedStyle(root).paddingBottom)
+        };
+      });
+      if (audit.scrolls) {
+        // Nothing below the last meaningful element but the single closing gap.
+        expect(audit.tail, `${screen} @${viewport.width}x${viewport.height} empty scroll tail`).toBeLessThanOrEqual(audit.bottomPadding + 8);
+      }
+      expect(audit.bottomPadding, `${screen} @${viewport.width} bottom padding`).toBeLessThanOrEqual(48);
+    }
+  }
+});
