@@ -11,6 +11,7 @@ import {
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
+import { emmiVoiceIsSupported, getHomeWelcome, resolveEmmiLanguage } from "./emmi/messages.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeCommon, enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -110,10 +111,33 @@ const t = () => commonMessagesFor(state.language);
 const languageCode = () => localeCode(state.language);
 const languageActionLabel = () => L("Change language to Spanish", "Cambiar idioma a criollo", "Chanje lang pou anglè");
 const setLanguage = language => {
+  const changed = state.language !== language;
   state.language = language;
   document.documentElement.lang = htmlLanguage(language);
   try { localStorage.setItem("itera.enrollment.language.v1", language); } catch { /* Language persistence is best effort. */ }
   if (state.identityVerified) draftStore.save(state);
+  // Applying the same language again (on boot, for example) must not tear down a live session.
+  if (changed) syncEmmiLanguage();
+};
+
+// The patient's language is the single source of truth for EMMI. A live session carries its
+// locale in the system instruction, so a language change has to stop the old-language audio
+// and rebuild the session rather than let EMMI finish the sentence it started.
+function syncEmmiLanguage() {
+  state.emmiLastGuidanceScreen = "";
+  state.emmiGuidanceTranscript = "";
+  if (!emmiLive?.isActive()) { refreshVoiceGuidanceControls(); return; }
+  emmiLive.stopPlayback();
+  if (!emmiVoiceIsSupported(languageCode())) {
+    emmiLive.disconnect("locale_changed");
+    state.assistantVoiceError = "voice_locale_fallback";
+    refreshVoiceGuidanceControls();
+    if (state.assistantOpen) refreshAssistantLayer();
+    return;
+  }
+  const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
+  emmiLive.restartForLocale(emmiGuidancePrompt(message)).catch(() => { /* The live client publishes a localized error state. */ });
+  audit(state, "emmi_language_changed", "success", { locale: languageCode() });
 };
 const progressStageLabel = stage => ({
   WHOS_COMPLETING: L("Who’s completing", "Quién completa", "Ki moun k ap ranpli"),
@@ -323,14 +347,17 @@ const emmiGuidanceIsBusy = () => ["CONNECTING", "EMMI_THINKING", "EMMI_SPEAKING"
 function emmiHomeVoiceStatus() {
   if (state.assistantVoiceState === "EMMI_SPEAKING") return L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…");
   if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return L("Connecting EMMI…", "Conectando con EMMI…", "N ap konekte EMMI…");
-  if (state.assistantVoiceState === "ERROR") return L("Voice guidance is unavailable", "La guía por voz no está disponible", "Gid vwa pa disponib");
+  // A failed connect leaves the client DISCONNECTED, so the error has to be checked too —
+  // otherwise the card claims "Voice guidance is on" while nothing is playing.
+  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return L("Voice guidance is unavailable", "La guía por voz no está disponible", "Gid vwa pa disponib");
   return L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
 }
 
 function emmiWelcomeVoiceControls() {
   if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`;
   const busy = emmiGuidanceIsBusy();
-  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong></p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
+  const unavailable = state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError);
+  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
 }
 
 function emmiWelcome(providerReferral, physicianName) {
@@ -364,7 +391,7 @@ function optionalSupportPrompt() {
     return `<section class="optional-support" data-optional-support ${hidden}>${label}<div class="optional-support-card optional-support-status">${icon("check")}<span><strong>${L("Invitation sent", "Invitación enviada", "Envitasyon voye")}</strong><span class="optional-support-copy">${L(`${name} can help you through this process. You still make the decisions about your care.`, `${name} puede ayudarle en este proceso. Usted sigue tomando las decisiones sobre su cuidado.`, `${name} ka ede w nan pwosesis sa a. Se ou menm k ap toujou pran desizyon sou swen ou.`)}</span></span></div></section>`;
   }
   if (!careCirclePromptAllowed()) return "";
-  return `<section class="optional-support" data-optional-support ${hidden}>${label}<button type="button" class="optional-support-card" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="optional-support-copy">${L("Invite someone you trust to help with this process.", "Invite a alguien de confianza para que le ayude con este proceso.", "Envite yon moun ou fè konfyans pou ede w ak pwosesis sa a.")}</span><span class="optional-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button></section>`;
+  return `<section class="optional-support" data-optional-support ${hidden}>${label}<button type="button" class="optional-support-card" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="optional-support-copy">${L("Invite someone you trust to help you through this process.", "Invite a alguien de confianza para que le ayude durante este proceso.", "Envite yon moun ou fè konfyans pou ede w pandan pwosesis sa a.")}</span><span class="optional-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button></section>`;
 }
 
 const patientFirstName = () => String(state.offer?.patient?.displayName || L("The patient", "El paciente", "Pasyan an")).split(/\s+/)[0].replace(/[^\p{L}'’-]/gu, "") || L("The patient", "El paciente", "Pasyan an");
@@ -587,6 +614,9 @@ function assistantContext() {
     sessionId: state.sessionId,
     patientId,
     locale: languageCode(),
+    languageName: resolveEmmiLanguage(languageCode()).languageName,
+    enrollmentSource: state.offer?.enrollmentSource || null,
+    physicianDisplayName: state.offer?.physician?.displayName || null,
     currentStage: progress.stage,
     currentScreen,
     eligibilityStatus: state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE" : fixture.eligibilityStatus,
@@ -773,17 +803,20 @@ const assistantVoiceErrorCopy = () => ({
   rate_limited: L("EMMI voice is temporarily busy. You can continue by typing.", "La voz de EMMI está ocupada temporalmente. Puede continuar escribiendo.", "Vwa EMMI okipe pou kounye a. Ou ka kontinye ekri."),
   gemini_not_configured: L("Voice is not configured for this prototype. You can continue by typing.", "La voz no está configurada para este prototipo. Puede continuar escribiendo.", "Vwa pa konfigire pou pwototip sa a. Ou ka kontinye ekri."),
   voice_disabled: L("Voice assistance is turned off. You can continue by typing.", "La asistencia por voz está desactivada. Puede continuar escribiendo.", "Asistans vwa etenn. Ou ka kontinye ekri."),
-  voice_locale_fallback: L("Voice assistance is not available in this language right now. I’ll continue with you in text.", "La asistencia por voz no está disponible en este idioma por ahora. Continuaré ayudándole por texto.", "Asistans vwa pa disponib nan lang sa a kounye a. M ap kontinye ede ou an tèks."),
+  voice_locale_fallback: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa poko disponib nan lang sa a. Ou ka toujou pale ak EMMI alekri an Kreyòl."),
   session_timeout: L("This voice session ended. Your enrollment progress is saved, and you can start a new session.", "Esta sesión de voz terminó. Su progreso está guardado y puede iniciar otra sesión.", "Sesyon vwa sa a fini. Pwogrè ou anrejistre epi ou ka kòmanse yon lòt sesyon."),
   connection_failed: L("I’m having trouble connecting right now. You can continue by typing or use the enrollment screens.", "Tengo problemas para conectarme. Puede continuar escribiendo o usar las pantallas de inscripción.", "Mwen gen pwoblèm pou konekte. Ou ka kontinye ekri oswa itilize ekran enskripsyon yo."),
   connection_lost: L("Connection lost. You can try again or continue by typing.", "Se perdió la conexión. Puede intentarlo de nuevo o continuar escribiendo.", "Koneksyon an pèdi. Ou ka eseye ankò oswa kontinye ekri.")
 })[state.assistantVoiceError] || L("I’m having trouble connecting right now. You can keep using enrollment or continue by typing.", "Tengo problemas para conectarme. Puede seguir con la inscripción o continuar escribiendo.", "Mwen gen pwoblèm pou konekte. Ou ka kontinye enskripsyon an oswa ekri.");
 
+// Resolved from the central EMMI message config at call time, so the welcome always follows
+// the language the patient has selected right now — including on "Repeat welcome".
 function emmiSpokenWelcome() {
-  const physicianName = state.offer?.physician?.displayName || state.offer?.referringProvider?.name || L("your doctor", "su médico", "doktè ou");
-  return isProviderReferralSource(state.offer?.enrollmentSource)
-    ? L(`Hi, I’m EMMI. Welcome to ITERA HEALTH. I’m here to help support the care you receive from ${physicianName} and guide you through each step. You can ask me for help at any time.`, `Hola, soy EMMI. Le doy la bienvenida a ITERA HEALTH. Estoy aquí para apoyar el cuidado que recibe de ${physicianName} y guiarle en cada paso. Puede pedirme ayuda en cualquier momento.`, `Bonjou, mwen se EMMI. Byenveni nan ITERA HEALTH. Mwen la pou sipòte swen ou resevwa nan men ${physicianName} epi gide w nan chak etap. Ou ka mande m èd nenpòt lè.`)
-    : L("Hi, I’m EMMI. Welcome to ITERA HEALTH. I’m here to make your care easier and guide you through each step. You can ask me for help at any time.", "Hola, soy EMMI. Le doy la bienvenida a ITERA HEALTH. Estoy aquí para facilitar su cuidado y guiarle en cada paso. Puede pedirme ayuda en cualquier momento.", "Bonjou, mwen se EMMI. Byenveni nan ITERA HEALTH. Mwen la pou rann swen ou pi fasil epi gide w nan chak etap. Ou ka mande m èd nenpòt lè.");
+  return getHomeWelcome({
+    locale: languageCode(),
+    providerReferral: isProviderReferralSource(state.offer?.enrollmentSource),
+    physicianDisplayName: state.offer?.physician?.displayName || state.offer?.referringProvider?.name || ""
+  });
 }
 
 function emmiGuidanceForScreen(screen = state.screen) {
@@ -835,12 +868,32 @@ function syncFloatingEmmiVisibility() {
 
 function refreshVoiceGuidanceControls() {
   const current = document.querySelector(".emmi-guidance-bar");
-  if (current) { current.outerHTML = voiceGuidancePanel(); syncFloatingEmmiVisibility(); }
+  if (current) {
+    current.outerHTML = voiceGuidancePanel();
+    // The replacement nodes carry no listeners, so Pause / Repeat / Ask EMMI / Turn off would
+    // silently stop working after the first voice-state update without this rebind.
+    const replacement = document.querySelector(".emmi-guidance-bar");
+    if (replacement) bindActions(replacement);
+    syncFloatingEmmiVisibility();
+  }
   const welcome = document.querySelector(".emmi-welcome-choice");
   if (welcome) {
     welcome.dataset.voiceState = state.assistantVoiceState;
     const status = welcome.querySelector("p strong");
     if (status) status.textContent = emmiHomeVoiceStatus();
+    // The failure reason arrives after this card was rendered, so patch it in rather than
+    // leaving the patient with a bare "unavailable" and no explanation.
+    const unavailable = state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError);
+    let reason = welcome.querySelector(".emmi-welcome-error");
+    if (unavailable && !reason && status) {
+      reason = document.createElement("small");
+      reason.className = "emmi-welcome-error";
+      status.after(reason);
+    }
+    if (reason) {
+      reason.textContent = unavailable ? assistantVoiceErrorCopy() : "";
+      reason.hidden = !unavailable;
+    }
     const repeat = welcome.querySelector('[data-action="repeat-emmi-guidance"]');
     if (repeat) {
       repeat.disabled = emmiGuidanceIsBusy();
@@ -2380,10 +2433,11 @@ function bindAssistantLayer() {
     if (action === "end-voice") { ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
     if (action === "mute") { state.assistantVoiceMuted = !state.assistantVoiceMuted; ensureEmmiRuntime().live.setMuted(state.assistantVoiceMuted); refreshAssistantLayer(); }
     if (action === "language") {
-      if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("language_changed");
+      state.assistantVoiceError = "";
+      // setLanguage rebuilds the voice session in the new language; dropping it here instead
+      // would leave the patient with no voice after switching.
       setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en");
       state.assistantLanguageChanged = true;
-      state.assistantVoiceError = "";
       refreshAssistantLayer();
     }
   }));
@@ -2483,8 +2537,12 @@ function bindEmmiDrag() {
   }, true);
 }
 
+// Action handlers are attached per element, so anything re-rendered outside render() has to be
+// rebound. bindActions is exported to refreshVoiceGuidanceControls for exactly that reason.
+let bindActions = () => {};
+
 function bind() {
-  document.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", async event => {
+  bindActions = root => root.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", async event => {
     event.preventDefault(); const action = el.dataset.action;
     const preserveArmForm = () => {
       const form = document.querySelector("#bp-device-info-form");
@@ -2602,9 +2660,15 @@ function bind() {
       state.assistantVoiceError = "";
       state.emmiLastGuidanceScreen = "";
       persistEmmiPreferences();
+      // Resolve the welcome from the locale the patient has selected right now.
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
+      // Open the playback AudioContext while the click still counts as a user gesture. Created
+      // later it starts suspended, and the welcome plays silently until some other tap resumes it.
+      ensureEmmiRuntime().live.prepareAudioPlayback();
       render();
-      requestAnimationFrame(() => deliverEmmiGuidance(message, state.screen, { connect: true }));
+      // Connect inside the click's task too: deferring it (rAF/timeout) drops user activation and
+      // Chrome then refuses the microphone prompt, so the welcome never played on the first click.
+      deliverEmmiGuidance(message, state.screen, { connect: true });
       return;
     }
     if (action === "disable-emmi-guidance") {
@@ -2633,6 +2697,8 @@ function bind() {
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || state.emmiGuidanceTranscript);
       if (!state.emmiVoiceGuidance) { state.emmiVoiceGuidance = true; state.emmiWelcomeAcknowledged = true; persistEmmiPreferences(); }
       state.emmiVoiceGuidancePaused = false;
+      emmiLive?.stopPlayback(); // Never let a repeat overlap audio that is still playing.
+      ensureEmmiRuntime().live.prepareAudioPlayback();
       deliverEmmiGuidance(message, state.screen, { connect: !emmiLive || ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) });
       return;
     }
@@ -2686,10 +2752,9 @@ function bind() {
     if (action === "callback") { state.callbackRequested = true; state.returnScreen = state.screen; state.screen = "CALLBACK_CONFIRMED"; audit(state, "callback_requested"); render(); }
     if (action === "return") { state.screen = state.returnScreen || "INVITATION"; render(); }
     if (action === "language") {
-      if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("language_changed");
+      // setLanguage resets the guidance transcript and rebuilds the voice session in the new
+      // language, so EMMI continues rather than going silent after a switch.
       setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en");
-      state.emmiLastGuidanceScreen = "";
-      state.emmiGuidanceTranscript = "";
       render();
     }
     if (action === "change-representative-phone") { state.phoneVerified = false; state.representativeOtpDeliveryId = ""; state.screen = "PERSONAL_REPRESENTATIVE_DETAILS"; draftStore.save(state); render(); }
@@ -2850,6 +2915,7 @@ function bind() {
     if (action === "dev") { state.devOpen = !state.devOpen; render(); }
     if (action === "clear") { draftStore.clear(); location.reload(); }
   }));
+  bindActions(document);
   document.querySelector("#scenario-select")?.addEventListener("change", e => { location.search = `?scenario=${encodeURIComponent(e.target.value)}`; });
   document.querySelector("#screen-select")?.addEventListener("change", e => { state.screen = e.target.value; state.identityVerified = true; if (state.screen === "ACCESS_ELIGIBILITY_RESULT") state.accessOutcome = state.offer.fixture.accessOutcome || "eligible"; render(); });
   const dobInput = document.querySelector(".date-text");

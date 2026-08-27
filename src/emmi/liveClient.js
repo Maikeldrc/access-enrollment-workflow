@@ -49,9 +49,31 @@ export class EmmiLiveClient {
     this.endTimer = null;
   }
   setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
+  isActive() { return !["DISCONNECTED", "ERROR"].includes(this.state); }
+  // Must be called synchronously from the click that starts voice. An AudioContext created
+  // later (inside a socket callback) is born suspended, so the welcome plays silently and only
+  // starts working after some later user gesture resumes it.
+  prepareAudioPlayback() {
+    try {
+      this.outputContext ||= new AudioContext({ sampleRate: 24000 });
+      if (this.outputContext.state === "suspended") this.outputContext.resume();
+    } catch { /* Playback falls back to the lazy path in playAudio. */ }
+  }
+  // The locale is baked into the session's system instruction, so a language change needs a
+  // fresh session rather than a context update.
+  async restartForLocale(initialText = "") {
+    if (!this.isActive()) return false;
+    this.stopPlayback();
+    this.disconnect("locale_changed");
+    await this.connect(initialText);
+    return true;
+  }
   async connect(initialText = "") {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
+    // Kreyòl has no supported live voice, so it stays a text experience rather than a silent
+    // switch to English. Never treat KR as Korean.
     if (this.getContext().locale === "KR") throw this.fail("voice_locale_fallback");
+    this.prepareAudioPlayback();
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("microphone_denied");
     this.setState("CONNECTING");
@@ -134,7 +156,8 @@ export class EmmiLiveClient {
     }
   }
   playAudio(encoded) {
-    this.outputContext ||= new AudioContext({ sampleRate: 24000 });
+    this.prepareAudioPlayback();
+    if (!this.outputContext) return;
     const bytes = base64ToBytes(encoded);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const buffer = this.outputContext.createBuffer(1, Math.floor(bytes.byteLength / 2), 24000);

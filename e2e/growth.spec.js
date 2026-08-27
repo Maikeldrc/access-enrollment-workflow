@@ -79,7 +79,7 @@ test("Care Circle moves from Home to Who is completing and remains optional", as
   const card = page.locator("[data-optional-support]");
   await expect(card).toBeVisible();
   await expect(card).toContainText("Optional support");
-  await expect(card).toContainText("Invite someone you trust to help with this process.");
+  await expect(card).toContainText("Invite someone you trust to help you through this process.");
   await expect(card).toContainText("Invite someone");
   await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);
   await page.reload();

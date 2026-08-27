@@ -836,6 +836,7 @@ p { margin:0; }
 .emmi-welcome-choice button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:8px 12px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:.96rem;font-weight:700;cursor:pointer; }
 .emmi-welcome-choice button .icon { width:21px;height:21px;color:inherit;background:transparent; }
 .emmi-welcome-choice button:disabled { opacity:.58;cursor:wait; }
+.emmi-welcome-error { display:block;margin-top:3px;color:var(--text-secondary);font-size:.94rem;font-weight:400;line-height:1.42; }
 .growth-card { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start;margin-top:16px;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);box-shadow:0 8px 22px rgba(0,78,137,.055);text-align:left; }
 .growth-card>.icon { width:42px;height:42px;border-radius:13px;background:var(--primary-50); }
 .growth-card strong,.growth-card p,.growth-card small { display:block; }
