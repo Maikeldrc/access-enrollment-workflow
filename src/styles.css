@@ -516,20 +516,37 @@ p { margin:0; }
 .emmi-contextual-nudge { position:fixed;z-index:9;right:max(69px,calc((100vw - 390px)/2 + 69px));bottom:calc(84px + env(safe-area-inset-bottom));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
 .emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 @keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
-.emmi-guidance-bar { display:grid;gap:10px;margin:0 0 20px;padding:12px;border:1px solid var(--primary-100);border-radius:16px;background:var(--primary-50);box-shadow:0 7px 20px rgba(7,77,145,.05); }
-.emmi-guidance-heading { display:grid;grid-template-columns:46px 1fr;gap:10px;align-items:center; }
-.emmi-guidance-heading img { width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 5px 7px rgba(0,78,137,.13)); }
+/* Compact contextual EMMI control: after Home, EMMI is support, not a second headline. */
+.emmi-guidance-bar { display:grid;gap:8px;margin:0 0 16px;padding:10px 11px;border:1px solid var(--primary-100);border-radius:14px;background:var(--primary-50);box-shadow:0 6px 16px rgba(7,77,145,.045); }
+.emmi-guidance-heading { display:grid;grid-template-columns:34px 1fr;gap:9px;align-items:center; }
+.emmi-guidance-heading img { width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,78,137,.13)); }
 .emmi-guidance-heading strong,.emmi-guidance-heading small { display:block; }
-.emmi-guidance-heading strong { font-size:1rem;line-height:1.3; }
-.emmi-guidance-heading small { margin-top:2px;color:var(--text-secondary);font-size:.9rem;line-height:1.35; }
-.emmi-guidance-transcript { margin:0;padding:9px 10px;border-radius:10px;color:var(--text-secondary);background:var(--surface-primary);font-size:.94rem;line-height:1.48; }
-.emmi-guidance-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
-.emmi-guidance-actions button { min-height:46px;padding:8px 9px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:.88rem;font-weight:700;line-height:1.25;cursor:pointer; }
+.emmi-guidance-heading strong { font-size:.95rem;line-height:1.3; }
+.emmi-guidance-heading small { margin-top:1px;color:var(--text-secondary);font-size:.86rem;line-height:1.3; }
+.emmi-guidance-transcript { display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;margin:0;padding:7px 9px;border-radius:9px;color:var(--text-secondary);background:var(--surface-primary);font-size:.86rem;line-height:1.4; }
+.emmi-guidance-actions { display:flex;flex-wrap:wrap;gap:5px; }
+.emmi-guidance-actions button { flex:1 1 auto;min-width:0;min-height:44px;padding:6px 7px;border:1px solid var(--border-default);border-radius:9px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:.8rem;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer; }
 .emmi-guidance-actions button:hover { border-color:var(--primary-300);background:var(--surface-secondary); }
 .emmi-guidance-actions button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:1px; }
 .emmi-guidance-actions button:disabled { opacity:.55;cursor:not-allowed; }
 .assistant-open { overflow:hidden; }
-.assistant-open .emmi-assistant { display:none; }
+.assistant-open .emmi-assistant,.emmi-assistant.emmi-assistant-suppressed { display:none; }
+/* Optional support: deliberately lighter than the completion-role cards so it never reads
+   as a fourth answer to "Who is completing this?". */
+.optional-support { margin-top:22px; }
+.optional-support[hidden] { display:none; }
+.optional-support-label { display:block;margin-bottom:7px;color:var(--text-muted);font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase; }
+.optional-support-card { display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:12px;border:1px dashed var(--border-default);border-radius:12px;background:var(--surface-secondary);box-shadow:none;text-align:left;cursor:pointer;font:inherit;color:var(--text-primary); }
+.optional-support-status { cursor:default; }
+.optional-support-card>.icon { width:32px;height:32px;border-radius:10px;background:var(--surface-primary); }
+.optional-support-card>.icon svg { width:18px;height:18px; }
+.optional-support-card strong { display:block;font-size:.96rem;line-height:1.35; }
+.optional-support-copy { display:block;margin-top:3px;color:var(--text-secondary);font-size:.9rem;line-height:1.42; }
+.optional-support-action { display:inline-flex;align-items:center;gap:5px;margin-top:7px;color:var(--primary-600);font-size:.9rem;font-weight:700; }
+.optional-support-action .icon { width:17px;height:17px;border-radius:0;background:transparent; }
+.optional-support-action .icon svg { width:15px;height:15px; }
+.optional-support-card:hover { border-color:var(--primary-300);background:var(--surface-primary); }
+.optional-support-card:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 .assistant-layer { position:fixed;z-index:40;inset:0 auto 0 50%;display:flex;flex-direction:column;width:390px;max-width:100%;color:var(--text-primary);background:var(--surface-secondary);box-shadow:0 0 30px rgba(7,23,68,.12);transform:translateX(-50%);overflow-y:auto;overscroll-behavior:contain; }
 .assistant-header { position:sticky;z-index:2;top:0;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;min-height:70px;padding:10px 18px;border-bottom:1px solid var(--border-default);background:rgba(248,251,255,.96);backdrop-filter:blur(12px); }
 .assistant-identity { min-width:0; }
@@ -818,6 +835,7 @@ p { margin:0; }
 .emmi-welcome-choice p { margin:0;color:var(--text-secondary);font-size:1rem;line-height:1.48; }
 .emmi-welcome-choice button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:8px 12px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:.96rem;font-weight:700;cursor:pointer; }
 .emmi-welcome-choice button .icon { width:21px;height:21px;color:inherit;background:transparent; }
+.emmi-welcome-choice button:disabled { opacity:.58;cursor:wait; }
 .growth-card { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start;margin-top:16px;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);box-shadow:0 8px 22px rgba(0,78,137,.055);text-align:left; }
 .growth-card>.icon { width:42px;height:42px;border-radius:13px;background:var(--primary-50); }
 .growth-card strong,.growth-card p,.growth-card small { display:block; }
@@ -1032,6 +1050,10 @@ p { margin:0; }
   .scenario-footer { position:static;grid-template-columns:1fr;padding:22px 20px; }
   .scenario-summary strong { white-space:normal; }
   .launch-button { width:100%; }
+  /* Reserve the floating EMMI gutter for every screen's action row so the button can never
+     sit on top of Back / Continue. Individual screens below only add their own extras. */
+  .screen:not(:has(.invitation-stage)) .actions { margin-right:58px; }
+  .decision-maker-screen .optional-support { margin-right:58px; }
   .recommendation-screen .actions { margin-right:58px; }
   .recommendation-screen .note { padding-right:68px; }
   .care-works-screen .actions { margin-right:58px; }
