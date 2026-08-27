@@ -188,7 +188,7 @@ p { margin:0; }
 .contextual-assurance .icon { width:20px;height:20px;border-radius:0;color:var(--primary-600);background:transparent; }
 .contextual-assurance .icon svg { width:19px;height:19px;stroke-width:1.9; }
 .contextual-assurance>span:last-child { display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2; }
-.choice-card { position:relative; display:grid; grid-template-columns:22px 42px 1fr; gap:11px; align-items:center; min-height:78px; padding:12px; border:1px solid var(--line); border-radius:13px; background:#fff;box-shadow:0 4px 14px rgba(24,27,75,.035);cursor:pointer; }
+.choice-card { position:relative; display:grid; grid-template-columns:22px 44px 1fr; gap:11px; align-items:center; min-height:78px; padding:12px; border:1px solid var(--line); border-radius:13px; background:#fff;box-shadow:0 4px 14px rgba(24,27,75,.035);cursor:pointer; }
 .choice-card:has(input:checked) { border:2px solid var(--purple); background:linear-gradient(100deg,#fff,#faf8ff); padding:11px; box-shadow:0 8px 20px rgba(89,60,224,.1); }
 .choice-card input { position:absolute; opacity:0; }
 .choice-dot { width:18px; height:18px; border:2px solid #b6b9ca; border-radius:50%; }
@@ -526,6 +526,33 @@ p { margin:0; }
 .goals-screen .goal-list,.goal-action-options,.goal-barrier-options,.my-goals-list { display:grid;gap:12px;width:100%; }
 .goals-screen .goal-list .check-row,.goal-action-options .check-row,.goal-barrier-options .check-row { width:100%;min-width:0;min-height:56px;margin:0;padding:14px 16px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary); }
 .goals-screen .goal-list .check-row:has(input:checked),.goal-action-options .check-row:has(input:checked),.goal-barrier-options .check-row:has(input:checked) { border-color:var(--primary-500);background:var(--primary-50);box-shadow:0 0 0 1px var(--primary-500); }
+/* Goal category iconography. One container, one stroke colour and one glyph size everywhere, so
+   a Pill and a Target never read as different weights of the same list. The category only tints
+   the background, very lightly: the list has to stay calm, and selection is still carried by the
+   radio and the card, never by icon colour. */
+.goal-icon { flex:0 0 44px;display:inline-grid;place-items:center;width:44px;height:44px;border-radius:13px;color:var(--primary-700);background:var(--primary-50); }
+.goal-icon .icon,.goal-icon-glyph { width:22px;height:22px;border-radius:0;background:transparent;color:inherit; }
+.goal-icon .icon svg { width:22px;height:22px;stroke-width:1.9; }
+.goal-icon[data-goal-category="MEDICATIONS"] { background:var(--surface-purple,var(--primary-50)); }
+.goal-icon[data-goal-category="ACTIVITY_MOBILITY"] { background:color-mix(in srgb,var(--success-500,#2f855a) 9%,var(--surface-primary)); }
+.goal-icon[data-goal-category="WELLBEING"] { background:color-mix(in srgb,var(--primary-500) 8%,var(--surface-primary)); }
+.goal-icon[data-goal-category="GENERIC"] { background:color-mix(in srgb,var(--border-default) 34%,var(--surface-primary)); }
+.choice-card .goal-icon { margin:0; }
+.goal-check-row { align-items:center;gap:12px;min-height:64px; }
+.goal-check-row>span:last-child { min-width:0;flex:1 1 auto; }
+/* A goal already chosen as the primary priority keeps its icon so it stays recognizable, and
+   says why it is unavailable in words rather than relying on dimming alone. */
+.choice-card.is-unavailable { background:var(--surface-muted,#f6f7fb);cursor:default; }
+.choice-card.is-unavailable strong { color:var(--text-secondary); }
+.choice-card.is-unavailable .goal-icon { color:var(--text-secondary);background:color-mix(in srgb,var(--border-default) 34%,var(--surface-primary)); }
+.choice-card.is-unavailable .choice-dot { opacity:.5; }
+.my-goal-heading { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center; }
+.my-goal-heading h2 { margin:0; }
+.goal-detail-hero { display:grid;grid-template-columns:48px minmax(0,1fr);gap:13px;align-items:start;margin:0 0 6px; }
+.goal-detail-hero h1 { margin:0; }
+.goal-detail-hero-icon { flex:0 0 48px;width:48px;height:48px;margin-top:2px;border-radius:14px; }
+.goal-detail-hero-icon .icon,.goal-detail-hero-icon .goal-icon-glyph { width:24px;height:24px; }
+.goal-detail-hero-icon .icon svg { width:24px;height:24px; }
 .custom-goal-field,.goals-note-field,.goal-plan-form>.field { margin-top:18px; }
 .goal-priority-form,.goal-plan-form { display:grid;gap:22px; }
 .goal-priority-form fieldset,.goal-plan-form fieldset { min-width:0;margin:0;padding:0;border:0; }

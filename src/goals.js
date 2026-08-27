@@ -1,7 +1,39 @@
 const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
+// Goal iconography is category-based, never per-goal and never inferred from the goal's text:
+// display names are translated and editable, so any string matching would break the moment a
+// patient switches language or the copy is reworded. A goal carries a structured category, the
+// category carries an icon, and anything unrecognized lands on the generic target.
+//
+// Keep this taxonomy small. It exists to give the patient a handful of recognizable visual
+// families, not to become a second clinical vocabulary they have to learn. Categories are
+// internal metadata and are never shown to the patient.
+export const GOAL_ICON_REGISTRY = Object.freeze({
+  CARDIOVASCULAR: "heart",
+  MEDICATIONS: "pill",
+  PREVENTION: "shield",
+  ACTIVITY_MOBILITY: "footprints",
+  INDEPENDENCE: "home",
+  NUTRITION: "nutrition",
+  EDUCATION: "book",
+  WELLBEING: "smile",
+  DIABETES_GLUCOSE: "droplets",
+  WEIGHT: "scale",
+  RESPIRATORY: "wind",
+  GENERIC: "goals"
+});
+
+export const GOAL_CATEGORIES = Object.freeze(Object.keys(GOAL_ICON_REGISTRY));
+export const GENERIC_GOAL_ICON = GOAL_ICON_REGISTRY.GENERIC;
+
+// An unknown category renders the generic icon rather than nothing at all: goal definitions can
+// come from configuration, and a typo there must never leave a blank space or throw.
+export const normalizeGoalCategory = category =>
+  (typeof category === "string" && GOAL_ICON_REGISTRY[category] ? category : "GENERIC");
+
 export const GOAL_CONFIG = Object.freeze({
   BLOOD_PRESSURE_CONTROL: {
+    category: "CARDIOVASCULAR",
     displayName: T("Keep my blood pressure under control", "Mantener mi presión arterial bajo control", "Kenbe tansyon mwen anba kontwòl"),
     progressType: "MEASUREMENT_ADHERENCE",
     suggestedActions: [
@@ -13,6 +45,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   STAY_INDEPENDENT: {
+    category: "INDEPENDENCE",
     displayName: T("Stay independent", "Mantener mi independencia", "Rete endepandan"),
     progressType: "PATIENT_REPORTED",
     suggestedActions: [
@@ -22,6 +55,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   AVOID_HOSPITAL_VISITS: {
+    category: "PREVENTION",
     displayName: T("Avoid hospital visits", "Evitar visitas al hospital", "Evite vizit lopital"),
     progressType: "PATIENT_REPORTED",
     suggestedActions: [
@@ -31,6 +65,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   MEDICATION_UNDERSTANDING: {
+    category: "MEDICATIONS",
     displayName: T("Better understand my medications", "Comprender mejor mis medicamentos", "Konprann medikaman mwen yo pi byen"),
     progressType: "MILESTONE",
     suggestedActions: [
@@ -40,6 +75,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   FEEL_BETTER: {
+    category: "WELLBEING",
     displayName: T("Feel better day to day", "Sentirme mejor cada día", "Santi m pi byen chak jou"),
     progressType: "PATIENT_REPORTED",
     suggestedActions: [
@@ -48,6 +84,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   STAY_ACTIVE: {
+    category: "ACTIVITY_MOBILITY",
     displayName: T("Stay active", "Mantenerme activo", "Rete aktif"),
     progressType: "ACTION_COUNT",
     suggestedActions: [
@@ -57,6 +94,7 @@ export const GOAL_CONFIG = Object.freeze({
     ]
   },
   CUSTOM: {
+    category: "GENERIC",
     displayName: T("My personal goal", "Mi objetivo personal", "Objektif pèsonèl mwen"),
     progressType: "PATIENT_REPORTED",
     suggestedActions: []
@@ -81,6 +119,8 @@ export function createPatientGoal({ type, customTitle = "", patientId = "", now 
     id: id || `goal_${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`,
     patientId,
     goalType: type,
+    goalCategory: normalizeGoalCategory(config.category),
+    iconKey: config.iconKey || null,
     title: config.displayName.en,
     customTitle: type === "CUSTOM" ? String(customTitle).trim() : "",
     status: "ACTIVE",
@@ -109,6 +149,22 @@ export function goalDisplayName(goal, locale = "en") {
   if (!goal) return "";
   if (goal.goalType === "CUSTOM" && goal.customTitle) return goal.customTitle;
   return localGoalText((GOAL_CONFIG[goal.goalType] || GOAL_CONFIG.CUSTOM).displayName, locale);
+}
+
+// Resolution order: an explicit per-goal override, then the goal's category, then the category
+// on its definition (which covers goals persisted before categories existed), then the generic
+// target. isKnownIcon lets the caller reject an override naming an icon it cannot draw, so a bad
+// override degrades to the category icon instead of rendering a placeholder.
+export function goalCategoryOf(goal) {
+  if (!goal) return "GENERIC";
+  if (typeof goal.goalCategory === "string" && GOAL_ICON_REGISTRY[goal.goalCategory]) return goal.goalCategory;
+  return normalizeGoalCategory(GOAL_CONFIG[goal.goalType]?.category);
+}
+
+export function resolveGoalIcon(goal, isKnownIcon = name => Object.values(GOAL_ICON_REGISTRY).includes(name)) {
+  const override = goal?.iconKey || GOAL_CONFIG[goal?.goalType]?.iconKey;
+  if (typeof override === "string" && override && isKnownIcon(override)) return override;
+  return GOAL_ICON_REGISTRY[goalCategoryOf(goal)] || GENERIC_GOAL_ICON;
 }
 
 export function suggestedActionsFor(goalType) {

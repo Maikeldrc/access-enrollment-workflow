@@ -311,3 +311,123 @@ test("longitudinal goal detail is complete in Spanish and Kreyòl", async ({ pag
   await expect(page.getByRole("heading", { name: "Kijan tansyon mwen te ye" })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText(/[가-힣]/);
 });
+
+test("goals carry a category icon that is the same goal-by-goal and screen-by-screen", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openGoals(page);
+
+  // Goal Discovery teaches the visual system from the first screen: seven goals, seven families,
+  // not the same target icon seven times.
+  const discovery = await page.evaluate(() => [...document.querySelectorAll(".goal-check-row")].map(row => ({
+    label: row.innerText.replace(/\s+/g, " ").replace("✓ ", "").trim(),
+    category: row.querySelector(".goal-icon").dataset.goalCategory
+  })));
+  expect(discovery.map(row => row.category)).toEqual([
+    "CARDIOVASCULAR", "INDEPENDENCE", "PREVENTION", "MEDICATIONS", "WELLBEING", "ACTIVITY_MOBILITY", "GENERIC"
+  ]);
+  expect(discovery.find(row => row.label === "Other").category).toBe("GENERIC");
+  // Decorative: the goal's name already says what it is.
+  expect(await page.locator(".goal-check-row .goal-icon .icon").first().getAttribute("aria-hidden")).toBe("true");
+
+  const medicationsGlyph = await page.locator('.goal-check-row:has-text("Better understand my medications") .goal-icon svg').innerHTML();
+
+  await page.getByLabel("Better understand my medications").check();
+  await page.getByLabel("Keep my blood pressure under control").check();
+  await page.getByRole("button", { name: "Choose my priorities" }).click();
+
+  // Priorities: the same pill icon in both lists, and the goal already taken as primary keeps its
+  // icon while it is unavailable as a second priority.
+  const primaryList = page.getByRole("group", { name: "Primary priority" });
+  await expect(primaryList.locator('.choice-card:has-text("Better understand my medications") .goal-icon')).toHaveAttribute("data-goal-category", "MEDICATIONS");
+  await primaryList.getByLabel("Keep my blood pressure under control").check();
+
+  const secondaryList = page.getByRole("group", { name: "Secondary priority (optional)" });
+  const takenCard = secondaryList.locator('.choice-card:has-text("Keep my blood pressure under control")');
+  await expect(takenCard.locator(".goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+  await expect(takenCard).toContainText("Already selected as your primary priority");
+  await expect(takenCard.locator("input")).toBeDisabled();
+  expect(await secondaryList.locator('.choice-card:has-text("Better understand my medications") .goal-icon svg').innerHTML()).toBe(medicationsGlyph);
+  // "No second priority" is not a goal and keeps its own neutral icon.
+  await expect(secondaryList.locator('.choice-card:has-text("No second priority") .goal-icon')).toHaveCount(0);
+
+  await secondaryList.getByLabel("Better understand my medications").check();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // Plan personalization and Care Plan Review both show the primary goal's own icon.
+  await expect(page.locator(".goal-selected-card .goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+  await page.getByRole("button", { name: "Personalize my plan" }).click();
+  await expect(page.locator(".goal-selected-card .goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+  await page.getByLabel("Check my blood pressure regularly").check();
+  await page.getByRole("button", { name: "Review my plan" }).click();
+  await expect(page.locator(".care-plan-goal .goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+  // A goal's icon is not reused for its actions: the steps keep their own meanings.
+  const goalGlyph = await page.locator(".care-plan-goal .goal-icon svg").innerHTML();
+  const actionGlyphs = await page.locator(".care-plan-action .icon svg").evaluateAll(nodes => nodes.map(node => node.innerHTML));
+  expect(actionGlyphs.length).toBeGreaterThan(0);
+  expect(actionGlyphs.every(html => html === goalGlyph)).toBe(false);
+
+  await page.getByRole("button", { name: "Save my plan" }).click();
+  await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
+  await page.getByRole("button", { name: "Go to my dashboard" }).click();
+  await page.getByRole("button", { name: /My Goals/ }).click();
+
+  // My Goals and Goal Detail complete the chain: one goal, one icon, everywhere.
+  await expect(page.locator('.my-goal-card:has-text("Better understand my medications") .goal-icon')).toHaveAttribute("data-goal-category", "MEDICATIONS");
+  expect(await page.locator('.my-goal-card:has-text("Better understand my medications") .goal-icon svg').innerHTML()).toBe(medicationsGlyph);
+  await page.locator('.my-goal-card:has-text("Keep my blood pressure under control")').getByRole("button", { name: /View plan/ }).click();
+  await expect(page.locator(".goal-detail-hero .goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+});
+
+test("goal icons stay one consistent size across viewports and text scaling", async ({ page }) => {
+  for (const width of [360, 375, 384, 390, 393, 412, 430]) {
+    await page.setViewportSize({ width, height: 824 });
+    await openGoals(page);
+    for (const scale of [1, 1.25, 1.5]) {
+      await page.evaluate(value => {
+        document.documentElement.style.fontSize = `${16 * value}px`;
+        document.documentElement.style.setProperty("--font-body", `${18 * value}px`);
+      }, scale);
+      const audit = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll(".goal-check-row")];
+        const boxes = rows.map(row => row.querySelector(".goal-icon").getBoundingClientRect());
+        const glyphs = rows.map(row => row.querySelector(".goal-icon svg").getBoundingClientRect());
+        const text = rows.map(row => row.querySelector(":scope > span:last-child").getBoundingClientRect());
+        return {
+          boxSizes: [...new Set(boxes.map(box => `${Math.round(box.width)}x${Math.round(box.height)}`))],
+          glyphSizes: [...new Set(glyphs.map(glyph => `${Math.round(glyph.width)}x${Math.round(glyph.height)}`))],
+          minRowHeight: Math.min(...rows.map(row => row.getBoundingClientRect().height)),
+          minTextWidth: Math.min(...text.map(rect => rect.width)),
+          minFont: Math.min(...rows.map(row => parseFloat(getComputedStyle(row).fontSize))),
+          truncated: rows.some(row => row.scrollWidth > row.clientWidth + 1),
+          overlap: rows.some((row, index) => boxes[index].right > text[index].left + 1),
+          overflow: document.documentElement.scrollWidth > innerWidth
+        };
+      });
+      const label = `${width}px @${scale}x`;
+      expect(audit.boxSizes, `${label} one container size`).toEqual(["44x44"]);
+      expect(audit.glyphSizes, `${label} one glyph size`).toEqual(["22x22"]);
+      expect(audit.minRowHeight, `${label} touch target`).toBeGreaterThanOrEqual(48);
+      expect(audit.minTextWidth, `${label} text keeps the remaining width`).toBeGreaterThan(150);
+      expect(audit.minFont, `${label} font`).toBeGreaterThanOrEqual(18 * scale - 0.5);
+      expect(audit.truncated, `${label} truncation`).toBe(false);
+      expect(audit.overlap, `${label} icon and text overlap`).toBe(false);
+      expect(audit.overflow, `${label} overflow`).toBe(false);
+    }
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "";
+      document.documentElement.style.removeProperty("--font-body");
+    });
+  }
+});
+
+test("a custom goal the patient writes falls back to the generic target icon", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openGoals(page);
+  await page.getByLabel("Other").check();
+  await page.getByLabel("What would you like to work toward?").fill("Attend my graduation party");
+  await expect(page.locator('.goal-check-row:has-text("Other") .goal-icon')).toHaveAttribute("data-goal-category", "GENERIC");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.locator(".goal-selected-card .goal-icon")).toHaveAttribute("data-goal-category", "GENERIC");
+  // A fallback still draws an icon: no blank container, no crash.
+  await expect(page.locator(".goal-selected-card .goal-icon svg")).toBeVisible();
+});
