@@ -27,7 +27,9 @@ test("introduces EMMI compactly with voice off by default and preserves opt-out"
 });
 
 test("Guide me with voice starts the welcome session without a second click", async ({ page }) => {
-  await page.context().grantPermissions(["microphone"], { origin: "http://127.0.0.1:4174" });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [] }) } });
+  });
   let tokenRequests = 0;
   await page.route("**/api/emmi/live-token", async route => {
     tokenRequests += 1;
@@ -146,7 +148,8 @@ test("Care Circle stays optional support and is scoped to patients completing fo
   // Continue is driven only by the completion role; the invitation is never a prerequisite.
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
 
-  // The floating EMMI must never sit on top of the action row.
+  // The floating EMMI must never sit on top of the action row once the patient reaches it.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const overlap = await page.evaluate(() => {
     const emmi = document.querySelector(".emmi-assistant").getBoundingClientRect();
     return [...document.querySelectorAll(".actions .button")].some(button => {

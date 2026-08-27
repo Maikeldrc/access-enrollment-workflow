@@ -68,6 +68,25 @@
   font-synthesis:none;
 }
 * { box-sizing:border-box; }
+
+/* Patient Experience horizontal system: the shell owns the viewport, the page owns the outer
+   gutter, and components never invent their own outer width. */
+:root {
+  --patient-shell-width:390px;
+  --patient-page-gutter:clamp(12px,4vw,16px);
+  --patient-card-radius:14px;
+  --patient-card-padding:16px;
+  --patient-section-gap:16px;
+  --patient-emmi-clearance:120px;
+  --space-xs:4px;
+  --space-sm:8px;
+  --space-md:16px;
+  --space-lg:24px;
+  --space-xl:32px;
+}
+@media (max-width:374px) { :root { --patient-page-gutter:12px; } }
+/* The one exception: a decoration that is deliberately edge to edge. */
+.full-bleed-decoration { width:auto;margin-inline:calc(var(--patient-page-gutter) * -1); }
 .sr-only { position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important; }
 html { min-height:100%; background:var(--surface-secondary); }
 body { margin:0; min-height:100vh; font-size:18px; line-height:1.55; letter-spacing:-.006em; background:var(--surface-secondary); }
@@ -77,8 +96,8 @@ button { color:inherit; }
 a { color:var(--violet); }
 .skip-link { position:fixed; z-index:99; top:-80px; left:16px; padding:12px 16px; color:white; background:var(--navy); border-radius:8px; }
 .skip-link:focus { top:12px; }
-.shell { position:relative; width:100%; max-width:390px; min-height:100dvh; margin:0 auto; background:var(--surface-primary); box-shadow:none; overflow-x:clip; overflow-y:visible; }
-.app-header { position:relative; z-index:4; padding:calc(14px + env(safe-area-inset-top)) 20px 0; background:var(--surface-secondary); }
+.shell { position:relative; width:100%; max-width:var(--patient-shell-width); min-height:100dvh; margin:0 auto; background:var(--surface-primary); box-shadow:none; overflow-x:clip; overflow-y:visible; }
+.app-header { position:relative; z-index:4; padding:calc(14px + env(safe-area-inset-top)) var(--patient-page-gutter) 0; background:var(--surface-secondary); }
 .brand-row { display:grid; grid-template-columns:44px minmax(120px,1fr) 60px; align-items:center; min-height:44px; }
 .brand { justify-self:center; color:#8b92ad; text-decoration:none; font-size:.78rem; letter-spacing:.045em; font-weight:600; }
 .brand b { color:var(--navy); }
@@ -96,7 +115,7 @@ a { color:var(--violet); }
 .progress-meta span:last-child { min-width:0;overflow:hidden;text-align:right;text-overflow:ellipsis;white-space:nowrap; }
 .progress { height:4px; border-radius:999px; background:var(--border-default); overflow:hidden; }
 .progress span { display:block; height:100%; background:var(--primary-600); border-radius:inherit; transition:width .35s ease; }
-.screen { position:relative; min-height:calc(100dvh - 84px); padding:27px 24px calc(30px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; background:linear-gradient(180deg,var(--surface-secondary) 0%,var(--surface-primary) 23%,var(--surface-primary) 84%,var(--surface-secondary) 100%); }
+.screen { position:relative; min-height:calc(100dvh - 84px); padding:27px max(var(--patient-page-gutter),env(safe-area-inset-right)) calc(var(--patient-emmi-clearance) + env(safe-area-inset-bottom)) max(var(--patient-page-gutter),env(safe-area-inset-left)); display:flex; flex-direction:column; background:linear-gradient(180deg,var(--surface-secondary) 0%,var(--surface-primary) 23%,var(--surface-primary) 84%,var(--surface-secondary) 100%); }
 h1,h2,h3 { margin:0; font-family:"Manrope",system-ui,sans-serif; color:var(--navy); line-height:1.16; }
 h1 { margin:8px 0 11px; font-size:clamp(1.78rem,7.4vw,2.12rem); letter-spacing:-.047em; font-weight:800; outline:none; }
 h1:focus-visible { outline:none; }
@@ -104,7 +123,7 @@ h2 { font-size:1rem; }
 p { margin:0; }
 .lead { max-width:38ch; margin-bottom:23px; color:#363e60; font-size:1rem; line-height:1.55; }
 .eyebrow { align-self:flex-start; display:inline-flex; margin-bottom:6px; padding:5px 10px; border-radius:6px; color:#4930cf; background:var(--lavender); font-size:.78rem; font-weight:700; }
-.invitation-hero { position:relative; min-height:208px; margin:-27px -24px 22px; background:radial-gradient(circle at 83% 42%,rgba(158,139,255,.42),transparent 31%),radial-gradient(circle at 15% 85%,rgba(255,255,255,.96),transparent 34%),linear-gradient(145deg,#faf9ff 4%,#eeeaff 56%,#e7e2ff); overflow:hidden; }
+.invitation-hero { position:relative; min-height:208px; margin:-27px calc(var(--patient-page-gutter) * -1) 22px; background:radial-gradient(circle at 83% 42%,rgba(158,139,255,.42),transparent 31%),radial-gradient(circle at 15% 85%,rgba(255,255,255,.96),transparent 34%),linear-gradient(145deg,#faf9ff 4%,#eeeaff 56%,#e7e2ff); overflow:hidden; }
 .invitation-hero::before,.invitation-hero::after { content:""; position:absolute; border:1px solid rgba(255,255,255,.7); border-radius:50%; }
 .invitation-hero::before { width:205px;height:205px;right:-72px;top:-65px;box-shadow:0 0 0 22px rgba(255,255,255,.16),0 0 0 48px rgba(255,255,255,.1); }
 .invitation-hero::after { width:9px;height:9px;right:36px;top:28px;background:#fff;box-shadow:-41px 18px 0 -2px #fff,11px 75px 0 -3px #7c65ee; }
@@ -118,7 +137,7 @@ p { margin:0; }
 .provider-card strong span { color:var(--violet); }
 .provider-card small { color:#59617f; font-size:.875rem; }
 .screen:has(.invitation-stage) { min-height:calc(100dvh - 76px);padding-top:7px;text-align:center; }
-.invitation-stage { position:relative;flex:0 0 170px;height:170px;margin:0 -24px 0;overflow:hidden; }
+.invitation-stage { position:relative;flex:0 0 170px;height:170px;margin:0;overflow:hidden; }
 .invitation-stage::before { content:"";position:absolute;width:190px;height:190px;right:-48px;top:26px;border-radius:50%;background:radial-gradient(circle at 42% 38%,rgba(255,255,255,.72),rgba(232,228,255,.9) 62%,rgba(238,235,255,.3) 63%); }
 .invitation-stage::after { content:"";position:absolute;width:295px;height:295px;right:-121px;top:0;border:1px solid rgba(113,82,235,.08);border-radius:50%;box-shadow:0 0 0 34px rgba(99,75,224,.025); }
 .doctor-portrait { position:absolute;z-index:3;left:50%;top:13px;width:116px;height:116px;padding:5px;border-radius:50%;background:linear-gradient(145deg,#edf5f8,#c9d9e1);box-shadow:0 12px 28px rgba(18,35,76,.13);transform:translateX(-50%);overflow:hidden; }
@@ -126,9 +145,9 @@ p { margin:0; }
 .invitation-shield { position:absolute;z-index:2;right:30px;top:59px;display:grid;place-items:center;width:88px;height:88px;border-radius:47% 53% 61% 39% / 45% 45% 55% 55%;background:linear-gradient(145deg,rgba(249,248,255,.86),rgba(225,219,255,.66)); }
 .invitation-shield .icon { width:56px;height:56px;color:rgba(255,255,255,.94);background:transparent;border:3px solid rgba(255,255,255,.75);border-radius:18px; }
 .invitation-shield .icon svg { width:35px;height:35px;stroke-width:1.5; }
-.invitation-copy h1 { max-width:350px;margin:0 auto 10px;font-size:clamp(1.9rem,8.5vw,2.3rem);line-height:1.16;text-align:center; }
-.invitation-copy .lead { max-width:340px;margin:0 auto 14px;color:#172044;font-size:1rem;line-height:1.52;text-align:center; }
-.invitation-benefits { margin:0 5px; }
+.invitation-copy h1 { max-width:none;margin:0 0 10px;font-size:clamp(1.9rem,8.5vw,2.3rem);line-height:1.16;text-align:center; }
+.invitation-copy .lead { max-width:none;margin:0 0 14px;color:#172044;font-size:1rem;line-height:1.52;text-align:center; }
+.invitation-benefits { width:100%;margin:0; }
 .invitation-benefit { display:grid;grid-template-columns:52px 1fr;gap:13px;align-items:center;min-height:64px;text-align:left;border-bottom:1px solid #dde0ea; }
 .invitation-benefit:last-child { border-bottom:0; }
 .invitation-benefit .icon { width:48px;height:48px;border-radius:50%;background:linear-gradient(145deg,#f1eeff,#e7e2ff); }
@@ -351,7 +370,7 @@ p { margin:0; }
 .service-chips span { flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:7px; background:var(--lavender); font-size:.8rem; }
 .service-chips .icon { width:18px; height:18px; }
 .consent-summary { font-size:.875rem; line-height:1.48; }.consent-summary p { margin:10px 0; }.consent-summary .icon { width:21px; height:21px; color:var(--green); background:transparent; }
-.access-consent-screen { padding-bottom:calc(92px + env(safe-area-inset-bottom)); }
+.access-consent-screen { padding-bottom:calc(var(--patient-emmi-clearance) + env(safe-area-inset-bottom)); }
 .access-consent-screen .lead { font-size:1.0625rem; line-height:1.52; }
 .access-consent-care-team .provider-card strong,.access-consent-care-team .itera-provider strong { font-size:1.0625rem; line-height:1.35; }
 .access-consent-care-team .provider-card small,.access-consent-care-team .itera-provider small { font-size:1rem; line-height:1.45; }
@@ -403,11 +422,17 @@ p { margin:0; }
 .enrollment-welcome-screen { display:flex;flex-direction:column;min-width:0;padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
 .enrollment-welcome-screen .art { margin-bottom:4px; }
 .success-eyebrow { margin:2px 0 7px;color:var(--primary-600);font-size:1rem;font-weight:800;line-height:1.35;text-align:center;text-transform:uppercase;letter-spacing:.06em; }
-.enrollment-welcome-screen h1 { max-width:390px;margin-left:auto;margin-right:auto;text-align:center; }
-.enrollment-welcome-screen>.lead { max-width:390px;margin-left:auto;margin-right:auto;text-align:center; }
-.enrollment-welcome-reassurance,.enrollment-welcome-context { max-width:390px;margin:10px auto 0;color:var(--text-secondary);font-size:1.0625rem;line-height:1.52;text-align:center; }
+.enrollment-welcome-screen h1 { max-width:none;text-align:center; }
+.enrollment-welcome-screen>.lead { max-width:none;margin-bottom:12px;color:var(--text-secondary);font-weight:500;line-height:1.5;text-align:center; }
+.enrollment-welcome-highlights { width:100%;margin:0 0 12px; }
+.enrollment-welcome-highlight { display:grid;grid-template-columns:36px minmax(0,1fr);gap:11px;align-items:start;padding:11px 0;text-align:left; }
+.enrollment-welcome-highlight+.enrollment-welcome-highlight { border-top:1px solid var(--border-default); }
+.enrollment-welcome-highlight>.icon { width:36px;height:36px;border-radius:11px;color:var(--primary-600);background:var(--primary-50); }
+.enrollment-welcome-highlight>.icon svg { width:20px;height:20px;stroke-width:2; }
+.enrollment-welcome-highlight strong { display:block;color:var(--text-primary);font-size:1rem;line-height:1.35; }
+.enrollment-welcome-highlight p { margin:3px 0 0;color:var(--text-secondary);font-size:.96rem;line-height:1.46; }
 .enrollment-welcome-context { margin-top:7px;color:var(--text-muted); }
-.enrollment-welcome-screen .status-pill { margin-top:18px;font-size:1rem;line-height:1.35; }
+.enrollment-welcome-screen .status-pill { margin-top:2px;font-size:1rem;line-height:1.35; }
 .enrollment-welcome-screen .next-card { margin-top:2px;padding:17px; }
 .enrollment-welcome-screen .next-card>h2 { margin:0 0 8px;font-size:1.25rem; }
 .enrollment-welcome-screen .next-card .info-row { min-height:58px;gap:12px;padding:9px 0; }
@@ -415,12 +440,41 @@ p { margin:0; }
 .enrollment-welcome-screen .enrollment-consent-details { margin-top:14px; }
 .enrollment-welcome-screen .actions { margin-top:18px; }
 .enrollment-welcome-screen .contextual-assurance { margin-bottom:0; }
+
+/* Shared COMPLETE -> EXPLAIN -> INVITE -> ESTIMATE -> CHOOSE transition. */
+.flow-completion-transition { width:100%;min-width:0;margin:16px 0 0;padding:18px;border:1px solid var(--border-default);border-radius:18px;background:var(--surface-secondary);box-shadow:0 8px 22px rgba(0,78,137,.05);text-align:left; }
+.flow-transition-label { margin:0 0 7px;color:var(--primary-600);font-size:15px;font-weight:800;letter-spacing:.05em;text-transform:uppercase; }
+.flow-completion-transition h2 { margin:0;color:var(--text-primary);font-size:24px;line-height:1.25; }
+.flow-completion-transition h3 { margin:7px 0 0;color:var(--text-primary);font-size:19px;line-height:1.35; }
+.flow-transition-description { margin:7px 0 0;color:var(--text-secondary);font-size:17px;line-height:1.52; }
+.flow-transition-duration { display:flex;align-items:center;gap:9px;margin:14px 0 0;color:var(--text-primary);font-size:17px;line-height:1.4; }
+.flow-transition-duration .icon,.flow-transition-reassurance .icon,.my-care-resume-card p .icon { flex:0 0 auto;width:24px;height:24px;border-radius:8px;color:var(--primary-600);background:var(--primary-50); }
+.flow-transition-reassurance { display:flex;align-items:flex-start;gap:9px;margin:10px 0 0;color:var(--text-secondary);font-size:16px;line-height:1.5; }
+.flow-transition-actions { display:grid;gap:10px;margin-top:17px; }
+.flow-transition-actions .button { width:100%;min-height:52px;margin:0;font-size:17px; }
+.flow-transition-actions .button.secondary { color:var(--primary-700);background:var(--surface-primary); }
+.enrollment-welcome-screen .post-enrollment-support { padding-right:52px; }
+.flow-deferred-screen,.my-care-screen { width:100%;min-width:0; }
+.flow-deferred-screen .button { width:100%;margin-top:22px; }
+.my-care-resume-card { margin-top:18px;padding:18px;border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary);box-shadow:0 8px 22px rgba(0,78,137,.05); }
+.my-care-resume-card>div { display:flex;gap:12px;align-items:center; }
+.my-care-resume-card>div>.icon { flex:0 0 auto;width:40px;height:40px;border-radius:12px;color:var(--success);background:var(--success-bg); }
+.my-care-resume-card strong,.my-care-resume-card small { display:block; }
+.my-care-resume-card strong { font-size:19px;line-height:1.35; }
+.my-care-resume-card small { margin-top:2px;color:var(--text-secondary);font-size:16px;line-height:1.4; }
+.my-care-resume-card>p { display:flex;align-items:center;gap:8px;margin:14px 0 0;color:var(--text-secondary);font-size:17px; }
+.my-care-resume-card>.button { width:100%;margin-top:17px; }
+
+@media (max-width:374px) {
+  .flow-completion-transition { padding:16px; }
+  .flow-completion-transition h2 { font-size:22px; }
+}
 .shell:has(.access-consent-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
 .process-list { display:grid; gap:0; padding:0; margin:22px 0; list-style:none; }
 .process-list li { position:relative; display:flex; gap:13px; align-items:center; min-height:64px; color:#7d839a; font-size:.88rem; line-height:1.4; }
 .process-list li:not(:last-child)::after { content:""; position:absolute; left:19px; top:43px; width:2px; height:28px; background:#dddfea; }
 .process-list .done,.process-list .active { color:var(--ink); font-weight:700; }.process-list .done .icon { color:white; background:var(--violet); }.process-list .active .icon { border:2px solid var(--violet); background:white; }
-.screen:has(.process-list) { justify-content:center;padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+.screen:has(.process-list) { justify-content:center;padding-bottom:calc(var(--patient-emmi-clearance) + env(safe-area-inset-bottom)); }
 .screen:has(.process-list) h1,.screen:has(.process-list) .lead { text-align:center;margin-left:auto;margin-right:auto; }
 .eligibility-processing-screen .process-list li { font-size:1rem;line-height:1.45; }
 .eligibility-error-screen h1,.eligibility-error-screen .lead { text-align:center;margin-left:auto;margin-right:auto; }
@@ -706,16 +760,16 @@ p { margin:0; }
 /* Premium invitation: portrait-led, calm and easy to scan on a phone. */
 .screen:has(.invitation-stage) {
   min-height:100dvh;
-  padding:0 24px calc(20px + env(safe-area-inset-bottom));
+  padding:0 max(var(--patient-page-gutter),env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(var(--patient-page-gutter),env(safe-area-inset-left));
   text-align:center;
   background:linear-gradient(180deg,var(--surface-secondary) 0%,var(--surface-primary) 31%,var(--surface-primary) 88%,var(--surface-secondary) 100%);
 }
 .invitation-stage {
   position:relative;
   flex:0 0 auto;
-  width:calc(100% + 16px);
+  width:100%;
   height:auto;
-  margin:12px -8px 22px;
+  margin:12px 0 22px;
   aspect-ratio:1.86/1;
   overflow:hidden;
   border:0;
@@ -818,8 +872,8 @@ p { margin:0; }
 .invitation-trust-chip strong,.invitation-trust-chip small { display:block; }
 .invitation-trust-chip strong { font-size:.81rem;line-height:1.27;letter-spacing:-.012em; }
 .invitation-trust-chip small { margin-top:5px;color:var(--text-muted);font-size:.72rem;line-height:1.3; }
-.invitation-copy h1 { max-width:345px;margin:0 auto 10px;font-size:clamp(1.85rem,8.1vw,2.18rem);line-height:1.12;letter-spacing:-.045em; }
-.invitation-copy .lead { max-width:345px;margin:0 auto 18px;color:var(--text-secondary);font-size:1.04rem;line-height:1.57; }
+.invitation-copy h1 { max-width:none;margin:0 0 10px;font-size:clamp(1.85rem,8.1vw,2.18rem);line-height:1.12;letter-spacing:-.045em; }
+.invitation-copy .lead { max-width:none;margin:0 0 18px;color:var(--text-secondary);font-size:1.04rem;line-height:1.57; }
 .emmi-welcome { display:grid;gap:14px;margin:0 0 18px;padding:18px;border:1px solid var(--primary-100);border-radius:20px;background:var(--primary-50);box-shadow:0 12px 30px rgba(0,78,137,.075); }
 .emmi-welcome-identity { display:grid;grid-template-columns:76px 1fr;gap:13px;align-items:center; }
 .emmi-welcome-identity img { display:block;width:76px;height:76px;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,78,137,.16)); }
@@ -1053,30 +1107,15 @@ p { margin:0; }
   .launch-button { width:100%; }
   /* Reserve the floating EMMI gutter for every screen's action row so the button can never
      sit on top of Back / Continue. Individual screens below only add their own extras. */
-  .screen:not(:has(.invitation-stage)) .actions { margin-right:58px; }
-  .decision-maker-screen .optional-support { margin-right:58px; }
-  .recommendation-screen .actions { margin-right:58px; }
   .recommendation-screen .note { padding-right:68px; }
-  .care-works-screen .actions { margin-right:58px; }
   .care-works-screen .trust-note { padding-right:68px; }
-  .important-information-screen .check-row,.important-information-screen .actions,.important-information-screen .disclosure-privacy-note { margin-right:58px; }
-  .consent-screen .signer-role,.consent-screen #consent-form,.consent-screen .actions { margin-right:58px; }
-  .access-notice-screen .check-row,.access-notice-screen .actions { margin-right:58px; }
-  .representative-details-screen .actions,.representative-details-screen .representative-otp-links,.representative-details-screen .check-row { margin-right:58px; }
-  .growth-screen .actions { margin-right:58px; }
-  .access-not-eligible-screen .actions { grid-template-columns:1fr;margin-right:58px; }
+  .access-not-eligible-screen .actions { grid-template-columns:1fr; }
   .access-not-eligible-screen .actions>.primary { grid-row:1; }
   .access-not-eligible-screen .actions>.secondary { grid-row:2; }
-  .eligibility-processing-screen .actions { margin-right:58px; }
-  .access-eligibility-result-screen .actions { margin-right:58px; }
-  .enrollment-welcome-screen .actions,.enrollment-welcome-screen .contextual-assurance { margin-right:58px; }
-  .enrollment-welcome-screen .contextual-assurance { width:calc(100% - 58px); }
-  .contextual-assurance { width:calc(100% - 58px); }
-  .screen:has(.invitation-stage) .contact-line { padding-right:44px; }
-  .emmi-assistant { right:4px;bottom:12px;width:52px;height:52px; }
+  .emmi-assistant { right:var(--patient-page-gutter);bottom:calc(12px + env(safe-area-inset-bottom));width:52px;height:52px; }
   .emmi-avatar,.emmi-avatar img { width:52px;height:52px; }
 }
-@media (max-width:374px) { body { font-size:17px; }.screen { padding-left:18px;padding-right:18px; }.invitation-hero { margin-left:-18px;margin-right:-18px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.screen:has(.invitation-stage){padding-left:18px;padding-right:18px}.stage-brand-row{padding-right:7px}.invitation-benefits{padding-left:13px;padding-right:13px} }
+@media (max-width:374px) { body { font-size:17px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.stage-brand-row{padding-right:7px} }
 @media (max-width:599px) {
   .emmi-contextual-nudge { right:58px;bottom:18px;max-width:205px; }
   .emmi-welcome { padding:16px; }
@@ -1264,12 +1303,10 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 @media (max-width:374px) {
   body { font-size:var(--font-body); }
   .shell:not(:has(.prototype-console)) h1,.public-growth-page h1 { font-size:28px; }
-  .shell:not(:has(.prototype-console)) .screen { padding-left:18px;padding-right:18px; }
 }
 
 /* Home hierarchy: ACCESS first, EMMI second, optional human support last. */
-.screen:has(.invitation-stage) { padding-right:44px;padding-bottom:calc(84px + env(safe-area-inset-bottom)); }
-.screen:has(.invitation-stage) .invitation-stage { width:calc(100% + 36px);margin-left:-8px;margin-right:-28px; }
+.screen:has(.invitation-stage) { padding-bottom:calc(var(--patient-emmi-clearance) + env(safe-area-inset-bottom)); }
 .screen:has(.invitation-stage) .emmi-welcome { gap:10px;margin:0 0 16px;padding:13px 14px;border-radius:16px;box-shadow:0 7px 20px rgba(0,78,137,.055); }
 .screen:has(.invitation-stage) .emmi-welcome-identity { grid-template-columns:56px minmax(0,1fr);gap:11px; }
 .screen:has(.invitation-stage) .emmi-welcome-identity img { width:56px;height:56px; }

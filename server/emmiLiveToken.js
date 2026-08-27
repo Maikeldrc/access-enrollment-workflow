@@ -40,7 +40,8 @@ export async function handleEmmiLiveToken(req, res, env = process.env) {
   const expireTime = new Date(Date.now() + (maxMinutes + 1) * 60 * 1000).toISOString();
   const newSessionExpireTime = new Date(Date.now() + 60 * 1000).toISOString();
   try {
-    const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, httpOptions: { apiVersion: "v1beta" } });
+    // Ephemeral tokens live on v1alpha, and the browser must connect with the same version.
+    const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, httpOptions: { apiVersion: "v1alpha" } });
     const token = await ai.authTokens.create({
       config: buildEmmiLiveTokenConfig({ model, expireTime, newSessionExpireTime })
     });

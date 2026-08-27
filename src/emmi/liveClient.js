@@ -88,7 +88,10 @@ export class EmmiLiveClient {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : payload.error || "connection_failed");
     try {
-      const ai = new GoogleGenAI({ apiKey: payload.token, httpOptions: { apiVersion: "v1beta" } });
+      // Ephemeral auth tokens are only served on v1alpha: the SDK routes them to
+      // BidiGenerateContentConstrained, which does not exist on v1beta, so the socket never
+      // opens and no audio is ever produced.
+      const ai = new GoogleGenAI({ apiKey: payload.token, httpOptions: { apiVersion: "v1alpha" } });
       this.session = await ai.live.connect({
         model: payload.model || EMMI_CONFIG.model,
         config: {
@@ -103,13 +106,16 @@ export class EmmiLiveClient {
             this.startAudioCapture();
             this.setState("LISTENING");
             this.startTimers();
-            if (initialText) setTimeout(() => this.sendText(initialText), 0);
           },
           onmessage: message => this.handleMessage(message),
           onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"),
           onclose: () => { if (this.state !== "DISCONNECTED") this.disconnect("connection_lost"); }
         }
       });
+      // connect() resolves once the server has acknowledged setup. Sending the welcome from
+      // onopen instead sends it before the handshake finishes and the turn is dropped, which is
+      // why the first tap connected but stayed silent.
+      if (initialText) this.sendText(initialText);
       return true;
     } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"); }
   }
@@ -170,7 +176,9 @@ export class EmmiLiveClient {
     source.onended = () => this.sources.delete(source);
   }
   stopPlayback() { this.sources.forEach(source => { try { source.stop(); } catch { /* Already stopped. */ } }); this.sources.clear(); this.nextPlaybackAt = 0; }
-  sendText(text) { if (!this.session) return false; this.setState("EMMI_THINKING"); this.session.sendRealtimeInput({ text }); return true; }
+  // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
+  // text turn sent that way is accepted silently and never produces a spoken reply.
+  sendText(text) { if (!this.session) return false; this.setState("EMMI_THINKING"); this.session.sendClientContent({ turns: text, turnComplete: true }); return true; }
   setMuted(value) { this.muted = value; this.onState?.(this.state, value ? "muted" : "unmuted"); }
   disconnect(reason = "ended") {
     clearTimeout(this.warningTimer); clearTimeout(this.endTimer); this.stopPlayback();

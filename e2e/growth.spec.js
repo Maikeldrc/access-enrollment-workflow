@@ -48,10 +48,23 @@ test("Personal Representative remains distinct from Care Circle", async ({ page 
   await expect(page.getByRole("button", { name: "Invite someone to help" })).toHaveCount(0);
 });
 
-test("post-enrollment Share ACCESS opens a public, unpersonalized landing", async ({ page, context }) => {
-  await page.evaluate(() => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "access-happy", screen: "ENROLLMENT_CONFIRMED", role: "patient", completionRole: "patient", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", accessOutcome: "eligible", language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: [] })));
+const seedDraft = (page, screen) => page.evaluate(value => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "access-happy", screen: value, role: "patient", completionRole: "patient", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", accessOutcome: "eligible", language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: [] })), screen);
+
+test("Share ACCESS waits for a value moment instead of interrupting enrollment completion", async ({ page }) => {
+  await seedDraft(page, "ENROLLMENT_CONFIRMED");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Welcome to your ACCESS experience" })).toBeVisible();
+  // Just finishing enrollment is not a value moment: the patient has not experienced the service.
+  await expect(page.getByRole("button", { name: "Share ACCESS" })).toHaveCount(0);
+  await expect(page.locator(".enrollment-welcome-screen")).not.toContainText("Share ACCESS");
+});
+
+test("Share ACCESS opens a public, unpersonalized landing after Getting Started completes", async ({ page, context }) => {
+  await seedDraft(page, "ONBOARDING_COMPLETE");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+  await expect(page.locator('[data-share-access-moment="GETTING_STARTED_COMPLETED"]')).toBeVisible();
+  await expect(page.getByText("Know someone who may benefit from learning about ACCESS?")).toBeVisible();
   await page.getByRole("button", { name: "Share ACCESS" }).click();
   await expect(page.getByRole("heading", { name: "Share information about ACCESS" })).toBeVisible();
   await page.getByRole("button", { name: "Copy link" }).click();

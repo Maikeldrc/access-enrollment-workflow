@@ -134,6 +134,8 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
     Object.assign(safe, {
       activationStatus: state.activationStatus,
       activationStartedAt: state.activationStartedAt,
+      flowProgress: state.flowProgress,
+      flowTransitionNotice: state.flowTransitionNotice,
       deviceSetupStatus: state.deviceSetupStatus,
       deviceSetupStartedAt: state.deviceSetupStartedAt,
       patientHasBloodPressureMonitor: Boolean(state.patientHasBloodPressureMonitor),

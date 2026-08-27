@@ -14,7 +14,10 @@ import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/
 import { emmiVoiceIsSupported, getHomeWelcome, resolveEmmiLanguage } from "./emmi/messages.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
-import { enrollmentWelcomeCommon, enrollmentWelcomeFor } from "./enrollmentWelcome.js";
+import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
+import { resolveNextBestAction } from "./nextBestAction.js";
+import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
+import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 
 const app = document.querySelector("#app");
@@ -43,6 +46,7 @@ let state = {
   identityAttempts: 0, consentSaved: false, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
+  flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
   bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationReviewStatus: "NOT_STARTED", healthInformationReviewResult: "",
@@ -278,13 +282,13 @@ function header() {
   if (state.screen === "INVITATION") return "";
   const progress = progressFor(state);
   const stageLabel = progressStageLabel(progress.stage);
-  const accessCareScreen = ["ACCESS_BASELINE", "ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT", "ACCESS_BP_ESCALATION", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen);
-  const postEnrollmentCare = state.offer?.pathway === "ACCESS" && accessCareScreen;
-  const enrollmentComplete = state.screen === "ENROLLMENT_CONFIRMED";
+  const accessCareScreen = ["MY_CARE", "ACCESS_BASELINE", "ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT", "ACCESS_BP_ESCALATION", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen);
+  const postEnrollmentCare = state.enrollmentStatus === "COMPLETED" && accessCareScreen;
+  const enrollmentComplete = ["ENROLLMENT_CONFIRMED", "FLOW_DEFERRED"].includes(state.screen);
   const journeyLabel = enrollmentComplete ? L("Enrollment complete", "Inscripción completa", "Enskripsyon fini") : postEnrollmentCare ? L("Your care", "Su cuidado", "Swen ou") : L("Enrollment", "Inscripción", "Enskripsyon");
   const progressLabel = postEnrollmentCare ? L("Your care progress", "Progreso de su cuidado", "Pwogrè swen ou") : L("Enrollment progress", "Progreso de inscripción", "Pwogrè enskripsyon");
   return `<header class="app-header">
-    <div class="brand-row"><button class="icon-button back-button" data-action="back" aria-label="${t().back}" ${state.screen === "INVITATION" ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
+    <div class="brand-row"><button class="icon-button back-button" data-action="back" aria-label="${t().back}" ${["INVITATION", "MY_CARE"].includes(state.screen) ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
     <div class="progress-meta"><span>${journeyLabel}</span><span title="${stageLabel}">${stageLabel}</span></div>
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.percent)}" aria-valuetext="${stageLabel}" aria-label="${progressLabel}"><span style="width:${Math.min(100, progress.percent)}%"></span></div>
   </header>`;
@@ -615,6 +619,8 @@ function assistantContext() {
     patientId,
     locale: languageCode(),
     languageName: resolveEmmiLanguage(languageCode()).languageName,
+    // EMMI reads the next step from the same resolver the CTA uses instead of inferring it.
+    nextBestAction: state.offer ? (({ label, route, actionType }) => ({ label: localized(label), route, actionType }))(currentNextBestAction()) : null,
     enrollmentSource: state.offer?.enrollmentSource || null,
     physicianDisplayName: state.offer?.physician?.displayName || null,
     currentStage: progress.stage,
@@ -820,6 +826,12 @@ function emmiSpokenWelcome() {
 }
 
 function emmiGuidanceForScreen(screen = state.screen) {
+  const transition = state.offer ? currentFlowTransition() : null;
+  const transitionGuidance = transition ? L(
+    `Your enrollment is complete. ${localized(transition.nextStepTitle)} is next${transition.estimatedDuration ? ` and takes ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. You can continue now, or come back to it later.`,
+    `Su inscripción está completa. El siguiente paso es ${localized(transition.nextStepTitle).toLowerCase()}${transition.estimatedDuration ? ` y toma ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. Puede continuar ahora o regresar más tarde.`,
+    `Enskripsyon ou fini. Pwochen etap la se ${localized(transition.nextStepTitle).toLowerCase()}${transition.estimatedDuration ? ` epi li pran ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. Ou ka kontinye kounye a oswa retounen pita.`
+  ) : "";
   const messages = {
     DECISION_MAKER: L("Choose who is completing this process. If you’re completing it yourself and would like someone you trust to help remotely, you can invite them here.", "Elija quién está completando este proceso. Si lo completa usted mismo y desea que alguien de confianza le ayude a distancia, puede invitarlo aquí.", "Chwazi ki moun k ap ranpli pwosesis sa a. Si se ou menm k ap ranpli l epi ou ta renmen yon moun ou fè konfyans ede w a distans, ou ka envite l isit la."),
     IDENTITY_VERIFICATION: L("This only takes a moment. Confirming your information helps us securely verify who you are.", "Esto solo toma un momento. Confirmar su información nos ayuda a verificar su identidad de forma segura.", "Sa pran yon ti moman sèlman. Konfime enfòmasyon ou ede nou verifye idantite w an sekirite."),
@@ -827,7 +839,9 @@ function emmiGuidanceForScreen(screen = state.screen) {
     ACCESS_PRE_ELIGIBILITY_NOTICE: L("This quick Medicare check tells us whether ACCESS is available to you. It does not change your Medicare benefits.", "Esta breve verificación de Medicare indica si ACCESS está disponible para usted. No cambia sus beneficios de Medicare.", "Ti chèk Medicare sa a montre si ACCESS disponib pou ou. Li pa chanje benefis Medicare ou yo."),
     ACCESS_ELIGIBILITY_RESULT: state.accessOutcome === "eligible" ? L("Good news. You’re eligible to continue. Your enrollment is not complete yet, and I’ll guide you through the remaining steps.", "Buenas noticias. Es elegible para continuar. Su inscripción aún no está completa y le guiaré en los pasos restantes.", "Bon nouvèl. Ou kalifye pou kontinye. Enskripsyon ou poko fini, epi m ap gide w nan etap ki rete yo.") : "",
     CONSENT_REVIEW: L("You’re almost done. This page summarizes the most important information, including your expected cost, before you decide whether to enroll.", "Ya casi termina. Esta página resume la información más importante, incluido el costo esperado, antes de que decida si desea inscribirse.", "Ou prèske fini. Paj sa a rezime enfòmasyon ki pi enpòtan yo, ansanm ak pri ou prevwa a, anvan ou deside si w ap enskri."),
-    ENROLLMENT_CONFIRMED: localized(enrollmentWelcomeFor(state.offer?.pathway).emmiWelcome),
+    ENROLLMENT_CONFIRMED: transitionGuidance,
+    FLOW_DEFERRED: L("Your enrollment is complete. Your care setup is saved for whenever you’re ready.", "Su inscripción está completa. La configuración de su cuidado está guardada para cuando esté listo.", "Enskripsyon ou fini. Konfigirasyon swen ou anrejistre pou lè ou pare."),
+    MY_CARE: transitionGuidance,
     ACCESS_BASELINE: L("This health check helps your care team understand your starting point and personalize your support.", "Esta evaluación ayuda a su equipo de atención a conocer su punto de partida y personalizar su apoyo.", "Evalyasyon sa a ede ekip swen ou konprann pwen depa ou epi adapte sipò ou."),
     ACCESS_MEASURE: L("This step helps us understand how we’ll get your blood pressure starting point.", "Este paso nos ayuda a saber cómo obtendremos su presión arterial inicial.", "Etap sa a ede nou konnen kijan n ap jwenn premye mezi tansyon ou."),
     ACCESS_BP_DEVICE_VERIFICATION: L("If ITERA already has a monitor assigned to you, I can help confirm it automatically.", "Si ITERA ya tiene un monitor asignado para usted, puedo ayudarle a confirmarlo automáticamente.", "Si ITERA deja gen yon aparèy ki asiyen pou ou, mwen ka ede konfime li otomatikman."),
@@ -1139,13 +1153,78 @@ function processing(kind = "enrollment") {
     </ol>`;
 }
 
-function enrollmentGrowthOpportunities() {
-  if (state.offer.pathway !== "ACCESS") return "";
-  const careCircleVisible = state.careCircleStatus !== "ACTIVE" && growthPromptAvailable(state.careCirclePromptDismissedAt);
-  const shareVisible = growthPromptAvailable(state.shareAccessPromptDismissedAt);
-  if (!careCircleVisible && !shareVisible) return "";
-  const hasSupportPerson = Boolean(state.supportPersonName);
-  return `<section class="growth-opportunities" aria-label="${L("Optional support", "Apoyo opcional", "Sipò opsyonèl")}">${careCircleVisible ? `<article class="growth-card post-enrollment">${icon("people")}<div><strong>${hasSupportPerson ? L(`Would you like ${state.supportPersonName} to continue helping with your care?`, `¿Quiere que ${state.supportPersonName} continúe ayudándole con su cuidado?`, `Èske ou vle ${state.supportPersonName} kontinye ede w ak swen ou?`) : L("Would you like someone you trust to help with your care?", "¿Quiere que alguien de confianza le ayude con su cuidado?", "Èske ou vle yon moun ou fè konfyans ede w ak swen ou?")}</strong><p>${L("A family member or caregiver can help with reminders, device setup, and next steps.", "Un familiar o cuidador puede ayudar con recordatorios, dispositivos y próximos pasos.", "Yon fanmi oswa moun k ap bay swen ka ede ak rapèl, aparèy, ak pwochen etap yo.")}</p><div class="growth-inline-actions"><button type="button" data-action="open-care-circle-post">${L("Add to my Care Circle", "Agregar a mi Círculo de cuidado", "Ajoute nan Sèk swen mwen")}</button><button type="button" data-action="dismiss-growth" data-growth-type="care-circle">${L("Not now", "Ahora no", "Pa kounye a")}</button></div></div></article>` : ""}${shareVisible ? `<article class="growth-card share-access-card">${icon("share")}<div><strong>${L("Know someone who may benefit from extra support?", "¿Conoce a alguien que podría beneficiarse de apoyo adicional?", "Ou konnen yon moun ki ka benefisye de plis sipò?")}</strong><p>${L("You can share information about Medicare’s ACCESS Model with a friend or family member.", "Puede compartir información sobre el Modelo ACCESS de Medicare con un amigo o familiar.", "Ou ka pataje enfòmasyon sou Modèl ACCESS Medicare ak yon zanmi oswa fanmi.")}</p><div class="growth-inline-actions"><button type="button" data-action="open-share-access">${L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button><button type="button" data-action="dismiss-growth" data-growth-type="share-access">${L("Not now", "Ahora no", "Pa kounye a")}</button></div></div></article>` : ""}</section>`;
+// Care Circle after enrollment is about ongoing care support, not help completing enrollment.
+// It sits below the primary CTA and never carries a filled button or a "Not now".
+function postEnrollmentCareCircle() {
+  if (isPersonalRepresentative()) return "";
+  if (state.careCircleStatus === "ACTIVE" || !growthPromptAvailable(state.careCirclePromptDismissedAt)) return "";
+  const pathway = state.offer.pathway;
+  const title = state.supportPersonName
+    ? L(`Would you like ${state.supportPersonName} to keep helping with your care?`, `¿Quiere que ${state.supportPersonName} continúe ayudándole con su cuidado?`, `Èske ou vle ${state.supportPersonName} kontinye ede w ak swen ou?`)
+    : localized(CARE_CIRCLE_COPY.title);
+  return `<section class="optional-support post-enrollment-support" data-care-circle-support>
+    <span class="optional-support-label">${localized(CARE_CIRCLE_COPY.label)}</span>
+    <button type="button" class="optional-support-card" data-action="open-care-circle-post">${icon("userPlus")}<span><strong>${title}</strong><span class="optional-support-copy">${localized(CARE_CIRCLE_COPY.supportingFor(pathway))}</span><span class="optional-support-action">${localized(CARE_CIRCLE_COPY.cta)} ${icon("arrowRight")}</span></span></button>
+  </section>`;
+}
+
+// Share ACCESS is shown only once the patient has reached a real value moment — never on the
+// Enrollment Welcome screen, and never for a program without an approved sharing story.
+function shareAccessPrompt(moment) {
+  const eligibility = shareAccessEligibility({
+    pathway: state.offer?.pathway,
+    enrollmentStatus: state.enrollmentStatus,
+    moment,
+    dismissedAt: state.shareAccessPromptDismissedAt,
+    promptAvailable: growthPromptAvailable
+  });
+  if (!eligibility.eligible) return "";
+  return `<section class="optional-support share-access-support" data-share-access-moment="${moment}">
+    <button type="button" class="optional-support-card" data-action="open-share-access">${icon("share")}<span><strong>${localized(SHARE_ACCESS_COPY.title)}</strong><span class="optional-support-copy">${localized(SHARE_ACCESS_COPY.supporting)}</span><span class="optional-support-action">${localized(SHARE_ACCESS_COPY.cta)} ${icon("arrowRight")}</span></span></button>
+  </section>`;
+}
+
+// The single source the CTA, the routing, and EMMI all read, so the screen and the assistant
+// can never name a different "next step".
+function currentNextBestAction() {
+  return resolveNextBestAction({
+    pathway: state.offer?.pathway,
+    devicePath: state.devicePath,
+    rpmDeviceFixture: state.offer?.fixture?.rpmDevice,
+    deviceSource: state.deviceSource,
+    assignedDeviceId: state.assignedDeviceId,
+    deviceSetupStatus: state.deviceSetupStatus,
+    firstTransmissionVerified: state.firstTransmissionVerified
+  });
+}
+
+function currentFlowTransition() {
+  return resolveEnrollmentTransition({ pathway: state.offer?.pathway, nextBestAction: currentNextBestAction() });
+}
+
+function gettingStartedProgress() {
+  return { ...emptyFlowProgress(), ...(state.flowProgress?.GETTING_STARTED || {}) };
+}
+
+function setGettingStartedProgress(status, fields = {}) {
+  const current = gettingStartedProgress();
+  state.flowProgress = { ...(state.flowProgress || {}), GETTING_STARTED: { ...current, ...fields, flowType: "GETTING_STARTED", status } };
+}
+
+function flowCompletionTransition(transition) {
+  const duration = transition.estimatedDuration ? `<p class="flow-transition-duration">${icon("clock")}<strong>${localized(transition.estimatedDuration)}</strong></p>` : "";
+  return `<section class="flow-completion-transition" aria-labelledby="next-flow-title" data-transition-id="${transition.id}">
+    <p class="flow-transition-label">${L("Next step", "Siguiente paso", "Pwochen etap")}</p>
+    <h2 id="next-flow-title">${localized(transition.title)}</h2>
+    <h3>${localized(transition.nextStepTitle)}</h3>
+    <p class="flow-transition-description">${localized(transition.description)}</p>
+    ${duration}
+    <p class="flow-transition-reassurance">${icon("shield")}<span>${localized(transition.reassurance)}</span></p>
+    <div class="flow-transition-actions">
+      ${cta(localized(transition.primaryCta), "start-next-flow")}
+      ${cta(localized(transition.laterLabel), "defer-next-flow", true)}
+    </div>
+  </section>`;
 }
 
 function EnrollmentWelcomeScreen() {
@@ -1156,10 +1235,20 @@ function EnrollmentWelcomeScreen() {
   const title = welcome.useProgramDisplayName
     ? L(`Welcome to your ${programDisplayName} experience`, `Bienvenido a su experiencia de ${programDisplayName}`, `Byenveni nan eksperyans ${programDisplayName} ou`)
     : localized(welcome.title);
-  const displayedPhysician = physicianDisplayName();
-  const physicianContext = isProviderReferralSource(state.offer.enrollmentSource) && displayedPhysician
-    ? L(`ITERA HEALTH coordinates this care with ${displayedPhysician}.`, `ITERA HEALTH coordina este cuidado con ${displayedPhysician}.`, `ITERA HEALTH kowòdone swen sa a avèk ${displayedPhysician}.`)
-    : L("ITERA HEALTH helps coordinate this care with your existing doctors.", "ITERA HEALTH ayuda a coordinar este cuidado con sus médicos actuales.", "ITERA HEALTH ede kowòdone swen sa a avèk doktè ou deja genyen yo.");
+  const confirmedPhysicianName = state.offer?.physician?.displayName || state.offer?.referringProvider?.name || "";
+  const physicianSpecific = isProviderReferralSource(state.offer.enrollmentSource) && Boolean(confirmedPhysicianName);
+  const supportHighlights = (welcome.supportHighlights || []).slice(0, 2).map((highlight, index) => {
+    if (index !== 1 || !physicianSpecific) return highlight;
+    return {
+      ...highlight,
+      title: { en: "Connected with your doctor", es: "Conectado con su médico", ht: "Konekte ak doktè ou" },
+      description: {
+        en: `ITERA HEALTH works with ${confirmedPhysicianName} to help keep your care coordinated.`,
+        es: `ITERA HEALTH trabaja con ${confirmedPhysicianName} para ayudar a mantener su cuidado coordinado.`,
+        ht: `ITERA HEALTH travay avèk ${confirmedPhysicianName} pou ede kenbe swen ou kowòdone.`
+      }
+    };
+  });
   const signingRole = isPersonalRepresentative() ? L("Personal representative", "Representante personal", "Reprezantan pèsonèl") : L("Patient", "Paciente", "Pasyan");
   const consentTimestamp = state.consentTimestamp
     ? new Intl.DateTimeFormat({ en: "en-US", es: "es-US", ht: "ht-HT" }[state.language] || "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.consentTimestamp))
@@ -1167,20 +1256,36 @@ function EnrollmentWelcomeScreen() {
   const stepIcons = ["ACCESS", "CCM"].includes(pathway) ? ["phone", "document", "people"]
     : ["RPM", "CCM_RPM", "PCM_RPM"].includes(pathway) ? ["box", "wifi", "people"]
       : ["document", "phone", "people"];
-  const nextSteps = welcome.nextSteps.map((step, index) => [stepIcons[index], localized(step), ""]);
-  return `<div class="enrollment-welcome-screen" data-program="${pathway}" data-next-route="${welcome.nextRoute}">${art("check", true)}
+  const contactWindow = welcome.careTeamContactWindow ? localized(welcome.careTeamContactWindow) : "";
+  const nextSteps = welcome.nextSteps.map((step, index) => [stepIcons[index], localized(step).replace("{careTeamContactWindow}", contactWindow).trim(), ""]);
+  const nextBestAction = currentNextBestAction();
+  const transition = currentFlowTransition();
+  return `<div class="enrollment-welcome-screen" data-program="${pathway}" data-next-route="${nextBestAction.route}" data-next-action="${nextBestAction.actionType}">${art("check", true)}
     <p class="success-eyebrow">${L("Welcome", "Bienvenido", "Byenveni")}</p>
     ${titleBlock(title, localized(welcome.supportingCopy))}
-    <p class="enrollment-welcome-reassurance">${localized(enrollmentWelcomeCommon.reassurance)}</p>
-    <p class="enrollment-welcome-context">${physicianContext}</p>
+    <section class="enrollment-welcome-highlights" aria-label="${L("Getting started support", "Apoyo para comenzar", "Sipò pou kòmanse")}">${supportHighlights.map(highlight => `<div class="enrollment-welcome-highlight">${icon(highlight.icon)}<div><strong>${localized(highlight.title)}</strong><p>${localized(highlight.description)}</p></div></div>`).join("")}</section>
     <div class="status-pill">${icon("shield")} ${L("Enrollment confirmed", "Inscripción confirmada", "Enskripsyon konfime")}</div>
     <section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows(nextSteps)}</section>
     <details class="full-terms enrollment-consent-details"><summary>${L("View enrollment and consent details", "Ver detalles de inscripción y consentimiento", "Gade detay enskripsyon ak konsantman")} ${icon("arrowRight")}</summary><p><strong>${L("Enrollment confirmation", "Confirmación de inscripción", "Konfimasyon enskripsyon")}:</strong> ${L("Confirmed", "Confirmada", "Konfime")}<br><strong>${L("Program", "Programa", "Pwogram")}:</strong> ${programDisplayName}<br><strong>${L("Consent details", "Detalles del consentimiento", "Detay konsantman")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.consent.version}<br><strong>${L("Consent timestamp", "Fecha y hora del consentimiento", "Dat ak lè konsantman")}:</strong> ${consentTimestamp}<br><strong>${L("Signing role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${signingRole}<br><strong>${L("Applicable disclosures", "Divulgaciones aplicables", "Enfòmasyon ki aplikab")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.disclosures.version}</p></details>
-    ${enrollmentGrowthOpportunities()}
-    ${actions(localized(welcome.primaryCTA), false)}</div>`;
+    ${flowCompletionTransition(transition)}
+    ${postEnrollmentCareCircle()}</div>`;
 }
 
 const success = EnrollmentWelcomeScreen;
+
+function deferredFlowConfirmation() {
+  return `<div class="flow-deferred-screen">${art("check", true)}${titleBlock(L("No problem — you can continue later.", "No hay problema: puede continuar más tarde.", "Pa gen pwoblèm — ou ka kontinye pita."), L("Your enrollment is complete. Your care setup will be here when you’re ready.", "Su inscripción está completa. La configuración de su cuidado estará aquí cuando esté listo.", "Enskripsyon ou fini. Konfigirasyon swen ou ap la lè ou pare."))}${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "go-to-my-care")}</div>`;
+}
+
+function myCareScreen() {
+  const transition = currentFlowTransition();
+  const progress = gettingStartedProgress();
+  const started = progress.status === FLOW_STATUS.IN_PROGRESS;
+  const actionLabel = started ? L("Continue where you left off", "Continuar donde lo dejó", "Kontinye kote ou te rete a") : L("Continue setting up your care", "Continuar configurando su cuidado", "Kontinye mete swen ou an plas");
+  return `<div class="my-care-screen">${titleBlock(L("My Care", "Mi cuidado", "Swen mwen"), L("Your enrollment is complete. Continue when you’re ready.", "Su inscripción está completa. Continúe cuando esté listo.", "Enskripsyon ou fini. Kontinye lè ou pare."))}
+    <section class="my-care-resume-card"><div>${icon("check")}<span><strong>${L("Getting Started", "Primeros pasos", "Premye etap yo")}</strong><small>${started ? L("In progress", "En curso", "An pwogrè") : L("Not finished yet", "Aún no terminado", "Poko fini")}</small></span></div>${transition.estimatedDuration ? `<p>${icon("clock")} ${localized(transition.estimatedDuration)}</p>` : ""}${cta(actionLabel, "resume-next-flow")}</section>
+  </div>`;
+}
 
 function accessNotice() {
   const noticeRows = [
@@ -1473,12 +1578,12 @@ function firstReading() {
 }
 
 function monitoringReady() {
-  return `${art("check", true)}${titleBlock(L("Home monitoring is ready", "El monitoreo en casa está listo", "Siveyans lakay ou pare"), L("We securely received your first connected reading.", "Recibimos de forma segura su primera lectura conectada.", "Nou te resevwa san danje premye lekti ou konekte."))}<section class="reading-card"><small>${L("Your first reading", "Su primera lectura", "Premye lekti ou")}</small><strong>${state.reading?.systolic || 120} / ${state.reading?.diastolic || 80} <em>mmHg</em></strong></section><section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["calendar", L("Take readings as directed by your care team", "Tome lecturas según le indiquen", "Pran lekti jan ekip swen w la mande sa"), ""], ["chart", L("ITERA reviews your transmitted readings", "ITERA revisa sus lecturas transmitidas", "ITERA revize lekti transmèt ou yo"), ""], ["shield", L("This service is not for emergencies", "Este servicio no es para emergencias", "Sèvis sa a se pa pou ijans"), ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>`;
+  return `${art("check", true)}${titleBlock(L("Home monitoring is ready", "El monitoreo en casa está listo", "Siveyans lakay ou pare"), L("We securely received your first connected reading.", "Recibimos de forma segura su primera lectura conectada.", "Nou te resevwa san danje premye lekti ou konekte."))}<section class="reading-card"><small>${L("Your first reading", "Su primera lectura", "Premye lekti ou")}</small><strong>${state.reading?.systolic || 120} / ${state.reading?.diastolic || 80} <em>mmHg</em></strong></section><section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["calendar", L("Take readings as directed by your care team", "Tome lecturas según le indiquen", "Pran lekti jan ekip swen w la mande sa"), ""], ["chart", L("ITERA reviews your transmitted readings", "ITERA revisa sus lecturas transmitidas", "ITERA revize lekti transmèt ou yo"), ""], ["shield", L("This service is not for emergencies", "Este servicio no es para emergencias", "Sèvis sa a se pa pou ijans"), ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>${shareAccessPrompt(GROWTH_MOMENTS.FIRST_READING_RECEIVED)}`;
 }
 
 function onboardingComplete() {
   const doctorCopy = state.offer?.physician?.displayName ? L(`You continue working with ${state.offer.physician.displayName}`, `Continúa trabajando con ${state.offer.physician.displayName}`, `Ou kontinye travay avèk ${state.offer.physician.displayName}`) : L("You continue working with your doctors", "Continúa trabajando con sus médicos", "Ou kontinye travay avèk doktè ou yo");
-  return `${art("check", true)}${titleBlock(L("You’re off to a great start", "Ha comenzado muy bien", "Ou ap ale nan yon gwo kòmanse"), L("We saved your information and will use it to personalize your care.", "Guardamos su información y la usaremos para personalizar su cuidado.", "Nou sove enfòmasyon ou yo epi nou pral itilize li pou pèsonalize swen ou yo."))}<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["people", L("Your ITERA care team reviews your information", "Su equipo ITERA revisa su información", "Ekip swen ITERA w la revize enfòmasyon w yo"), ""], ["phone", L("We contact you with any follow-up questions", "Le contactaremos si hay preguntas", "Nou kontakte ou ak nenpòt kesyon swivi"), ""], ["doctor", doctorCopy, ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>`;
+  return `${art("check", true)}${titleBlock(L("You’re off to a great start", "Ha comenzado muy bien", "Ou ap ale nan yon gwo kòmanse"), L("We saved your information and will use it to personalize your care.", "Guardamos su información y la usaremos para personalizar su cuidado.", "Nou sove enfòmasyon ou yo epi nou pral itilize li pou pèsonalize swen ou yo."))}<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["people", L("Your ITERA care team reviews your information", "Su equipo ITERA revisa su información", "Ekip swen ITERA w la revize enfòmasyon w yo"), ""], ["phone", L("We contact you with any follow-up questions", "Le contactaremos si hay preguntas", "Nou kontakte ou ak nenpòt kesyon swivi"), ""], ["doctor", doctorCopy, ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>${shareAccessPrompt(GROWTH_MOMENTS.GETTING_STARTED_COMPLETED)}`;
 }
 
 function callbackConfirmed() { return `${art("phone", true)}${titleBlock(L("We’ll call you", "Le llamaremos", "Nou pral rele ou"), L(`A care team member will call the number ending in ${state.offer.patient.phoneMasked.slice(-4)} within one business day.`, `Un miembro del equipo llamará al número terminado en ${state.offer.patient.phoneMasked.slice(-4)} dentro de un día hábil.`, `Yon manm ekip swen an ap rele nimewo ki fini nan ${state.offer.patient.phoneMasked.slice(-4)} nan yon sèl jou ouvrab.`))}${cta(L("Return to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon an"), "return")}`; }
@@ -1558,6 +1663,8 @@ function prototypeSetup() {
 }
 
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
+renderers.FLOW_DEFERRED = deferredFlowConfirmation;
+renderers.MY_CARE = myCareScreen;
 
 function devPanel() {
   if (import.meta.env.PROD) return "";
@@ -1651,6 +1758,8 @@ async function launchPrototype() {
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
+  state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
+  state.flowTransitionNotice = "";
   if (prototypeDeviceContext) Object.assign(state, {
     patientHasBloodPressureMonitor: Boolean(prototypeDeviceContext.patientOwnsMonitor),
     deviceSource: prototypeDeviceContext.deviceSource || "UNKNOWN",
@@ -1951,14 +2060,14 @@ async function advance() {
     state.enrollmentConfirmed = true;
     state.enrollmentStatus = "COMPLETED";
     state.enrollmentCompletedAt ||= new Date().toISOString();
-    state.activationStatus = "IN_PROGRESS";
-    state.activationStartedAt ||= new Date().toISOString();
+    state.activationStatus = "NOT_STARTED";
     if (state.offer.pathway === "ACCESS") {
       state.baselineStatus ||= "NOT_STARTED";
       state.baselineResumeScreen = "ACCESS_BASELINE";
     }
     if (["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway)) state.deviceSetupStatus ||= "NOT_STARTED";
-    audit(state, "care_activation_started", "success", { enrollmentStatus: state.enrollmentStatus, activationStatus: state.activationStatus, baselineStatus: state.baselineStatus, deviceSetupStatus: state.deviceSetupStatus, pathway: state.offer.pathway });
+    setGettingStartedProgress(FLOW_STATUS.NOT_STARTED, { resumeRoute: currentNextBestAction().route });
+    audit(state, "next_flow_presented", "success", { enrollmentStatus: state.enrollmentStatus, nextFlowType: "GETTING_STARTED", pathway: state.offer.pathway });
   }
   if (state.screen === "ACCESS_BASELINE") {
     state.enrollmentStatus = "COMPLETED";
@@ -2702,6 +2811,52 @@ function bind() {
       deliverEmmiGuidance(message, state.screen, { connect: !emmiLive || ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) });
       return;
     }
+    if (action === "start-next-flow" || action === "resume-next-flow") {
+      const transition = currentFlowTransition();
+      const progress = gettingStartedProgress();
+      const now = new Date().toISOString();
+      const resumed = action === "resume-next-flow" || [FLOW_STATUS.DEFERRED, FLOW_STATUS.IN_PROGRESS].includes(progress.status);
+      const resumeRoute = progress.resumeRoute || transition.nextRoute;
+      state.enrollmentConfirmed = true;
+      state.enrollmentStatus = "COMPLETED";
+      state.enrollmentCompletedAt ||= state.consentTimestamp || now;
+      setGettingStartedProgress(FLOW_STATUS.IN_PROGRESS, { startedAt: progress.startedAt || now, deferredAt: "", resumeRoute });
+      state.activationStatus = "IN_PROGRESS";
+      state.activationStartedAt ||= now;
+      if (state.offer.pathway === "ACCESS") {
+        state.baselineStatus = state.baselineStatus === "COMPLETED" ? "COMPLETED" : "IN_PROGRESS";
+        state.baselineStartedAt ||= now;
+        state.baselineResumeScreen = resumeRoute;
+      }
+      if (["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway)) state.deviceSetupStatus ||= "NOT_STARTED";
+      audit(state, resumed ? "next_flow_resumed" : "next_flow_started_now", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, actionType: currentNextBestAction().actionType });
+      state.screen = resumeRoute;
+      draftStore.save(state);
+      render();
+      return;
+    }
+    if (action === "defer-next-flow") {
+      const transition = currentFlowTransition();
+      const now = new Date().toISOString();
+      state.enrollmentConfirmed = true;
+      state.enrollmentStatus = "COMPLETED";
+      state.enrollmentCompletedAt ||= state.consentTimestamp || now;
+      setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: transition.nextRoute });
+      state.activationStatus = "NOT_STARTED";
+      state.baselineDeferredAt = now;
+      state.baselineResumeScreen = transition.nextRoute;
+      audit(state, "next_flow_deferred", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, resumeRoute: transition.nextRoute });
+      state.screen = "FLOW_DEFERRED";
+      draftStore.save(state);
+      render();
+      return;
+    }
+    if (action === "go-to-my-care") {
+      state.screen = "MY_CARE";
+      draftStore.save(state);
+      render();
+      return;
+    }
     if (action === "next") {
       if (el.disabled || el.dataset.pending === "true") return;
       el.dataset.pending = "true";
@@ -2709,7 +2864,10 @@ function bind() {
       try { await advance(); } finally { if (el.isConnected) { delete el.dataset.pending; el.disabled = false; } }
     }
     if (action === "back") {
-      if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
+      if (state.screen === "FLOW_DEFERRED") {
+        state.screen = "ENROLLMENT_CONFIRMED";
+        render();
+      } else if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
         state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
         render();
       } else if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
@@ -2892,6 +3050,7 @@ function bind() {
         state.baselineDeferredAt = new Date().toISOString();
         state.baselineResumeScreen = state.screen;
         state.baselineReminderStatus = "PENDING";
+        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: state.baselineDeferredAt, resumeRoute: state.screen });
         audit(state, "baseline_deferred", "success", { baselineStatus: state.baselineStatus, reminderStatus: state.baselineReminderStatus });
         draftStore.save(state);
         document.querySelector(".save-status").textContent = L("Your health check is saved for later.", "Su evaluación de salud quedó guardada para después.", "Tchekòp sante ou anrejistre pou pita.");
@@ -2901,6 +3060,7 @@ function bind() {
         state.baselineResumeScreen = "ONBOARDING";
         state.baselineReminderStatus = "PENDING";
         state.onboarding = { ...state.onboarding, savedAt: new Date().toISOString() };
+        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: state.baselineDeferredAt, resumeRoute: "ONBOARDING" });
         audit(state, "care_setup_deferred", "success", { healthInformationReviewStatus: state.healthInformationReviewStatus, medicationsReviewStatus: state.medicationsReviewStatus, carePreferencesStatus: state.carePreferencesStatus, goalsStatus: state.goalsStatus });
         state.screen = "ONBOARDING_COMPLETE";
         draftStore.save(state); render();
@@ -3109,7 +3269,8 @@ async function boot() {
       if (!saved.measurementArm) state.measurementArm = saved.preferredMeasurementArm === "LEFT" || saved.preferredMeasurementArm === "RIGHT" ? saved.preferredMeasurementArm : "PENDING";
       if (!Number.isInteger(saved.bpReadingCount)) state.bpReadingCount = state.bpReadingReceipts.length;
       if (!saved.bpMeasurementPhase) state.bpMeasurementPhase = "WAITING";
-      if (saved.baselineResumeScreen && state.baselineStatus !== "COMPLETED") state.screen = saved.baselineResumeScreen;
+      if (!saved.flowProgress?.GETTING_STARTED) state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
+      if (saved.baselineResumeScreen && state.baselineStatus !== "COMPLETED" && state.flowProgress.GETTING_STARTED.status === FLOW_STATUS.IN_PROGRESS && !["MY_CARE", "FLOW_DEFERRED"].includes(saved.screen)) state.screen = saved.baselineResumeScreen;
       if (state.screen === "REPRESENTATIVE_MOBILE_VERIFICATION" && !state.phoneVerified) state.screen = "PERSONAL_REPRESENTATIVE_DETAILS";
     }
     else {
