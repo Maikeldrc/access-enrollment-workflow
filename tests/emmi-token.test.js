@@ -21,11 +21,25 @@ describe("EMMI ephemeral token endpoint safety", () => {
       model: "gemini-live-model",
       config: {
         responseModalities: ["AUDIO"],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Sulafat" } } }
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Sulafat" } } },
+        realtimeInputConfig: {
+          automaticActivityDetection: {
+            disabled: false,
+            startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+            endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+            prefixPaddingMs: 300,
+            silenceDurationMs: 800
+          },
+          activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
+        }
       }
     });
     expect(config.liveConnectConstraints.config).not.toHaveProperty("systemInstruction");
     expect(config.liveConnectConstraints.config).not.toHaveProperty("tools");
+    expect(config.liveConnectConstraints.config).toMatchObject({
+      sessionResumption: {},
+      contextWindowCompression: { slidingWindow: {} }
+    });
   });
   it("accepts POST only", async () => expect(await call("GET", {})).toMatchObject({ status: 405, body: { error: "method_not_allowed" } }));
   it("refuses any configuration that could use real patient data", async () => expect(await call("POST", { EMMI_PROTOTYPE_MODE: "true", EMMI_ALLOW_REAL_PATIENT_DATA: "true", GEMINI_API_KEY: "never-used" })).toMatchObject({ status: 403, body: { error: "unsafe_prototype_configuration" } }));

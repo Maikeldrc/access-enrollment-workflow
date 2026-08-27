@@ -150,6 +150,12 @@ describe("language", () => {
     expect(buildNarration({ screen: "MEDICATIONS_REVIEW", locale: "KR", runtime: { medicationCount: 3 } }).narrationText).toMatch(/Nou gen 3 nan dosye/);
   });
 
+  it("never repeats the Home greeting when continuity disables it", () => {
+    expect(buildHomeNarration({ locale: "EN", program: "ACCESS", allowGreeting: false }).narrationText).not.toMatch(/^(Hi|Hello)/i);
+    expect(buildHomeNarration({ locale: "ES", program: "ACCESS", allowGreeting: false }).narrationText).not.toMatch(/^Hola/i);
+    expect(buildHomeNarration({ locale: "KR", program: "ACCESS", allowGreeting: false }).narrationText).not.toMatch(/^Bonjou/i);
+  });
+
   it("returns nothing for a screen with no narrative objective", () => {
     expect(buildNarration({ screen: "SOME_UNNARRATED_SCREEN", locale: "EN" })).toBeNull();
   });

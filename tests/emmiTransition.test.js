@@ -77,6 +77,18 @@ describe("EMMI semantic handoff", () => {
     await move;
   });
 
+  it("cancels the remaining narration immediately when the patient interrupts", async () => {
+    const { manager, sent } = harness();
+    await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });
+    manager.speak({ narrationText: "One. Two. Three.", segments: ["One.", "Two.", "Three."] });
+    const active = manager.snapshot().narration;
+    const result = manager.onPatientInterruption({ source: "local_vad" });
+    expect(active.status).toBe(EMMI_NARRATION_STATUS.INTERRUPTED);
+    expect(result.futureSegmentsDiscarded).toBe(2);
+    manager.onTurnComplete({ narrationId: active.id });
+    expect(sent.map(item => item.text)).toEqual(["One."]);
+  });
+
   it("restarts at a safe boundary when locale changes", async () => {
     const { manager, transport, handoffs } = harness();
     await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });
@@ -97,6 +109,66 @@ describe("EMMI semantic handoff", () => {
 });
 
 describe("EMMI live context guards", () => {
+  it("invalidates an interrupted generation and rejects every late audio chunk", () => {
+    const interruptions = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onBargeIn: detail => interruptions.push(detail),
+      onVoiceTelemetry: (type, detail) => telemetry.push({ type, detail })
+    });
+    client.state = "EMMI_SPEAKING";
+    client.activeContextVersion = 2;
+    client.activeAudioGenerationId = 7;
+    client.activeTurn = { id: "guide", generationId: 7, contextVersion: 2, priority: "SCREEN_GUIDANCE" };
+    client.stopPlayback = vi.fn();
+    expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: performance.now() - 180 })).toBe(true);
+    expect(client.state).toBe("USER_SPEAKING");
+    expect(client.activeTurn).toBeNull();
+    expect(client.interruptedGenerationIds.has(7)).toBe(true);
+    expect(client.playAudio("AA==", { generationId: 7, contextVersion: 2 })).toBe(false);
+    expect(interruptions).toHaveLength(1);
+    expect(telemetry.some(event => event.type === "EMMI_STALE_AUDIO_CHUNK_DISCARDED")).toBe(true);
+  });
+
+  it("does not let a local energy trigger truncate a critical safety instruction", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    client.state = "EMMI_SPEAKING";
+    client.activeAudioGenerationId = 3;
+    client.activeTurn = { id: "safety", generationId: 3, contextVersion: 1, priority: "CRITICAL_SAFETY" };
+    client.stopPlayback = vi.fn();
+    expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: performance.now() })).toBe(false);
+    expect(client.stopPlayback).not.toHaveBeenCalled();
+    expect(client.activeTurn.id).toBe("safety");
+  });
+
+  it("preserves the interrupted semantic context for short follow-up questions", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "ES", currentScreen: "MEDICATIONS", currentStage: "YOUR_CARE" }) });
+    client.state = "EMMI_SPEAKING";
+    client.activeAudioGenerationId = 11;
+    client.lastEmmiUtterance = "Confirmar esta lista ayuda a que su equipo tenga información actualizada.";
+    client.activeTurn = { id: "medications", generationId: 11, contextVersion: 4, priority: "SCREEN_GUIDANCE", semanticSegmentId: "benefit", semanticText: "Confirmar sus medicamentos ayuda a su equipo." };
+    client.stopPlayback = vi.fn();
+    client.handlePatientSpeechStart({ source: "local_vad", detectedAt: performance.now() });
+    expect(client.lastInterruptionContext).toMatchObject({
+      lastEmmiSemanticSegment: "Confirmar sus medicamentos ayuda a su equipo.",
+      interruptedAtSegment: "benefit",
+      currentScreenContext: { currentScreen: "MEDICATIONS" }
+    });
+  });
+
+  it("also interrupts an Ask EMMI answer without reconnecting the live session", () => {
+    const session = { close: vi.fn() };
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "CONSENT_REVIEW" }) });
+    client.session = session;
+    client.state = "EMMI_SPEAKING";
+    client.activeAudioGenerationId = 12;
+    client.activeTurn = { id: "patient-answer", generationId: 12, contextVersion: 3, priority: "PATIENT_RESPONSE", contextIndependent: true };
+    client.stopPlayback = vi.fn();
+    expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: performance.now() })).toBe(true);
+    expect(session.close).not.toHaveBeenCalled();
+    expect(client.interruptedGenerationIds.has(12)).toBe(true);
+  });
   it("rejects late turns from an old context version", () => {
     const session = { sendClientContent: vi.fn() };
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
@@ -105,6 +177,15 @@ describe("EMMI live context guards", () => {
     expect(client.sendText("stale", { id: "old", contextVersion: 3 })).toBe(false);
     expect(client.sendText("current", { id: "new", contextVersion: 4 })).toBe(true);
     expect(session.sendClientContent).toHaveBeenCalledTimes(1);
+    expect(session.sendClientContent.mock.calls[0][0].turns).toContain("TRUSTED LIVE CONTEXT UPDATE");
+  });
+
+  it("retains the latest resumable Gemini Live handle", async () => {
+    const onSessionResumption = vi.fn();
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onSessionResumption });
+    await client.handleMessage({ sessionResumptionUpdate: { newHandle: "resume-handle", resumable: true, lastConsumedClientMessageIndex: "7" } });
+    expect(client.sessionResumptionHandle).toBe("resume-handle");
+    expect(onSessionResumption).toHaveBeenCalledWith(expect.objectContaining({ handle: "resume-handle", resumable: true }));
   });
 
   it("resolves at a semantic turn boundary and retains the turn metadata", async () => {

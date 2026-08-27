@@ -24,7 +24,19 @@ export const buildEmmiLiveTokenConfig = ({ model, expireTime, newSessionExpireTi
       speechConfig: getEmmiSpeechConfig(locale),
       thinkingConfig: { thinkingLevel: "minimal" },
       inputAudioTranscription: {},
-      outputAudioTranscription: {}
+      outputAudioTranscription: {},
+      realtimeInputConfig: {
+        automaticActivityDetection: {
+          disabled: false,
+          startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+          endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+          prefixPaddingMs: 300,
+          silenceDurationMs: 800
+        },
+        activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
+      },
+      sessionResumption: {},
+      contextWindowCompression: { slidingWindow: {} }
     }
   }
 });

@@ -2,7 +2,8 @@ export const EMMI_MESSAGE_PRIORITY = Object.freeze({
   SCREEN_GUIDANCE: 1,
   TRANSITION_GUIDANCE: 2,
   PATIENT_RESPONSE: 3,
-  CRITICAL_SAFETY: 4
+  PATIENT_INTERRUPTION: 4,
+  CRITICAL_SAFETY: 5
 });
 
 export const EMMI_NARRATION_STATUS = Object.freeze({
@@ -11,6 +12,7 @@ export const EMMI_NARRATION_STATUS = Object.freeze({
   STALE: "STALE",
   TRANSITIONING: "TRANSITIONING",
   COMPLETED: "COMPLETED",
+  INTERRUPTED: "INTERRUPTED",
   CANCELED: "CANCELED"
 });
 
@@ -175,6 +177,7 @@ export class EmmiTransitionManager {
       screenId: narration.screenId,
       contextVersion: narration.contextVersion,
       semanticSegmentId: segment.id,
+      semanticText: segment.text,
       priority: narration.kind,
       contextIndependent: false
     };
@@ -193,7 +196,7 @@ export class EmmiTransitionManager {
 
   onTurnComplete(metadata = {}) {
     const narration = this.narration;
-    if (!narration || metadata.narrationId !== narration.id || narration.status === EMMI_NARRATION_STATUS.STALE) return;
+    if (!narration || metadata.narrationId !== narration.id || [EMMI_NARRATION_STATUS.STALE, EMMI_NARRATION_STATUS.INTERRUPTED, EMMI_NARRATION_STATUS.CANCELED].includes(narration.status)) return;
     narration.currentSegment += 1;
     if (narration.currentSegment >= narration.segments.length) {
       narration.status = EMMI_NARRATION_STATUS.COMPLETED;
@@ -201,6 +204,28 @@ export class EmmiTransitionManager {
       return;
     }
     this.playCurrentSegment();
+  }
+
+  onPatientInterruption(details = {}) {
+    this.pendingTransitionToken += 1;
+    this.clearTimer(this.pendingTimer);
+    const narration = this.narration;
+    const futureSegmentsDiscarded = narration
+      ? Math.max(0, narration.segments.length - narration.currentSegment - 1)
+      : 0;
+    if (narration && ![EMMI_NARRATION_STATUS.COMPLETED, EMMI_NARRATION_STATUS.CANCELED].includes(narration.status)) {
+      narration.status = EMMI_NARRATION_STATUS.INTERRUPTED;
+    }
+    this.onStatus("LISTENING");
+    this.onTrace({
+      event: "patient_interrupted_narration",
+      source: details.source || "unknown",
+      narrationId: narration?.id || "",
+      semanticSegmentId: narration?.segments?.[narration.currentSegment]?.id || "",
+      futureSegmentsDiscarded,
+      contextVersion: this.contextVersion
+    });
+    return { narrationId: narration?.id || "", futureSegmentsDiscarded };
   }
 
   cancel(reason = "canceled", { immediate = false } = {}) {

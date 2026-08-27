@@ -14,6 +14,8 @@ import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/
 import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
 import { buildHomeNarration, buildNarration, buildTransitionNarration } from "./emmi/narrative.js";
 import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transitionManager.js";
+import { EmmiConversationManager } from "./emmi/conversationManager.js";
+import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
@@ -65,7 +67,7 @@ let state = {
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
   emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
@@ -73,6 +75,8 @@ let emmiAuditLog = null;
 let emmiTools = null;
 let emmiLive = null;
 let emmiTransitionManager = null;
+let emmiConversationManager = null;
+let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiGuidanceVisibilityObserver = null;
@@ -146,6 +150,7 @@ const setLanguage = language => {
 function syncEmmiLanguage() {
   state.emmiLastGuidanceScreen = "";
   state.emmiGuidanceTranscript = "";
+  emmiConversationManager?.transition({ ...assistantContext(), locale: languageCode() }, { localeChanged: true });
   if (!emmiLive?.isActive()) { refreshVoiceGuidanceControls(); return; }
   if (!emmiVoiceIsSupported(languageCode())) {
     emmiTransitionManager?.cancel("locale_voice_unavailable", { immediate: true });
@@ -367,10 +372,13 @@ function persistEmmiPreferences() {
   if (state.identityVerified) draftStore.save(state);
 }
 
-const emmiGuidanceIsBusy = () => ["CONNECTING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(state.assistantVoiceState);
+const emmiGuidanceIsBusy = () => ["CONNECTING", "INTERRUPTING", "USER_SPEAKING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(state.assistantVoiceState);
 
 function emmiHomeVoiceStatus() {
-  if (state.assistantVoiceState === "EMMI_SPEAKING") return L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…");
+  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return L("Listening…", "Escuchando…", "N ap koute…");
+  if (state.assistantVoiceState === "EMMI_SPEAKING") return state.assistantVoiceDetail === "patient_response"
+    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
+    : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…");
   if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return L("Connecting EMMI…", "Conectando con EMMI…", "N ap konekte EMMI…");
   // A failed connect leaves the client DISCONNECTED, so the error has to be checked too —
   // otherwise the card claims "Voice guidance is on" while nothing is playing.
@@ -386,8 +394,11 @@ function emmiWelcomeVoiceControls() {
 }
 
 function emmiWelcome(providerReferral, physicianName) {
+  const welcomeTitle = state.emmiWelcomeAcknowledged
+    ? L("I’m here to guide you.", "Estoy aquí para guiarle.", "Mwen la pou gide w.")
+    : L("Hi, I’m EMMI.", "Hola, soy EMMI.", "Bonjou, mwen se EMMI.");
   return `<section class="emmi-welcome" aria-labelledby="emmi-welcome-title">
-    <div class="emmi-welcome-identity"><img src="/assets/emmi-assistant.png" alt=""><div><h2 id="emmi-welcome-title">${L("Hi, I’m EMMI.", "Hola, soy EMMI.", "Bonjou, mwen se EMMI.")}</h2><strong>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</strong></div></div>
+    <div class="emmi-welcome-identity"><img src="/assets/emmi-assistant.png" alt=""><div><h2 id="emmi-welcome-title">${welcomeTitle}</h2><strong>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</strong></div></div>
     <div class="emmi-welcome-copy"><p>${L("I can guide you through each step and answer questions along the way.", "Puedo guiarle en cada paso y responder sus preguntas durante el proceso.", "Mwen ka gide w nan chak etap epi reponn kesyon ou pandan pwosesis la.")}</p></div>
     ${emmiWelcomeVoiceControls()}
   </section>`;
@@ -641,12 +652,29 @@ function howCareWorks() {
 
 function assistantContext() {
   const deviceScenario = service.getScenarioDeviceContext?.() || null;
-  const patientId = selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario });
+  const patientContextKey = [state.completionRole, state.accessOutcome, deviceScenario?.patientOwnsMonitor, deviceScenario?.integrationStatus].join("|");
+  if (!state.assistantDemoPatientId || state.assistantPatientContextKey !== patientContextKey) {
+    state.assistantDemoPatientId = selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario });
+    state.assistantPatientContextKey = patientContextKey;
+  }
+  const patientId = state.assistantDemoPatientId;
   const fixture = EMMI_DEMO_PATIENTS[patientId];
   const currentScreen = state.assistantOriginScreen || state.screen;
   const emmiCurrentScreen = currentScreen === "CLINICAL_VERIFICATION" ? "HEALTH_INFORMATION_REVIEW" : currentScreen;
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
+  if (!emmiConversationManager) {
+    emmiConversationManager = new EmmiConversationManager({
+      patientId,
+      scenarioId: state.scenarioId,
+      locale: languageCode(),
+      onEvent: (type, details) => {
+        emmiAuditLog?.voiceEvent(type, details);
+        audit(state, type.toLowerCase(), type === "EMMI_UNEXPECTED_GREETING" ? "blocked" : "success", details);
+        if (import.meta.env.DEV && type === "EMMI_UNEXPECTED_GREETING") console.warn("[EMMI continuity guard]", details);
+      }
+    });
+  }
   return {
     ...fixture,
     sessionId: state.sessionId,
@@ -676,7 +704,9 @@ function assistantContext() {
     deviceScenario,
     goalFlowStep: state.goalFlowStep,
     patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
-    activeGoal: currentGoal() ? { id: currentGoal().id, title: goalDisplayName(currentGoal(), state.language), status: currentGoal().status, priority: currentGoal().priority } : null
+    activeGoal: currentGoal() ? { id: currentGoal().id, title: goalDisplayName(currentGoal(), state.language), status: currentGoal().status, priority: currentGoal().priority } : null,
+    medications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
+    emmiConversation: emmiConversationManager.contextForModel()
   };
 }
 
@@ -691,7 +721,7 @@ const emmiToolStatusLabel = name => ({
 
 function ensureEmmiRuntime() {
   const context = assistantContext();
-  if (emmiAuditLog?.entry.demoPatientId !== context.patientId) { emmiAuditLog?.end(); emmiAuditLog = null; emmiTools = null; emmiTransitionManager?.cancel("patient_context_changed", { immediate: true }); emmiTransitionManager = null; emmiLive?.disconnect("context_changed"); emmiLive = null; }
+  if (emmiAuditLog?.entry.demoPatientId !== context.patientId) { emmiAuditLog?.end(); emmiAuditLog = null; emmiTools = null; emmiTextOrchestrator = null; emmiTransitionManager?.cancel("patient_context_changed", { immediate: true }); emmiTransitionManager = null; emmiLive?.disconnect("context_changed"); emmiLive = null; emmiConversationManager = null; }
   emmiAuditLog ||= new EmmiAuditLog({ sessionId: context.sessionId, demoPatientId: context.patientId, locale: context.locale, currentScreen: context.currentScreen });
   emmiAuditLog.updateContext(context);
   emmiTools ||= new EmmiToolOrchestrator({
@@ -701,6 +731,19 @@ function ensureEmmiRuntime() {
     onTask: result => { state.careTeamTasks = [...(state.careTeamTasks || []), result]; audit(state, "emmi_care_team_task_created", "success", { taskId: result.taskId, prototype: true }); },
     onProgress: () => draftStore.save(state)
   });
+  emmiTextOrchestrator ||= new EmmiTextOrchestrator({
+    getContext: assistantContext,
+    getConversation: () => emmiConversationManager?.contextForModel() || {},
+    executeTool: (name, args) => emmiTools.execute(name, args),
+    screenExplanation: assistantScreenExplanation,
+    onEvent: (type, details) => {
+      emmiAuditLog?.voiceEvent(type, details);
+      if (type === "EMMI_ANSWER_ROUTED") emmiAuditLog?.answerTurn({ ...details, promptVersion: "emmi-answer-first-v1" });
+      audit(state, type.toLowerCase(), /FAILED|EMPTY/.test(type) ? "failed" : "success", details);
+      if (import.meta.env.DEV && ["EMMI_RETRIEVAL_FAILED", "EMMI_TOOL_FAILED", "EMMI_INTENT_ROUTING_FAILED", "EMMI_EMPTY_GROUNDED_CONTEXT", "EMMI_RESPONSE_GENERATION_FAILED"].includes(type)) console.warn(`[${type}]`, details);
+      if (import.meta.env.DEV && type === "EMMI_ANSWER_ROUTED") console.debug("[EMMI retrieval debug]", { intent: details.intent, retrievalQuery: details.retrievalQuery, knowledgeChunkIds: details.knowledgeChunkIds, toolCalls: details.toolCalls, runtimeFactsUsed: details.runtimeFactsUsed, responseMode: details.responseMode });
+    }
+  });
   emmiLive ||= new EmmiLiveClient({
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
@@ -708,18 +751,38 @@ function ensureEmmiRuntime() {
     onTranscript: (role, text) => {
       const cleaned = String(text || "").trim(); if (!cleaned) return;
       const last = state.assistantMessages.at(-1);
-      if (last?.role === role && last.voice) last.text = `${last.text} ${cleaned}`.trim();
+      if (last?.role === role && last.voice && !last.interrupted) last.text = `${last.text} ${cleaned}`.trim();
       else state.assistantMessages.push({ role, text: cleaned, voice: true });
+      emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
+      if (role === "assistant" && emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
     onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
+    onBargeIn: details => {
+      const lastMessage = state.assistantMessages.at(-1);
+      if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.interrupted = true;
+      const narration = emmiTransitionManager?.onPatientInterruption(details) || {};
+      const event = { ...details, ...narration };
+      emmiAuditLog?.voiceEvent("EMMI_PATIENT_INTERRUPTION", event);
+      audit(state, "emmi_patient_interruption", "success", event);
+    },
+    onVoiceTelemetry: (type, details) => {
+      emmiAuditLog?.voiceEvent(type, details);
+      audit(state, type.toLowerCase(), "success", details);
+    },
     onVoiceIdentity: (type, details) => {
       emmiAuditLog?.voiceEvent(type, details);
       audit(state, type.toLowerCase(), type === "EMMI_VOICE_MISMATCH" ? "blocked" : "success", details);
     },
+    onSessionResumption: update => emmiConversationManager?.updateResumption(update),
+    onReconnectNeeded: details => {
+      emmiConversationManager?.transition(assistantContext(), { technicalReconnect: true });
+      emmiAuditLog?.voiceEvent("EMMI_TECHNICAL_RECONNECT", details);
+      return emmiConversationManager?.recoveryInstruction() || "Continue without greeting or reintroducing yourself.";
+    },
     onError: code => { state.assistantVoiceError = code; state.assistantVoiceState = "ERROR"; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); }
   });
-  return { context, tools: emmiTools, live: emmiLive, audit: emmiAuditLog };
+  return { context, tools: emmiTools, orchestrator: emmiTextOrchestrator, live: emmiLive, audit: emmiAuditLog };
 }
 
 function emmiScreenContext() {
@@ -728,7 +791,9 @@ function emmiScreenContext() {
     screenId: state.screen,
     stageId: progress.stage,
     locale: languageCode(),
-    screenPurpose: buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() })?.narrationPurpose || state.screen
+    screenPurpose: buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() })?.narrationPurpose || state.screen,
+    activeGoal: currentGoal() ? { id: currentGoal().id, title: goalDisplayName(currentGoal(), state.language) } : null,
+    nextBestAction: state.offer ? currentNextBestAction() : null
   };
 }
 
@@ -752,7 +817,7 @@ function ensureEmmiTransitionManager() {
     getScreenNarration: context => {
       const text = context?.screenId === "INVITATION" ? emmiSpokenWelcome() : emmiGuidanceForScreen(context?.screenId);
       const structured = context?.screenId === "INVITATION"
-        ? buildHomeNarration({ locale: context.locale, ...emmiNarrativeRuntime() })
+        ? buildHomeNarration({ locale: context.locale, ...emmiNarrativeRuntime(), allowGreeting: emmiConversationManager?.greetingAllowed() ?? true })
         : buildNarration({ screen: context?.screenId, locale: context?.locale, runtime: emmiNarrativeRuntime() });
       return structured || (text ? { narrationText: text, segments: semanticSpeechSegments(text) } : null);
     },
@@ -802,9 +867,11 @@ function syncEmmiNavigationContext(override = {}) {
   const intent = { ...(emmiNavigationIntent || {}), ...override };
   const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
   emmiNavigationIntent = null;
+  const navigationDirection = inferEmmiNavigationDirection(previousScreen, next.screenId, intent.navigationDirection);
+  emmiConversationManager?.transition({ ...assistantContext(), ...next }, { ...intent, navigationDirection });
   manager.updateContext(next, {
     ...intent,
-    navigationDirection: inferEmmiNavigationDirection(previousScreen, next.screenId, intent.navigationDirection),
+    navigationDirection,
     previousOutcome: intent.previousOutcome || state.accessOutcome,
     currentRuntimeContext: assistantContext(),
     shortReorientation: sideFlows.includes(previousScreen) && !sideFlows.includes(next.screenId)
@@ -856,7 +923,7 @@ function assistantScreenExplanation(screen) {
   return explanations[screen] || L("This screen shows your current enrollment task and what you need to do next.", "Esta pantalla muestra su tarea actual y lo que debe hacer después.", "Ekran sa a montre travay enskripsyon aktyèl ou ak sa ou bezwen fè pwochen.");
 }
 
-async function assistantAnswer(question, context) {
+async function legacyAssistantActionAnswer(question, context) {
   const normalized = question.toLowerCase();
   const runtime = ensureEmmiRuntime();
   const bpMatch = normalized.match(/(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i);
@@ -945,13 +1012,22 @@ async function assistantAnswer(question, context) {
   return { text: L("I can explain this screen, your care options, Medicare eligibility, or what happens next. You can also talk with our care team at any time.", "Puedo explicar esta pantalla, sus opciones de cuidado, la elegibilidad de Medicare o qué sigue. También puede hablar con nuestro equipo en cualquier momento.", "Mwen ka eksplike ekran sa a, opsyon swen ou yo, kalifikasyon Medicare, oswa sa k ap pase apre. Ou ka pale tou ak ekip swen nou an nenpòt ki lè.") };
 }
 
+async function assistantAnswer(question, context) {
+  const affirmative = /^(yes|yes please|please do|sí|si|wi|dakò)$/i.test(question.trim());
+  if (affirmative && state.assistantPendingAction) return legacyAssistantActionAnswer(question, context);
+  return ensureEmmiRuntime().orchestrator.answer(question);
+}
+
 const assistantVoiceCopy = () => {
   const stateCopy = {
     CONNECTING: L("Connecting…", "Conectando…", "N ap konekte…"),
+    INTERRUPTING: L("Listening…", "Escuchando…", "N ap koute…"),
     LISTENING: L("Listening…", "Escuchando…", "N ap koute…"),
-    USER_SPEAKING: L("I’m listening", "Le escucho", "M ap koute ou"),
+    USER_SPEAKING: L("Listening…", "Escuchando…", "N ap koute…"),
     EMMI_THINKING: L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…"),
-    EMMI_SPEAKING: L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…"),
+    EMMI_SPEAKING: state.assistantVoiceDetail === "patient_response"
+      ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
+      : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…"),
     TOOL_RUNNING: typeof state.assistantVoiceDetail === "string" && state.assistantVoiceDetail.includes("…") ? state.assistantVoiceDetail : L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…"),
     ERROR: L("Voice is unavailable", "La voz no está disponible", "Vwa pa disponib"),
     DISCONNECTED: L("Voice conversation ended", "La conversación por voz terminó", "Konvèsasyon vwa a fini")
@@ -975,7 +1051,7 @@ const assistantVoiceErrorCopy = () => ({
 function emmiSpokenWelcome() {
   // Home carries the fullest narration of the journey: it introduces the actual program the
   // patient was invited to, why it exists and how it can help, not a generic greeting.
-  return buildHomeNarration({ locale: languageCode(), ...emmiNarrativeRuntime() }).narrationText;
+  return buildHomeNarration({ locale: languageCode(), ...emmiNarrativeRuntime(), allowGreeting: emmiConversationManager?.greetingAllowed() ?? true }).narrationText;
 }
 
 function emmiGuidanceForScreen(screen = state.screen) {
@@ -1011,11 +1087,18 @@ function emmiNarrativeRuntime() {
 }
 
 
-const emmiGuidancePrompt = message => L(
-  `Say the following to the patient in a calm, warm, unhurried voice, as their care guide rather than a narrator reading the screen. Keep the meaning and the reassurance intact, use natural spoken English, and do not add facts that are not here: ${message}`,
-  `Diga lo siguiente al paciente con una voz tranquila, cálida y sin prisa, como su guía de cuidado y no como alguien que lee la pantalla. Conserve el significado y la tranquilidad que transmite, use un español natural y hablado, y no agregue datos que no estén aquí: ${message}`,
-  `Di sa ki annapre a bay pasyan an avèk yon vwa kalm, cho e san prese, tankou gid swen li olye yon moun k ap li ekran an. Kenbe sans lan ak rekonfò a, sèvi ak yon Kreyòl natirèl pou pale, epi pa ajoute enfòmasyon ki pa la: ${message}`
-);
+const emmiGuidancePrompt = message => {
+  const continuity = emmiConversationManager?.contextForModel();
+  const guarded = emmiConversationManager?.guardAssistantText(message, { source: "screen_guidance" }) || message;
+  const rule = continuity?.greetingAllowed
+    ? "This is the initial introduction; one brief greeting is allowed."
+    : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. Do not greet, reintroduce yourself, or restart. Continue naturally from ${continuity?.previousScreen || "the prior context"} to ${continuity?.currentScreen || state.screen}.`;
+  return L(
+    `${rule} Say the following in a calm, warm, unhurried voice, as the patient's continuing care guide. Keep the meaning and reassurance intact, use natural spoken English, and add no facts: ${guarded}`,
+    `${rule} Diga lo siguiente con una voz tranquila, cálida y sin prisa, como la guía de cuidado que continúa acompañando al paciente. No salude ni se presente otra vez salvo que la regla anterior lo permita. Conserve el significado y no agregue datos: ${guarded}`,
+    `${rule} Di sa ki annapre a avèk yon vwa kalm, cho e san prese, tankou gid swen ki kontinye ak pasyan an. Pa salye ni prezante tèt ou ankò sof si règ anlè a pèmèt sa. Kenbe sans lan epi pa ajoute enfòmasyon: ${guarded}`
+  );
+};
 
 // EMMI is introduced on the Home screen. Everywhere after it, this is a compact contextual
 // control that must not compete with the screen's own question.
@@ -1027,13 +1110,15 @@ function emmiGuideState() {
   if (state.emmiVoiceGuidancePaused) return "PAUSED";
   if (state.emmiTransitionStatus === "UPDATING") return "UPDATING";
   if (state.assistantVoiceState === "EMMI_SPEAKING") return "SPEAKING";
-  if (state.assistantVoiceState === "USER_SPEAKING") return "LISTENING";
+  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return "LISTENING";
   if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return "THINKING";
   return "ACTIVE_IDLE";
 }
 
 const emmiGuideStatusLabel = guideState => ({
-  SPEAKING: L("EMMI is explaining this step…", "EMMI está explicando este paso…", "EMMI ap eksplike etap sa a…"),
+  SPEAKING: state.assistantVoiceDetail === "patient_response"
+    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
+    : L("EMMI is explaining this step…", "EMMI está explicando este paso…", "EMMI ap eksplike etap sa a…"),
   LISTENING: L("Listening…", "Le escucho…", "M ap koute w…"),
   THINKING: L("EMMI is preparing an answer…", "EMMI está preparando una respuesta…", "EMMI ap prepare yon repons…"),
   UPDATING: L("Updating guidance…", "Actualizando la orientación…", "N ap mete gid la ajou…"),
@@ -1149,12 +1234,12 @@ function scheduleEmmiGuidance() {
   const attempt = retries => {
     if (state.screen === "INVITATION" || state.emmiLastGuidanceScreen === state.screen || !state.emmiVoiceGuidance || state.emmiVoiceGuidancePaused) return;
     const activeField = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
-    if (activeField || ["USER_SPEAKING", "EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING", "CONNECTING"].includes(state.assistantVoiceState)) {
+    if (activeField || ["INTERRUPTING", "USER_SPEAKING", "EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING", "CONNECTING"].includes(state.assistantVoiceState)) {
       if (retries < 15) emmiGuidanceTimer = setTimeout(() => attempt(retries + 1), 1000);
       return;
     }
     const manager = ensureEmmiTransitionManager();
-    if (["PLAYING", "TRANSITIONING", "GENERATING", "STALE"].includes(manager.snapshot().narration?.status)) return;
+    if (["PLAYING", "TRANSITIONING", "GENERATING", "STALE", "INTERRUPTED"].includes(manager.snapshot().narration?.status)) return;
     deliverEmmiGuidance(message, state.screen);
   };
   emmiGuidanceTimer = setTimeout(() => attempt(0), 700);
@@ -1186,14 +1271,18 @@ function scheduleEmmiHesitationSupport() {
 function assistantLayer() {
   const context = assistantContext();
   const quickQuestions = assistantQuickQuestions(context);
-  const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}</div>`).join("");
+  const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}</div>`).join("")
+    + (state.assistantBusy ? `<div class="assistant-message assistant assistant-thinking" role="status"><strong>EMMI</strong><p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p></div>` : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
     : [L("Is participation voluntary?", "¿La participación es voluntaria?", "Èske patisipasyon volontè?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")];
   const voiceActive = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
+  const assistantTitle = emmiConversationManager?.contextForModel().hasGreeted || state.emmiWelcomeAcknowledged
+    ? L("How can I help?", "¿Cómo puedo ayudarle?", "Kijan mwen ka ede w?")
+    : L("Hi, I’m EMMI. How can I help?", "Hola, soy EMMI. ¿Cómo puedo ayudar?", "Bonjou, mwen se EMMI. Kijan mwen ka ede?");
   return `<aside class="assistant-layer" role="dialog" aria-modal="true" aria-labelledby="assistant-title">
     <header class="assistant-header"><div class="assistant-identity"><strong>EMMI</strong><small>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</small></div><button class="language" data-assistant-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button><button class="assistant-close" data-assistant-action="close" aria-label="${L("Back to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon")}">×</button></header>
-    <div class="assistant-content"><div class="assistant-intro"><img src="/assets/emmi-assistant.png" alt=""><div><h1 id="assistant-title" tabindex="-1">${L("Hi, I’m EMMI. How can I help?", "Hola, soy EMMI. ¿Cómo puedo ayudar?", "Bonjou, mwen se EMMI. Kijan mwen ka ede?")}</h1><p>${L("Ask me anything about your enrollment or care.", "Pregúnteme sobre su inscripción o cuidado.", "Mande m nenpòt bagay sou enskripsyon oswa swen ou.")}</p></div></div>
+    <div class="assistant-content"><div class="assistant-intro"><img src="/assets/emmi-assistant.png" alt=""><div><h1 id="assistant-title" tabindex="-1">${assistantTitle}</h1><p>${L("Ask me anything about your enrollment or care.", "Pregúnteme sobre su inscripción o cuidado.", "Mande m nenpòt bagay sou enskripsyon oswa swen ou.")}</p></div></div>
       ${EMMI_CONFIG.enableVoice ? voiceActive ? `<section class="assistant-voice-panel" aria-live="polite" data-voice-state="${state.assistantVoiceState}"><span class="assistant-voice-orb">${icon(state.assistantVoiceMuted ? "micOff" : "mic")}</span><div><strong>${assistantVoiceCopy()}</strong><small>${state.assistantVoiceDetail === "session_ending_soon" ? L("This voice session will end soon, but your enrollment progress is saved.", "Esta sesión terminará pronto, pero su progreso está guardado.", "Sesyon vwa sa a pral fini byento, men pwogrè ou anrejistre.") : L("Speak naturally. You can interrupt EMMI.", "Hable con naturalidad. Puede interrumpir a EMMI.", "Pale nòmalman. Ou ka entèwonp EMMI.")}</small></div><div class="assistant-voice-controls"><button type="button" data-assistant-action="mute" aria-pressed="${state.assistantVoiceMuted}">${icon(state.assistantVoiceMuted ? "micOff" : "mic")} ${state.assistantVoiceMuted ? L("Unmute", "Activar micrófono", "Limen mikwofòn") : L("Mute", "Silenciar", "Etenn mikwofòn")}</button><button type="button" data-assistant-action="end-voice">${L("End conversation", "Terminar conversación", "Fini konvèsasyon")}</button></div></section>` : `<button class="assistant-talk-button" type="button" data-assistant-action="start-voice">${icon("mic")}<span><strong>${L("Talk to EMMI", "Hablar con EMMI", "Pale ak EMMI")}</strong><small>${L("Use your voice or continue typing", "Use su voz o continúe escribiendo", "Sèvi ak vwa ou oswa kontinye ekri")}</small></span></button>` : ""}
       ${state.assistantVoiceError ? `<div class="assistant-voice-error" role="status">${icon("info")}<span>${assistantVoiceErrorCopy()}</span></div>` : ""}
       ${EMMI_CONFIG.enableText ? `<form class="assistant-question-form"><label class="sr-only" for="assistant-question">${L("Ask a question", "Haga una pregunta", "Poze yon kesyon")}</label><input id="assistant-question" name="question" type="text" autocomplete="off" placeholder="${L("Ask a question…", "Haga una pregunta…", "Poze yon kesyon…")}" ${state.assistantBusy ? "disabled" : ""}><button type="submit" aria-label="${L("Send question", "Enviar pregunta", "Voye kesyon")}" ${state.assistantBusy ? "disabled" : ""}>${icon("arrowRight")}</button></form>` : ""}
@@ -2277,6 +2366,7 @@ async function launchPrototype() {
   history.replaceState({}, "", "?prototype=1");
   service = new MockEnrollmentService("prototype", prototypeConfig);
     state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
+  Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { barrierType: "", notes: "" }, goalSupportDraft: "", goalNotice: "", goalHistory: [] });
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
@@ -3009,6 +3099,7 @@ async function askEmmi(question) {
   if (!cleaned || state.assistantBusy) return;
   const runtime = ensureEmmiRuntime();
   state.assistantMessages.push({ role: "user", text: cleaned });
+  emmiConversationManager?.recordTurn("user", cleaned, { screen: state.screen });
   runtime.audit.transcript("user", cleaned);
   const criticalSafety = /(call 911|emergency|chest pain|can'?t breathe|cannot breathe|dolor.*pecho|no puedo respirar|rele 911|ijans|pa ka respire)/i.test(cleaned);
   const contextIndependent = !/(this|that|button|screen|here|esto|eso|botón|pantalla|aquí|sa a|bouton|ekran|isit)/i.test(cleaned);
@@ -3020,16 +3111,24 @@ async function askEmmi(question) {
     contextIndependent
   })) { refreshAssistantLayer(); return; }
   state.assistantBusy = true; refreshAssistantLayer();
+  const thinkingStartedAt = Date.now();
   try {
     const response = await assistantAnswer(cleaned, assistantContext());
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
     state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "" });
+    emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
+    if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
     runtime.audit.transcript("assistant", response.text);
     audit(state, "emmi_question", response.emergency ? "emergency_guidance" : state.assistantOriginScreen);
   } catch {
     const text = L("I can’t confirm that information right now. You can keep using enrollment or ask the ITERA care team for help.", "No puedo confirmar esa información ahora. Puede continuar con la inscripción o pedir ayuda al equipo de ITERA.", "Mwen pa ka konfime enfòmasyon sa a kounye a. Ou ka kontinye enskripsyon an oswa mande ekip ITERA èd.");
-    state.assistantMessages.push({ role: "assistant", text }); runtime.audit.transcript("assistant", text);
-  } finally { state.assistantBusy = false; refreshAssistantLayer({ focusInput: true }); }
+    state.assistantMessages.push({ role: "assistant", text }); emmiConversationManager?.recordTurn("assistant", text, { screen: state.screen }); if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted(); runtime.audit.transcript("assistant", text);
+  } finally {
+    const remainingThinkingTime = 300 - (Date.now() - thinkingStartedAt);
+    if (remainingThinkingTime > 0) await new Promise(resolve => setTimeout(resolve, remainingThinkingTime));
+    state.assistantBusy = false;
+    refreshAssistantLayer({ focusInput: true });
+  }
 }
 
 function closeAssistant() {
@@ -3083,7 +3182,10 @@ function bindAssistantLayer() {
     if (action === "callback") askEmmi(L("Can someone call me?", "¿Puede llamarme alguien?", "Èske yon moun ka rele m?"));
     if (action === "start-voice") {
       state.assistantVoiceError = ""; refreshAssistantLayer();
-      const initialGuidance = state.emmiVoiceGuidance && state.emmiGuidanceTranscript ? emmiGuidancePrompt(state.emmiGuidanceTranscript) : "";
+      const priorConversation = emmiConversationManager?.contextForModel();
+      const initialGuidance = state.emmiVoiceGuidance && state.emmiGuidanceTranscript
+        ? emmiGuidancePrompt(state.emmiGuidanceTranscript)
+        : priorConversation?.recentTurns?.length ? emmiConversationManager.recoveryInstruction() : "";
       ensureEmmiRuntime().live.connect(initialGuidance).catch(() => { /* The live client publishes a safe, localized error state. */ });
     }
     if (action === "end-voice") { emmiTransitionManager?.cancel("explicit_end", { immediate: true }); ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
@@ -3110,7 +3212,7 @@ function showHelp() {
   ensureEmmiRuntime();
   if (import.meta.env.DEV) {
     const previewState = new URLSearchParams(location.search).get("emmiState");
-    if (["LISTENING", "USER_SPEAKING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(previewState)) {
+    if (["LISTENING", "INTERRUPTING", "USER_SPEAKING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(previewState)) {
       state.assistantVoiceState = previewState;
       state.assistantVoiceDetail = previewState === "TOOL_RUNNING" ? emmiToolStatusLabel("getExpectedAccessCost") : "prototype_visual_preview";
     }

@@ -688,11 +688,11 @@ const pick = (entry, locale) => {
 const sentences = parts => parts.filter(Boolean).map(part => part.trim()).filter(Boolean).join(" ");
 const spokenSegments = parts => parts.filter(Boolean).flatMap(part => semanticSpeechSegments(part));
 
-export function buildHomeNarration({ locale = "EN", program, programDisplayName = "", providerReferral = false, physicianDisplayName = "" } = {}) {
+export function buildHomeNarration({ locale = "EN", program, programDisplayName = "", providerReferral = false, physicianDisplayName = "", allowGreeting = true } = {}) {
   const introduction = PROGRAM_INTRODUCTION[program] || PROGRAM_INTRODUCTION_FALLBACK(programDisplayName || program || "this care");
   // A physician is only mentioned when the referral source and a real name both support it.
   const referral = providerReferral && physicianDisplayName ? pick(HOME_PHYSICIAN(physicianDisplayName), locale) : "";
-  const segments = spokenSegments([pick(HOME_OPENING, locale), referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]);
+  const segments = spokenSegments([allowGreeting ? pick(HOME_OPENING, locale) : "", referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]);
   return {
     narrationText: sentences(segments),
     segments,

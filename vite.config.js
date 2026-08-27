@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import { handleEmmiLiveToken } from "./server/emmiLiveToken.js";
 import { handleEmmiKnowledge } from "./server/emmiKnowledge.js";
+import { handleEmmiChat } from "./server/emmiChat.js";
 
 const asBoolean = (value, fallback) => value == null ? fallback : String(value).toLowerCase() === "true";
 
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
         server.middlewares.use("/api/emmi/live-token", (req, res) => handleEmmiLiveToken(req, res, env));
         // Knowledge retrieval stays server side: the Markdown is never bundled or served statically.
         server.middlewares.use("/api/emmi/knowledge", (req, res) => handleEmmiKnowledge(req, res));
+        server.middlewares.use("/api/emmi/chat", (req, res) => handleEmmiChat(req, res, env));
       }
     }]
   };

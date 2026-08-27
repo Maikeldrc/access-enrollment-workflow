@@ -68,6 +68,9 @@ describe("intent and risk routing", () => {
   it("classifies personal phrasing in Spanish and Kreyòl too", () => {
     expect(classifyQuestion("¿Cuánto voy a pagar yo?").requiredTool).toBe(TOOL_FIRST_INTENTS.COST);
     expect(classifyQuestion("Èske mwen kalifye?").requiredTool).toBe(TOOL_FIRST_INTENTS.ELIGIBILITY);
+    expect(classifyQuestion("¿Soy elegible?").requiredTool).toBe(TOOL_FIRST_INTENTS.ELIGIBILITY);
+    expect(classifyQuestion("¿Qué medicamentos tienen registrados?").requiredTool).toBe("getMedicationList");
+    expect(classifyQuestion("¿Qué monitor tengo?").requiredTool).toBe("getAssignedDevice");
   });
 });
 
@@ -76,6 +79,12 @@ describe("retrieval", () => {
     expect(sourcesFor("What is CCM?")).toContain("programs/ccm.md");
     expect(sourcesFor("What is remote patient monitoring?")).toContain("programs/rpm.md");
     expect(sourcesFor("What is ACCESS?")).toContain("programs/access.md");
+  });
+
+  it("retrieves both program sources for an explicit ACCESS versus CCM comparison", () => {
+    const sources = sourcesFor("What is the difference between ACCESS and CCM?", { program: "ACCESS" });
+    expect(sources).toContain("programs/access.md");
+    expect(sources).toContain("programs/ccm.md");
   });
 
   it("answers company, care and enrollment questions from their own documents", () => {

@@ -70,7 +70,9 @@ test("EMMI mobile visual states remain readable without horizontal overflow", as
   for (const [state, filename, copy] of [
     ["", "emmi-closed.png", "Talk to EMMI"],
     ["LISTENING", "emmi-listening.png", "Listening…"],
-    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is speaking…"],
+    ["USER_SPEAKING", "emmi-listening-active.png", "Listening…"],
+    ["EMMI_THINKING", "emmi-thinking.png", "EMMI is thinking…"],
+    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is explaining…"],
     ["TOOL_RUNNING", "emmi-tool-running.png", "Checking your ACCESS cost…"]
   ]) {
     await page.goto(`/?scenario=access-happy${state ? `&emmiState=${state}` : ""}`);

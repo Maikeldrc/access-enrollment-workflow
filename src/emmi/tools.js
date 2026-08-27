@@ -20,12 +20,13 @@ export const selectDemoPatientId = ({ language = "en", completionRole = "patient
 export class EmmiAuditLog {
   constructor({ sessionId, demoPatientId, locale, currentScreen, model = EMMI_CONFIG.model }) {
     const voice = getEmmiVoiceIdentity(locale);
-    this.entry = { conversationId: id("EMMI"), sessionId, demoPatientId, locale, currentScreen, startedAt: new Date().toISOString(), endedAt: null, userTranscript: [], assistantTranscript: [], toolsCalled: [], toolResults: [], callbackRequested: false, careTeamTaskCreated: false, clinicalEscalationTriggered: false, model, systemPromptVersion: EMMI_SYSTEM_PROMPT_VERSION, voiceId: voice.voiceId, voiceVersion: voice.voiceVersion, voiceProvider: voice.provider, voiceEvents: [] };
+    this.entry = { conversationId: id("EMMI"), sessionId, demoPatientId, locale, currentScreen, startedAt: new Date().toISOString(), endedAt: null, userTranscript: [], assistantTranscript: [], answerTurns: [], toolsCalled: [], toolResults: [], callbackRequested: false, careTeamTaskCreated: false, clinicalEscalationTriggered: false, model, systemPromptVersion: EMMI_SYSTEM_PROMPT_VERSION, voiceId: voice.voiceId, voiceVersion: voice.voiceVersion, voiceProvider: voice.provider, voiceEvents: [] };
     this.persist();
   }
   updateContext({ locale, currentScreen }) { const voice = getEmmiVoiceIdentity(locale); this.entry.locale = locale; this.entry.currentScreen = currentScreen; this.entry.voiceId = voice.voiceId; this.entry.voiceVersion = voice.voiceVersion; this.entry.voiceProvider = voice.provider; this.persist(); }
   voiceEvent(type, details = {}) { this.entry.voiceEvents.push({ timestamp: new Date().toISOString(), type, ...clone(details) }); this.persist(); }
   transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), text }); this.persist(); }
+  answerTurn(metadata = {}) { this.entry.answerTurns ||= []; this.entry.answerTurns.push({ timestamp: new Date().toISOString(), ...clone(metadata) }); this.entry.answerTurns = this.entry.answerTurns.slice(-50); this.persist(); }
   tool(name, args, result) {
     const timestamp = new Date().toISOString();
     this.entry.toolsCalled.push({ timestamp, tool: name, arguments: clone(args) });
@@ -44,6 +45,10 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getEnrollmentContext", description: "Get authoritative fictional prototype enrollment context.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getExpectedAccessCost", description: "Get authoritative expected ACCESS cost. Always use for cost questions.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, accessTrack: { type: "STRING" } }, required: ["patientId", "accessTrack"] } },
   { name: "getAssignedDevice", description: "Get the monitor assigned to the fictional demo patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getMedicationList", description: "Get the fictional medications currently on file for this patient. Use for patient-specific medication-list questions.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getPatientGoals", description: "Get the fictional personal goals currently saved for this patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getCareTeam", description: "Get the trusted physician/care-team context currently available for this patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getNextBestAction", description: "Get the authoritative next action from the same journey resolver used by the patient UI.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "checkDeviceConnection", description: "Check authoritative device connection status.", parameters: { type: "OBJECT", properties: { deviceId: { type: "STRING" } }, required: ["deviceId"] } },
   { name: "getAccessDisclosure", description: "Get approved patient-facing ACCESS disclosure text.", parameters: { type: "OBJECT", properties: { accessTrack: { type: "STRING" }, locale: { type: "STRING" } }, required: ["accessTrack", "locale"] } },
   { name: "requestCallback", description: "Request a fictional care-team callback only after explicit patient confirmation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, reason: { type: "STRING" }, preferredLanguage: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "reason", "preferredLanguage", "confirmed"] } },
@@ -76,7 +81,11 @@ export class EmmiToolOrchestrator {
       const patient = EMMI_DEMO_PATIENTS[patientId];
       const device = EMMI_DEMO_DEVICES.find(item => item.deviceId === patient.assignedDeviceId);
       result = device ? { found: true, ...clone(device) } : patient.deviceSource === "PATIENT_OWNED" ? { found: false, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", deviceId: null, vendor: "OTHER", status: "ACTIVE", integrationStatus: "UNSUPPORTED" } : { found: false, patientOwnsMonitor: false, deviceId: null, status: "NOT_ASSIGNED", integrationStatus: "NOT_CONNECTED" };
-    } else if (name === "checkDeviceConnection") {
+    } else if (name === "getMedicationList") result = { medications: clone(context.medications || []) };
+    else if (name === "getPatientGoals") result = { goals: clone(context.patientGoals || []), activeGoal: clone(context.activeGoal || null) };
+    else if (name === "getCareTeam") result = { physicianDisplayName: context.physicianDisplayName || null, enrollmentSource: context.enrollmentSource || null };
+    else if (name === "getNextBestAction") result = clone(context.nextBestAction || { label: "", route: context.currentScreen, actionType: "NONE" });
+    else if (name === "checkDeviceConnection") {
       const device = EMMI_DEMO_DEVICES.find(item => item.deviceId === args.deviceId);
       result = device ? { connected: device.integrationStatus === "CONNECTED", vendor: device.vendor, status: device.status } : { connected: false, vendor: null, status: "NOT_FOUND" };
     } else if (name === "getAccessDisclosure") result = clone(EMMI_ACCESS_DISCLOSURES[args.locale] || EMMI_ACCESS_DISCLOSURES.EN);

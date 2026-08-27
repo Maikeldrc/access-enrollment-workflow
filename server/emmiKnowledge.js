@@ -33,7 +33,10 @@ export const TOOL_FIRST_INTENTS = Object.freeze({
   DEVICE: "getAssignedDevice",
   DEVICE_READING: "checkDeviceConnection",
   ENROLLMENT_STATUS: "getEnrollmentContext",
-  NEXT_STEP: "nextBestAction",
+  MEDICATION_LIST: "getMedicationList",
+  GOAL_STATUS: "getPatientGoals",
+  CARE_TEAM_STATUS: "getCareTeam",
+  NEXT_STEP: "getNextBestAction",
   CLINICAL_SAFETY: "evaluateClinicalEscalation"
 });
 
@@ -43,6 +46,9 @@ const INTENT_RULES = [
   { intent: "MEDICATION_SAFETY", risk: "high", test: /\b(stop|quit|skip|double|increase|decrease|change)\b[^.?]{0,40}\b(medication|medicine|pill|dose|lisinopril|atorvastatin)\b|dejar de tomar|cambiar la dosis|sispann pran/i },
   { intent: "COST", risk: "high", test: /\b(cost|pay|price|owe|charge|bill|copay|coinsurance|deductible|free|\$)\b|cuánto|cuanto|costo|pagar|gratis|konbyen|peye/i },
   { intent: "ELIGIBILITY", risk: "high", test: /\b(eligible|eligibility|qualify|qualified|approved)\b|elegib|califico|kalifye/i },
+  { intent: "MEDICATION_LIST", risk: "high", test: /what (medications|medicines|pills).*(have|file|registered)|medications.*on file|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye/i },
+  { intent: "GOAL_STATUS", risk: "medium", test: /what (is|are) my goals?|my current goal|cu[aá]l es mi meta|mis metas actuales|ki objektif mwen/i },
+  { intent: "CARE_TEAM_STATUS", risk: "medium", test: /who is my doctor|is my doctor|keep seeing my doctor|qui[eé]n es mi m[eé]dico|mi m[eé]dico sigue|dokt[eè] mwen/i },
   { intent: "DEVICE", risk: "high", test: /\b(monitor|device|cuff|tenovi|pylo|reading|blood pressure machine)\b|aparato|monitor|manchèt|aparèy/i },
   { intent: "MEDICATION", risk: "high", test: /\b(medication|medicine|pill|prescription|dose)\b|medicament|medicina|medikaman/i },
   { intent: "NEXT_STEP", risk: "medium", test: /\b(next|what should i do|what happens now|after this)\b|qué sigue|que sigue|próximo paso|pwochen etap/i },
@@ -60,7 +66,7 @@ const INTENT_RULES = [
 ];
 
 // A question is personalised when the patient asks about themselves rather than the concept.
-const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\bmi\b|\bmis\b|\byo\b|\bmwen\b|\bpa m\b/i;
+const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\b(mi|mis|m[ií]o|m[ií]a|yo|soy|estoy|tengo|puedo)\b|\b(mwen|pa m)\b/i;
 
 export const classifyQuestion = (question, runtime = {}) => {
   const text = String(question || "");
@@ -75,7 +81,7 @@ export const classifyQuestion = (question, runtime = {}) => {
     personalized,
     // Only demand a tool when the patient is actually asking about themselves, except for
     // safety, which is never answered from knowledge.
-    requiredTool: requiredTool && (personalized || intent === "CLINICAL_SAFETY") ? requiredTool : null,
+    requiredTool: requiredTool && (personalized || ["CLINICAL_SAFETY", "MEDICATION_LIST", "GOAL_STATUS", "CARE_TEAM_STATUS"].includes(intent)) ? requiredTool : null,
     // Some intents have no single tool but must never be answered from knowledge alone: EMMI
     // cannot change prescription instructions, only route to the care team (§22).
     mustNotAnswerAlone: intent === "MEDICATION_SAFETY" || intent === "CLINICAL_SAFETY",
@@ -89,6 +95,7 @@ const CATEGORY_FOR_INTENT = {
   ELIGIBILITY: ["program", "enrollment"],
   DEVICE: ["device", "program"],
   MEDICATION: ["care", "safety"],
+  MEDICATION_LIST: ["care"],
   MEDICATION_SAFETY: ["safety", "care"],
   CLINICAL_SAFETY: ["safety"],
   CARE_CIRCLE: ["enrollment"],
@@ -97,6 +104,8 @@ const CATEGORY_FOR_INTENT = {
   ENROLLMENT: ["enrollment", "program"],
   MEDICARE: ["medicare"],
   GOALS: ["care"],
+  GOAL_STATUS: ["care"],
+  CARE_TEAM_STATUS: ["company", "care"],
   HEALTH_INFORMATION: ["care"],
   CARE_PLAN: ["care"],
   NEXT_STEP: ["program", "care"],
@@ -266,6 +275,7 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
   const queryTokens = new Set(tokenize(rewritten));
   const wantedCategories = new Set([...(CATEGORY_FOR_INTENT[classification.intent] || []), ...(CATEGORY_FOR_SCREEN[runtime.currentScreen] || [])]);
   const wantedPrograms = new Set(PROGRAM_ALIASES[runtime.program] || []);
+  for (const namedProgram of ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"]) if (new RegExp(`\\b${namedProgram}\\b`, "i").test(query)) wantedPrograms.add(namedProgram);
 
   const scored = index.chunks.map(chunk => {
     let score = 0;
