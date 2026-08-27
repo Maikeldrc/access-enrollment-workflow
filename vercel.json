@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/access/learn", "destination": "/index.html" },
+    { "source": "/support/accept", "destination": "/index.html" }
+  ]
+}

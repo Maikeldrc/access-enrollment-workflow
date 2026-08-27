@@ -132,6 +132,10 @@ export class DraftStore {
     const safeReadingReceipts = (state.bpReadingReceipts || []).map(({ readingId, observationId, readingNumber, timestamp, deviceId, deviceModel, source, sourceVerified, receivedAt }) => ({ readingId, observationId, readingNumber, timestamp, deviceId, deviceModel, source, sourceVerified, receivedAt }));
 const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.role, completionRole: state.completionRole, representativeFullName: state.representativeFullName, representativeRelationship: state.representativeRelationship, representativeAuthorityType: state.representativeAuthorityType, representativePhone: state.representativePhone, phoneVerified: state.phoneVerified, phoneVerificationMethod: state.phoneVerificationMethod, phoneVerifiedAt: state.phoneVerifiedAt, representativeAuthorityAttested: state.representativeAuthorityAttested, authorityAttestation: state.authorityAttestation, authorityAttestedAt: state.authorityAttestedAt, authorityVerificationMethod: state.authorityVerificationMethod, authorityAdditionalVerificationRequired: Boolean(state.authorityAdditionalVerificationRequired), accessNoticeAcknowledgedAt: state.accessNoticeAcknowledgedAt, disclosureAcknowledgedAt: state.disclosureAcknowledgedAt, disclosureVersion: state.disclosureVersion, accessDisclosureView: state.accessDisclosureView ?? null, consentRole: state.consentRole, consentVersion: state.consentVersion, consentTimestamp: state.consentTimestamp, sessionId: state.sessionId, sessionMetadata: state.sessionMetadata, ipMetadata: state.ipMetadata ?? null, audit: state.audit, language: state.language, identityVerified: Boolean(state.identityVerified), consentSaved: state.consentSaved, enrollmentConfirmed: state.enrollmentConfirmed, enrollmentStatus: state.enrollmentStatus, enrollmentCompletedAt: state.enrollmentCompletedAt, baselineStatus: state.baselineStatus, baselineStartedAt: state.baselineStartedAt, baselineCompletedAt: state.baselineCompletedAt, baselineDeferredAt: state.baselineDeferredAt, baselineResumeScreen: state.baselineResumeScreen, baselineReminderStatus: state.baselineReminderStatus, bpBaselineStatus: state.bpBaselineStatus, bpBaselineRequiredReadings: state.bpBaselineRequiredReadings, bpBaselineReadingCount: state.bpBaselineReadingCount, bpBaselineRemainingReadings: state.bpBaselineRemainingReadings, bpDevicePath: state.bpDevicePath, bpDeviceIdentificationMethod: state.bpDeviceIdentificationMethod, bpDeviceVerificationStatus: state.bpDeviceVerificationStatus, bpDeviceVerificationResult: state.bpDeviceVerificationResult, bpDevice: state.bpDevice, armCircumferenceValue: state.armCircumferenceValue, armCircumferenceUnit: state.armCircumferenceUnit, armMeasurementStatus: state.armMeasurementStatus, armMeasurementHelpReason: state.armMeasurementHelpReason, armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm, exactArmMeasurementOpen: Boolean(state.exactArmMeasurementOpen), cuffSelectionMethod: state.cuffSelectionMethod, selectedCuffOption: state.selectedCuffOption, cuffSelectionStatus: state.cuffSelectionStatus, cuffSizeSelected: state.cuffSizeSelected, deviceModelSelected: state.deviceModelSelected, shippingAddress: state.shippingAddress, shippingAddressConfirmed: state.shippingAddressConfirmed, shippingAddressMode: state.shippingAddressMode, deviceFulfillmentId: state.deviceFulfillmentId, deviceFulfillmentStatus: state.deviceFulfillmentStatus, bpDeviceFulfillmentStatus: state.bpDeviceFulfillmentStatus, bpDeviceFulfillmentRequestedAt: state.bpDeviceFulfillmentRequestedAt, careTeamTasks: state.careTeamTasks, bpBaselineSourceType: state.bpBaselineSourceType, bpReadingCount: state.bpReadingCount, bpReadingReceipts: safeReadingReceipts, bpMeasurementPhase: state.bpMeasurementPhase, bpEscalationState: state.bpEscalationState, accessEligible: state.accessEligible, accessOutcome: state.accessOutcome, eligibilityPhase: state.eligibilityPhase, eligibilityError: state.eligibilityError, eligibilityRequestKey: state.eligibilityRequestKey, alignmentConfirmed: state.alignmentConfirmed, devicePath: state.devicePath, addressConfirmed: state.addressConfirmed, setupComplete: state.setupComplete, readingReceived: state.readingReceived, onboarding: state.onboarding, updatedAt: new Date().toISOString() };
     Object.assign(safe, {
+      activationStatus: state.activationStatus,
+      activationStartedAt: state.activationStartedAt,
+      deviceSetupStatus: state.deviceSetupStatus,
+      deviceSetupStartedAt: state.deviceSetupStartedAt,
       patientHasBloodPressureMonitor: Boolean(state.patientHasBloodPressureMonitor),
       deviceSource: state.deviceSource,
       deviceVerificationStatus: state.deviceVerificationStatus,
@@ -164,6 +168,22 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalsStatus: state.goalsStatus,
       careGoals: [...(state.careGoals || [])],
       careGoalsNote: state.careGoalsNote
+    });
+    Object.assign(safe, {
+      supportRole: state.supportRole,
+      careCircleStatus: state.careCircleStatus,
+      supportPersonName: state.supportPersonName,
+      supportPersonPhone: state.supportPersonPhone,
+      supportPersonRelationship: state.supportPersonRelationship,
+      supportInviteId: state.supportInviteId,
+      supportInviteToken: state.supportInviteToken,
+      supportInviteStatus: state.supportInviteStatus,
+      supportInviteSentAt: state.supportInviteSentAt,
+      supportInviteAcceptedAt: state.supportInviteAcceptedAt,
+      careCirclePermissions: state.careCirclePermissions,
+      careCirclePromptDismissedAt: state.careCirclePromptDismissedAt,
+      accessShares: (state.accessShares || []).map(({ shareId, source, channel, createdAt, clicked, landingStarted, eligibilityStarted, enrollmentStarted, enrollmentCompleted, publicAccessLandingUrl }) => ({ shareId, source, channel, createdAt, clicked, landingStarted, eligibilityStarted, enrollmentStarted, enrollmentCompleted, publicAccessLandingUrl })),
+      shareAccessPromptDismissedAt: state.shareAccessPromptDismissedAt
     });
     localStorage.setItem(this.key, JSON.stringify(safe));
   }

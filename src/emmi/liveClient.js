@@ -49,7 +49,7 @@ export class EmmiLiveClient {
     this.endTimer = null;
   }
   setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
-  async connect() {
+  async connect(initialText = "") {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
     if (this.getContext().locale === "KR") throw this.fail("voice_locale_fallback");
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
@@ -77,7 +77,12 @@ export class EmmiLiveClient {
           tools: EMMI_CONFIG.enableTools ? EMMI_TOOL_DECLARATIONS : []
         },
         callbacks: {
-          onopen: () => { this.startAudioCapture(); this.setState("LISTENING"); this.startTimers(); },
+          onopen: () => {
+            this.startAudioCapture();
+            this.setState("LISTENING");
+            this.startTimers();
+            if (initialText) setTimeout(() => this.sendText(initialText), 0);
+          },
           onmessage: message => this.handleMessage(message),
           onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"),
           onclose: () => { if (this.state !== "DISCONNECTED") this.disconnect("connection_lost"); }

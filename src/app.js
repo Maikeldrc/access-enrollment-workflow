@@ -6,23 +6,32 @@ import {
   ArrowLeft, ArrowRight, BadgeCheck, CalendarDays, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
   HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
-  Stethoscope, TabletSmartphone, Target, UserRound, UsersRound, Wifi
+  Share2, Stethoscope, TabletSmartphone, Target, UserPlus, UserRound, UsersRound, Wifi
 } from "lucide";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
+import { enrollmentWelcomeCommon, enrollmentWelcomeFor } from "./enrollmentWelcome.js";
+import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
 const prototypeMode = params.get("prototype") === "1";
+const patientShareSource = params.get("source") === "patient-share";
 const scenarioId = prototypeMode ? "prototype" : params.get("scenario") || "access-happy";
 const DEMO_IDENTITY = { dob: "05/12/1954", dobIso: "1954-05-12", zip: "33176" };
 const draftStore = new DraftStore();
+const growthStore = new GrowthStore();
+const EMMI_PREFERENCES_KEY = "itera.emmi.preferences.v1";
+const savedEmmiPreferences = (() => {
+  try { return JSON.parse(localStorage.getItem(EMMI_PREFERENCES_KEY) || "null") || {}; }
+  catch { return {}; }
+})();
 let eligibilityRequest = null;
 const savedPrototypeConfig = (() => { try { return JSON.parse(localStorage.getItem("itera.prototype.config.v1") || "null"); } catch { return null; } })();
-let prototypeConfig = normalizePrototypeConfig(savedPrototypeConfig || DEFAULT_PROTOTYPE_CONFIG);
+let prototypeConfig = normalizePrototypeConfig(patientShareSource ? DEFAULT_PROTOTYPE_CONFIG : (savedPrototypeConfig || DEFAULT_PROTOTYPE_CONFIG));
 let service = new MockEnrollmentService(scenarioId, prototypeMode ? prototypeConfig : null);
 let conditionMenuOpen = false;
 let state = {
@@ -32,7 +41,7 @@ let state = {
   accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, sessionMetadata: { platform: navigator.userAgentData?.platform || navigator.platform || "unknown" }, ipMetadata: null, identityVerified: false,
   identityAttempts: 0, consentSaved: false, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
-  enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
+  enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationReviewStatus: "NOT_STARTED", healthInformationReviewResult: "",
@@ -42,13 +51,20 @@ let state = {
   ],
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "",
+  supportRole: "NONE", careCircleStatus: "NONE", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
+  accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
+  emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiContextualNudgeVisible: false
 };
 let emmiAuditLog = null;
 let emmiTools = null;
 let emmiLive = null;
+let emmiGuidanceTimer = null;
+let emmiHesitationTimer = null;
+let emmiHesitationCleanup = null;
 
 const iconMap = {
   lock: LockKeyhole,
@@ -72,6 +88,8 @@ const iconMap = {
   language: Globe2,
   wifi: Wifi,
   goals: Target,
+  share: Share2,
+  userPlus: UserPlus,
   check: Check,
   clock: Clock3,
   box: Package,
@@ -228,16 +246,16 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
   const assurance = ASSURANCE_VARIANTS[type]?.();
   return assurance ? `<p class="contextual-assurance" data-assurance-type="${type}">${icon(assurance.icon)}<span>${assurance.message}</span></p>` : "";
 };
-const emmiAssistant = () => `<button class="emmi-assistant" data-action="help" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
+const emmiAssistant = () => `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-action="help" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 
 function header() {
   if (state.screen === "OFFER_LOADING") return "";
   if (state.screen === "INVITATION") return "";
   const progress = progressFor(state);
   const stageLabel = progressStageLabel(progress.stage);
-  const accessCareScreen = ["ACCESS_BASELINE", "ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT", "ACCESS_BP_ESCALATION", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE"].includes(state.screen);
+  const accessCareScreen = ["ACCESS_BASELINE", "ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ACCESS_BP_BASELINE_RESULT", "ACCESS_BP_ESCALATION", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen);
   const postEnrollmentCare = state.offer?.pathway === "ACCESS" && accessCareScreen;
-  const enrollmentComplete = state.screen === "ENROLLMENT_CONFIRMED" && state.offer?.pathway === "ACCESS";
+  const enrollmentComplete = state.screen === "ENROLLMENT_CONFIRMED";
   const journeyLabel = enrollmentComplete ? L("Enrollment complete", "Inscripción completa", "Enskripsyon fini") : postEnrollmentCare ? L("Your care", "Su cuidado", "Swen ou") : L("Enrollment", "Inscripción", "Enskripsyon");
   const progressLabel = postEnrollmentCare ? L("Your care progress", "Progreso de su cuidado", "Pwogrè swen ou") : L("Enrollment progress", "Progreso de inscripción", "Pwogrè enskripsyon");
   return `<header class="app-header">
@@ -280,16 +298,34 @@ function invitation() {
   const accessDirectOutreach = state.offer.pathway === "ACCESS" && source === "ITERA Direct Outreach";
   const practiceOutreach = source === "Practice Outreach";
   const physicianName = state.offer.physician?.displayName || state.offer.referringProvider?.name || L("your physician", "su médico", "doktè ou");
-  const intro = accessPhysicianReferral ? L("Get extra support between your doctor visits — at no additional cost to you.", "Reciba apoyo adicional entre sus visitas al médico, sin costo adicional para usted.", "Jwenn sipò anplis ant vizit kay doktè ou, san okenn frè anplis pou ou.") : accessDirectOutreach ? L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre sus visitas al médico.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay sipò anplis ant vizit kay doktè ou.") : physicianReferral ? L(`${physicianName}’s care team invited you to learn about additional support available through Medicare.`, `El equipo de ${physicianName} le invita a conocer apoyo adicional disponible a través de Medicare.`, `Ekip swen ${physicianName} envite w aprann sou sipò anplis ki disponib atravè Medicare.`) : practiceOutreach ? L("Fresner Medical Group and ITERA HEALTH invite you to learn about additional support available through Medicare.", "Fresner Medical Group e ITERA HEALTH le invitan a conocer apoyo adicional disponible a través de Medicare.", "Fresner Medical Group ak ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.") : L("ITERA HEALTH invites you to learn about additional support available through Medicare.", "ITERA HEALTH le invita a conocer apoyo adicional disponible a través de Medicare.", "ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.");
+  const intro = accessPhysicianReferral ? L("Get extra support between your doctor visits.", "Reciba apoyo adicional entre sus visitas al médico.", "Jwenn sipò anplis ant vizit kay doktè ou.") : accessDirectOutreach ? L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre sus visitas al médico.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay sipò anplis ant vizit kay doktè ou.") : physicianReferral ? L(`${physicianName}’s care team invited you to learn about additional support available through Medicare.`, `El equipo de ${physicianName} le invita a conocer apoyo adicional disponible a través de Medicare.`, `Ekip swen ${physicianName} envite w aprann sou sipò anplis ki disponib atravè Medicare.`) : practiceOutreach ? L("Fresner Medical Group and ITERA HEALTH invite you to learn about additional support available through Medicare.", "Fresner Medical Group e ITERA HEALTH le invitan a conocer apoyo adicional disponible a través de Medicare.", "Fresner Medical Group ak ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.") : L("ITERA HEALTH invites you to learn about additional support available through Medicare.", "ITERA HEALTH le invita a conocer apoyo adicional disponible a través de Medicare.", "ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.");
   return `${TrustHeroCard()}
     <div class="invitation-copy">${titleBlock(L("A new care option for your health", "Una nueva opción de cuidado para su salud", "Yon nouvo opsyon swen pou sante ou"), intro)}</div>
+    ${emmiWelcome(physicianReferral, physicianName)}
     <section class="invitation-benefits" aria-label="${L("What this means for you", "Qué significa esto para usted", "Sa sa vle di pou ou")}">${[
       ["physician", L("Keep your doctors", "Mantenga sus médicos", "Kenbe doktè ou yo"), L("Continue seeing the doctors you know", "Continúe viendo a los médicos que conoce", "Kontinye wè doktè ou konnen yo")],
       ["home", L("Get support from home", "Reciba apoyo desde casa", "Jwenn sipò lakay ou"), L("Ongoing support between office visits", "Apoyo continuo entre sus consultas", "Sipò kontinyèl ant vizit nan klinik")],
       ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You’ll review the details before you enroll", "Revisará los detalles antes de inscribirse", "W ap revize detay yo anvan ou enskri")]
     ].map(([i,label,detail]) => `<div class="invitation-benefit">${icon(i)}<span><strong>${label}</strong><small>${detail}</small></span></div>`).join("")}</section>
     ${actions(L("See how it works", "Vea cómo funciona", "Gade kijan sa fonksyone"), false)}
-    <p class="contact-line"><span class="contact-label">${icon("phone", "contact-phone")}<span>${L("Need help? Call", "¿Necesita ayuda? Llame al", "Bezwen èd? Rele")}</span></span> <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>`;
+    <p class="contact-line"><span class="contact-label">${icon("phone", "contact-phone")}<span>${L("Need help? Call", "¿Necesita ayuda? Llame al", "Bezwen èd? Rele")}</span></span> <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>
+    ${careCircleEarlyPrompt()}`;
+}
+
+function persistEmmiPreferences() {
+  try { localStorage.setItem(EMMI_PREFERENCES_KEY, JSON.stringify({ emmiVoiceGuidance: state.emmiVoiceGuidance, emmiWelcomeAcknowledged: state.emmiWelcomeAcknowledged })); }
+  catch { /* Guidance preferences are best-effort and never block enrollment. */ }
+  if (state.identityVerified) draftStore.save(state);
+}
+
+function emmiWelcome(providerReferral, physicianName) {
+  return `<section class="emmi-welcome" aria-labelledby="emmi-welcome-title">
+    <div class="emmi-welcome-identity"><img src="/assets/emmi-assistant.png" alt=""><div><h2 id="emmi-welcome-title">${L("Hi, I’m EMMI.", "Hola, soy EMMI.", "Bonjou, mwen se EMMI.")}</h2><strong>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</strong></div></div>
+    <div class="emmi-welcome-copy"><p>${L("I can guide you through each step and answer questions along the way.", "Puedo guiarle en cada paso y responder sus preguntas durante el proceso.", "Mwen ka gide w nan chak etap epi reponn kesyon ou pandan pwosesis la.")}</p></div>
+    ${state.emmiVoiceGuidance
+      ? `<div class="emmi-welcome-choice"><p><strong>${L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen")}</strong></p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance">${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`
+      : `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`}
+  </section>`;
 }
 
 function decisionMaker() {
@@ -298,7 +334,35 @@ function decisionMaker() {
       ${choice("patient", "person", L("For myself", "Para mí", "Pou tèt mwen"), L("I am the patient.", "Soy el paciente.", "Mwen se pasyan an."), state.completionRole === "patient")}
       ${choice("helper", "people", L("Helping the patient", "Ayudando al paciente", "Ede pasyan an"), L("The patient is present and will make the decisions.", "El paciente está presente y tomará las decisiones.", "Pasyan an prezan epi l ap pran desizyon yo."), state.completionRole === "helper")}
       ${choice("personalRepresentative", "shield", L("Personal representative", "Representante personal", "Reprezantan pèsonèl"), L("I’m authorized to make healthcare decisions for the patient.", "Estoy autorizado para tomar decisiones de atención médica por el paciente.", "Mwen otorize pou pran desizyon swen sante pou pasyan an."), isPersonalRepresentative())}
-    </form>${actions(t().continue)}`;
+    </form>${careCircleEarlyPrompt(true)}${actions(t().continue)}`;
+}
+
+const patientFirstName = () => String(state.offer?.patient?.displayName || L("The patient", "El paciente", "Pasyan an")).split(/\s+/)[0].replace(/[^\p{L}'’-]/gu, "") || L("The patient", "El paciente", "Pasyan an");
+const careCirclePromptAllowed = () => !isPersonalRepresentative() && state.careCircleStatus === "NONE" && growthPromptAvailable(state.careCirclePromptDismissedAt);
+
+function careCircleEarlyPrompt(compact = false) {
+  if (!careCirclePromptAllowed()) return "";
+  return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="care-circle-support-copy">${L("Invite a family member, caregiver, or someone you trust to help with this process.", "Invite a un familiar, cuidador o persona de confianza para que le ayude con este proceso.", "Envite yon fanmi, moun k ap bay swen, oswa yon moun ou fè konfyans pou ede w ak pwosesis sa a.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
+}
+
+function careCircleInvite() {
+  const relationships = [["spouse", L("Spouse", "Cónyuge", "Konjwen")], ["child", L("Child", "Hijo o hija", "Pitit")], ["family", L("Family member", "Familiar", "Manm fanmi")], ["caregiver", L("Caregiver", "Cuidador", "Moun k ap bay swen")], ["friend", L("Friend", "Amigo o amiga", "Zanmi")], ["other", L("Other", "Otro", "Lòt")]];
+  return `${titleBlock(L("Invite someone you trust", "Invite a alguien de confianza", "Envite yon moun ou fè konfyans"), L("They can help you through the process, but you’ll still make the decisions about your care.", "Puede ayudarle durante el proceso, pero usted seguirá tomando las decisiones sobre su cuidado.", "Moun nan ka ede w pandan pwosesis la, men se ou menm k ap toujou pran desizyon sou swen ou."), L("Care Circle", "Círculo de cuidado", "Sèk swen"))}<form id="care-circle-invite-form" class="growth-form"><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="name" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="tel" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")} <small>${L("Optional", "Opcional", "Opsyonèl")}</small><select name="supportPersonRelationship"><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label></form><aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("You remain in control", "Usted mantiene el control", "Se ou ki gen kontwòl")}</strong><span>${L("This invitation does not allow the person to consent, sign, or make healthcare decisions for you.", "Esta invitación no permite que la persona dé consentimiento, firme ni tome decisiones médicas por usted.", "Envitasyon sa a pa pèmèt moun nan bay konsantman, siyen, oswa pran desizyon swen sante pou ou.")}</span></p></aside><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(L("Back", "Atrás", "Retounen"), "growth-return", true)}${cta(L("Send invitation", "Enviar invitación", "Voye envitasyon"), "send-care-circle-invite")}</div>`;
+}
+
+function careCircleInviteSent() {
+  const link = growthStore.findSupportInvite(state.supportInviteToken)?.temporarySupportLink || "";
+  return `${art("check", true)}${titleBlock(L("Invitation sent", "Invitación enviada", "Envitasyon voye"), L(`${state.supportPersonName} can use the secure invitation to help you through the next steps.`, `${state.supportPersonName} puede usar la invitación segura para ayudarle con los próximos pasos.`, `${state.supportPersonName} ka sèvi ak envitasyon an sekirite pou ede w ak pwochen etap yo.`), L("Care Circle", "Círculo de cuidado", "Sèk swen"))}<section class="growth-confirmation-card">${icon("phone")}<div><strong>${L("Text invitation sent", "Invitación por mensaje enviada", "Envitasyon tèks voye")}</strong><p>${L("Sent to", "Enviada al", "Voye bay")} ${maskPhone(state.supportPersonPhone)}</p><small>${L("No diagnosis, Medicare number, or clinical information was included.", "No se incluyó ningún diagnóstico, número de Medicare ni información clínica.", "Pa gen dyagnostik, nimewo Medicare, oswa enfòmasyon klinik ki te ladan l.")}</small></div></section><details class="full-terms growth-message-preview"><summary>${L("View message preview", "Ver vista previa del mensaje", "Gade mesaj la")}</summary><p>${L(`${patientFirstName()} invited you to help with their ITERA HEALTH care experience. Use this secure link to help them through the next steps:`, `${patientFirstName()} le invitó a ayudar con su experiencia de cuidado de ITERA HEALTH. Use este enlace seguro para ayudar con los próximos pasos:`, `${patientFirstName()} envite w ede nan eksperyans swen ITERA HEALTH li. Sèvi ak lyen an sekirite sa a pou ede ak pwochen etap yo:`)}<br><span class="growth-safe-link">${escapeHtml(link)}</span></p></details>${link ? `<a class="button secondary growth-preview-link" href="${escapeHtml(link)}" target="_blank" rel="noopener">${L("Preview support invitation", "Vista previa de la invitación", "Gade envitasyon sipò a")} ${icon("externalLink")}</a>` : ""}<div class="actions single">${cta(L("Continue", "Continuar", "Kontinye"), "growth-return")}</div>`;
+}
+
+function careCirclePermissions() {
+  const name = state.supportPersonName || L("your support person", "su persona de apoyo", "moun k ap ede w la");
+  const options = [["receiveReminders", L("Receive reminders", "Recibir recordatorios", "Resevwa rapèl")], ["helpWithDeviceSetup", L("Help with device setup", "Ayudar con dispositivos", "Ede mete aparèy anplas")], ["helpWithAppointments", L("Help with appointments", "Ayudar con citas", "Ede ak randevou")], ["receiveCareTasks", L("Receive care tasks", "Recibir tareas de cuidado", "Resevwa travay swen")], ["viewLimitedCareProgress", L("View limited care progress", "Ver progreso limitado del cuidado", "Wè yon pati limite nan pwogrè swen")]];
+  return `${titleBlock(L("Add to my Care Circle", "Agregar a mi Círculo de cuidado", "Ajoute nan Sèk swen mwen"), L(`${name} can help with the items you choose. This does not give full access to your health information.`, `${name} puede ayudar con lo que usted elija. Esto no da acceso completo a su información de salud.`, `${name} ka ede ak sa ou chwazi yo. Sa pa bay aksè konplè ak enfòmasyon sante ou.`), L("Your care", "Su cuidado", "Swen ou"))}<form id="care-circle-permissions-form" class="growth-permissions">${options.map(([value, label]) => check("careCirclePermission", label, Boolean(state.careCirclePermissions?.[value]), value)).join("")}</form><aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("Your healthcare decisions remain yours", "Sus decisiones médicas siguen siendo suyas", "Desizyon swen sante ou rete pou ou")}</strong><span>${L("Care Circle is separate from a Personal Representative.", "El Círculo de cuidado es diferente de un Representante personal.", "Sèk swen diferan ak yon Reprezantan pèsonèl.")}</span></p></aside><div class="actions">${cta(L("Not now", "Ahora no", "Pa kounye a"), "dismiss-care-circle-post", true)}${cta(L("Add to my Care Circle", "Agregar a mi Círculo", "Ajoute nan Sèk swen mwen"), "save-care-circle")}</div>`;
+}
+
+function shareAccess() {
+  return `${titleBlock(L("Share information about ACCESS", "Comparta información sobre ACCESS", "Pataje enfòmasyon sou ACCESS"), L("Share a public information page. The other person will still need to check whether ACCESS is available to them.", "Comparta una página pública informativa. La otra persona deberá verificar si ACCESS está disponible para ella.", "Pataje yon paj enfòmasyon piblik. Lòt moun nan ap toujou bezwen verifye si ACCESS disponib pou li."), L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"))}<section class="share-message-preview"><p>${L("I’m getting extra support for my health through Medicare’s ACCESS Model with ITERA HEALTH.", "Estoy recibiendo apoyo adicional para mi salud mediante el Modelo ACCESS de Medicare con ITERA HEALTH.", "Mwen resevwa plis sipò pou sante mwen atravè Modèl ACCESS Medicare avèk ITERA HEALTH.")}</p><p>${L("If you have Original Medicare and manage a chronic health condition, you can learn more here:", "Si tiene Medicare Original y maneja una condición crónica, puede obtener más información aquí:", "Si ou gen Medicare Orijinal epi w ap jere yon pwoblèm sante kwonik, ou ka aprann plis isit la:")}</p></section><div class="share-options"><button type="button" data-action="share-access" data-share-channel="SMS">${icon("phone")}<span><strong>${L("Text message", "Mensaje de texto", "Mesaj tèks")}</strong></span></button><button type="button" data-action="share-access" data-share-channel="COPY_LINK">${icon("document")}<span><strong>${L("Copy link", "Copiar enlace", "Kopye lyen")}</strong></span></button><button type="button" data-action="share-access" data-share-channel="WEB_SHARE">${icon("share")}<span><strong>${L("Share", "Compartir", "Pataje")}</strong></span></button></div><p class="growth-notice" role="status" aria-live="polite">${state.growthNotice || ""}</p><button type="button" class="button secondary" data-action="growth-return">${L("Back", "Atrás", "Retounen")}</button>`;
 }
 
 function personalRepresentativeDetails() {
@@ -503,6 +567,10 @@ function assistantContext() {
     bpBaselineRemainingReadings: state.bpBaselineRemainingReadings ?? 3,
     deviceVerificationStatus: state.deviceVerificationStatus,
     firstTransmissionVerified: state.firstTransmissionVerified,
+    careCircleStatus: state.careCircleStatus,
+    supportRole: state.supportRole,
+    supportPersonName: state.supportPersonName || null,
+    supportInviteStatus: state.supportInviteStatus,
     deviceScenario
   };
 }
@@ -531,7 +599,7 @@ function ensureEmmiRuntime() {
   emmiLive ||= new EmmiLiveClient({
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
-    onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; if (state.assistantOpen) refreshAssistantLayer(); },
+    onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); },
     onTranscript: (role, text) => {
       const cleaned = String(text || "").trim(); if (!cleaned) return;
       const last = state.assistantMessages.at(-1);
@@ -539,7 +607,7 @@ function ensureEmmiRuntime() {
       else state.assistantMessages.push({ role, text: cleaned, voice: true });
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
-    onError: code => { state.assistantVoiceError = code; state.assistantVoiceState = "ERROR"; if (state.assistantOpen) refreshAssistantLayer(); }
+    onError: code => { state.assistantVoiceError = code; state.assistantVoiceState = "ERROR"; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); }
   });
   return { context, tools: emmiTools, live: emmiLive, audit: emmiAuditLog };
 }
@@ -548,7 +616,8 @@ function assistantQuickQuestions(context) {
   if (["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(context.currentScreen)) return [L("Why do you need my phone?", "¿Por qué necesitan mi teléfono?", "Poukisa nou bezwen telefòn mwen?"), L("Why do I need to verify it?", "¿Por qué debo verificarlo?", "Poukisa mwen bezwen verifye li?"), L("What does Personal Representative mean?", "¿Qué significa Representante personal?", "Kisa Reprezantan pèsonèl vle di?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
   if (context.currentScreen === "ACCESS_BP_DEVICE_INFO") return [L("I don’t have a measuring tape", "No tengo una cinta métrica", "Mwen pa gen yon riban mezi"), L("How do I measure my arm?", "¿Cómo mido mi brazo?", "Kijan pou m mezire bra mwen?"), L("I’m not sure which arm to use", "No sé qué brazo usar", "Mwen pa sèten ki bra pou m itilize"), L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")];
   if (["ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"].includes(context.currentScreen)) return [L("Do I need to take my blood pressure again now?", "¿Necesito tomarme la presión otra vez ahora?", "Èske mwen bezwen pran tansyon mwen ankò kounye a?"), L("Is my monitor connected?", "¿Mi monitor está conectado?", "Èske aparèy mwen konekte?"), L("I need a monitor", "Necesito un monitor", "Mwen bezwen yon aparèy"), L("I need help", "Necesito ayuda", "Mwen bezwen èd")];
-  if (context.currentScreen === "INVITATION") return [L("What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"), L("Who is ITERA?", "¿Quién es ITERA?", "Kiyès ITERA ye?"), L("Do I have to enroll?", "¿Tengo que inscribirme?", "Èske mwen oblije enskri?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
+  if (context.currentScreen === "INVITATION") return [L("What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"), L("Can someone help me with this?", "¿Puede alguien ayudarme con esto?", "Èske yon moun ka ede m ak sa?"), L("Do I have to enroll?", "¿Tengo que inscribirme?", "Èske mwen oblije enskri?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
+  if (context.currentScreen === "ENROLLMENT_CONFIRMED") return [L("Invite someone I trust", "Invitar a alguien de confianza", "Envite yon moun mwen fè konfyans"), L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
   if (context.currentScreen === "CONSENT_REVIEW") return [L("What am I agreeing to?", "¿Qué estoy aceptando?", "Kisa mwen dakò ak?"), L("Can I change my mind?", "¿Puedo cambiar de opinión?", "Èske mwen ka chanje lide mwen?"), L("What will this cost?", "¿Cuánto costará?", "Ki sa ki pral pri sa a?"), L("Does this change my Medicare?", "¿Esto cambia mi Medicare?", "Èske sa chanje Medicare mwen an?"), L("What does signing as a personal representative mean?", "¿Qué significa firmar como representante personal?", "Ki sa siyati vle di antanke reprezantan pèsonèl?")];
   if (context.currentScreen === "DISCLOSURE" && context.program === "ACCESS") return [L("What does voluntary mean?", "¿Qué significa voluntario?", "Kisa volontè vle di?"), L("Will my Medicare benefits change?", "¿Cambiarán mis beneficios de Medicare?", "Èske benefis Medicare mwen yo ap chanje?"), L("Will this cost me anything?", "¿Esto tendrá algún costo?", "Èske sa ap koute m anyen?"), L("Can I change ACCESS providers?", "¿Puedo cambiar de proveedor ACCESS?", "Èske mwen ka chanje founisè ACCESS?")];
   if (["ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_IDENTIFIER", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"].includes(context.currentScreen)) return state.accessOutcome === "notEligible"
@@ -598,6 +667,14 @@ async function assistantAnswer(question, context) {
     const result = await runtime.tools.execute("createCareTeamTask", { patientId: context.patientId, category: "clinical_review", reason: "Fictional elevated blood pressure reported in prototype", priority: "HIGH", confirmed: true });
     state.assistantPendingAction = "";
     return { text: result.success ? L("Done. I created a high-priority care-team task.", "Listo. Creé una tarea de alta prioridad para el equipo de atención.", "Fini. Mwen kreye yon travay priyorite wo pou ekip swen an.") : L("I couldn’t create the task right now. Please call the care team.", "No pude crear la tarea. Llame al equipo de atención.", "Mwen pa t kapab kreye travay la. Tanpri rele ekip swen an.") };
+  }
+  if (/(someone help|invite someone|someone i trust|daughter help|son help|family.*help|caregiver|care circle|alguien.*ayud|invitar a alguien|alguien de confianza|hija.*ayud|hijo.*ayud|familiar.*ayud|cuidador|círculo de cuidado|yon moun.*ede|envite yon moun|moun mwen fè konfyans|pitit.*ede|fanmi.*ede|moun k ap bay swen|sèk swen)/i.test(normalized)) {
+    return { text: L("Yes. I can help you invite someone you trust to support you through the process. You will still make the healthcare decisions, and this will not make them a Personal Representative.", "Sí. Puedo ayudarle a invitar a una persona de confianza para apoyarle durante el proceso. Usted seguirá tomando las decisiones médicas y esto no la convertirá en Representante personal.", "Wi. Mwen ka ede w envite yon moun ou fè konfyans pou sipòte w pandan pwosesis la. Se ou menm k ap toujou pran desizyon swen sante yo, epi sa p ap fè moun nan vin yon Reprezantan pèsonèl."), quickAction: "care-circle" };
+  }
+  if (/(share access|send this|send.*brother|send.*sister|share.*brother|share.*family|compartir access|enviar.*hermano|compartir.*famil|pataje access|voye.*frè|pataje.*fanmi)/i.test(normalized)) {
+    return state.enrollmentStatus === "COMPLETED"
+      ? { text: L("Yes. I can help you share public information about ACCESS. They will still need to check whether ACCESS is available to them.", "Sí. Puedo ayudarle a compartir información pública sobre ACCESS. La otra persona deberá verificar si ACCESS está disponible para ella.", "Wi. Mwen ka ede w pataje enfòmasyon piblik sou ACCESS. Lòt moun nan ap toujou bezwen verifye si ACCESS disponib pou li."), quickAction: "share-access" }
+      : { text: L("After your enrollment is complete, I can help you share public information about ACCESS without sharing your enrollment information.", "Cuando complete su inscripción, puedo ayudarle a compartir información pública sobre ACCESS sin compartir los datos de su inscripción.", "Apre enskripsyon ou fini, mwen ka ede w pataje enfòmasyon piblik sou ACCESS san pataje enfòmasyon enskripsyon ou.") };
   }
   if (/(cost|pay|how much|costo|pagar|cuánto|pri|peye|koute)/i.test(normalized)) {
     const cost = await runtime.tools.execute("getExpectedAccessCost", { patientId: context.patientId, accessTrack: context.accessTrack });
@@ -671,15 +748,111 @@ const assistantVoiceErrorCopy = () => ({
   connection_lost: L("Connection lost. You can try again or continue by typing.", "Se perdió la conexión. Puede intentarlo de nuevo o continuar escribiendo.", "Koneksyon an pèdi. Ou ka eseye ankò oswa kontinye ekri.")
 })[state.assistantVoiceError] || L("I’m having trouble connecting right now. You can keep using enrollment or continue by typing.", "Tengo problemas para conectarme. Puede seguir con la inscripción o continuar escribiendo.", "Mwen gen pwoblèm pou konekte. Ou ka kontinye enskripsyon an oswa ekri.");
 
+function emmiSpokenWelcome() {
+  const physicianName = state.offer?.physician?.displayName || state.offer?.referringProvider?.name || L("your doctor", "su médico", "doktè ou");
+  return isProviderReferralSource(state.offer?.enrollmentSource)
+    ? L(`Hi, I’m EMMI. Welcome to ITERA HEALTH. I’m here to help support the care you receive from ${physicianName} and guide you through each step. You can ask me for help at any time.`, `Hola, soy EMMI. Le doy la bienvenida a ITERA HEALTH. Estoy aquí para apoyar el cuidado que recibe de ${physicianName} y guiarle en cada paso. Puede pedirme ayuda en cualquier momento.`, `Bonjou, mwen se EMMI. Byenveni nan ITERA HEALTH. Mwen la pou sipòte swen ou resevwa nan men ${physicianName} epi gide w nan chak etap. Ou ka mande m èd nenpòt lè.`)
+    : L("Hi, I’m EMMI. Welcome to ITERA HEALTH. I’m here to make your care easier and guide you through each step. You can ask me for help at any time.", "Hola, soy EMMI. Le doy la bienvenida a ITERA HEALTH. Estoy aquí para facilitar su cuidado y guiarle en cada paso. Puede pedirme ayuda en cualquier momento.", "Bonjou, mwen se EMMI. Byenveni nan ITERA HEALTH. Mwen la pou rann swen ou pi fasil epi gide w nan chak etap. Ou ka mande m èd nenpòt lè.");
+}
+
+function emmiGuidanceForScreen(screen = state.screen) {
+  const messages = {
+    IDENTITY_VERIFICATION: L("This only takes a moment. Confirming your information helps us securely verify who you are.", "Esto solo toma un momento. Confirmar su información nos ayuda a verificar su identidad de forma segura.", "Sa pran yon ti moman sèlman. Konfime enfòmasyon ou ede nou verifye idantite w an sekirite."),
+    CARE_RECOMMENDATION: L("Here you can see the support your care team can provide between visits.", "Aquí puede ver el apoyo que su equipo de atención puede brindarle entre visitas.", "La a ou ka wè sipò ekip swen ou ka ba ou ant vizit yo."),
+    ACCESS_PRE_ELIGIBILITY_NOTICE: L("This quick Medicare check tells us whether ACCESS is available to you. It does not change your Medicare benefits.", "Esta breve verificación de Medicare indica si ACCESS está disponible para usted. No cambia sus beneficios de Medicare.", "Ti chèk Medicare sa a montre si ACCESS disponib pou ou. Li pa chanje benefis Medicare ou yo."),
+    ACCESS_ELIGIBILITY_RESULT: state.accessOutcome === "eligible" ? L("Good news. You’re eligible to continue. Your enrollment is not complete yet, and I’ll guide you through the remaining steps.", "Buenas noticias. Es elegible para continuar. Su inscripción aún no está completa y le guiaré en los pasos restantes.", "Bon nouvèl. Ou kalifye pou kontinye. Enskripsyon ou poko fini, epi m ap gide w nan etap ki rete yo.") : "",
+    CONSENT_REVIEW: L("You’re almost done. This page summarizes the most important information, including your expected cost, before you decide whether to enroll.", "Ya casi termina. Esta página resume la información más importante, incluido el costo esperado, antes de que decida si desea inscribirse.", "Ou prèske fini. Paj sa a rezime enfòmasyon ki pi enpòtan yo, ansanm ak pri ou prevwa a, anvan ou deside si w ap enskri."),
+    ENROLLMENT_CONFIRMED: localized(enrollmentWelcomeFor(state.offer?.pathway).emmiWelcome),
+    ACCESS_BASELINE: L("This health check helps your care team understand your starting point and personalize your support.", "Esta evaluación ayuda a su equipo de atención a conocer su punto de partida y personalizar su apoyo.", "Evalyasyon sa a ede ekip swen ou konprann pwen depa ou epi adapte sipò ou."),
+    ACCESS_MEASURE: L("This step helps us understand how we’ll get your blood pressure starting point.", "Este paso nos ayuda a saber cómo obtendremos su presión arterial inicial.", "Etap sa a ede nou konnen kijan n ap jwenn premye mezi tansyon ou."),
+    ACCESS_BP_DEVICE_VERIFICATION: L("If ITERA already has a monitor assigned to you, I can help confirm it automatically.", "Si ITERA ya tiene un monitor asignado para usted, puedo ayudarle a confirmarlo automáticamente.", "Si ITERA deja gen yon aparèy ki asiyen pou ou, mwen ka ede konfime li otomatikman."),
+    ACCESS_BP_DEVICE_RESULT: L("Please confirm that the monitor shown is the one you have with you.", "Confirme que el monitor mostrado es el que tiene con usted.", "Tanpri konfime aparèy yo montre a se sa ou genyen avè w la."),
+    ACCESS_BP_GUIDED_SETUP: L("I can guide you through preparing your monitor one simple step at a time.", "Puedo guiarle para preparar su monitor, un paso sencillo a la vez.", "Mwen ka gide w pou prepare aparèy ou, yon etap senp alafwa."),
+    ACCESS_BP_MEASUREMENT: L("Take your time and follow each instruction. I’m here if you need help.", "Tómese su tiempo y siga cada instrucción. Estoy aquí si necesita ayuda.", "Pran tan ou epi suiv chak enstriksyon. Mwen la si ou bezwen èd.")
+  };
+  return messages[screen] || "";
+}
+
+const emmiGuidancePrompt = message => L(`Give only this short guidance in a calm, warm voice. Do not add extra details: ${message}`, `Ofrezca únicamente esta breve orientación con una voz tranquila y amable. No agregue detalles: ${message}`, `Bay sèlman ti konsèy sa a avèk yon vwa kalm ak janti. Pa ajoute lòt detay: ${message}`);
+
+function voiceGuidancePanel() {
+  if (!state.emmiVoiceGuidance || state.screen === "INVITATION") return "";
+  const voiceConnected = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
+  const status = state.emmiVoiceGuidancePaused ? L("Voice guidance: Paused", "Guía por voz: En pausa", "Gid vwa: An poz") : L("Voice guidance: On", "Guía por voz: Activa", "Gid vwa: Limen");
+  return `<section class="emmi-guidance-bar" aria-label="${L("EMMI voice guidance controls", "Controles de guía por voz de EMMI", "Kontwòl gid vwa EMMI")}"><div class="emmi-guidance-heading"><img src="/assets/emmi-assistant.png" alt=""><div><strong>${status}</strong><small>EMMI — ${L("here to guide you, whenever you need it", "aquí para guiarle cuando lo necesite", "la pou gide w lè ou bezwen li")}</small></div></div>${state.emmiGuidanceTranscript ? `<p class="emmi-guidance-transcript">${escapeHtml(state.emmiGuidanceTranscript)}</p>` : ""}<div class="emmi-guidance-actions"><button type="button" data-action="toggle-emmi-guidance-pause">${state.emmiVoiceGuidancePaused ? L("Resume voice", "Reanudar voz", "Rekòmanse vwa") : L("Pause voice", "Pausar voz", "Mete vwa an poz")}</button><button type="button" data-action="repeat-emmi-guidance" ${!voiceConnected && state.assistantVoiceError ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></section>`;
+}
+
+function refreshVoiceGuidanceControls() {
+  const current = document.querySelector(".emmi-guidance-bar");
+  if (!current) return;
+  current.outerHTML = voiceGuidancePanel();
+}
+
+function deliverEmmiGuidance(message, screen = state.screen, { connect = false } = {}) {
+  if (!message || !state.emmiVoiceGuidance || state.emmiVoiceGuidancePaused) return;
+  state.emmiGuidanceTranscript = message;
+  refreshVoiceGuidanceControls();
+  const runtime = ensureEmmiRuntime();
+  if (connect) {
+    state.assistantVoiceError = "";
+    runtime.live.connect(emmiGuidancePrompt(message)).catch(() => { /* The live client publishes a localized safe fallback. */ });
+  } else if (["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) {
+    return;
+  } else if (["LISTENING"].includes(state.assistantVoiceState)) {
+    runtime.live.sendText(emmiGuidancePrompt(message));
+  } else return;
+  state.emmiLastGuidanceScreen = screen;
+  audit(state, "emmi_voice_guidance", screen, { locale: state.language });
+}
+
+function scheduleEmmiGuidance() {
+  clearTimeout(emmiGuidanceTimer);
+  if (!state.emmiVoiceGuidance || state.emmiVoiceGuidancePaused || state.screen === "INVITATION" || state.emmiLastGuidanceScreen === state.screen) return;
+  const message = emmiGuidanceForScreen();
+  if (!message) return;
+  const attempt = retries => {
+    if (state.screen === "INVITATION" || state.emmiLastGuidanceScreen === state.screen || !state.emmiVoiceGuidance || state.emmiVoiceGuidancePaused) return;
+    const activeField = document.activeElement?.matches?.("input, textarea, select, [contenteditable='true']");
+    if (activeField || ["USER_SPEAKING", "EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING", "CONNECTING"].includes(state.assistantVoiceState)) {
+      if (retries < 15) emmiGuidanceTimer = setTimeout(() => attempt(retries + 1), 1000);
+      return;
+    }
+    deliverEmmiGuidance(message, state.screen);
+  };
+  emmiGuidanceTimer = setTimeout(() => attempt(0), 700);
+}
+
+function scheduleEmmiHesitationSupport() {
+  clearTimeout(emmiHesitationTimer);
+  emmiHesitationCleanup?.();
+  emmiHesitationCleanup = null;
+  state.emmiContextualNudgeVisible = false;
+  const important = ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_IDENTIFIER", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"];
+  if (!important.includes(state.screen) || state.assistantOpen) return;
+  const showNudge = () => {
+    if (state.assistantOpen) return;
+    state.emmiContextualNudgeVisible = true;
+    const bot = document.querySelector(".emmi-assistant");
+    if (bot && !document.querySelector(".emmi-contextual-nudge")) bot.insertAdjacentHTML("beforebegin", emmiAssistant().split('<button class="emmi-assistant"')[0]);
+    document.querySelector(".emmi-contextual-nudge")?.addEventListener("click", showHelp);
+    emmiHesitationCleanup?.();
+    emmiHesitationCleanup = null;
+  };
+  const armTimer = () => { clearTimeout(emmiHesitationTimer); emmiHesitationTimer = setTimeout(showNudge, 25000); };
+  const activityEvents = ["pointerdown", "keydown", "input"];
+  activityEvents.forEach(type => app.addEventListener(type, armTimer));
+  emmiHesitationCleanup = () => activityEvents.forEach(type => app.removeEventListener(type, armTimer));
+  armTimer();
+}
+
 function assistantLayer() {
   const context = assistantContext();
   const quickQuestions = assistantQuickQuestions(context);
-  const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}</div>`).join("");
+  const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}</div>`).join("");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
     : [L("Is participation voluntary?", "¿La participación es voluntaria?", "Èske patisipasyon volontè?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")];
   const voiceActive = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
-  const debug = import.meta.env.DEV && emmiAuditLog ? `<details class="assistant-debug"><summary>${L("Prototype session log", "Registro de sesión del prototipo", "Jounal sesyon pwototip")}</summary><p>${L("Stored locally for prototype QA. It contains only fictional demo data.", "Guardado localmente para QA del prototipo. Solo contiene datos ficticios.", "Li anrejistre lokalman pou QA pwototip la. Li gen sèlman done demonstrasyon fiktif.")}</p></details>` : "";
   return `<aside class="assistant-layer" role="dialog" aria-modal="true" aria-labelledby="assistant-title">
     <header class="assistant-header"><div class="assistant-identity"><strong>EMMI</strong><small>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</small></div><button class="language" data-assistant-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button><button class="assistant-close" data-assistant-action="close" aria-label="${L("Back to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon")}">×</button></header>
     <div class="assistant-content"><div class="assistant-intro"><img src="/assets/emmi-assistant.png" alt=""><div><h1 id="assistant-title" tabindex="-1">${L("Hi, I’m EMMI. How can I help?", "Hola, soy EMMI. ¿Cómo puedo ayudar?", "Bonjou, mwen se EMMI. Kijan mwen ka ede?")}</h1><p>${L("Ask me anything about your enrollment or care.", "Pregúnteme sobre su inscripción o cuidado.", "Mande m nenpòt bagay sou enskripsyon oswa swen ou.")}</p></div></div>
@@ -691,7 +864,7 @@ function assistantLayer() {
       <button class="assistant-faq-toggle" type="button" data-assistant-action="faq" aria-expanded="${state.assistantFaqOpen}">${L("Browse common questions", "Ver preguntas comunes", "Gade kesyon komen")} ${icon("chevronRight")}</button>
       ${state.assistantFaqOpen ? `<section class="assistant-common-questions">${commonQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question)}">${question}</button>`).join("")}</section>` : ""}` : ""}
       <section class="assistant-human-support"><h2>${L("Prefer to talk with someone?", "¿Prefiere hablar con alguien?", "Ou prefere pale ak yon moun?")}</h2><a class="assistant-support-action" href="tel:+13053948070">${icon("phone")}<span><strong>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</strong><small>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</small></span></a><button class="assistant-support-action" type="button" data-assistant-action="callback">${icon("phone")}<span><strong>${L("Have someone call me", "Quiero que alguien me llame", "Mande yon moun rele m")}</strong><small>${L("EMMI will confirm before sending the request", "EMMI confirmará antes de enviar la solicitud", "EMMI ap konfime anvan li voye demann lan")}</small></span></button></section>
-      <p class="emmi-disclaimer">${icon("info")}<span>${L("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.", "EMMI es una asistente de IA, no una profesional clínica. Para emergencias médicas, llame al 911.", "EMMI se yon asistan IA, li pa yon pwofesyonèl klinik. Pou ijans medikal, rele 911.")}</span></p>${debug}
+      <p class="emmi-disclaimer">${icon("info")}<span>${L("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.", "EMMI es una asistente de IA, no una profesional clínica. Para emergencias médicas, llame al 911.", "EMMI se yon asistan IA, li pa yon pwofesyonèl klinik. Pou ijans medikal, rele 911.")}</span></p>
       <button class="button secondary assistant-back" type="button" data-assistant-action="close">${icon("arrowLeft", "button-icon")} ${L("Back to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon")}</button>
     </div></aside>`;
 }
@@ -852,23 +1025,48 @@ function processing(kind = "enrollment") {
     </ol>`;
 }
 
-function success() {
-  const access = state.offer.pathway === "ACCESS", rpm = ["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway);
-  const title = access ? L("You’re enrolled in ACCESS with ITERA HEALTH", "Está inscrito en ACCESS con ITERA HEALTH", "Ou enskri nan ACCESS avèk ITERA HEALTH") : rpm ? L("You’re enrolled—let’s prepare your monitor", "Está inscrito; preparemos su monitor", "Ou enskri - se pou nou prepare monitè ou") : L("You’re enrolled in ongoing care support", "Está inscrito en apoyo de cuidado continuo", "Ou enskri nan sipò swen kontinyèl");
-  const supportingCopy = access
-    ? isProviderReferralSource(state.offer.enrollmentSource) && state.offer.physician?.displayName
-      ? L(`ITERA HEALTH coordinates your ACCESS care with ${state.offer.physician.displayName}.`, `ITERA HEALTH coordina su cuidado ACCESS con ${state.offer.physician.displayName}.`, `ITERA HEALTH kowòdone swen ACCESS ou avèk ${state.offer.physician.displayName}.`)
-      : L("ITERA HEALTH coordinates this care with your existing doctors.", "ITERA HEALTH coordina este cuidado con sus médicos actuales.", "ITERA HEALTH kowòdone swen sa a avèk doktè ou deja genyen yo.")
-    : offerText(state.offer.content.supportTemplate || state.offer.content.support, { physicianDisplayName: physicianDisplayName() });
+function enrollmentGrowthOpportunities() {
+  if (state.offer.pathway !== "ACCESS") return "";
+  const careCircleVisible = state.careCircleStatus !== "ACTIVE" && growthPromptAvailable(state.careCirclePromptDismissedAt);
+  const shareVisible = growthPromptAvailable(state.shareAccessPromptDismissedAt);
+  if (!careCircleVisible && !shareVisible) return "";
+  const hasSupportPerson = Boolean(state.supportPersonName);
+  return `<section class="growth-opportunities" aria-label="${L("Optional support", "Apoyo opcional", "Sipò opsyonèl")}">${careCircleVisible ? `<article class="growth-card post-enrollment">${icon("people")}<div><strong>${hasSupportPerson ? L(`Would you like ${state.supportPersonName} to continue helping with your care?`, `¿Quiere que ${state.supportPersonName} continúe ayudándole con su cuidado?`, `Èske ou vle ${state.supportPersonName} kontinye ede w ak swen ou?`) : L("Would you like someone you trust to help with your care?", "¿Quiere que alguien de confianza le ayude con su cuidado?", "Èske ou vle yon moun ou fè konfyans ede w ak swen ou?")}</strong><p>${L("A family member or caregiver can help with reminders, device setup, and next steps.", "Un familiar o cuidador puede ayudar con recordatorios, dispositivos y próximos pasos.", "Yon fanmi oswa moun k ap bay swen ka ede ak rapèl, aparèy, ak pwochen etap yo.")}</p><div class="growth-inline-actions"><button type="button" data-action="open-care-circle-post">${L("Add to my Care Circle", "Agregar a mi Círculo de cuidado", "Ajoute nan Sèk swen mwen")}</button><button type="button" data-action="dismiss-growth" data-growth-type="care-circle">${L("Not now", "Ahora no", "Pa kounye a")}</button></div></div></article>` : ""}${shareVisible ? `<article class="growth-card share-access-card">${icon("share")}<div><strong>${L("Know someone who may benefit from extra support?", "¿Conoce a alguien que podría beneficiarse de apoyo adicional?", "Ou konnen yon moun ki ka benefisye de plis sipò?")}</strong><p>${L("You can share information about Medicare’s ACCESS Model with a friend or family member.", "Puede compartir información sobre el Modelo ACCESS de Medicare con un amigo o familiar.", "Ou ka pataje enfòmasyon sou Modèl ACCESS Medicare ak yon zanmi oswa fanmi.")}</p><div class="growth-inline-actions"><button type="button" data-action="open-share-access">${L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button><button type="button" data-action="dismiss-growth" data-growth-type="share-access">${L("Not now", "Ahora no", "Pa kounye a")}</button></div></div></article>` : ""}</section>`;
+}
+
+function EnrollmentWelcomeScreen() {
+  const pathway = state.offer.pathway;
+  const welcome = enrollmentWelcomeFor(pathway);
+  const disclosure = programDisclosureConfig(pathway);
+  const programDisplayName = pathway === "ACCESS" ? "ACCESS" : localized(disclosure?.displayName) || pathway.replaceAll("_", " + ");
+  const title = welcome.useProgramDisplayName
+    ? L(`Welcome to your ${programDisplayName} experience`, `Bienvenido a su experiencia de ${programDisplayName}`, `Byenveni nan eksperyans ${programDisplayName} ou`)
+    : localized(welcome.title);
+  const displayedPhysician = physicianDisplayName();
+  const physicianContext = isProviderReferralSource(state.offer.enrollmentSource) && displayedPhysician
+    ? L(`ITERA HEALTH coordinates this care with ${displayedPhysician}.`, `ITERA HEALTH coordina este cuidado con ${displayedPhysician}.`, `ITERA HEALTH kowòdone swen sa a avèk ${displayedPhysician}.`)
+    : L("ITERA HEALTH helps coordinate this care with your existing doctors.", "ITERA HEALTH ayuda a coordinar este cuidado con sus médicos actuales.", "ITERA HEALTH ede kowòdone swen sa a avèk doktè ou deja genyen yo.");
   const signingRole = isPersonalRepresentative() ? L("Personal representative", "Representante personal", "Reprezantan pèsonèl") : L("Patient", "Paciente", "Pasyan");
   const consentTimestamp = state.consentTimestamp
     ? new Intl.DateTimeFormat({ en: "en-US", es: "es-US", ht: "ht-HT" }[state.language] || "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(state.consentTimestamp))
     : L("Recorded securely with this enrollment", "Registrado de forma segura con esta inscripción", "Anrejistre an sekirite avèk enskripsyon sa a");
-  return `${art("check", true)}${titleBlock(title, supportingCopy)}<div class="status-pill">${icon("shield")} ${L("Enrollment confirmed", "Inscripción confirmada", "Enskripsyon konfime")}</div>
-    <section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["phone", L("Your care team will call you within 2 business days", "Su equipo de cuidado le llamará dentro de 2 días hábiles", "Ekip swen ou ap rele w nan 2 jou ouvrab"), ""], ["document", L("We’ll review your personalized care plan", "Revisaremos su plan de cuidado personalizado", "N ap revize plan swen pèsonalize ou"), ""], ["people", L("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo"), ""]])}</section>
-    <details class="full-terms enrollment-consent-details"><summary>${L("View enrollment and consent details", "Ver detalles de inscripción y consentimiento", "Gade detay enskripsyon ak konsantman")} ${icon("arrowRight")}</summary><p><strong>${L("Enrollment confirmation", "Confirmación de inscripción", "Konfimasyon enskripsyon")}:</strong> ${L("Confirmed", "Confirmada", "Konfime")}<br><strong>${L("Consent details", "Detalles del consentimiento", "Detay konsantman")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.consent.version}<br><strong>${L("Consent timestamp", "Fecha y hora del consentimiento", "Dat ak lè konsantman")}:</strong> ${consentTimestamp}<br><strong>${L("Signing role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${signingRole}<br><strong>${L("Applicable disclosures", "Divulgaciones aplicables", "Enfòmasyon ki aplikab")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.disclosures.version}</p></details>
-    ${actions(access ? L("Start health check", "Iniciar evaluación de salud", "Kòmanse chèk sante") : rpm ? L("Set up my monitor", "Configurar mi monitor", "Fikse monitè mwen an") : L("Continue to set up care", "Continuar configuración", "Kontinye mete kanpe swen"), false)}`;
+  const stepIcons = ["ACCESS", "CCM"].includes(pathway) ? ["phone", "document", "people"]
+    : ["RPM", "CCM_RPM", "PCM_RPM"].includes(pathway) ? ["box", "wifi", "people"]
+      : ["document", "phone", "people"];
+  const nextSteps = welcome.nextSteps.map((step, index) => [stepIcons[index], localized(step), ""]);
+  return `<div class="enrollment-welcome-screen" data-program="${pathway}" data-next-route="${welcome.nextRoute}">${art("check", true)}
+    <p class="success-eyebrow">${L("Welcome", "Bienvenido", "Byenveni")}</p>
+    ${titleBlock(title, localized(welcome.supportingCopy))}
+    <p class="enrollment-welcome-reassurance">${localized(enrollmentWelcomeCommon.reassurance)}</p>
+    <p class="enrollment-welcome-context">${physicianContext}</p>
+    <div class="status-pill">${icon("shield")} ${L("Enrollment confirmed", "Inscripción confirmada", "Enskripsyon konfime")}</div>
+    <section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows(nextSteps)}</section>
+    <details class="full-terms enrollment-consent-details"><summary>${L("View enrollment and consent details", "Ver detalles de inscripción y consentimiento", "Gade detay enskripsyon ak konsantman")} ${icon("arrowRight")}</summary><p><strong>${L("Enrollment confirmation", "Confirmación de inscripción", "Konfimasyon enskripsyon")}:</strong> ${L("Confirmed", "Confirmada", "Konfime")}<br><strong>${L("Program", "Programa", "Pwogram")}:</strong> ${programDisplayName}<br><strong>${L("Consent details", "Detalles del consentimiento", "Detay konsantman")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.consent.version}<br><strong>${L("Consent timestamp", "Fecha y hora del consentimiento", "Dat ak lè konsantman")}:</strong> ${consentTimestamp}<br><strong>${L("Signing role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${signingRole}<br><strong>${L("Applicable disclosures", "Divulgaciones aplicables", "Enfòmasyon ki aplikab")}:</strong> ${L("Version", "Versión", "Vèsyon")} ${state.offer.disclosures.version}</p></details>
+    ${enrollmentGrowthOpportunities()}
+    ${actions(localized(welcome.primaryCTA), false)}</div>`;
 }
+
+const success = EnrollmentWelcomeScreen;
 
 function accessNotice() {
   const noticeRows = [
@@ -908,7 +1106,7 @@ function eligibilityResult() {
     alreadyAligned: ["info", L("An existing ACCESS relationship was found", "Encontramos una relación ACCESS existente", "Nou jwenn yon relasyon ACCESS ki deja egziste"), L("We need a care team member to review it before anything changes.", "Un miembro del equipo debe revisarla antes de realizar cambios.", "Yon manm ekip swen an dwe revize li anvan anyen chanje."), L("Request review", "Solicitar revisión", "Mande yon revizyon")],
     unavailable: ["clock", L("Medicare is temporarily unavailable", "Medicare no está disponible temporalmente", "Medicare pa disponib pou yon ti tan"), L("We saved your progress. This does not mean you are ineligible. Please try again later or ask us to call you.", "Guardamos su progreso. Esto no significa que no sea elegible. Inténtelo después o solicite una llamada.", "Nou anrejistre pwogrè ou. Sa pa vle di ou pa kalifye. Tanpri eseye ankò pita oswa mande nou rele ou."), L("Try again", "Intentar de nuevo", "Eseye ankò")]
   }[outcome] || ["info", L("Review needed", "Se necesita una revisión", "Nou bezwen revize sa"), L("A care team member will review your information.", "Un miembro del equipo revisará su información.", "Yon manm ekip swen an pral revize enfòmasyon ou yo."), L("Request a call", "Solicitar una llamada", "Mande yon apèl")];
-  return `${art(results[0], outcome === "eligible")}${titleBlock(results[1], results[2])}${outcome === "eligible" ? `<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa k ap pase apre?")}</h2>${rows([["document", L("Review important ACCESS information", "Revise información importante de ACCESS", "Revize enfòmasyon enpòtan sou ACCESS"), ""], ["person", L("Agree to enroll with ITERA HEALTH", "Acepte inscribirse con ITERA HEALTH", "Dakò pou enskri avèk ITERA HEALTH"), ""], ["clock", L("We’ll complete your ACCESS enrollment with Medicare", "Completaremos su inscripción en ACCESS con Medicare", "N ap konplete enskripsyon ACCESS ou avèk Medicare"), ""]])}</section>` : ""}${actions(results[3], false, outcome === "unavailable" ? L("Request a callback", "Solicitar llamada", "Mande yon retou") : "")}`;
+  return `<div class="access-eligibility-result-screen">${art(results[0], outcome === "eligible")}${titleBlock(results[1], results[2])}${outcome === "eligible" ? `<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa k ap pase apre?")}</h2>${rows([["document", L("Review important ACCESS information", "Revise información importante de ACCESS", "Revize enfòmasyon enpòtan sou ACCESS"), ""], ["person", L("Agree to enroll with ITERA HEALTH", "Acepte inscribirse con ITERA HEALTH", "Dakò pou enskri avèk ITERA HEALTH"), ""], ["clock", L("We’ll complete your ACCESS enrollment with Medicare", "Completaremos su inscripción en ACCESS con Medicare", "N ap konplete enskripsyon ACCESS ou avèk Medicare"), ""]])}</section>` : ""}${actions(results[3], false, outcome === "unavailable" ? L("Request a callback", "Solicitar llamada", "Mande yon retou") : "")}</div>`;
 }
 
 function onboarding() {
@@ -927,8 +1125,11 @@ function onboarding() {
     { section: "preferences", itemIcon: "phone", title: L("Care preferences", "Preferencias de cuidado", "Preferans swen"), description: L("Choose how we should contact you", "Elija cómo debemos contactarle", "Chwazi kijan nou dwe kontakte ou"), status: state.carePreferencesStatus },
     { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus }
   ];
+  const careCircleSupport = state.careCircleStatus === "ACTIVE"
+    ? `<aside class="growth-card care-circle-status">${icon("people")}<div><strong>${L(`${state.supportPersonName} is in your Care Circle`, `${state.supportPersonName} forma parte de su Círculo de cuidado`, `${state.supportPersonName} nan Sèk swen ou`)}</strong><p>${L("They can help with the care tasks you authorized.", "Puede ayudar con las tareas de cuidado que usted autorizó.", "Moun nan ka ede ak travay swen ou te otorize yo.")}</p></div></aside>`
+    : state.careCircleStatus === "NONE" && growthPromptAvailable(state.careCirclePromptDismissedAt) ? careCircleEarlyPrompt(true) : "";
   return `${titleBlock(L("Set up your care", "Configure su cuidado", "Fikse swen w"), L("Enrollment is complete. You can finish these steps now or later.", "La inscripción está completa. Puede terminar estos pasos ahora o después.", "Enskripsyon an konplè. Ou ka fini etap sa yo kounye a oswa pita."), L("Care setup", "Configuración", "Konfigirasyon swen"))}
-    ${bpProgress}<div class="link-list">${cards.map(careSetupCard).join("")}</div>
+    ${bpProgress}<div class="link-list">${cards.map(careSetupCard).join("")}</div>${careCircleSupport}
     ${actions(L("Save and continue", "Guardar y continuar", "Sove epi kontinye"), false, L("I’ll finish later", "Terminaré después", "Mwen pral fini pita"))}`;
 }
 
@@ -1242,7 +1443,7 @@ function prototypeSetup() {
   </main>`;
 }
 
-const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
+const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 
 function devPanel() {
   if (import.meta.env.PROD) return "";
@@ -1250,16 +1451,23 @@ function devPanel() {
 }
 
 function render() {
+  clearTimeout(emmiGuidanceTimer);
+  clearTimeout(emmiHesitationTimer);
+  emmiHesitationCleanup?.();
+  emmiHesitationCleanup = null;
+  state.emmiContextualNudgeVisible = false;
   state.assistantOpen = false;
   document.body.classList.remove("assistant-open");
   if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); return; }
-  if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; return; }
-  if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
+  if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; return; }
+  if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
-  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : "";
+  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen) ? "growth-screen" : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : state.screen === "ACCESS_MEASURE" && isBloodPressureAccessBaseline() ? "BP_HEALTH_DATA_SECURITY" : "";
-  app.innerHTML = `<main class="shell">${header()}<section class="screen ${screenClass}" id="screen-content">${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
+  app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
+  scheduleEmmiGuidance();
+  scheduleEmmiHesitationSupport();
   requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
@@ -1328,6 +1536,7 @@ async function launchPrototype() {
     state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
+  Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
   if (prototypeDeviceContext) Object.assign(state, {
     patientHasBloodPressureMonitor: Boolean(prototypeDeviceContext.patientOwnsMonitor),
     deviceSource: prototypeDeviceContext.deviceSource || "UNKNOWN",
@@ -1624,13 +1833,18 @@ async function advance() {
     state.consentTimestamp = new Date().toISOString();
     audit(state, "consent_saved", "success", { consentRole: state.consentRole, consentVersion: state.consentVersion });
   }
-  if (state.screen === "ENROLLMENT_CONFIRMED" && state.offer.pathway === "ACCESS") {
+  if (state.screen === "ENROLLMENT_CONFIRMED") {
     state.enrollmentConfirmed = true;
     state.enrollmentStatus = "COMPLETED";
     state.enrollmentCompletedAt ||= new Date().toISOString();
-    state.baselineStatus ||= "NOT_STARTED";
-    state.baselineResumeScreen = "ACCESS_BASELINE";
-    audit(state, "care_activation_started", "success", { enrollmentStatus: state.enrollmentStatus, baselineStatus: state.baselineStatus });
+    state.activationStatus = "IN_PROGRESS";
+    state.activationStartedAt ||= new Date().toISOString();
+    if (state.offer.pathway === "ACCESS") {
+      state.baselineStatus ||= "NOT_STARTED";
+      state.baselineResumeScreen = "ACCESS_BASELINE";
+    }
+    if (["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway)) state.deviceSetupStatus ||= "NOT_STARTED";
+    audit(state, "care_activation_started", "success", { enrollmentStatus: state.enrollmentStatus, activationStatus: state.activationStatus, baselineStatus: state.baselineStatus, deviceSetupStatus: state.deviceSetupStatus, pathway: state.offer.pathway });
   }
   if (state.screen === "ACCESS_BASELINE") {
     state.enrollmentStatus = "COMPLETED";
@@ -2011,8 +2225,17 @@ async function runEligibility() {
     eligibilityRequest = null;
   }
 }
-async function runEnrollment() { const result = await service.createTraditionalEnrollment(); if (result.status === "confirmed") { state.enrollmentConfirmed = true; state.enrollmentStatus = "COMPLETED"; state.enrollmentCompletedAt = new Date().toISOString(); audit(state, "enrollment", "confirmed"); audit(state, "enrollment_completed", "success", { enrollmentStatus: state.enrollmentStatus }); state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render(); } }
-async function runAlignment() { const result = await service.submitAccessAlignment(); if (result.status === "confirmed") { state.alignmentConfirmed = true; state.enrollmentConfirmed = true; state.enrollmentStatus = "COMPLETED"; state.enrollmentCompletedAt = new Date().toISOString(); audit(state, "alignment", "confirmed"); audit(state, "enrollment_completed", "success", { enrollmentStatus: state.enrollmentStatus, pathway: "ACCESS" }); state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render(); } }
+async function runEnrollment() { const result = await service.createTraditionalEnrollment(); if (result.status === "confirmed") { state.enrollmentConfirmed = true; state.enrollmentStatus = "COMPLETED"; state.enrollmentCompletedAt = new Date().toISOString(); state.activationStatus = "NOT_STARTED"; audit(state, "enrollment", "confirmed"); audit(state, "enrollment_completed", "success", { enrollmentStatus: state.enrollmentStatus, activationStatus: state.activationStatus }); state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render(); } }
+async function runAlignment() {
+  const attributionShareId = new URLSearchParams(location.search).get("shareId");
+  if (attributionShareId) growthStore.updateAccessShare(attributionShareId, { enrollmentStarted: true });
+  const result = await service.submitAccessAlignment();
+  if (result.status === "confirmed") {
+    state.alignmentConfirmed = true; state.enrollmentConfirmed = true; state.enrollmentStatus = "COMPLETED"; state.enrollmentCompletedAt = new Date().toISOString(); state.activationStatus = "NOT_STARTED";
+    if (attributionShareId) growthStore.updateAccessShare(attributionShareId, { enrollmentCompleted: true });
+    audit(state, "alignment", "confirmed"); audit(state, "enrollment_completed", "success", { enrollmentStatus: state.enrollmentStatus, activationStatus: state.activationStatus, pathway: "ACCESS" }); state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render();
+  }
+}
 function refreshAssistantLayer({ focusInput = false } = {}) {
   const current = document.querySelector(".assistant-layer");
   if (!current) return;
@@ -2034,7 +2257,7 @@ async function askEmmi(question) {
   try {
     const response = await assistantAnswer(cleaned, assistantContext());
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
-    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency });
+    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "" });
     runtime.audit.transcript("assistant", response.text);
     audit(state, "emmi_question", response.emergency ? "emergency_guidance" : state.assistantOriginScreen);
   } catch {
@@ -2050,11 +2273,13 @@ function closeAssistant() {
   state.assistantLanguageChanged = false;
   document.body.classList.remove("assistant-open");
   document.querySelector(".assistant-layer")?.remove();
-  if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("ended");
-  emmiAuditLog?.end();
-  emmiAuditLog = null;
-  emmiTools = null;
-  emmiLive = null;
+  if (!state.emmiVoiceGuidance) {
+    if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("ended");
+    emmiAuditLog?.end();
+    emmiAuditLog = null;
+    emmiTools = null;
+    emmiLive = null;
+  }
   if (languageChanged) render();
   requestAnimationFrame(() => {
     window.scrollTo({ top: scrollY, behavior: "auto" });
@@ -2070,6 +2295,16 @@ function bindAssistantLayer() {
     askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
   });
   layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => askEmmi(button.dataset.assistantQuestion || "")));
+  layer.querySelectorAll("[data-assistant-growth]").forEach(button => button.addEventListener("click", () => {
+    const growthAction = button.dataset.assistantGrowth;
+    const originScreen = state.assistantOriginScreen || state.screen;
+    closeAssistant();
+    state.growthReturnScreen = originScreen;
+    state.growthContext = "emmi";
+    if (growthAction === "care-circle") state.screen = state.enrollmentStatus === "COMPLETED" && state.supportPersonName ? "CARE_CIRCLE_PERMISSIONS" : "CARE_CIRCLE_INVITE";
+    if (growthAction === "share-access" && state.enrollmentStatus === "COMPLETED") state.screen = "SHARE_ACCESS";
+    render();
+  }));
   layer.querySelectorAll("[data-assistant-action]").forEach(control => control.addEventListener("click", event => {
     event.preventDefault();
     const action = control.dataset.assistantAction;
@@ -2078,7 +2313,8 @@ function bindAssistantLayer() {
     if (action === "callback") askEmmi(L("Can someone call me?", "¿Puede llamarme alguien?", "Èske yon moun ka rele m?"));
     if (action === "start-voice") {
       state.assistantVoiceError = ""; refreshAssistantLayer();
-      ensureEmmiRuntime().live.connect().catch(() => { /* The live client publishes a safe, localized error state. */ });
+      const initialGuidance = state.emmiVoiceGuidance && state.emmiGuidanceTranscript ? emmiGuidancePrompt(state.emmiGuidanceTranscript) : "";
+      ensureEmmiRuntime().live.connect(initialGuidance).catch(() => { /* The live client publishes a safe, localized error state. */ });
     }
     if (action === "end-voice") { ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
     if (action === "mute") { state.assistantVoiceMuted = !state.assistantVoiceMuted; ensureEmmiRuntime().live.setMuted(state.assistantVoiceMuted); refreshAssistantLayer(); }
@@ -2121,10 +2357,13 @@ function bindEmmiDrag() {
   const positionKey = "itera.emmi.position.v1";
   const bounds = () => {
     const shellRect = shell.getBoundingClientRect();
-    return { minX: shellRect.left + 6, maxX: shellRect.right - emmi.offsetWidth - 6, minY: 6, maxY: window.innerHeight - emmi.offsetHeight - 6 };
+    const minY = Math.max(0, shellRect.top) + 6;
+    const visibleBottom = Math.min(window.innerHeight, shellRect.bottom);
+    return { minX: shellRect.left + 6, maxX: shellRect.right - emmi.offsetWidth - 6, minY, maxY: Math.max(minY, visibleBottom - emmi.offsetHeight - 6) };
   };
   const place = (left, top) => {
     const limit = bounds();
+    emmi.style.position = "fixed";
     emmi.style.left = `${Math.min(limit.maxX, Math.max(limit.minX, left))}px`;
     emmi.style.top = `${Math.min(limit.maxY, Math.max(limit.minY, top))}px`;
     emmi.style.right = "auto";
@@ -2142,6 +2381,13 @@ function bindEmmiDrag() {
   emmi.addEventListener("pointerdown", event => {
     if (event.button !== undefined && event.button !== 0) return;
     const rect = emmi.getBoundingClientRect();
+    if (getComputedStyle(emmi).position !== "fixed") {
+      emmi.style.position = "fixed";
+      emmi.style.left = `${rect.left}px`;
+      emmi.style.top = `${rect.top}px`;
+      emmi.style.right = "auto";
+      emmi.style.bottom = "auto";
+    }
     drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, moved: false };
     emmi.setPointerCapture?.(event.pointerId);
     emmi.classList.add("dragging");
@@ -2194,6 +2440,137 @@ function bind() {
       if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() });
       state.careTeamTasks = tasks;
     };
+    if (action === "open-care-circle") {
+      state.growthReturnScreen = state.screen;
+      state.growthContext = el.dataset.growthContext || "early";
+      state.screen = "CARE_CIRCLE_INVITE";
+      state.error = "";
+      render();
+      return;
+    }
+    if (action === "open-care-circle-post") {
+      state.growthReturnScreen = state.screen;
+      state.growthContext = "post-enrollment";
+      state.screen = state.supportPersonName ? "CARE_CIRCLE_PERMISSIONS" : "CARE_CIRCLE_INVITE";
+      state.error = "";
+      render();
+      return;
+    }
+    if (action === "open-share-access") {
+      if (state.enrollmentStatus !== "COMPLETED") return;
+      state.growthReturnScreen = state.screen;
+      state.growthContext = "post-enrollment";
+      state.growthNotice = "";
+      state.screen = "SHARE_ACCESS";
+      render();
+      return;
+    }
+    if (action === "growth-return") {
+      state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
+      state.error = "";
+      render();
+      return;
+    }
+    if (action === "dismiss-growth") {
+      const preferences = growthStore.dismissPrompt(el.dataset.growthType);
+      state.careCirclePromptDismissedAt = preferences.careCirclePromptDismissedAt;
+      state.shareAccessPromptDismissedAt = preferences.shareAccessPromptDismissedAt;
+      audit(state, "growth_prompt_dismissed", "success", { type: el.dataset.growthType, cooldownDays: 7 });
+      if (state.identityVerified) draftStore.save(state);
+      render();
+      return;
+    }
+    if (action === "send-care-circle-invite") {
+      const form = document.querySelector("#care-circle-invite-form");
+      const data = Object.fromEntries(new FormData(form));
+      const supportPersonName = String(data.supportPersonName || "").trim();
+      const supportPersonPhone = phoneDigits(data.supportPersonPhone);
+      if (!supportPersonName || supportPersonPhone.length !== 10) {
+        state.supportPersonName = supportPersonName;
+        state.supportPersonPhone = formatPhone(supportPersonPhone);
+        state.supportPersonRelationship = data.supportPersonRelationship || "";
+        state.error = L("Enter their name and a 10-digit mobile number.", "Ingrese su nombre y un número celular de 10 dígitos.", "Antre non moun nan ak yon nimewo mobil 10 chif.");
+        render(); return;
+      }
+      const invite = growthStore.createSupportInvite({ inviterPatientId: state.offer.patient.id, patientFirstName: patientFirstName(), supportPersonName, phone: supportPersonPhone, relationship: data.supportPersonRelationship || "", sessionId: state.sessionId, origin: location.origin });
+      Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: "INVITED", supportPersonName, supportPersonPhone: formatPhone(supportPersonPhone), supportPersonRelationship: data.supportPersonRelationship || "", supportInviteId: invite.inviteId, supportInviteToken: invite.token, supportInviteStatus: invite.status, supportInviteSentAt: invite.sentAt, screen: "CARE_CIRCLE_INVITE_SENT", error: "" });
+      audit(state, "care_circle_invitation_sent", "success", { inviteId: invite.inviteId, relationship: invite.supportPerson.relationship, supportRole: invite.supportRole, completionRole: state.completionRole });
+      if (state.identityVerified) draftStore.save(state);
+      render();
+      return;
+    }
+    if (action === "dismiss-care-circle-post") {
+      const preferences = growthStore.dismissPrompt("care-circle");
+      state.careCirclePromptDismissedAt = preferences.careCirclePromptDismissedAt;
+      state.screen = state.growthReturnScreen || "ENROLLMENT_CONFIRMED";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "save-care-circle") {
+      const selected = [...new FormData(document.querySelector("#care-circle-permissions-form")).getAll("careCirclePermission")];
+      state.careCirclePermissions = Object.fromEntries(Object.keys(state.careCirclePermissions).map(permission => [permission, selected.includes(permission)]));
+      state.careCircleStatus = "ACTIVE";
+      state.supportInviteStatus = state.supportInviteStatus === "NONE" ? "ACCEPTED" : state.supportInviteStatus;
+      if (state.supportInviteId) growthStore.updateSupportInvite(state.supportInviteId, { careCircleStatus: "ACTIVE", careCirclePermissions: state.careCirclePermissions });
+      audit(state, "care_circle_activated", "success", { inviteId: state.supportInviteId || null, enabledPermissions: selected });
+      state.screen = state.growthReturnScreen || "ENROLLMENT_CONFIRMED";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "share-access") {
+      if (state.enrollmentStatus !== "COMPLETED") return;
+      const channel = el.dataset.shareChannel;
+      const share = growthStore.createAccessShare({ channel, origin: location.origin });
+      const message = `${L("I’m getting extra support for my health through Medicare’s ACCESS Model with ITERA HEALTH.", "Estoy recibiendo apoyo adicional para mi salud mediante el Modelo ACCESS de Medicare con ITERA HEALTH.", "Mwen resevwa plis sipò pou sante mwen atravè Modèl ACCESS Medicare avèk ITERA HEALTH.")}\n\n${L("If you have Original Medicare and manage a chronic health condition, you can learn more here:", "Si tiene Medicare Original y maneja una condición crónica, puede obtener más información aquí:", "Si ou gen Medicare Orijinal epi w ap jere yon pwoblèm sante kwonik, ou ka aprann plis isit la:")}\n${share.publicAccessLandingUrl}`;
+      let delivered = false;
+      if (channel === "WEB_SHARE" && navigator.share) { try { await navigator.share({ title: "Medicare ACCESS", text: message, url: share.publicAccessLandingUrl }); delivered = true; } catch { delivered = false; } }
+      else if (channel === "SMS") { window.open(`sms:?&body=${encodeURIComponent(message)}`, "_self"); delivered = true; }
+      if (channel === "COPY_LINK" || (channel === "WEB_SHARE" && !delivered)) { try { await navigator.clipboard.writeText(share.publicAccessLandingUrl); delivered = true; } catch { delivered = false; } }
+      state.activeAccessShare = share;
+      state.accessShares = [...state.accessShares, share];
+      state.growthNotice = delivered ? (channel === "COPY_LINK" || (channel === "WEB_SHARE" && !navigator.share) ? L("Public ACCESS link copied.", "Enlace público de ACCESS copiado.", "Lyen piblik ACCESS la kopye.") : L("ACCESS information is ready to share.", "La información de ACCESS está lista para compartir.", "Enfòmasyon ACCESS pare pou pataje.")) : L("We couldn’t open sharing. You can try Copy link.", "No pudimos abrir la opción para compartir. Puede intentar Copiar enlace.", "Nou pa t kapab ouvri opsyon pataj la. Ou ka eseye Kopye lyen.");
+      audit(state, "access_information_shared", delivered ? "success" : "unavailable", { shareId: share.shareId, channel });
+      draftStore.save(state); render();
+      return;
+    }
+    if (action === "enable-emmi-guidance") {
+      state.emmiVoiceGuidance = true;
+      state.emmiVoiceGuidancePaused = false;
+      state.emmiWelcomeAcknowledged = true;
+      state.assistantVoiceMuted = false;
+      state.emmiLastGuidanceScreen = "";
+      persistEmmiPreferences();
+      const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
+      render();
+      requestAnimationFrame(() => deliverEmmiGuidance(message, state.screen, { connect: true }));
+      return;
+    }
+    if (action === "disable-emmi-guidance") {
+      state.emmiVoiceGuidance = false;
+      state.emmiVoiceGuidancePaused = false;
+      state.emmiWelcomeAcknowledged = true;
+      state.emmiGuidanceTranscript = "";
+      if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("guidance_disabled");
+      persistEmmiPreferences();
+      render();
+      return;
+    }
+    if (action === "toggle-emmi-guidance-pause") {
+      state.emmiVoiceGuidancePaused = !state.emmiVoiceGuidancePaused;
+      if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) {
+        emmiLive.stopPlayback();
+        emmiLive.setMuted(state.emmiVoiceGuidancePaused);
+      }
+      state.assistantVoiceMuted = state.emmiVoiceGuidancePaused;
+      refreshVoiceGuidanceControls();
+      if (!state.emmiVoiceGuidancePaused) deliverEmmiGuidance(emmiGuidanceForScreen() || state.emmiGuidanceTranscript, state.screen, { connect: !emmiLive || ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) });
+      return;
+    }
+    if (action === "repeat-emmi-guidance") {
+      const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || state.emmiGuidanceTranscript);
+      if (!state.emmiVoiceGuidance) { state.emmiVoiceGuidance = true; state.emmiWelcomeAcknowledged = true; persistEmmiPreferences(); }
+      state.emmiVoiceGuidancePaused = false;
+      deliverEmmiGuidance(message, state.screen, { connect: !emmiLive || ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) });
+      return;
+    }
     if (action === "next") {
       if (el.disabled || el.dataset.pending === "true") return;
       el.dataset.pending = "true";
@@ -2201,7 +2578,10 @@ function bind() {
       try { await advance(); } finally { if (el.isConnected) { delete el.dataset.pending; el.disabled = false; } }
     }
     if (action === "back") {
-      if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
+      if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
+        state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
+        render();
+      } else if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
         state.screen = "ONBOARDING";
         state.baselineResumeScreen = "ONBOARDING";
         draftStore.save(state); render();
@@ -2240,7 +2620,13 @@ function bind() {
     if (action === "authority-document") showHelp();
     if (action === "callback") { state.callbackRequested = true; state.returnScreen = state.screen; state.screen = "CALLBACK_CONFIRMED"; audit(state, "callback_requested"); render(); }
     if (action === "return") { state.screen = state.returnScreen || "INVITATION"; render(); }
-    if (action === "language") { setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"); render(); }
+    if (action === "language") {
+      if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("language_changed");
+      setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en");
+      state.emmiLastGuidanceScreen = "";
+      state.emmiGuidanceTranscript = "";
+      render();
+    }
     if (action === "change-representative-phone") { state.phoneVerified = false; state.representativeOtpDeliveryId = ""; state.screen = "PERSONAL_REPRESENTATIVE_DETAILS"; draftStore.save(state); render(); }
     if (action === "bp-care-team-help") {
       state.bpDeviceVerificationStatus = "NEEDS_REVIEW";
@@ -2489,6 +2875,8 @@ function bind() {
   representativePhone?.addEventListener("input", event => { event.target.value = formatPhone(event.target.value); updateRepresentativeCta(); });
   const representativeOtp = document.querySelector("#representative-otp");
   representativeOtp?.addEventListener("input", event => { event.target.value = phoneDigits(event.target.value).slice(0, 6); });
+  const careCirclePhone = document.querySelector('[name="supportPersonPhone"]');
+  careCirclePhone?.addEventListener("input", event => { event.target.value = formatPhone(event.target.value); });
   const authorityForm = document.querySelector("#representative-authority-form");
   const authorityCta = authorityForm?.closest(".screen")?.querySelector('[data-action="next"]');
   authorityForm?.addEventListener("change", () => { if (authorityCta) authorityCta.disabled = !authorityForm.querySelector('[name="representativeAuthorityAttested"]')?.checked; });
@@ -2521,12 +2909,48 @@ function bind() {
   bindEmmiDrag();
 }
 
+function publicBrandHeader() {
+  return `<header class="public-brand-header"><span class="brand"><b>ITERA.</b>HEALTH</span><button type="button" class="language" data-public-action="language">${icon("language")} ${languageCode()}</button></header>`;
+}
+
+function renderPublicAccessLanding() {
+  const shareId = new URLSearchParams(location.search).get("shareId") || "";
+  if (shareId) growthStore.updateAccessShare(shareId, { clicked: true, landingStarted: true });
+  document.documentElement.lang = htmlLanguage(state.language);
+  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art("people")}${titleBlock(L("Learn about Medicare’s ACCESS Model", "Conozca el Modelo ACCESS de Medicare", "Aprann sou Modèl ACCESS Medicare"), L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre visitas médicas.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay plis sipò ant vizit kay doktè."))}<section class="public-access-facts">${rows([["home", L("Support between doctor visits", "Apoyo entre visitas médicas", "Sipò ant vizit kay doktè"), L("Get help with questions and next steps.", "Reciba ayuda con preguntas y próximos pasos.", "Jwenn èd ak kesyon ak pwochen etap yo.")], ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You choose whether to enroll.", "Usted decide si desea inscribirse.", "Se ou ki chwazi si w ap enskri.")], ["medicare", L("Original Medicare is required", "Se requiere Medicare Original", "Medicare Orijinal obligatwa"), L("Medicare must check whether ACCESS is available to you.", "Medicare debe verificar si ACCESS está disponible para usted.", "Medicare dwe verifye si ACCESS disponib pou ou.")]])}</section><p class="public-growth-disclaimer">${L("Learning more does not mean you are eligible or enrolled.", "Obtener más información no significa que sea elegible ni que esté inscrito.", "Aprann plis pa vle di ou kalifye oswa ou enskri.")}</p><button type="button" class="button primary" data-public-action="start-access">${L("See if ACCESS may be available to you", "Vea si ACCESS podría estar disponible para usted", "Gade si ACCESS ka disponib pou ou")} ${icon("arrowRight")}</button></section></main>`;
+  app.querySelector('[data-public-action="language"]')?.addEventListener("click", () => { setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"); renderPublicAccessLanding(); });
+  app.querySelector('[data-public-action="start-access"]')?.addEventListener("click", () => {
+    if (shareId) growthStore.updateAccessShare(shareId, { eligibilityStarted: true });
+    location.href = `/?prototype=1&source=patient-share${shareId ? `&shareId=${encodeURIComponent(shareId)}` : ""}`;
+  });
+}
+
+function renderSupportAcceptance() {
+  const token = new URLSearchParams(location.search).get("token") || "";
+  const invite = growthStore.findSupportInvite(token);
+  if (invite?.status === "SENT") growthStore.updateSupportInvite(invite.inviteId, { status: "OPENED", openedAt: new Date().toISOString() });
+  const activeInvite = growthStore.findSupportInvite(token);
+  const available = activeInvite && !activeInvite.revokedAt && new Date(activeInvite.expiresAt).getTime() >= Date.now();
+  const accepted = activeInvite?.status === "ACCEPTED";
+  const patient = activeInvite?.patientFirstName || L("The patient", "El paciente", "Pasyan an");
+  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art(available ? "people" : "lock", accepted)}${available ? titleBlock(accepted ? L("You’re ready to help", "Ya puede ayudar", "Ou pare pou ede") : L("You’ve been invited to help", "Le han invitado a ayudar", "Yo envite w pou ede"), accepted ? L(`${patient} remains in control of their healthcare decisions.`, `${patient} mantiene el control de sus decisiones médicas.`, `${patient} toujou gen kontwòl sou desizyon swen sante li.`) : L(`${patient} invited you to help with their ITERA HEALTH care experience.`, `${patient} le invitó a ayudar con su experiencia de cuidado de ITERA HEALTH.`, `${patient} envite w ede nan eksperyans swen ITERA HEALTH li.`)) : titleBlock(L("This invitation is no longer available", "Esta invitación ya no está disponible", "Envitasyon sa a pa disponib ankò"), L("Ask the patient to send a new secure invitation.", "Pida al paciente que envíe una nueva invitación segura.", "Mande pasyan an voye yon nouvo envitasyon an sekirite."))}${available ? `<aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("The patient remains in control", "El paciente mantiene el control", "Pasyan an toujou gen kontwòl")}</strong><span>${L(`You can help with the process, but ${patient} remains in control of healthcare decisions. This does not make you a Personal Representative.`, `Puede ayudar con el proceso, pero ${patient} mantiene el control de las decisiones médicas. Esto no le convierte en Representante personal.`, `Ou ka ede ak pwosesis la, men ${patient} toujou gen kontwòl sou desizyon swen sante. Sa pa fè w vin yon Reprezantan pèsonèl.`)}</span></p></aside>${accepted ? `<p class="growth-success-note">${icon("check")} ${L("Support invitation accepted", "Invitación de apoyo aceptada", "Envitasyon sipò aksepte")}</p>` : `<button type="button" class="button primary" data-public-action="accept-support">${L("Continue helping", "Continuar ayudando", "Kontinye ede")} ${icon("arrowRight")}</button>`}` : ""}</section></main>`;
+  app.querySelector('[data-public-action="language"]')?.addEventListener("click", () => { setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"); renderSupportAcceptance(); });
+  app.querySelector('[data-public-action="accept-support"]')?.addEventListener("click", () => { growthStore.acceptSupportInvite(token); renderSupportAcceptance(); });
+}
+
 async function boot() {
+  const savedLanguage = (() => { try { return localStorage.getItem("itera.enrollment.language.v1"); } catch { return null; } })();
+  if (["en", "es", "ht"].includes(savedLanguage)) state.language = savedLanguage;
+  Object.assign(state, growthStore.readPromptPreferences());
+  if (location.pathname === "/access/learn") { renderPublicAccessLanding(); return; }
+  if (location.pathname === "/support/accept") { renderSupportAcceptance(); return; }
   try {
     state.offer = await service.getOffer();
-    const saved = draftStore.load();
+    const saved = patientShareSource ? null : draftStore.load();
     if (saved?.scenarioId === scenarioId && (saved.identityVerified || saved.completionRole === "personalRepresentative")) {
       state = { ...state, ...saved, offer: state.offer, audit: saved.audit || [] };
+      if (typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean") state.emmiVoiceGuidance = savedEmmiPreferences.emmiVoiceGuidance;
+      if (savedEmmiPreferences.emmiWelcomeAcknowledged) state.emmiWelcomeAcknowledged = true;
       state.completionRole = saved.completionRole || (state.role === "representative" ? "personalRepresentative" : state.role === "helper" ? "helper" : "patient");
       if (state.enrollmentConfirmed && !saved.enrollmentStatus) state.enrollmentStatus = "COMPLETED";
       if (!saved.baselineStatus) state.baselineStatus = "NOT_STARTED";
@@ -2556,11 +2980,22 @@ async function boot() {
       if (["en", "es", "ht"].includes(preferredLanguage)) state.language = preferredLanguage;
       if (state.offer.fixture.representative) { state.role = "representative"; state.completionRole = "personalRepresentative"; }
     }
+    const storedInvite = patientShareSource ? null : growthStore.allSupportInvites().filter(invite => invite.inviterPatientId === state.offer.patient.id).at(-1);
+    if (storedInvite && !state.supportInviteId) Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: storedInvite.careCircleStatus || (storedInvite.status === "ACCEPTED" ? "ACTIVE" : "INVITED"), supportPersonName: storedInvite.supportPerson.name, supportPersonPhone: formatPhone(storedInvite.supportPerson.phone), supportPersonRelationship: storedInvite.supportPerson.relationship, supportInviteId: storedInvite.inviteId, supportInviteToken: storedInvite.token, supportInviteStatus: storedInvite.status, supportInviteSentAt: storedInvite.sentAt, supportInviteAcceptedAt: storedInvite.acceptedAt || "", careCirclePermissions: storedInvite.careCirclePermissions || state.careCirclePermissions });
+    if (!patientShareSource && !storedInvite && state.careCircleStatus === "NONE") {
+      const demoPatient = EMMI_DEMO_PATIENTS[selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario: service.getScenarioDeviceContext?.() || null })];
+      const demoCircle = demoPatient?.careCircle;
+      if (demoCircle && demoCircle.status !== "NONE") Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: demoCircle.status, supportPersonName: demoCircle.supportPerson?.name || "", supportPersonPhone: formatPhone(demoCircle.supportPerson?.phone || ""), supportPersonRelationship: demoCircle.supportPerson?.relationship || "", supportInviteStatus: demoCircle.status === "ACTIVE" ? "ACCEPTED" : "SENT" });
+    }
+    state.accessShares = patientShareSource ? [] : growthStore.allShares();
     document.documentElement.lang = htmlLanguage(state.language); render();
     if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING" && !state.eligibilityError) runEligibility();
     if (state.screen === "ACCESS_BP_DEVICE_VERIFICATION" && ["NOT_STARTED", "CHECKING"].includes(state.deviceVerificationStatus)) runAssignedDeviceLookup();
   } catch (error) { state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID"; render(); }
 }
 
-render();
-if (params.has("scenario") || prototypeMode) boot();
+if (["/access/learn", "/support/accept"].includes(location.pathname)) boot();
+else {
+  render();
+  if (params.has("scenario") || prototypeMode) boot();
+}

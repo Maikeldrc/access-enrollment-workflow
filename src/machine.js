@@ -22,6 +22,10 @@ const PROGRESS_STAGE_BY_SCREEN = {
   INVITATION: "YOUR_CARE",
   DECISION_MAKER: "WHOS_COMPLETING",
   PERSONAL_REPRESENTATIVE_DETAILS: "YOUR_ROLE",
+  CARE_CIRCLE_INVITE: "YOUR_ROLE",
+  CARE_CIRCLE_INVITE_SENT: "YOUR_ROLE",
+  CARE_CIRCLE_PERMISSIONS: "GETTING_STARTED",
+  SHARE_ACCESS: "GETTING_STARTED",
   REPRESENTATIVE_MOBILE_VERIFICATION: "YOUR_ROLE",
   REPRESENTATIVE_AUTHORITY_ATTESTATION: "YOUR_ROLE",
   REPRESENTATIVE_AUTHORITY_ESCALATION: "YOUR_ROLE",
@@ -89,7 +93,7 @@ export function journeyFor(s) {
 }
 export function progressFor(s) {
   const journey = journeyFor(s);
-  if (s.offer?.pathway === "ACCESS" && s.screen === "ENROLLMENT_CONFIRMED") {
+  if (s.screen === "ENROLLMENT_CONFIRMED") {
     const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
     return { stage, label: PROGRESS_STAGE_LABELS[stage], current: 1, total: 1, percent: 100 };
   }
