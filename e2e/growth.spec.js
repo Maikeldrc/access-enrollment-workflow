@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 const clearGrowthState = async page => page.evaluate(() => {
   ["itera.care-circle.prototype.v1", "itera.access-share.prototype.v1", "itera.growth.preferences.v1", "itera.enrollment.safe-draft.v2", "itera.enrollment.language.v1", "itera.emmi.preferences.v1"].forEach(key => localStorage.removeItem(key));
@@ -56,7 +57,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
 test("EMMI explains Care Circle boundaries without taking an action", async ({ page }) => {
   await page.getByRole("button", { name: /See how it works/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
+  await openEmmiConversation(page);
   await page.getByRole("button", { name: /Can they make decisions for me/i }).click();
   await expect(page.getByText(/They cannot consent, sign, or make healthcare decisions for you/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 const clinicalMedications = [
   { id: "med-lisinopril", name: "Lisinopril", details: "10 mg · Once daily", active: true },
@@ -80,7 +81,7 @@ test("adding, editing, and removing a missing medication provides clear feedback
 });
 
 test("EMMI gives safe medication education without treatment advice", async ({ page }) => {
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
+  await openEmmiConversation(page);
   await page.getByRole("button", { name: "What is Lisinopril?" }).click();
   await expect(page.getByText(/commonly used to help manage blood pressure/i)).toBeVisible();
   await page.getByPlaceholder(/Ask a question/i).fill("Should I stop taking this?");

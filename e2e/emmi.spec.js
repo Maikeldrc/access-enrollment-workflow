@@ -1,9 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { test, expect } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 const openEmmi = async page => {
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  return page.getByRole("dialog");
+  await openEmmiConversation(page);
+  return page.locator(".assistant-layer");
 };
 const ask = async (dialog, text) => {
   await dialog.getByPlaceholder("Ask a question…").fill(text);

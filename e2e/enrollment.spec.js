@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 async function openOwnedBpVerification(page, scenario = "access-happy") {
   await page.goto(`/?scenario=${scenario}`);
@@ -474,8 +475,8 @@ test("enrollment welcome highlights align without clipping on supported mobile w
 test("EMMI no longer exposes the prototype session log", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
-  await page.locator(".emmi-assistant").click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await openEmmiConversation(page);
+  await expect(page.locator(".assistant-layer")).toBeVisible();
   await expect(page.getByText("Prototype session log", { exact: true })).toHaveCount(0);
 });
 
@@ -846,7 +847,7 @@ test("EMMI uses the authoritative baseline counters when asked about another rea
   await reachBpReadings(page);
   await page.getByRole("button", { name: "I took my reading" }).click();
   await expect(page.getByRole("heading", { name: "Your monitor is connected", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
+  await openEmmiConversation(page);
   const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
   const input = dialog.getByPlaceholder("Ask a question…");
   await input.fill("Do I need to take my blood pressure again now?");
@@ -1057,7 +1058,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   expect(disclosureView.accessDisclosureView).toMatchObject({ disclosureVersion: "2.1", locale: "en", sessionId: disclosureView.sessionId, enrollmentId: null });
   expect(disclosureView.accessDisclosureView.viewedAt).toBeTruthy();
   expect(disclosureView.audit.map(event => event.eventType)).toContain("access_full_disclosure_viewed");
-  await page.locator(".emmi-assistant").click();
+  await openEmmiConversation(page);
   for (const question of ["What am I agreeing to?", "Can I change my mind?", "What will this cost?", "Does this change my Medicare?"]) {
     await expect(page.getByRole("button", { name: question })).toBeVisible();
   }
@@ -1436,8 +1437,9 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await expect(page.locator(".recommendation-screen")).not.toContainText("recommended care");
   await expect(page.locator(".recommendation-screen")).not.toContainText(/\b(?:CCM|RPM|PCM|CPT)\b/);
   await expect(page.locator(".progress-meta span").last()).toHaveText("Your care");
+  await expect(page.locator(".emmi-guide")).toBeVisible();
   const assistant = page.locator(".emmi-assistant");
-  await expect(assistant).toBeVisible();
+  await expect(assistant).toBeHidden();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator(".recommendation-screen").evaluate(screen => {
     const assistantRect = document.querySelector(".emmi-assistant").getBoundingClientRect();
@@ -1452,7 +1454,7 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   expect(layout.overlaps).toBe(false);
   expect(Math.min(...layout.descriptionFonts)).toBeGreaterThanOrEqual(16);
   expect(layout.noteFont).toBeGreaterThanOrEqual(15);
-  await assistant.click();
+  await openEmmiConversation(page);
   await expect(page.getByRole("heading", { name: "Hi, I’m EMMI. How can I help?" })).toBeVisible();
   await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
   await expect(page.getByText("What does ACCESS care include?")).toBeVisible();
@@ -1956,7 +1958,7 @@ test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do n
     await expect(page.locator(".access-consent-summary").getByText(locale.changeRule)).toBeVisible();
     await expect(page.getByText(locale.cost)).toBeVisible();
     await expect(page.getByText(locale.fullTerms, { exact: false })).toBeVisible();
-    await page.locator(".emmi-assistant").click();
+    await openEmmiConversation(page);
     await expect(page.locator(".assistant-header")).toContainText(locale.assistant);
     await expect(page.locator("#app")).not.toContainText("⟦");
   }
@@ -1976,8 +1978,9 @@ test("ACCESS does not confirm enrollment at eligibility", async ({ page }) => {
   await expect(page.locator('.contextual-assurance[data-assurance-type="NO_COMMITMENT_YET"]')).toContainText("You’ll review the details before you enroll");
   await expect(page.getByText("Enrollment confirmed")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText(/coverage is approved|Medicare approved your care|you’re enrolled|enrollment is confirmed/i);
+  await expect(page.locator(".emmi-guide")).toBeVisible();
   const assistant = page.locator(".emmi-assistant");
-  await expect(assistant).toBeVisible();
+  await expect(assistant).toBeHidden();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator("#screen-content").evaluate(screen => {
     const bot = document.querySelector(".emmi-assistant").getBoundingClientRect();
@@ -2019,7 +2022,8 @@ test("ACCESS eligibility processing uses patient-friendly real status states", a
   await expect(page.locator('.process-list li[data-process-state="pending"]')).toHaveText("Confirming your ACCESS care option");
   await expect(page.locator(".process-list")).not.toContainText("care track");
   await expect(page.locator('.contextual-assurance[data-assurance-type="MEDICARE_PROTECTION"]')).toContainText("This check won’t affect your Medicare benefits");
-  await expect(page.locator(".emmi-assistant")).toBeVisible();
+  await expect(page.locator(".emmi-guide")).toBeVisible();
+  await expect(page.locator(".emmi-assistant")).toBeHidden();
   const audit = await page.locator(".eligibility-processing-screen").evaluate(screen => ({
     statusFonts: [...screen.querySelectorAll(".process-list li")].map(item => parseFloat(getComputedStyle(item).fontSize)),
     horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
@@ -2151,13 +2155,12 @@ test("Emmi remains available throughout the patient experience", async ({ page }
       avatarRadius: avatarStyle.borderRadius
     };
   });
-  expect(emmiSurface).toEqual({
-    buttonBackground: "rgba(0, 0, 0, 0)",
-    buttonBorder: "0px",
-    buttonRadius: "0px",
-    avatarBackground: "rgba(0, 0, 0, 0)",
-    avatarRadius: "0px"
-  });
+  expect(emmiSurface.buttonBackground).not.toBe("rgba(0, 0, 0, 0)");
+  expect(emmiSurface.buttonBorder).toBe("1px");
+  expect(emmiSurface.buttonRadius).toBe("99px");
+  expect(emmiSurface.avatarBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(emmiSurface.avatarRadius).toBe("0px");
+  await expect(emmi.locator(".emmi-assistant-label")).toHaveText("EMMI");
   const initial = await emmi.boundingBox();
   await page.mouse.move(initial.x + initial.width / 2, initial.y + initial.height / 2);
   await page.mouse.down();
@@ -2187,7 +2190,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   const scrollBefore = await page.evaluate(() => window.scrollY);
   const progressBefore = await page.getByRole("progressbar", { name: "Journey progress" }).getAttribute("aria-valuenow");
 
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
+  await openEmmiConversation(page);
   const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Ask me anything about your enrollment or care.")).toBeVisible();
@@ -2248,7 +2251,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
+  await openEmmiConversation(page);
   const consentDialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
   await expect(consentDialog.getByText("What am I agreeing to?")).toBeVisible();
   await expect(consentDialog.getByText("Can I change my mind?")).toBeVisible();
@@ -2281,7 +2284,8 @@ test("date of birth supports typing and calendar selection", async ({ page }) =>
   await expect(dateText).toHaveAttribute("inputmode", "numeric");
   await expect(zip).toHaveAttribute("inputmode", "numeric");
   await expect(page.locator("#identity-form input[name]")).toHaveCount(2);
-  await expect(page.locator(".emmi-assistant")).toBeVisible();
+  await expect(page.locator(".emmi-guide")).toBeVisible();
+  await expect(page.locator(".emmi-assistant")).toBeHidden();
   await dateText.fill("06151945");
   await expect(dateText).toHaveValue("06 / 15 / 1945");
 
@@ -2336,6 +2340,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     await expect(footer).toHaveAttribute("data-assurance-type", type);
     await expect(footer).toContainText(message);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const audit = await page.locator("#screen-content").evaluate(screenContent => {
       const assurance = screenContent.querySelector(".contextual-assurance");
       const actionArea = screenContent.querySelector(".actions") || [...screenContent.querySelectorAll(".button")].at(-1);
@@ -2581,7 +2586,7 @@ test("all traditional programs complete their implemented patient journey", asyn
     if (includesRpm) {
       await page.getByRole("button", { name: program === "RPM" ? "Set up my monitor" : "Continue getting started" }).click();
       await expect(page.getByRole("heading", { name: "Let’s prepare your home monitor" })).toBeVisible();
-      await page.getByRole("radio", { name: /I already have a monitor/ }).check();
+      await page.locator('.choice-card:has(input[value="owned"])').click();
       await page.getByRole("button", { name: "Continue" }).click();
       await page.getByRole("button", { name: "My monitor is connected" }).click();
       await page.getByRole("button", { name: "I took my reading" }).click();
@@ -2735,6 +2740,7 @@ test("the floating assistant never covers an action once the patient reaches it"
     for (const screen of ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ONBOARDING_COMPLETE"]) {
       await page.locator("#screen-select").selectOption(screen, { force: true });
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const covered = await page.evaluate(() => {
         const assistant = document.querySelector(".emmi-assistant");
         if (!assistant || getComputedStyle(assistant).display === "none") return false;

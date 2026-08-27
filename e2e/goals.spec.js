@@ -150,14 +150,15 @@ test("care plan review reads as a personal plan rather than an administrative ta
       .map(node => parseFloat(getComputedStyle(node).fontSize));
     return {
       overflow: document.documentElement.scrollWidth > innerWidth,
-      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto").length,
+      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto")
+        .map(node => `${node.tagName}.${node.className}:${node.textContent.trim().slice(0, 30)}`),
       minFont: Math.min(...smallest),
       minCta: Math.min(...[...root.querySelectorAll(".goal-stacked-actions .button")].map(node => node.getBoundingClientRect().height)),
       tables: root.querySelectorAll("table").length
     };
   });
   expect(audit.overflow).toBe(false);
-  expect(audit.clipped).toBe(0);
+  expect(audit.clipped).toEqual([]);
   expect(audit.minFont).toBeGreaterThanOrEqual(16);
   expect(audit.minCta).toBeGreaterThanOrEqual(44);
   expect(audit.tables).toBe(0);
@@ -221,7 +222,8 @@ test("goal detail turns connected readings into understandable longitudinal prog
     const buttons = [...root.querySelectorAll(".goal-action-button, .goal-secondary-button, .goal-card-action, .goal-back-button")];
     return {
       overflow: document.documentElement.scrollWidth > innerWidth,
-      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto").length,
+      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto")
+        .map(node => `${node.tagName}.${node.className}:${node.textContent.trim().slice(0, 30)}`),
       leftEdges: new Set(columns.map(rect => Math.round(rect.left))).size,
       rightEdges: new Set(columns.map(rect => Math.round(rect.right))).size,
       minButton: Math.min(...buttons.map(node => node.getBoundingClientRect().height)),
@@ -229,7 +231,7 @@ test("goal detail turns connected readings into understandable longitudinal prog
     };
   });
   expect(audit.overflow).toBe(false);
-  expect(audit.clipped).toBe(0);
+  expect(audit.clipped).toEqual([]);
   // One global mobile grid: every section shares the same left and right edge.
   expect(audit.leftEdges).toBe(1);
   expect(audit.rightEdges).toBe(1);

@@ -6,7 +6,8 @@ import {
   Activity, ArrowLeft, ArrowRight, BadgeCheck, Bell, BookOpen, CalendarDays, ClipboardCheck, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
   HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
-  Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi
+  Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi,
+  AudioLines, MessageCircle, Pause, Play, RotateCcw
 } from "lucide";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
@@ -70,7 +71,7 @@ let state = {
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
   assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiControlsOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiExpandedOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
 let emmiAuditLog = null;
 let emmiTools = null;
@@ -80,7 +81,7 @@ let emmiConversationManager = null;
 let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
-let emmiGuidanceVisibilityObserver = null;
+let emmiSheetReturnAction = "open-emmi-voice-options";
 let emmiHesitationTimer = null;
 let emmiHesitationCleanup = null;
 
@@ -124,7 +125,14 @@ const iconMap = {
   arrowRight: ArrowRight,
   arrowLeft: ArrowLeft,
   externalLink: ExternalLink,
-  chevronRight: ChevronRight
+  chevronRight: ChevronRight,
+  // EMMI voice presentation: a voice-shaped icon rather than a generic gear, so "Voice
+  // options" never reads as system settings.
+  audioLines: AudioLines,
+  chat: MessageCircle,
+  pause: Pause,
+  play: Play,
+  rotate: RotateCcw
 };
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
@@ -309,7 +317,14 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
   const assurance = ASSURANCE_VARIANTS[type]?.();
   return assurance ? `<p class="contextual-assurance" data-assurance-type="${type}">${icon(assurance.icon)}<span>${assurance.message}</span></p>` : "";
 };
-const emmiAssistant = () => `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-action="help" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
+// The floating pill is EMMI scrolled out of reach, not a second assistant: it says her name,
+// shows what she is doing, and opens the expanded panel rather than jumping somewhere else.
+// Home keeps the direct route into the conversation, because Home is where EMMI is introduced.
+const emmiAssistant = () => {
+  const status = state.screen === "INVITATION" ? "" : emmiFloatingStatus();
+  const guideState = emmiGuideState();
+  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="${state.screen === "INVITATION" ? "help" : "open-emmi-expanded"}" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span><span class="emmi-assistant-label"><b>EMMI</b>${status ? `<i>${status}</i>` : ""}</span>${guideState === "SPEAKING" ? `<i class="emmi-audio-activity" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}</button>`;
+};
 
 function header() {
   if (state.screen === "OFFER_LOADING") return "";
@@ -392,10 +407,10 @@ function emmiHomeVoiceStatus() {
 
 function emmiWelcomeVoiceControls() {
   if (!emmiVoiceIsSupported(languageCode())) return `<div class="emmi-welcome-choice emmi-voice-text-only" data-voice-state="UNSUPPORTED"><p role="status"><strong>${L("EMMI text is available", "El chat de EMMI está disponible", "EMMI disponib pa mesaj")}</strong><small class="emmi-welcome-error">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</small></p></div>`;
-  if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`;
+  if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${emmiLabels().guideMe}</button></div>`;
   const busy = emmiGuidanceIsBusy();
   const unavailable = state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError);
-  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
+  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("rotate")} ${emmiLabels().repeat}</button><button type="button" data-action="disable-emmi-guidance">${emmiLabels().turnOff}</button></div></div>`;
 }
 
 function emmiWelcome(providerReferral, physicianName) {
@@ -1148,6 +1163,8 @@ const emmiGuidancePrompt = message => {
 // status stay visible, one contextual action remains direct, and secondary controls expand
 // only on request. The task stays the visual priority.
 function emmiGuideState() {
+  if (!state.emmiVoiceGuidance) return "OFF";
+  if (!emmiVoiceIsSupported(languageCode())) return "UNSUPPORTED";
   if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return "ERROR";
   if (state.emmiVoiceGuidancePaused) return "PAUSED";
   if (state.emmiTransitionStatus === "UPDATING") return "UPDATING";
@@ -1158,82 +1175,208 @@ function emmiGuideState() {
 }
 
 const emmiGuideStatusLabel = guideState => ({
+  OFF: L("Need help?", "¿Necesita ayuda?", "Bezwen èd?"),
+  UNSUPPORTED: L("Voice guidance is unavailable in this language", "La guía por voz no está disponible en este idioma", "Gid vwa a pa disponib nan lang sa a"),
   SPEAKING: state.assistantVoiceDetail === "patient_response"
     ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-    : L("EMMI is explaining this step…", "EMMI está explicando este paso…", "EMMI ap eksplike etap sa a…"),
-  LISTENING: L("Listening…", "Le escucho…", "M ap koute w…"),
-  THINKING: L("EMMI is preparing an answer…", "EMMI está preparando una respuesta…", "EMMI ap prepare yon repons…"),
-  UPDATING: L("Updating guidance…", "Actualizando la orientación…", "N ap mete gid la ajou…"),
+    : L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…"),
+  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
+  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
+  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…"),
   PAUSED: L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz"),
   ERROR: L("Voice guidance is temporarily unavailable", "La guía por voz no está disponible por ahora", "Gid vwa a pa disponib pou kounye a")
 })[guideState] || L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
 
-function voiceGuidancePanel() {
-  if (state.screen === "INVITATION") return "";
-  const guideLabel = L("EMMI contextual guidance", "Orientación contextual de EMMI", "Gid kontèks EMMI");
-  // Voice off: a small affordance, never the full card.
-  if (!state.emmiVoiceGuidance) {
-    // Real buttons, not hyperlinks: these are direct actions, and long Spanish labels need a
-    // comfortable touch target rather than an underlined run of text.
-    const voiceSupported = emmiVoiceIsSupported(languageCode());
-    return `<section class="emmi-guide emmi-guide-off" aria-label="${guideLabel}">
-      <div class="emmi-guide-row"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><div class="emmi-guide-copy"><strong>EMMI</strong><span class="emmi-guide-off-copy">${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</span></div></div>
-      <div class="emmi-guide-off-actions"><button type="button" class="emmi-guide-button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button>${voiceSupported ? `<button type="button" class="emmi-guide-button emmi-guide-button-lead" data-action="enable-emmi-guidance">${icon("mic", "emmi-guide-button-icon")}<span>${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</span></button>` : ""}</div>
-      ${voiceSupported ? "" : `<p class="emmi-guide-voice-unavailable" role="status">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</p>`}
-    </section>`;
-  }
-  const guideState = emmiGuideState();
-  const narration = buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
-  const transcript = state.emmiGuidanceTranscript || narration?.narrationText || "";
-  const busy = guideState === "SPEAKING" || guideState === "THINKING" || guideState === "UPDATING";
-  const primary = guideState === "PAUSED"
-    ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${L("Resume", "Reanudar", "Rekòmanse")}</button>`
-    : guideState === "SPEAKING"
-      ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${L("Pause", "Pausar", "Poze")}</button>`
-      : ["LISTENING", "THINKING", "UPDATING"].includes(guideState)
-        ? ""
-        : `<button type="button" class="emmi-guide-primary" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button>`;
-  const retry = guideState === "ERROR" ? `<button type="button" data-action="repeat-emmi-guidance">${L("Try again", "Intentar de nuevo", "Eseye ankò")}</button>` : "";
-  const controls = guideState === "ERROR" ? "" : `<button type="button" class="emmi-guide-controls" data-action="open-emmi-controls" aria-haspopup="dialog" aria-expanded="${state.emmiControlsOpen}">${icon("sliders", "emmi-guide-control-icon")}${L("Controls", "Controles", "Kontwòl")}</button>`;
-  const sheet = state.emmiControlsOpen ? `<div class="emmi-controls-backdrop" data-action="close-emmi-controls" aria-hidden="true"></div><section class="emmi-controls-sheet" role="dialog" aria-modal="true" aria-labelledby="emmi-controls-title">
-    <div class="emmi-controls-handle" aria-hidden="true"></div>
-    <div class="emmi-controls-heading"><div><strong id="emmi-controls-title">EMMI</strong><span>${emmiGuideStatusLabel(guideState)}</span></div><button type="button" class="emmi-controls-close" data-action="close-emmi-controls" aria-label="${L("Close controls", "Cerrar controles", "Fèmen kontwòl yo")}">×</button></div>
-    <div class="emmi-controls-actions">
-      <button type="button" data-action="toggle-emmi-guidance-pause">${guideState === "PAUSED" ? L("Resume", "Reanudar", "Rekòmanse") : L("Pause", "Pausar", "Poze")}</button>
-      <button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button>
-      <button type="button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button>
-      <button type="button" data-action="disable-emmi-guidance">${L("Turn voice guidance off", "Desactivar guía por voz", "Etenn gid vwa a")}</button>
-      ${transcript ? `<button type="button" data-action="toggle-emmi-transcript" aria-expanded="${state.emmiTranscriptOpen}" aria-controls="emmi-guide-transcript">${state.emmiTranscriptOpen ? L("Hide message", "Ocultar mensaje", "Kache mesaj la") : L("Read message", "Leer mensaje", "Li mesaj la")}</button>` : ""}
+// One label vocabulary for every EMMI surface. "Voice options" replaces "Controls" because the
+// label itself has to tell a Medicare patient what they will find: Ask EMMI is "I want to say
+// something", Voice options is "I want to change how EMMI speaks to me".
+const emmiLabels = () => ({
+  ask: L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI"),
+  voiceOptions: L("Voice options", "Opciones de voz", "Opsyon vwa"),
+  guideMe: L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa"),
+  pause: L("Pause", "Pausar", "Poze"),
+  resume: L("Resume", "Reanudar", "Rekòmanse"),
+  repeat: L("Repeat", "Repetir", "Repete"),
+  turnOff: L("Turn voice off", "Desactivar guía por voz", "Etenn gid vwa a"),
+  read: L("Read message", "Leer mensaje", "Li mesaj la"),
+  hide: L("Hide message", "Ocultar mensaje", "Kache mesaj la"),
+  close: L("Close", "Cerrar", "Fèmen"),
+  retry: L("Try again", "Intentar de nuevo", "Eseye ankò")
+});
+
+const emmiGuidanceTranscriptText = () => state.emmiGuidanceTranscript
+  || buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() })?.narrationText
+  || "";
+
+// Voice options only ever controls the voice experience. It is deliberately not a settings
+// menu: no account, program or knowledge options belong here.
+function emmiVoiceOptionRows(guideState) {
+  const labels = emmiLabels();
+  const transcript = emmiGuidanceTranscriptText();
+  const busy = ["SPEAKING", "THINKING", "UPDATING"].includes(guideState);
+  return `<div class="emmi-sheet-actions">
+      <button type="button" data-action="toggle-emmi-guidance-pause">${icon(guideState === "PAUSED" ? "play" : "pause", "emmi-sheet-icon")}<span>${guideState === "PAUSED" ? labels.resume : labels.pause}</span></button>
+      <button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled" : ""}>${icon("rotate", "emmi-sheet-icon")}<span>${labels.repeat}</span></button>
+      ${transcript ? `<button type="button" data-action="toggle-emmi-transcript" aria-expanded="${state.emmiTranscriptOpen}" aria-controls="emmi-guide-transcript">${icon("document", "emmi-sheet-icon")}<span>${state.emmiTranscriptOpen ? labels.hide : labels.read}</span></button>` : ""}
     </div>
     ${state.emmiTranscriptOpen && transcript ? `<p class="emmi-guide-transcript" id="emmi-guide-transcript">${escapeHtml(transcript)}</p>` : ""}
-    <button type="button" class="emmi-controls-done" data-action="close-emmi-controls">${L("Close", "Cerrar", "Fèmen")}</button>
-  </section>` : "";
+    <button type="button" class="emmi-sheet-tertiary" data-action="disable-emmi-guidance">${icon("micOff", "emmi-sheet-icon")}<span>${labels.turnOff}</span></button>`;
+}
+
+// Both bottom sheets share one shell so focus handling, dismissal and sizing stay identical.
+function emmiBottomSheet({ id, title, status, body }) {
+  return `<div class="emmi-sheet-backdrop" data-action="close-emmi-sheet" aria-hidden="true"></div><section class="emmi-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}-title">
+    <div class="emmi-sheet-handle" aria-hidden="true"></div>
+    <div class="emmi-sheet-heading"><div><strong id="${id}-title">${title}</strong><span>${status}</span></div><button type="button" class="emmi-sheet-close" data-action="close-emmi-sheet" aria-label="${emmiLabels().close} ${title}">×</button></div>
+    ${body}
+    <button type="button" class="emmi-sheet-done" data-action="close-emmi-sheet">${emmiLabels().close}</button>
+  </section>`;
+}
+
+function emmiVoiceOptionsSheet(guideState) {
+  return emmiBottomSheet({
+    id: "emmi-voice-options",
+    title: emmiLabels().voiceOptions,
+    status: emmiGuideStatusLabel(guideState),
+    body: emmiVoiceOptionRows(guideState)
+  });
+}
+
+// The expanded panel is what the floating pill opens. It is the same EMMI, the same voice and
+// the same conversation in a fuller presentation, so it never greets the patient again.
+function emmiExpandedSheet(guideState) {
+  const labels = emmiLabels();
+  const voiceLive = !["OFF", "UNSUPPORTED", "ERROR"].includes(guideState);
+  return emmiBottomSheet({
+    id: "emmi-expanded",
+    title: "EMMI",
+    status: emmiGuideStatusLabel(guideState),
+    body: `<button type="button" class="emmi-sheet-primary" data-action="help">${icon("chat", "emmi-sheet-icon")}<span>${labels.ask}</span></button>
+      ${voiceLive ? `<p class="emmi-sheet-section">${labels.voiceOptions}</p>${emmiVoiceOptionRows(guideState)}` : ""}
+      ${guideState === "OFF" && emmiVoiceIsSupported(languageCode()) ? `<button type="button" class="emmi-sheet-tertiary" data-action="enable-emmi-guidance">${icon("mic", "emmi-sheet-icon")}<span>${labels.guideMe}</span></button>` : ""}`
+  });
+}
+
+// EMMI is introduced on the Home screen. Everywhere after it this is the compact card: EMMI's
+// identity and live status stay visible, one conversational action stays direct, and everything
+// about how EMMI speaks moves behind a single, plainly named button.
+function voiceGuidancePanel() {
+  if (state.screen === "INVITATION") return "";
+  const labels = emmiLabels();
+  const guideLabel = L("EMMI contextual guidance", "Orientación contextual de EMMI", "Gid kontèks EMMI");
+  const guideState = emmiGuideState();
+  const sheet = state.emmiExpandedOpen
+    ? emmiExpandedSheet(guideState)
+    : state.emmiVoiceOptionsOpen ? emmiVoiceOptionsSheet(guideState) : "";
+
+  // Voice off, or a language EMMI cannot speak: never offer Voice options, because there is no
+  // voice guidance to adjust yet. Ask EMMI stays available either way.
+  if (guideState === "OFF" || guideState === "UNSUPPORTED") {
+    const canEnable = guideState === "OFF" && emmiVoiceIsSupported(languageCode());
+    return `<section class="emmi-guide emmi-guide-off" data-guide-state="${guideState}" aria-label="${guideLabel}">
+      <div class="emmi-guide-row"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><div class="emmi-guide-copy"><strong>EMMI</strong><span class="emmi-guide-off-copy">${emmiGuideStatusLabel(guideState)}</span></div></div>
+      <div class="emmi-guide-off-actions"><button type="button" class="emmi-guide-button" data-action="help">${labels.ask}</button>${canEnable ? `<button type="button" class="emmi-guide-button emmi-guide-button-lead" data-action="enable-emmi-guidance">${icon("mic", "emmi-guide-button-icon")}<span>${labels.guideMe}</span></button>` : ""}</div>
+      ${canEnable ? "" : `<p class="emmi-guide-voice-unavailable" role="status">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</p>`}
+      ${sheet}
+    </section>`;
+  }
+
+  // Pause never appears while EMMI is listening to the patient, and Ask EMMI is not repeated
+  // while EMMI speaks: barge-in already lets the patient simply start talking.
+  const primary = guideState === "PAUSED"
+    ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${labels.resume}</button>`
+    : guideState === "SPEAKING"
+      ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${labels.pause}</button>`
+      : ["LISTENING", "THINKING", "UPDATING"].includes(guideState)
+        ? ""
+        : `<button type="button" class="emmi-guide-primary" data-action="help">${labels.ask}</button>`;
+  const retry = guideState === "ERROR" ? `<button type="button" data-action="repeat-emmi-guidance">${labels.retry}</button>` : "";
+  const voiceOptions = guideState === "ERROR" ? "" : `<button type="button" class="emmi-guide-voice-options" data-action="open-emmi-voice-options" aria-haspopup="dialog" aria-expanded="${state.emmiVoiceOptionsOpen}">${icon("audioLines", "emmi-guide-control-icon")}<span>${labels.voiceOptions}</span></button>`;
   return `<section class="emmi-guide" data-guide-state="${guideState}" aria-label="${guideLabel}">
     <div class="emmi-guide-row">
       <img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt="">
       <div class="emmi-guide-copy"><strong>EMMI</strong><span role="status" aria-live="polite">${emmiGuideStatusLabel(guideState)}${guideState === "SPEAKING" ? `<i class="emmi-audio-activity" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}</span></div>
     </div>
-    <div class="emmi-guide-actions">${primary}${retry}${controls}</div>
+    <div class="emmi-guide-actions">${primary}${retry}${voiceOptions}</div>
     ${sheet}
   </section>`;
 }
 
-
-// While the compact control is on screen there is no reason to also float the EMMI button:
-// two EMMI affordances at once is noise, and the floating one can crowd the actions row.
+// Compact and floating are two presentations of one EMMI, so exactly one of them is ever on
+// screen. The pill also stands down rather than sit on top of anything the patient can act on:
+// at 384px a fixed overlay and a full-width Continue button cannot share the same corner, and
+// never covering the screen's own work is the rule that wins.
 function syncFloatingEmmiVisibility() {
   const floating = document.querySelector(".emmi-assistant");
   if (!floating) return;
-  emmiGuidanceVisibilityObserver?.disconnect();
-  emmiGuidanceVisibilityObserver = null;
-  const bar = document.querySelector(".emmi-guide");
-  if (!bar) { floating.classList.remove("emmi-assistant-suppressed"); return; }
-  floating.classList.add("emmi-assistant-suppressed");
-  if (typeof IntersectionObserver !== "function") return;
-  emmiGuidanceVisibilityObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => floating.classList.toggle("emmi-assistant-suppressed", entry.isIntersecting));
-  }, { threshold: 0 });
-  emmiGuidanceVisibilityObserver.observe(bar);
+  const compact = document.querySelector(".emmi-guide");
+  const sheetOpen = Boolean(state.emmiVoiceOptionsOpen || state.emmiExpandedOpen);
+  const compactBox = compact?.getBoundingClientRect();
+  const compactVisible = Boolean(compactBox && compactBox.bottom > 0 && compactBox.top < innerHeight && compactBox.height);
+  if (sheetOpen || compactVisible) { floating.classList.add("emmi-assistant-suppressed"); return; }
+  floating.classList.remove("emmi-assistant-suppressed");
+  const box = floating.getBoundingClientRect();
+  const covers = [...document.querySelectorAll("#screen-content button,#screen-content a,#screen-content input,#screen-content select,#screen-content textarea,#screen-content label,#screen-content .button,#screen-content .contextual-assurance,#screen-content .contact-line")]
+    .some(node => {
+      const rect = node.getBoundingClientRect();
+      return rect.width && rect.height && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom;
+    });
+  floating.classList.toggle("emmi-assistant-suppressed", covers);
+}
+
+// Scrolling is what moves EMMI between presentations, so the handoff is recalculated on every
+// scroll and resize rather than only when a screen renders.
+let emmiFloatingSyncQueued = false;
+function scheduleFloatingEmmiSync() {
+  if (emmiFloatingSyncQueued) return;
+  emmiFloatingSyncQueued = true;
+  requestAnimationFrame(() => { emmiFloatingSyncQueued = false; syncFloatingEmmiVisibility(); });
+}
+if (typeof window !== "undefined") {
+  addEventListener("scroll", scheduleFloatingEmmiSync, { passive: true });
+  addEventListener("resize", scheduleFloatingEmmiSync);
+  // Escape belongs to the sheet wherever focus happens to be: the patient may have opened it
+  // from the pill and never moved focus inside it.
+  addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    if (!state.emmiVoiceOptionsOpen && !state.emmiExpandedOpen) return;
+    event.preventDefault();
+    closeEmmiSheets();
+  });
+}
+
+// The floating pill carries EMMI's name and live state rather than a bare avatar: the patient
+// has to be able to tell at a glance that this is EMMI and what she is doing right now.
+const emmiFloatingStatus = () => ({
+  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
+  SPEAKING: L("Speaking…", "Hablando…", "L ap pale…"),
+  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
+  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…")
+})[emmiGuideState()] || "";
+
+// One close path for both sheets, so dismissal, transcript state, body scroll lock and focus
+// return can never drift apart between the compact card and the expanded panel.
+function closeEmmiSheets({ returnFocus = true } = {}) {
+  const trigger = emmiSheetReturnAction;
+  state.emmiVoiceOptionsOpen = false;
+  state.emmiExpandedOpen = false;
+  state.emmiTranscriptOpen = false;
+  refreshVoiceGuidanceControls();
+  if (returnFocus) requestAnimationFrame(() => document.querySelector(`[data-action="${trigger}"]`)?.focus({ preventScroll: true }));
+}
+
+// A modal sheet that leaks focus back to the page behind it is unusable with a screen reader
+// or a keyboard, so Tab cycles inside it. Escape is handled globally, since the patient may
+// never have moved focus into the sheet at all.
+function trapFocusWithin(container) {
+  container.addEventListener("keydown", event => {
+    if (event.key !== "Tab") return;
+    const focusable = [...container.querySelectorAll("button:not([disabled]),[href],input,select,textarea,[tabindex]:not([tabindex='-1'])")];
+    if (!focusable.length) return;
+    const [first, last] = [focusable[0], focusable[focusable.length - 1]];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
 }
 
 function refreshVoiceGuidanceControls() {
@@ -1245,16 +1388,11 @@ function refreshVoiceGuidanceControls() {
     const replacement = document.querySelector(".emmi-guide");
     if (replacement) {
       bindActions(replacement);
-      replacement.querySelector(".emmi-controls-sheet")?.addEventListener("keydown", event => {
-        if (event.key !== "Escape") return;
-        state.emmiControlsOpen = false;
-        state.emmiTranscriptOpen = false;
-        refreshVoiceGuidanceControls();
-        requestAnimationFrame(() => document.querySelector('[data-action="open-emmi-controls"]')?.focus({ preventScroll: true }));
-      });
+      const sheet = replacement.querySelector(".emmi-sheet");
+      if (sheet) trapFocusWithin(sheet);
     }
-    document.body.classList.toggle("emmi-controls-open", state.emmiControlsOpen);
-    syncFloatingEmmiVisibility();
+    document.body.classList.toggle("emmi-sheet-open", Boolean(state.emmiVoiceOptionsOpen || state.emmiExpandedOpen));
+    scheduleFloatingEmmiSync();
   }
   const welcome = document.querySelector(".emmi-welcome-choice");
   if (welcome) {
@@ -2426,8 +2564,9 @@ function render() {
   emmiHesitationCleanup?.();
   emmiHesitationCleanup = null;
   state.emmiContextualNudgeVisible = false;
-  state.emmiControlsOpen = false;
-  document.body.classList.remove("emmi-controls-open");
+  state.emmiVoiceOptionsOpen = false;
+  state.emmiExpandedOpen = false;
+  document.body.classList.remove("emmi-sheet-open");
   state.assistantOpen = false;
   document.body.classList.remove("assistant-open");
   if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); return; }
@@ -3814,7 +3953,8 @@ function bind() {
     if (action === "disable-emmi-guidance") {
       state.emmiVoiceGuidance = false;
       state.emmiVoiceGuidancePaused = false;
-      state.emmiControlsOpen = false;
+      state.emmiVoiceOptionsOpen = false;
+      state.emmiExpandedOpen = false;
       state.emmiTranscriptOpen = false;
       state.emmiWelcomeAcknowledged = true;
       state.emmiGuidanceTranscript = "";
@@ -3824,20 +3964,17 @@ function bind() {
       render();
       return;
     }
-    if (action === "open-emmi-controls") {
-      state.emmiControlsOpen = true;
+    if (action === "open-emmi-voice-options" || action === "open-emmi-expanded") {
+      // Remember what opened the sheet so focus can go back exactly where the patient left it.
+      emmiSheetReturnAction = action === "open-emmi-expanded" ? "open-emmi-expanded" : "open-emmi-voice-options";
+      state.emmiExpandedOpen = action === "open-emmi-expanded";
+      state.emmiVoiceOptionsOpen = action === "open-emmi-voice-options";
       state.emmiTranscriptOpen = false;
       refreshVoiceGuidanceControls();
-      requestAnimationFrame(() => document.querySelector(".emmi-controls-close")?.focus({ preventScroll: true }));
+      requestAnimationFrame(() => document.querySelector(".emmi-sheet-close")?.focus({ preventScroll: true }));
       return;
     }
-    if (action === "close-emmi-controls") {
-      state.emmiControlsOpen = false;
-      state.emmiTranscriptOpen = false;
-      refreshVoiceGuidanceControls();
-      requestAnimationFrame(() => document.querySelector('[data-action="open-emmi-controls"]')?.focus({ preventScroll: true }));
-      return;
-    }
+    if (action === "close-emmi-sheet") { closeEmmiSheets(); return; }
     if (action === "toggle-emmi-transcript") { state.emmiTranscriptOpen = !state.emmiTranscriptOpen; refreshVoiceGuidanceControls(); return; }
     if (action === "toggle-emmi-guidance-pause") {
       state.emmiVoiceGuidancePaused = !state.emmiVoiceGuidancePaused;
@@ -4109,11 +4246,8 @@ function bind() {
     if (action === "edit-added-medication") { state.medicationEditId = el.dataset.medicationId; state.medicationAddOpen = true; state.error = ""; render(); }
     if (action === "remove-added-medication") { state.additionalMedications = state.additionalMedications.filter(item => item.id !== el.dataset.medicationId); state.additionalMedicationsStatus = state.additionalMedications.length ? "ADDED" : "UNREVIEWED"; audit(state, "patient_reported_medication_removed", "success", { additionalMedicationId: el.dataset.medicationId }); draftStore.save(state); render(); }
     if (action === "help") {
-      if (state.emmiControlsOpen) {
-        state.emmiControlsOpen = false;
-        state.emmiTranscriptOpen = false;
-        refreshVoiceGuidanceControls();
-      }
+      // The conversation is the same EMMI: closing the sheet is presentation, not a new session.
+      if (state.emmiVoiceOptionsOpen || state.emmiExpandedOpen) closeEmmiSheets({ returnFocus: false });
       showHelp();
     }
     if (action === "authority-document") showHelp();
@@ -4440,7 +4574,7 @@ function bind() {
     const optionalSupport = document.querySelector("[data-optional-support]");
     if (optionalSupport) optionalSupport.hidden = !completionRoleAcceptsCareCircle();
   });
-  syncFloatingEmmiVisibility();
+  scheduleFloatingEmmiSync();
   bindEmmiDrag();
 }
 

@@ -91,11 +91,11 @@ test("voice activation and its controls stay in the language the patient selecte
   await expect(card).toContainText("No se pudo iniciar la sesión de voz.");
   await expect(card).not.toContainText("Voice guidance");
   await expect(page.getByRole("button", { name: "Repetir" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Desactivar voz" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Desactivar guía por voz" })).toBeVisible();
 
   // Capability is resolved before activation: Kreyòl stays text-only without requesting a
   // token or microphone, and never silently switches to English or Korean.
-  await page.getByRole("button", { name: "Desactivar voz" }).click();
+  await page.getByRole("button", { name: "Desactivar guía por voz" }).click();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("button", { name: "Gide m ak vwa" })).toHaveCount(0);
   await expect(page.locator(".emmi-voice-text-only")).toContainText("Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj.");
@@ -113,19 +113,22 @@ test("shows persistent, accessible guidance controls after opt-in", async ({ pag
   await expect(controls.getByText("EMMI", { exact: true })).toBeVisible();
   await expect(controls.getByText("Voice guidance is on")).toBeVisible();
   await expect(controls.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(controls.getByRole("button", { name: "Controls" })).toBeVisible();
+  await expect(controls.getByRole("button", { name: "Voice options" })).toBeVisible();
+  await expect(controls.getByRole("button", { name: /Controls/i })).toHaveCount(0);
   await expect(controls.getByRole("button", { name: "Pause", exact: true })).toHaveCount(0);
   await expect(controls.getByRole("button", { name: "Repeat", exact: true })).toHaveCount(0);
-  await expect(controls.getByRole("button", { name: "Turn voice guidance off", exact: true })).toHaveCount(0);
+  await expect(controls.getByRole("button", { name: "Turn voice off", exact: true })).toHaveCount(0);
   await expect(controls).not.toContainText("Before we continue");
 
-  await controls.getByRole("button", { name: "Controls" }).click();
-  const sheet = page.getByRole("dialog", { name: "EMMI" });
+  await controls.getByRole("button", { name: "Voice options" }).click();
+  // Voice options controls the voice experience and nothing else: Ask EMMI stays outside it,
+  // because talking to EMMI is a primary action, not a setting.
+  const sheet = page.getByRole("dialog", { name: "Voice options" });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Repeat", exact: true })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Turn voice guidance off", exact: true })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Ask EMMI" })).toHaveCount(0);
+  await expect(sheet.getByRole("button", { name: "Turn voice off", exact: true })).toBeVisible();
   await sheet.getByRole("button", { name: "Read message" }).click();
   await expect(sheet.locator(".emmi-guide-transcript")).toContainText("Before we continue, we just need to know who is filling this out today.");
   await sheet.getByRole("button", { name: "Hide message" }).click();
@@ -185,7 +188,7 @@ test("Enrollment Complete keeps the compact EMMI bar secondary to the success co
   await expect(bar).toBeVisible();
   await expect(success).toBeVisible();
   await expect(bar.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(bar.getByRole("button", { name: "Controls" })).toBeVisible();
+  await expect(bar.getByRole("button", { name: "Voice options" })).toBeVisible();
   expect(await bar.evaluate(node => node.getBoundingClientRect().height)).toBeLessThan(125);
   expect(await page.evaluate(() => {
     const barNode = document.querySelector(".emmi-guide");
@@ -330,4 +333,146 @@ test("Kreyòl text-only fallback is readable and never overflows on supported mo
     expect(audit.clipped, `${width}px clipping`).toBe(false);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), `${width}px overflow`).toBe(false);
   }
+});
+
+const enableVoiceGuidance = page => page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
+
+test("EMMI hands off between the compact card and the floating pill without ever duplicating itself", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await enableVoiceGuidance(page);
+  await page.reload();
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+
+  const compact = page.locator(".emmi-guide");
+  const floating = page.locator(".emmi-assistant");
+  await expect(compact).toBeVisible();
+  await expect(floating).toBeHidden();
+
+  // Scrolled past the compact card, with the screen's own actions still below the fold, EMMI
+  // reappears as a named pill rather than a bare avatar.
+  await page.evaluate(() => window.scrollTo(0, 520));
+  await expect(floating).toBeVisible();
+  await expect(floating.locator(".emmi-assistant-label")).toContainText("EMMI");
+  await expect(compact).not.toBeInViewport();
+
+  // Tapping it expands EMMI in place. Nothing navigates, nothing greets the patient again.
+  await floating.click();
+  const expanded = page.getByRole("dialog", { name: "EMMI" });
+  await expect(expanded).toBeVisible();
+  await expect(expanded.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
+  await expect(expanded.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(expanded.getByRole("button", { name: "Turn voice off", exact: true })).toBeVisible();
+  await expect(expanded).not.toContainText(/Hi, I’m EMMI|Welcome back/);
+  await expect(floating).toBeHidden();
+
+  // Escape closes the sheet and hands focus back to what opened it.
+  await page.keyboard.press("Escape");
+  await expect(expanded).toHaveCount(0);
+  await expect(floating).toBeFocused();
+
+  // Back at the top the compact card takes over again and the pill stands down.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(compact).toBeVisible();
+  await expect(floating).toBeHidden();
+});
+
+test("the floating pill never covers the screen's own actions", async ({ page }) => {
+  for (const width of [360, 384, 430]) {
+    await page.setViewportSize({ width, height: 824 });
+    await page.goto("/?scenario=access-happy");
+    await enableVoiceGuidance(page);
+    await page.reload();
+    for (const screen of ["DECISION_MAKER", "IDENTITY_VERIFICATION", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED"]) {
+      await page.locator("#screen-select").selectOption(screen, { force: true });
+      for (const offset of [0, 400, 99999]) {
+        await page.evaluate(y => window.scrollTo(0, y), offset);
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        const audit = await page.evaluate(() => {
+          const pill = document.querySelector(".emmi-assistant");
+          const compact = document.querySelector(".emmi-guide");
+          const pillShown = Boolean(pill) && getComputedStyle(pill).display !== "none";
+          const compactShown = Boolean(compact) && compact.getBoundingClientRect().bottom > 0 && compact.getBoundingClientRect().top < innerHeight;
+          if (!pillShown) return { both: false, covered: [] };
+          const box = pill.getBoundingClientRect();
+          return {
+            both: compactShown,
+            covered: [...document.querySelectorAll("#screen-content .actions .button, #screen-content .button.primary, #screen-content button, #screen-content a, #screen-content input")]
+              .filter(node => {
+                const rect = node.getBoundingClientRect();
+                return rect.width && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom;
+              })
+              .map(node => node.textContent.trim().slice(0, 30))
+          };
+        });
+        expect(audit.both, `${screen} @${width} shows one EMMI`).toBe(false);
+        expect(audit.covered, `${screen} @${width}px scrolled ${offset}`).toEqual([]);
+      }
+    }
+  }
+});
+
+test("voice options is offered only when there is voice guidance to adjust", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await page.getByRole("button", { name: /See how it works/i }).click();
+
+  // Voice off: the patient is offered the conversation and the voice, never voice settings.
+  const compact = page.locator(".emmi-guide");
+  await expect(compact).toContainText("Need help?");
+  await expect(compact.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
+  await expect(compact.getByRole("button", { name: /Guide me with voice/ })).toBeVisible();
+  await expect(compact.getByRole("button", { name: "Voice options" })).toHaveCount(0);
+
+  // Kreyòl has no voice yet, so EMMI says so plainly instead of implying a live voice session.
+  await page.locator('[data-action="language"]').first().click();
+  await page.locator('[data-action="language"]').first().click();
+  await expect(compact.getByRole("button", { name: "Voice options" })).toHaveCount(0);
+  await expect(compact.getByRole("button", { name: "Mande EMMI" })).toBeVisible();
+  await expect(compact).not.toContainText(/[가-힯]/);
+});
+
+test("compact EMMI stays readable and untruncated at 125% and 150% text scaling", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await enableVoiceGuidance(page);
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  for (const scale of [1, 1.25, 1.5]) {
+    await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
+    const audit = await page.locator(".emmi-guide").evaluate(node => {
+      const buttons = [...node.querySelectorAll(".emmi-guide-actions button")];
+      return {
+        truncated: buttons.some(button => button.scrollWidth > button.clientWidth + 1),
+        minHeight: Math.min(...buttons.map(button => button.getBoundingClientRect().height)),
+        minFont: Math.min(...buttons.map(button => parseFloat(getComputedStyle(button).fontSize))),
+        contained: node.getBoundingClientRect().right <= innerWidth + 1,
+        overflow: document.documentElement.scrollWidth > innerWidth
+      };
+    });
+    expect(audit.truncated, `${scale}x truncation`).toBe(false);
+    expect(audit.minHeight, `${scale}x touch target`).toBeGreaterThanOrEqual(44);
+    expect(audit.minFont, `${scale}x font`).toBeGreaterThanOrEqual(16 * scale - 0.5);
+    expect(audit.contained, `${scale}x containment`).toBe(true);
+    expect(audit.overflow, `${scale}x overflow`).toBe(false);
+  }
+  await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+});
+
+test("idle EMMI does not animate and reduced motion silences the speaking cue", async ({ page }) => {
+  await enableVoiceGuidance(page);
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  const idleAnimations = await page.locator(".emmi-guide").evaluate(node =>
+    [node, ...node.querySelectorAll("*")].map(element => getComputedStyle(element).animationName).filter(name => name && name !== "none"));
+  expect(idleAnimations).toEqual([]);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const reduced = await page.evaluate(() => {
+    const probe = document.createElement("i");
+    probe.className = "emmi-audio-activity";
+    probe.innerHTML = "<b></b>";
+    document.body.append(probe);
+    const name = getComputedStyle(probe.querySelector("b")).animationName;
+    probe.remove();
+    return name;
+  });
+  expect(reduced).toBe("none");
 });
