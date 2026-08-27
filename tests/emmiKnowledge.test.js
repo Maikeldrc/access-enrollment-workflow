@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SOURCE_PRIORITY, TOOL_FIRST_INTENTS, buildKnowledgeIndex, classifyQuestion, getKnowledgeIndex, retrieveKnowledge } from "../server/emmiKnowledge.js";
 import { EMMI_TOOL_DECLARATIONS } from "../src/emmi/tools.js";
-import { EMMI_SYSTEM_PROMPT } from "../src/emmi/systemPrompt.js";
+import { EMMI_SYSTEM_PROMPT, buildEmmiSystemInstruction } from "../src/emmi/systemPrompt.js";
 
 const index = getKnowledgeIndex();
 const sourcesFor = (query, runtime = {}) => retrieveKnowledge({ query, runtime, index }).chunks.map(chunk => chunk.sourcePath);
@@ -157,6 +157,13 @@ describe("source hierarchy and wiring", () => {
     expect(EMMI_SYSTEM_PROMPT).toContain("SOURCES OF TRUTH");
     expect(EMMI_SYSTEM_PROMPT).toMatch(/never establishes what is true for this patient/i);
     expect(EMMI_SYSTEM_PROMPT).toMatch(/KR is never Korean/i);
+  });
+
+  it("injects an explicit Haitian Creole instruction for internal locale KR", () => {
+    const instruction = buildEmmiSystemInstruction({ locale: "KR", currentScreen: "INVITATION" });
+    expect(instruction).toMatch(/Speak naturally in Haitian Creole \(Kreyòl\)/);
+    expect(instruction).toMatch(/Never speak Korean/);
+    expect(instruction).not.toMatch(/Speak naturally in Korean/i);
   });
 
   it("keeps no patient identifiers in the knowledge corpus", () => {

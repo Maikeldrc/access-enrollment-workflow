@@ -11,7 +11,7 @@ test("one goal skips prioritization and can defer planning", async ({ page }) =>
   await page.getByLabel("Stay active").check();
   await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Let’s make a plan for this goal" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s personalize your plan for this goal" })).toBeVisible();
   await page.getByRole("button", { name: "I’ll do this with my care team later" }).click();
   await expect(page.getByRole("button", { name: /Your goals\. Completed/ })).toBeVisible();
 });
@@ -24,7 +24,7 @@ test("multiple goals support priority, planning and longitudinal My Goals", asyn
   await page.getByRole("button", { name: "Choose my priorities" }).click();
   await page.getByRole("group", { name: "Secondary priority (optional)" }).getByLabel("Stay independent").check();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Make a plan now" }).click();
+  await page.getByRole("button", { name: "Personalize my plan" }).click();
   await page.getByLabel("Check my blood pressure regularly").check();
   await page.getByLabel("Why this matters to me (optional)").fill("I want to stay active with my family.");
   await page.getByRole("button", { name: "Review my plan" }).click();
@@ -84,6 +84,23 @@ for (const [width, height] of [[384, 824], [360, 800], [375, 812], [390, 844], [
     });
     expect(overlap).toBe(false);
   });
+
+  test(`goal personalization offer is readable without overflow at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await openGoals(page);
+    await page.getByLabel("Keep my blood pressure under control").check();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("heading", { name: "Let’s personalize your plan for this goal" })).toBeVisible();
+    await expect(page.locator(".goal-selected-card")).toContainText("Keep my blood pressure under control");
+    const audit = await page.locator("#screen-content").evaluate(root => ({
+      overflow: root.scrollWidth > root.clientWidth + 1,
+      minButton: Math.min(...[...root.querySelectorAll(".goal-plan-choice .button")].map(node => node.getBoundingClientRect().height)),
+      titleSize: parseFloat(getComputedStyle(root.querySelector("h1")).fontSize)
+    }));
+    expect(audit.overflow).toBe(false);
+    expect(audit.minButton).toBeGreaterThanOrEqual(44);
+    expect(audit.titleSize).toBeGreaterThanOrEqual(28);
+  });
 }
 
 test("goal discovery copy is available in Spanish and Kreyòl", async ({ page }) => {
@@ -99,12 +116,12 @@ async function openPlanReview(page) {
   await openGoals(page);
   await page.getByLabel("Keep my blood pressure under control").check();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: /Make a plan now/ }).click();
+  await page.getByRole("button", { name: /Personalize my plan/ }).click();
   for (const label of ["Check my blood pressure regularly", "Take my medications as directed", "Learn what my blood pressure numbers mean"]) {
     await page.getByLabel(label).check();
   }
   await page.getByRole("button", { name: /Continue|Review/ }).click();
-  await expect(page.getByRole("heading", { name: "Review your plan" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review your personalized plan" })).toBeVisible();
 }
 
 test("care plan review reads as a personal plan rather than an administrative table", async ({ page }) => {
@@ -124,7 +141,7 @@ test("care plan review reads as a personal plan rather than an administrative ta
   // Primary first, secondary beneath, neither squeezed into a shared row.
   const buttons = page.locator(".goal-stacked-actions .button");
   await expect(buttons.nth(0)).toHaveText(/Save my plan/);
-  await expect(buttons.nth(1)).toHaveText(/Edit plan/);
+  await expect(buttons.nth(1)).toHaveText(/Edit my plan/);
   await expect(page.getByRole("button", { name: "Change something" })).toHaveCount(0);
 
   const audit = await page.evaluate(() => {

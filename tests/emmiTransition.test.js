@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiTransitionManager, EMMI_NARRATION_STATUS, semanticSpeechSegments } from "../src/emmi/transitionManager.js";
 import { buildTransitionNarration } from "../src/emmi/narrative.js";
-import { EmmiLiveClient } from "../src/emmi/liveClient.js";
+import { EmmiLiveClient, normalizeEmmiVoiceError } from "../src/emmi/liveClient.js";
 
 const deferred = () => {
   let resolve;
@@ -109,6 +109,13 @@ describe("EMMI semantic handoff", () => {
 });
 
 describe("EMMI live context guards", () => {
+  it("normalizes provider and permission failures into stable patient-safe states", () => {
+    expect(normalizeEmmiVoiceError("microphone_denied")).toBe("VOICE_PERMISSION_DENIED");
+    expect(normalizeEmmiVoiceError("token_generation_failed")).toBe("VOICE_PROVIDER_ERROR");
+    expect(normalizeEmmiVoiceError("connection_failed")).toBe("VOICE_SESSION_FAILED");
+    expect(normalizeEmmiVoiceError("voice_locale_fallback")).toBe("VOICE_UNAVAILABLE_FOR_LOCALE");
+  });
+
   it("invalidates an interrupted generation and rejects every late audio chunk", () => {
     const interruptions = [];
     const telemetry = [];

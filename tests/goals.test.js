@@ -4,10 +4,15 @@ import { createPatientGoal, goalDisplayName, suggestedActionsFor } from "../src/
 describe("patient goal model", () => {
   it("keeps a patient goal separate from clinical targets", () => {
     const goal = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", patientId: "patient-1", now: "2026-08-27T10:00:00.000Z", id: "goal-1" });
-    expect(goal).toMatchObject({ id: "goal-1", patientId: "patient-1", goalType: "BLOOD_PRESSURE_CONTROL", status: "ACTIVE", priority: "NONE", planStatus: "NOT_STARTED", createdBy: "PATIENT" });
+    expect(goal).toMatchObject({ id: "goal-1", patientId: "patient-1", goalType: "BLOOD_PRESSURE_CONTROL", status: "ACTIVE", priority: "NONE", planStatus: "NOT_STARTED", planPersonalizationStatus: "NOT_STARTED", goalSource: "PATHWAY", selectedBy: "PATIENT", createdBy: "PATHWAY", patientCanEditClinicalTarget: false });
     expect(goal).not.toHaveProperty("targetSystolic");
     expect(goal).not.toHaveProperty("targetDiastolic");
     expect(goal).not.toHaveProperty("clinicalTarget");
+  });
+
+  it("keeps a patient-reported goal pending care-team review", () => {
+    const goal = createPatientGoal({ type: "CUSTOM", customTitle: "Attend my granddaughter’s graduation", id: "goal-custom" });
+    expect(goal).toMatchObject({ goalSource: "PATIENT", selectedBy: "PATIENT", careTeamReviewStatus: "PENDING", clinicalTargetId: null });
   });
 
   it("localizes system goals and preserves a custom patient title", () => {

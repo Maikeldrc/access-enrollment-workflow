@@ -1,3 +1,5 @@
+import { PATIENT_LOCALE_CONFIG, resolvePatientLocale } from "../localeConfig.js";
+
 const CANONICAL_VOICE_ID = "Sulafat";
 
 export const EMMI_VOICE_VERSION = "emmi-voice-v1";
@@ -15,18 +17,17 @@ export const EMMI_VOICE_CONFIG = Object.freeze({
     expressiveness: "moderate",
     audience: "Medicare 65+"
   }),
-  localeVoices: Object.freeze({
-    EN: Object.freeze({ voiceId: CANONICAL_VOICE_ID, supported: true }),
-    ES: Object.freeze({ voiceId: CANONICAL_VOICE_ID, supported: true }),
-    // Gemini Live does not currently list Haitian Creole as a supported spoken language.
-    // EMMI stays available by text instead of silently becoming a system/browser voice.
-    KR: Object.freeze({ voiceId: null, supported: false })
-  })
+  localeVoices: Object.freeze(Object.fromEntries(Object.entries(PATIENT_LOCALE_CONFIG).map(([locale, config]) => [locale, Object.freeze({
+    voiceId: config.geminiLiveVoiceSupported ? CANONICAL_VOICE_ID : null,
+    supported: config.geminiLiveVoiceSupported,
+    languageName: config.languageName,
+    speechLanguage: config.speechLanguage,
+    capability: config.geminiLiveVoiceSupported ? "SUPPORTED" : "UNSUPPORTED_BY_GEMINI_LIVE"
+  })])))
 });
 
 const normalizeLocale = locale => {
-  const value = String(locale || "EN").toUpperCase();
-  return Object.hasOwn(EMMI_VOICE_CONFIG.localeVoices, value) ? value : "EN";
+  return resolvePatientLocale(locale).internalCode;
 };
 
 export function getEmmiVoiceIdentity(locale) {
@@ -38,6 +39,9 @@ export function getEmmiVoiceIdentity(locale) {
     voiceId: localeVoice.voiceId,
     voiceVersion: EMMI_VOICE_CONFIG.voiceVersion,
     locale: resolvedLocale,
+    resolvedLanguage: localeVoice.languageName,
+    resolvedSpeechLocale: localeVoice.speechLanguage,
+    capability: localeVoice.capability,
     supported: localeVoice.supported
   });
 }

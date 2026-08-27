@@ -75,7 +75,7 @@ export const LEGACY_GOAL_TYPES = Object.freeze({
 
 export const localGoalText = (entry, locale = "en") => entry?.[locale] || entry?.en || "";
 
-export function createPatientGoal({ type, customTitle = "", patientId = "", now = new Date().toISOString(), id = "" }) {
+export function createPatientGoal({ type, customTitle = "", patientId = "", now = new Date().toISOString(), id = "", goalSource = type === "CUSTOM" ? "PATIENT" : "PATHWAY" }) {
   const config = GOAL_CONFIG[type] || GOAL_CONFIG.CUSTOM;
   return {
     id: id || `goal_${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`,
@@ -87,12 +87,18 @@ export function createPatientGoal({ type, customTitle = "", patientId = "", now 
     priority: "NONE",
     whyItMatters: "",
     planStatus: "NOT_STARTED",
+    planPersonalizationStatus: "NOT_STARTED",
+    goalSource,
+    selectedBy: "PATIENT",
+    clinicalTargetId: null,
+    patientCanEditClinicalTarget: false,
+    careTeamReviewStatus: type === "CUSTOM" ? "PENDING" : "NOT_REQUIRED",
     actions: [],
     progress: [],
     barriers: [],
     supportRequests: [],
     reviews: [],
-    createdBy: "PATIENT",
+    createdBy: goalSource,
     createdAt: now,
     updatedAt: now
   };

@@ -2170,8 +2170,10 @@ test("Emmi remains available throughout the patient experience", async ({ page }
   const restored = await emmi.boundingBox();
   expect(Math.abs(restored.x - moved.x)).toBeLessThan(4);
   await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
-  await expect(emmi).toBeVisible();
-  await emmi.click();
+  const compactEmmi = page.locator(".emmi-guide");
+  await expect(compactEmmi).toBeVisible();
+  await expect(emmi).toBeHidden();
+  await compactEmmi.getByRole("button", { name: "Ask EMMI" }).click();
   await expect(page.getByText("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.")).toBeVisible();
 });
 

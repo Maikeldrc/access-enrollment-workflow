@@ -31,6 +31,15 @@ const pcm16 = floats => {
   return bytes;
 };
 
+export const normalizeEmmiVoiceError = code => ({
+  voice_locale_fallback: "VOICE_UNAVAILABLE_FOR_LOCALE",
+  microphone_denied: "VOICE_PERMISSION_DENIED",
+  token_generation_failed: "VOICE_PROVIDER_ERROR",
+  gemini_not_configured: "VOICE_PROVIDER_ERROR",
+  connection_failed: "VOICE_SESSION_FAILED",
+  connection_lost: "VOICE_SESSION_FAILED"
+})[code] || code;
+
 export class EmmiLiveClient {
   constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity, onBargeIn, onVoiceTelemetry, onSessionResumption, onReconnectNeeded }) {
     this.getContext = getContext;
@@ -120,22 +129,22 @@ export class EmmiLiveClient {
     const context = this.getContext();
     const connectionId = `emmi_voice_${++this.connectionSequence}`;
     const canonicalVoice = this.voiceIdentity.resolve(context.locale, null, { screenId: context.currentScreen, connectionId });
-    if (!canonicalVoice.supported) throw this.fail("voice_locale_fallback");
+    if (!canonicalVoice.supported) throw this.fail("VOICE_UNAVAILABLE_FOR_LOCALE");
     this.prepareAudioPlayback();
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
-    if (simulated === "microphone-denied") throw this.fail("microphone_denied");
+    if (simulated === "microphone-denied") throw this.fail("VOICE_PERMISSION_DENIED");
     this.setState("CONNECTING");
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch { throw this.fail("microphone_denied"); }
+    } catch { throw this.fail("VOICE_PERMISSION_DENIED"); }
     navigator.mediaDevices.addEventListener?.("devicechange", this.audioDeviceChangeHandler);
     if (simulated === "429") throw this.fail("rate_limited");
-    if (simulated === "connection") throw this.fail("connection_failed");
+    if (simulated === "connection") throw this.fail("VOICE_SESSION_FAILED");
     let response;
     try { response = await fetch("/api/emmi/live-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locale: canonicalVoice.locale }) }); }
-    catch { throw this.fail("connection_failed"); }
+    catch { throw this.fail("VOICE_SESSION_FAILED"); }
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : payload.error || "connection_failed");
+    if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : normalizeEmmiVoiceError(payload.error || "connection_failed"));
     const resolvedVoice = this.voiceIdentity.resolve(context.locale, payload.voiceIdentity, { screenId: context.currentScreen, connectionId });
     if (!payload.voiceIdentity || payload.voiceIdentity.voiceId !== resolvedVoice.voiceId || payload.voiceIdentity.voiceVersion !== resolvedVoice.voiceVersion || payload.voiceIdentity.provider !== resolvedVoice.provider) throw this.fail("voice_identity_mismatch");
     this.onVoiceIdentity?.("EMMI_VOICE_SESSION_CONFIGURED", { ...resolvedVoice, sessionId: context.sessionId, screenId: context.currentScreen, connectionId });
@@ -174,13 +183,14 @@ export class EmmiLiveClient {
             this.startTimers();
           },
           onmessage: message => this.handleMessage(message),
-          onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"),
+          onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "VOICE_PROVIDER_ERROR"),
           onclose: () => {
             if (this.intentionalClose || this.state === "DISCONNECTED") return;
             const canResume = Boolean(this.sessionResumptionHandle) && this.reconnectAttempts < 1;
             this.disconnect("connection_lost");
             if (canResume) {
               this.reconnectAttempts += 1;
+              this.setState("CONNECTING", "VOICE_RECONNECTING");
               const recoveryText = this.onReconnectNeeded?.({ reason: "connection_lost", handle: this.sessionResumptionHandle }) || "";
               setTimeout(() => this.connect(recoveryText, { priority: "TRANSITION_GUIDANCE", contextIndependent: false }).catch(() => {}), 350);
             }
@@ -192,7 +202,7 @@ export class EmmiLiveClient {
       // why the first tap connected but stayed silent.
       if (initialText) this.sendText(initialText, metadata);
       return true;
-    } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"); }
+    } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : normalizeEmmiVoiceError(error?.code || "connection_failed")); }
   }
   startTimers() {
     const minutes = EMMI_CONFIG.sessionMaxMinutes;
@@ -237,7 +247,7 @@ export class EmmiLiveClient {
       this.emitVoiceTelemetry("EMMI_AUDIO_ROUTE_RESTORED", { sameLiveSession: true });
     } catch {
       this.emitVoiceTelemetry("EMMI_AUDIO_ROUTE_FAILED", { sameLiveSession: true });
-      this.onError?.("microphone_denied");
+      this.onError?.("VOICE_PERMISSION_DENIED");
     }
   }
   async handleMessage(message) {
@@ -513,5 +523,12 @@ export class EmmiLiveClient {
     this.inputContext?.close(); this.outputContext?.close(); this.inputContext = null; this.outputContext = null; this.outputGain = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
     this.setState("DISCONNECTED", reason);
   }
-  fail(code) { this.onError?.(code); this.disconnect(code); const error = new Error(code); error.code = code; return error; }
+  fail(code) {
+    const normalizedCode = normalizeEmmiVoiceError(code);
+    this.onError?.(normalizedCode);
+    this.disconnect(normalizedCode);
+    const error = new Error(normalizedCode);
+    error.code = normalizedCode;
+    return error;
+  }
 }

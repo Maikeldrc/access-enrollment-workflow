@@ -62,4 +62,17 @@ describe("EMMI conversation continuity", () => {
     manager.updateResumption({ handle: "resume-123", resumable: true });
     expect(manager.contextForModel()).toMatchObject({ sessionResumptionHandle: "resume-123", sessionResumable: true });
   });
+
+  it("preserves the same conversation when the patient changes EN to Kreyòl to ES", () => {
+    const manager = new EmmiConversationManager({ patientId: "p1", scenarioId: "access", locale: "EN", storage: memoryStorage(), sessionStorage: memoryStorage(), now: () => 3000 });
+    manager.markGreeted();
+    manager.transition({ currentScreen: "CARE_RECOMMENDATION", currentStage: "YOUR_CARE", locale: "EN" });
+    manager.recordTurn("user", "What is ACCESS?", { intent: "program explanation" });
+    const sessionId = manager.contextForModel().conversationSessionId;
+    manager.transition({ currentScreen: "CARE_RECOMMENDATION", currentStage: "YOUR_CARE", locale: "KR" }, { localeChanged: true });
+    expect(manager.contextForModel()).toMatchObject({ conversationSessionId: sessionId, conversationMode: EMMI_CONVERSATION_MODES.LOCALE_CHANGE, greetingAllowed: false, hasGreeted: true, lastUserIntent: "program explanation" });
+    expect(manager.contextForModel().conversationSummary).toContain("What is ACCESS?");
+    manager.transition({ currentScreen: "CARE_RECOMMENDATION", currentStage: "YOUR_CARE", locale: "ES" }, { localeChanged: true });
+    expect(manager.contextForModel()).toMatchObject({ conversationSessionId: sessionId, conversationMode: EMMI_CONVERSATION_MODES.LOCALE_CHANGE, greetingAllowed: false, hasGreeted: true });
+  });
 });

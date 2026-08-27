@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 
 const openEmmi = async page => {
   await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  return page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  return page.getByRole("dialog");
 };
 const ask = async (dialog, text) => {
   await dialog.getByPlaceholder("Ask a question…").fill(text);
@@ -60,8 +60,8 @@ test("EMMI offers safe voice fallbacks and localized Kreyòl text", async ({ pag
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
   dialog = await page.getByRole("button", { name: "Mande Emmi, asistan swen" }).click().then(() => page.getByRole("dialog"));
-  await dialog.getByRole("button", { name: "Pale ak EMMI" }).click();
-  await expect(dialog.getByText(/Gid vwa poko disponib nan lang sa a/i)).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Pale ak EMMI" })).toHaveCount(0);
+  await expect(dialog.getByText("Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj.")).toBeVisible();
   await expect(dialog.getByPlaceholder("Poze yon kesyon…")).toBeEnabled();
 });
 

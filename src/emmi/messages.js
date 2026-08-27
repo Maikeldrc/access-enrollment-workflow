@@ -1,22 +1,27 @@
+import { PATIENT_LOCALE_CONFIG, resolvePatientLocale } from "../localeConfig.js";
+
 // Single source of truth for EMMI's spoken copy and for the language EMMI runs in.
 //
 // EMMI never has a language of its own: everything here is derived from the locale the
 // patient selected in the UI. In this application KR is Haitian Creole / Kreyòl — never
 // Korean — and that mapping is deliberately explicit so it cannot be guessed wrong.
 
-export const EMMI_LANGUAGES = Object.freeze({
-  EN: { locale: "EN", languageName: "English", bcp47: "en-US", voiceSupported: true },
-  ES: { locale: "ES", languageName: "Spanish", bcp47: "es-US", voiceSupported: true },
-  // Gemini Live has no Haitian Creole voice. Rather than simulate support or silently fall
-  // back to English, EMMI stays a Kreyòl text experience for this locale.
-  KR: { locale: "KR", languageName: "Haitian Creole (Kreyòl)", bcp47: "ht-HT", voiceSupported: false }
-});
+export const EMMI_LANGUAGES = Object.freeze(Object.fromEntries(
+  Object.entries(PATIENT_LOCALE_CONFIG).map(([locale, config]) => [locale, Object.freeze({
+    locale,
+    languageName: config.languageName,
+    nativeName: config.nativeName,
+    bcp47: config.bcp47,
+    speechLanguage: config.speechLanguage,
+    modelLanguageInstruction: config.modelLanguageInstruction,
+    voiceSupported: config.geminiLiveVoiceSupported
+  })])
+));
 
 export function resolveEmmiLanguage(locale) {
-  const resolved = EMMI_LANGUAGES[String(locale || "").toUpperCase()];
-  if (resolved) return resolved;
-  if (import.meta.env?.DEV) console.error(`[emmi] Unknown locale "${locale}" — falling back to English.`);
-  return EMMI_LANGUAGES.EN;
+  const resolved = resolvePatientLocale(locale);
+  if (resolved.internalCode === "EN" && !["EN", "en"].includes(String(locale || "")) && import.meta.env?.DEV) console.error(`[emmi] Unknown locale "${locale}" — falling back to English.`);
+  return EMMI_LANGUAGES[resolved.internalCode];
 }
 
 export const emmiVoiceIsSupported = locale => resolveEmmiLanguage(locale).voiceSupported;

@@ -7,6 +7,9 @@ describe("EMMI language resolution", () => {
   it("maps KR to Haitian Creole and never to Korean", () => {
     expect(resolveEmmiLanguage("KR").languageName).toBe("Haitian Creole (Kreyòl)");
     expect(resolveEmmiLanguage("KR").bcp47).toBe("ht-HT");
+    expect(resolveEmmiLanguage("KR").speechLanguage).toBe("ht");
+    expect(resolveEmmiLanguage("KR").modelLanguageInstruction).toMatch(/Haitian Creole \(Kreyòl\)/);
+    expect(resolveEmmiLanguage("KR").modelLanguageInstruction).not.toMatch(/Speak naturally in Korean/i);
     expect(resolveEmmiLanguage("KR").languageName).not.toMatch(/korean/i);
   });
 

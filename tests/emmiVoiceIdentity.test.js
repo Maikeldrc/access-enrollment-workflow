@@ -16,9 +16,10 @@ describe("EMMI canonical voice identity", () => {
     expect(EMMI_VOICE_CONFIG.canonicalVoiceId).toBe(english.voiceId);
   });
 
-  it("keeps Kreyòl text-only instead of silently substituting another person", () => {
-    expect(getEmmiVoiceIdentity("KR")).toMatchObject({ locale: "KR", voiceId: null, supported: false });
+  it("keeps Kreyòl text-only instead of silently substituting another language or person", () => {
+    expect(getEmmiVoiceIdentity("KR")).toMatchObject({ locale: "KR", resolvedLanguage: "Haitian Creole (Kreyòl)", resolvedSpeechLocale: "ht", capability: "UNSUPPORTED_BY_GEMINI_LIVE", voiceId: null, supported: false });
     expect(getEmmiSpeechConfig("KR")).toBeNull();
+    expect(JSON.stringify(getEmmiVoiceIdentity("KR"))).not.toMatch(/ko-KR|Korean|한국어/i);
   });
 
   it("builds the same explicit prebuilt voice for narration, reconnect and conversation", () => {

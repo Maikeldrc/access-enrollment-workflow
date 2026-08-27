@@ -531,6 +531,14 @@ p { margin:0; }
 .goal-priority-form fieldset,.goal-plan-form fieldset { min-width:0;margin:0;padding:0;border:0; }
 .goal-priority-form legend,.goal-plan-form legend { margin-bottom:10px;color:var(--text-primary);font-size:18px;font-weight:800;line-height:1.4; }
 .goal-plan-note { margin:18px 0; }
+.goal-selected-card { display:grid;grid-template-columns:44px minmax(0,1fr);gap:13px;align-items:center;width:100%;min-width:0;margin:18px 0;padding:16px;border:1px solid var(--primary-200);border-radius:16px;background:var(--primary-50); }
+.goal-selected-card>.icon { width:44px;height:44px;color:var(--primary-600);background:var(--surface-primary); }
+.goal-selected-card div { min-width:0; }
+.goal-selected-card small,.goal-selected-card strong { display:block;overflow-wrap:anywhere; }
+.goal-selected-card small { margin-bottom:3px;color:var(--text-secondary);font-size:15px;line-height:1.4; }
+.goal-selected-card strong { color:var(--text-primary);font-size:18px;line-height:1.42; }
+.goal-selected-card.compact { margin-top:16px; }
+.goal-plan-team-note { margin:0;padding:13px 15px;border-radius:13px;color:var(--text-secondary);background:var(--surface-secondary);font-size:16px;line-height:1.5; }
 .goal-plan-choice { display:grid;gap:12px; }
 .goal-plan-choice .button { width:100%; }
 .goal-plan-summary,.goal-detail-section,.clinical-target-card,.my-goal-card { border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.055); }
@@ -705,28 +713,25 @@ p { margin:0; }
 .emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 @keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
 .assistant-open { overflow:hidden; }
+.emmi-controls-open { overflow:hidden; }
 .assistant-open .emmi-assistant,.emmi-assistant.emmi-assistant-suppressed { display:none; }
 
 /* EMMI contextual guide: compact by default, expanding only when the patient asks for the
    full message or a conversation. The screen's own task stays the visual priority. */
-.emmi-guide { display:grid;gap:6px;width:100%;margin:0 0 var(--patient-space-md,16px);padding:9px 11px;border:1px solid var(--primary-100);border-radius:14px;background:var(--primary-50); }
+.emmi-guide { display:grid;gap:7px;width:100%;margin:0 0 var(--patient-space-md,16px);padding:9px 11px;border:1px solid var(--primary-100);border-radius:14px;background:color-mix(in srgb,var(--primary-50) 72%,var(--surface-primary)); }
 .emmi-guide-row { display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:center; }
 .emmi-guide-avatar { width:32px;height:32px;object-fit:contain; }
 .emmi-guide-copy { min-width:0; }
 .emmi-guide-copy strong,.emmi-guide-copy span { display:block; }
-.emmi-guide-copy strong { font-size:.9rem;line-height:1.3; }
-/* The one-line summary wraps naturally: it is never clamped or ellipsised. */
-.emmi-guide-copy span { margin-top:1px;color:var(--text-secondary);font-size:.9rem;line-height:1.4; }
-.emmi-guide-actions { display:flex;flex-wrap:wrap;gap:6px; }
-.emmi-guide-actions button { flex:1 1 auto;min-width:0;min-height:44px;padding:6px 8px;border:1px solid var(--border-default);border-radius:9px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:.82rem;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer; }
-.emmi-guide-actions .emmi-guide-ask { color:var(--primary-700);border-color:var(--primary-300); }
+.emmi-guide-copy strong { color:var(--text-primary);font-size:1rem;line-height:1.25; }
+.emmi-guide-copy span { margin-top:1px;color:var(--text-secondary);font-size:1rem;line-height:1.35; }
+.emmi-guide-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px; }
+.emmi-guide-actions button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:46px;padding:7px 10px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:700;line-height:1.25;cursor:pointer; }
+.emmi-guide-actions .emmi-guide-primary { color:var(--primary-700);border-color:var(--primary-300); }
+.emmi-guide-control-icon { width:20px;height:20px;border-radius:0;color:inherit;background:transparent; }
+.emmi-guide-control-icon svg { width:19px;height:19px; }
 .emmi-guide-actions button:disabled { opacity:.55;cursor:not-allowed; }
-.emmi-guide-actions button:focus-visible,.emmi-guide-link:focus-visible { outline:3px solid var(--focus-ring);outline-offset:1px; }
-/* Secondary actions are text links so "Turn voice off" never dominates the guide. */
-.emmi-guide-links { display:flex;flex-wrap:wrap;gap:0 16px;align-items:center;min-height:0; }
-.emmi-guide-link { min-height:44px;padding:0 2px;border:0;background:none;color:var(--primary-600);font:inherit;font-size:.9rem;font-weight:700;cursor:pointer; }
-.emmi-guide-link:hover { text-decoration:underline;text-underline-offset:3px; }
-.emmi-guide-off-link { color:var(--text-secondary);font-weight:600; }
+.emmi-guide-actions button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:1px; }
 .emmi-guide-transcript { margin:0;padding:9px 10px;border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font-size:.94rem;line-height:1.5; }
 .emmi-guide-off { gap:8px;padding:10px 12px; }
 .emmi-guide-off .emmi-guide-avatar { width:30px;height:30px; }
@@ -734,6 +739,7 @@ p { margin:0; }
 /* Two columns when both labels fit, stacking to full width when they do not. The minimum
    keeps long Spanish labels ("Preguntar a EMMI", "Guíeme con voz") on one line at 384px. */
 .emmi-guide-off-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px; }
+.emmi-guide-voice-unavailable { margin:0;padding:10px 11px;border-radius:10px;color:var(--text-secondary);background:var(--surface-primary);font-size:1rem;line-height:1.5; }
 .emmi-guide-button { display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:46px;padding:8px 12px;border:1px solid var(--primary-600);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:600;line-height:1.25;text-align:center;cursor:pointer; }
 .emmi-guide-button-lead { border-width:2px;font-weight:700; }
 .emmi-guide-button:hover { background:var(--primary-50); }
@@ -743,8 +749,30 @@ p { margin:0; }
 .emmi-guide-button-icon { width:20px;height:20px;flex:0 0 20px;border-radius:0;color:inherit;background:transparent; }
 .emmi-guide-button-icon svg { width:19px;height:19px; }
 .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar { animation:emmi-guide-pulse 1.6s ease-in-out infinite; }
+.emmi-audio-activity { display:inline-flex;align-items:center;gap:2px;height:14px;margin-left:7px;vertical-align:-2px; }
+.emmi-audio-activity b { display:block;width:3px;height:7px;border-radius:3px;background:var(--primary-600);animation:emmi-audio-wave .8s ease-in-out infinite alternate; }
+.emmi-audio-activity b:nth-child(2) { height:12px;animation-delay:.15s; }
+.emmi-audio-activity b:nth-child(3) { height:9px;animation-delay:.3s; }
 @keyframes emmi-guide-pulse { 50% { opacity:.55; } }
-@media (prefers-reduced-motion:reduce) { .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar { animation:none; } }
+@keyframes emmi-audio-wave { to { transform:scaleY(.45);opacity:.55; } }
+@media (prefers-reduced-motion:reduce) { .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar,.emmi-audio-activity b { animation:none; } }
+
+/* Secondary voice actions live in one senior-friendly bottom sheet. Opening it changes only
+   presentation; the existing EMMI session, state machine and conversation stay untouched. */
+.emmi-controls-backdrop { position:fixed;z-index:20;inset:0;background:rgba(8,22,52,.34); }
+.emmi-controls-sheet { position:fixed;z-index:21;left:50%;bottom:0;width:min(100%,var(--patient-shell-width));max-height:min(78dvh,640px);padding:8px 20px calc(20px + env(safe-area-inset-bottom));border:1px solid var(--border-default);border-bottom:0;border-radius:22px 22px 0 0;background:var(--surface-primary);box-shadow:0 -18px 48px rgba(8,22,52,.2);transform:translateX(-50%);overflow:auto; }
+.emmi-controls-handle { width:44px;height:5px;margin:0 auto 14px;border-radius:99px;background:var(--border-default); }
+.emmi-controls-heading { display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px; }
+.emmi-controls-heading>div { display:grid;gap:3px; }
+.emmi-controls-heading strong { color:var(--text-primary);font-size:1.2rem;line-height:1.3; }
+.emmi-controls-heading span { color:var(--text-secondary);font-size:1rem;line-height:1.4; }
+.emmi-controls-close { flex:0 0 48px;width:48px;height:48px;border:1px solid var(--border-default);border-radius:50%;color:var(--text-primary);background:var(--surface-primary);font-size:1.65rem;line-height:1;cursor:pointer; }
+.emmi-controls-actions { display:grid;gap:9px; }
+.emmi-controls-actions button,.emmi-controls-done { width:100%;min-height:50px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:700;text-align:center;cursor:pointer; }
+.emmi-controls-actions button:disabled { opacity:.55;cursor:not-allowed; }
+.emmi-controls-done { margin-top:12px;color:var(--surface-primary);background:var(--primary-600); }
+.emmi-controls-sheet .emmi-guide-transcript { margin-top:12px;font-size:1rem;line-height:1.55; }
+.emmi-controls-sheet button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 /* The patient reads the stage, title and supporting copy before EMMI offers to help. */
 .screen > * { order:3; }
 .screen > .eyebrow,.screen > h1 { order:1; }
@@ -1124,11 +1152,12 @@ p { margin:0; }
 .emmi-welcome-actions .button { width:100%;min-height:54px;margin:0;font-size:1rem; }
 .emmi-welcome-actions .button .icon { width:22px;height:22px;color:inherit;background:transparent; }
 .emmi-welcome-choice { display:grid;gap:9px; }
+.emmi-voice-text-only { padding:11px 12px;border:1px solid var(--border-default);border-radius:12px;background:var(--surface-primary); }
 .emmi-welcome-choice p { margin:0;color:var(--text-secondary);font-size:1rem;line-height:1.48; }
 .emmi-welcome-choice button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:8px 12px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:.96rem;font-weight:700;cursor:pointer; }
 .emmi-welcome-choice button .icon { width:21px;height:21px;color:inherit;background:transparent; }
 .emmi-welcome-choice button:disabled { opacity:.58;cursor:wait; }
-.emmi-welcome-error { display:block;margin-top:3px;color:var(--text-secondary);font-size:.94rem;font-weight:400;line-height:1.42; }
+.emmi-welcome-error { display:block;margin-top:3px;color:var(--text-secondary);font-size:1rem;font-weight:400;line-height:1.5; }
 .growth-card { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start;margin-top:16px;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);box-shadow:0 8px 22px rgba(0,78,137,.055);text-align:left; }
 .growth-card>.icon { width:42px;height:42px;border-radius:13px;background:var(--primary-50); }
 .growth-card strong,.growth-card p,.growth-card small { display:block; }

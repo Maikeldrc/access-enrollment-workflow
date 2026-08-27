@@ -47,7 +47,6 @@ export async function handleEmmiLiveToken(req, res, env = process.env) {
   const allowRealPatientData = asBoolean(env.EMMI_ALLOW_REAL_PATIENT_DATA, false);
   if (!prototypeMode || allowRealPatientData) return json(res, 403, { error: "unsafe_prototype_configuration" });
   if (!asBoolean(env.EMMI_ENABLE_VOICE, true)) return json(res, 503, { error: "voice_disabled" });
-  if (!env.GEMINI_API_KEY) return json(res, 503, { error: "gemini_not_configured" });
 
   let requestBody = {};
   try {
@@ -60,7 +59,8 @@ export async function handleEmmiLiveToken(req, res, env = process.env) {
   } catch { requestBody = {}; }
   const requestedLocale = String(requestBody.locale || "EN").toUpperCase();
   const voiceIdentity = getEmmiVoiceIdentity(requestedLocale);
-  if (!voiceIdentity.supported) return json(res, 503, { error: "voice_locale_fallback" });
+  if (!voiceIdentity.supported) return json(res, 503, { error: "VOICE_UNAVAILABLE_FOR_LOCALE", voiceCapability: voiceIdentity.capability, locale: voiceIdentity.locale });
+  if (!env.GEMINI_API_KEY) return json(res, 503, { error: "gemini_not_configured" });
 
   const model = env.GEMINI_LIVE_MODEL || DEFAULT_MODEL;
   const maxMinutes = Math.max(1, Math.min(12, Number(env.EMMI_SESSION_MAX_MINUTES) || 12));

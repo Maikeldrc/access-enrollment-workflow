@@ -1,8 +1,8 @@
-export const LOCALES = Object.freeze({
-  en: { code: "EN", language: "English", htmlLang: "en" },
-  es: { code: "ES", language: "Español", htmlLang: "es" },
-  ht: { code: "KR", language: "Kreyòl", htmlLang: "ht" }
-});
+import { PATIENT_LOCALE_CONFIG } from "./localeConfig.js";
+
+export const LOCALES = Object.freeze(Object.fromEntries(
+  Object.values(PATIENT_LOCALE_CONFIG).map(item => [item.uiKey, Object.freeze({ code: item.internalCode, language: item.nativeName, htmlLang: item.htmlLang })])
+));
 
 export const COMMON_MESSAGES = Object.freeze({
   back: { en: "Back", es: "Atrás", ht: "Retounen" },

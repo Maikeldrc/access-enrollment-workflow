@@ -387,9 +387,9 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     tone: "encouraging",
     purpose: T(
-      "This part is about what matters to you.",
-      "Esta parte se trata de lo que es importante para usted.",
-      "Pati sa a konsène sa ki enpòtan pou ou."
+      "Your care team has identified goals that may support your care. This part helps you choose what matters to you.",
+      "Su equipo de atención identificó metas que pueden apoyar su cuidado. Esta parte le ayuda a elegir lo que es importante para usted.",
+      "Ekip swen ou idantifye objektif ki ka sipòte swen ou. Pati sa a ede w chwazi sa ki enpòtan pou ou."
     ),
     benefit: T(
       "Your care is not only about medical numbers — it should also support the things you want to keep doing in your life, like staying active, keeping your blood pressure under control, or remaining independent.",
@@ -397,9 +397,9 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Swen ou pa sèlman sou chif medikal — li ta dwe sipòte tou bagay ou vle kontinye fè nan lavi ou, tankou rete aktif, kontwole tansyon ou, oswa rete endepandan."
     ),
     reassurance: T(
-      "You can change them later, and your care team can help you build a plan that works for you.",
-      "Puede cambiarlos después, y su equipo puede ayudarle a crear un plan que funcione para usted.",
-      "Ou ka chanje yo pita, epi ekip swen ou ka ede w bati yon plan ki mache pou ou."
+      "You can change them later and personalize how you work toward them. Your care team remains responsible for clinical targets and treatment decisions.",
+      "Puede cambiarlas después y personalizar cómo trabajar en ellas. Su equipo de atención sigue siendo responsable de los objetivos clínicos y las decisiones de tratamiento.",
+      "Ou ka chanje yo pita epi pèsonalize kijan ou travay sou yo. Ekip swen ou rete responsab sib klinik yo ak desizyon tretman yo."
     ),
     action: T(
       "Choose the goals that matter most to you.",

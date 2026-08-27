@@ -112,6 +112,16 @@ describe("Ask EMMI answer-first orchestration", () => {
   });
 
   it.each([
+    ["Kisa ACCESS ye?", /ACCESS se yon opsyon swen Medicare/i],
+    ["Kisa CCM ye?", /CCM vle di Chronic Care Management/i]
+  ])("answers the Kreyòl knowledge question %s in Kreyòl", async (question, expected) => {
+    const { orchestrator } = harness({ locale: "KR" });
+    const answer = await orchestrator.answer(question);
+    expect(answer.text).toMatch(expected);
+    expect(answer.text).not.toMatch(/[가-힣]/);
+  });
+
+  it.each([
     ["que es access", /opción de cuidado de Medicare/i],
     ["¿Qué es ACCESS?", /opción de cuidado de Medicare/i],
     ["que es ccm", /Chronic Care Management/i],
