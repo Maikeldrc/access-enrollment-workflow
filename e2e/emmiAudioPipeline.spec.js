@@ -34,7 +34,7 @@ const audit = page => page.evaluate(() => window.__emmiAudit);
 async function startVoice(page) {
   await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: false, emmiWelcomeAcknowledged: false })));
   await page.reload();
-  await page.getByRole("button", { name: /Guide me with voice/ }).click();
+  await page.getByRole("button", { name: /Guide by voice/ }).click();
   // The worklet module load is the first thing the new pipeline does once the socket opens.
   await expect.poll(() => audit(page).then(value => value.workletNodes), { timeout: 15000 }).toBeGreaterThan(0);
 }
@@ -100,7 +100,7 @@ test("turning voice off releases the microphone and turning it back on builds on
   await expect.poll(() => page.evaluate(() =>
     performance.now() && !document.querySelector('[data-voice-state="LISTENING"]')), { timeout: 10000 }).toBe(true);
 
-  await page.getByRole("button", { name: /Guide me with voice/ }).click();
+  await page.getByRole("button", { name: /Guide by voice/ }).click();
   await expect.poll(() => audit(page).then(value => value.workletNodes), { timeout: 15000 }).toBe(2);
   const result = await audit(page);
   // A restart builds exactly one more pipeline, never a second one layered on the first.
@@ -115,7 +115,7 @@ test("rapid voice toggling never leaves a duplicate pipeline or an unhandled rej
   for (let index = 0; index < 3; index += 1) {
     await page.getByRole("button", { name: /Turn voice off/ }).click();
     await page.waitForTimeout(250);
-    await page.getByRole("button", { name: /Guide me with voice/ }).click();
+    await page.getByRole("button", { name: /Guide by voice/ }).click();
     await page.waitForTimeout(400);
   }
   const result = await audit(page);

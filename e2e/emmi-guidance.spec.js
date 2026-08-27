@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { revealFloatingEmmi } from "./emmiSurfaces.js";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/?scenario=access-happy");
@@ -13,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 test("introduces EMMI compactly with voice off by default and preserves opt-out", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Hi, I’m EMMI." })).toBeVisible();
   await expect(page.getByText(/guide you through each step and answer questions/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Guide me with voice/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Repeat$/i })).toHaveCount(0);
 
@@ -22,11 +23,11 @@ test("introduces EMMI compactly with voice off by default and preserves opt-out"
   await expect(page.getByText("Voice guidance is on", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Turn voice off/i }).click();
   await page.reload();
-  await expect(page.getByRole("button", { name: /Guide me with voice/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
 });
 
-test("Guide me with voice starts the welcome session without a second click", async ({ page }) => {
+test("Guide by voice starts the welcome session without a second click", async ({ page }) => {
   await page.evaluate(() => {
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [] }) } });
   });
@@ -35,7 +36,7 @@ test("Guide me with voice starts the welcome session without a second click", as
     tokenRequests += 1;
     await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "connection_failed" }) });
   });
-  await page.getByRole("button", { name: /Guide me with voice/i }).click();
+  await page.getByRole("button", { name: /Guide by voice/i }).click();
   await expect.poll(() => tokenRequests).toBe(1);
   await expect(page.getByRole("button", { name: /^Repeat$/i })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("itera.emmi.preferences.v1"))?.emmiVoiceGuidance)).toBe(true);
@@ -44,7 +45,7 @@ test("Guide me with voice starts the welcome session without a second click", as
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
   await expect(page.locator(".emmi-welcome-choice")).toContainText("Voice guidance is unavailable");
   await page.getByRole("button", { name: /Turn voice off/i }).click();
-  await expect(page.getByRole("button", { name: /Guide me with voice/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
 });
 
 test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", async ({ page }) => {
@@ -84,7 +85,7 @@ test("voice activation and its controls stay in the language the patient selecte
   });
 
   await page.locator('[data-action="language"]').first().click();
-  await page.getByRole("button", { name: "Guíeme con voz" }).click();
+  await page.getByRole("button", { name: "Guía por voz" }).click();
   await expect.poll(() => tokenRequests).toBe(1);
   const card = page.locator(".emmi-welcome-choice");
   await expect(card).toContainText("La guía por voz no está disponible");
@@ -97,7 +98,7 @@ test("voice activation and its controls stay in the language the patient selecte
   // token or microphone, and never silently switches to English or Korean.
   await page.getByRole("button", { name: "Desactivar guía por voz" }).click();
   await page.locator('[data-action="language"]').first().click();
-  await expect(page.getByRole("button", { name: "Gide m ak vwa" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Gide ak vwa" })).toHaveCount(0);
   await expect(page.locator(".emmi-voice-text-only")).toContainText("Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj.");
   await expect(page.locator(".emmi-welcome")).not.toContainText(/[가-힯]/);
   expect(tokenRequests).toBe(1);
@@ -251,11 +252,11 @@ test("uses the Direct Outreach welcome without inventing physician involvement",
 test("localizes the EMMI welcome in Spanish and Kreyòl without mixing languages", async ({ page }) => {
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Hola, soy EMMI." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Guíeme con voz" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Guía por voz" })).toBeVisible();
 
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Bonjou, mwen se EMMI." })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Gide m ak vwa" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Gide ak vwa" })).toHaveCount(0);
   await expect(page.locator(".emmi-voice-text-only")).toContainText("EMMI disponib pa mesaj");
 });
 
@@ -273,7 +274,7 @@ test("EMMI actions are real buttons rather than underlined links", async ({ page
     const card = page.locator(".emmi-guide-off");
     await expect(card).toBeVisible();
     const ask = card.getByRole("button", { name: "Preguntar a EMMI" });
-    const voice = card.getByRole("button", { name: /Guíeme con voz/ });
+    const voice = card.getByRole("button", { name: /Guía por voz/ });
     await expect(ask).toBeVisible();
     await expect(voice).toBeVisible();
 
@@ -350,22 +351,29 @@ test("EMMI hands off between the compact card and the floating pill without ever
 
   // Scrolled past the compact card, with the screen's own actions still below the fold, EMMI
   // reappears as a named pill rather than a bare avatar.
-  await page.evaluate(() => window.scrollTo(0, 520));
-  await expect(floating).toBeVisible();
+  const pill = await revealFloatingEmmi(page);
+  expect(pill).not.toBeNull();
   await expect(floating.locator(".emmi-assistant-label")).toContainText("EMMI");
   await expect(compact).not.toBeInViewport();
 
-  // Tapping it expands EMMI in place. Nothing navigates, nothing greets the patient again.
+  // Tapping it expands EMMI in place: the conversation itself, not a menu about EMMI. Nothing
+  // navigates and nothing greets the patient again.
   await floating.click();
-  const expanded = page.getByRole("dialog", { name: "EMMI" });
+  const expanded = page.getByRole("dialog", { name: /EMMI/ });
   await expect(expanded).toBeVisible();
-  await expect(expanded.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(expanded.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
-  await expect(expanded.getByRole("button", { name: "Turn voice off", exact: true })).toBeVisible();
+  await expect(expanded.getByRole("heading", { name: "How can I help?" })).toBeVisible();
+  await expect(expanded.getByPlaceholder("Ask a question…")).toBeVisible();
+  await expect(expanded.getByRole("button", { name: "Voice options" })).toBeVisible();
   await expect(expanded).not.toContainText(/Hi, I’m EMMI|Welcome back/);
   await expect(floating).toBeHidden();
+  expect(new URL(page.url()).pathname).toBe("/");
 
-  // Escape closes the sheet and hands focus back to what opened it.
+  // Voice options belong to EMMI wherever she is presented, and open in place.
+  await expanded.getByRole("button", { name: "Voice options" }).click();
+  await expect(expanded.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+  await expect(expanded.getByRole("button", { name: "Turn voice off", exact: true })).toBeVisible();
+
+  // Escape closes the panel and hands focus back to what opened it.
   await page.keyboard.press("Escape");
   await expect(expanded).toHaveCount(0);
   await expect(floating).toBeFocused();
@@ -419,7 +427,7 @@ test("voice options is offered only when there is voice guidance to adjust", asy
   const compact = page.locator(".emmi-guide");
   await expect(compact).toContainText("Need help?");
   await expect(compact.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
-  await expect(compact.getByRole("button", { name: /Guide me with voice/ })).toBeVisible();
+  await expect(compact.getByRole("button", { name: /Guide by voice/ })).toBeVisible();
   await expect(compact.getByRole("button", { name: "Voice options" })).toHaveCount(0);
 
   // Kreyòl has no voice yet, so EMMI says so plainly instead of implying a live voice session.

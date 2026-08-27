@@ -1200,7 +1200,7 @@ const emmiLabels = () => ({
   ask: L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI"),
   talk: L("Talk to EMMI", "Hablar con EMMI", "Pale ak EMMI"),
   voiceOptions: L("Voice options", "Opciones de voz", "Opsyon vwa"),
-  guideMe: L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa"),
+  guideMe: L("Guide by voice", "Guía por voz", "Gide ak vwa"),
   pause: L("Pause", "Pausar", "Poze"),
   resume: L("Resume", "Reanudar", "Rekòmanse"),
   repeat: L("Repeat", "Repetir", "Repete"),
@@ -1338,6 +1338,9 @@ const floatingEmmiBlockedBy = box => [...document.querySelectorAll(FLOATING_EMMI
 // page's own CTA, the pill steps up above it and checks again. Only when there is nowhere left to
 // stand does it hand the corner back to the screen entirely.
 function placeFloatingEmmi(floating) {
+  // Where the patient dragged EMMI is where EMMI stays: the automatic lift only applies to the
+  // resting position the layout chose.
+  if (floating.style.top) return !floatingEmmiBlockedBy(floating.getBoundingClientRect()).length;
   floating.style.transform = "";
   let box = floating.getBoundingClientRect();
   let lift = 0;
@@ -3751,7 +3754,7 @@ function bindAssistantLayer() {
     if (action === "start-voice") {
       if (!emmiVoiceIsSupported(languageCode())) { state.assistantVoiceError = "VOICE_UNAVAILABLE_FOR_LOCALE"; refreshAssistantLayer(); return; }
       state.assistantVoiceError = "";
-      // Starting to talk here is the same act as Guide me with voice on Home: one global voice
+      // Starting to talk here is the same act as Guide by voice on Home: one global voice
       // state, so closing the panel afterwards does not silently end what the patient started.
       state.emmiVoiceGuidance = true;
       state.emmiVoiceGuidancePaused = false;
@@ -3866,6 +3869,9 @@ function bindEmmiDrag() {
   };
   const place = (left, top) => {
     const limit = bounds();
+    // A pill the patient has placed themselves is positioned outright, so the automatic lift that
+    // keeps EMMI off the screen's actions is cleared rather than added to their coordinates.
+    emmi.style.transform = "";
     emmi.style.position = "fixed";
     emmi.style.left = `${Math.min(limit.maxX, Math.max(limit.minX, left))}px`;
     emmi.style.top = `${Math.min(limit.maxY, Math.max(limit.minY, top))}px`;
@@ -3884,13 +3890,12 @@ function bindEmmiDrag() {
   emmi.addEventListener("pointerdown", event => {
     if (event.button !== undefined && event.button !== 0) return;
     const rect = emmi.getBoundingClientRect();
-    if (getComputedStyle(emmi).position !== "fixed") {
-      emmi.style.position = "fixed";
-      emmi.style.left = `${rect.left}px`;
-      emmi.style.top = `${rect.top}px`;
-      emmi.style.right = "auto";
-      emmi.style.bottom = "auto";
-    }
+    emmi.style.transform = "";
+    emmi.style.position = "fixed";
+    emmi.style.left = `${rect.left}px`;
+    emmi.style.top = `${rect.top}px`;
+    emmi.style.right = "auto";
+    emmi.style.bottom = "auto";
     drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, moved: false };
     emmi.setPointerCapture?.(event.pointerId);
     emmi.classList.add("dragging");

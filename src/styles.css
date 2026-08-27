@@ -808,7 +808,7 @@ p { margin:0; }
 .emmi-guide-off .emmi-guide-avatar { width:30px;height:30px; }
 .emmi-guide-off-copy { color:var(--text-primary);font-size:1rem;font-weight:700; }
 /* Two columns when both labels fit, stacking to full width when they do not. The minimum
-   keeps long Spanish labels ("Preguntar a EMMI", "Guíeme con voz") on one line at 384px. */
+   keeps long Spanish labels ("Preguntar a EMMI", "Guía por voz") on one line at 384px. */
 .emmi-guide-off-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px; }
 .emmi-guide-voice-unavailable { margin:0;padding:10px 11px;border-radius:10px;color:var(--text-secondary);background:var(--surface-primary);font-size:1rem;line-height:1.5; }
 .emmi-guide-button { display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:46px;padding:8px 12px;border:1px solid var(--primary-600);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:600;line-height:1.25;text-align:center;cursor:pointer; }
@@ -1298,9 +1298,9 @@ p { margin:0; }
 .emmi-welcome-copy { display:grid;gap:8px; }
 .emmi-welcome-copy p { margin:0;color:var(--text-secondary);font-size:1rem;line-height:1.5; }
 .emmi-welcome-copy .emmi-empowerment { color:var(--text-primary);font-weight:700; }
-.emmi-welcome-actions { display:flex;flex-wrap:wrap;gap:9px; }
-.emmi-welcome-actions .button { width:100%;min-height:54px;margin:0;font-size:1rem; }
-.emmi-welcome-actions .button .icon { width:22px;height:22px;color:inherit;background:transparent; }
+.emmi-welcome-actions { display:flex;flex-wrap:wrap;gap:8px; }
+.emmi-welcome-actions .button { flex:1 1 auto;gap:7px;width:auto;min-width:0;min-height:48px;margin:0;padding:10px 8px;font-size:17px;white-space:nowrap; }
+.emmi-welcome-actions .button .icon { width:20px;height:20px;color:inherit;background:transparent; }
 .emmi-welcome-choice { display:grid;gap:9px; }
 .emmi-voice-text-only { padding:11px 12px;border:1px solid var(--border-default);border-radius:12px;background:var(--surface-primary); }
 .emmi-welcome-choice p { margin:0;color:var(--text-secondary);font-size:1rem;line-height:1.48; }
@@ -1709,27 +1709,33 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .growth-notice,
 .public-growth-page .public-growth-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
 
-.assistant-layer .assistant-identity small { font-size:var(--font-helper);line-height:var(--line-helper); }
-.assistant-layer .assistant-intro h1 { font-size:28px;line-height:1.23; }
+/* The expanded panel sizes its own type in rem so a patient who has turned text up to 150% gets
+   a bigger EMMI, not just a bigger frame around the same 17px. */
+.assistant-layer { --emmi-panel-body:1.1875rem;--emmi-panel-title:1.125rem;--emmi-panel-action:1.0625rem;--emmi-panel-helper:1rem; }
+.assistant-layer .assistant-identity small { font-size:var(--emmi-panel-helper);line-height:var(--line-helper); }
+.assistant-layer .assistant-intro h1 { font-size:1.75rem;line-height:1.23; }
 .assistant-layer .assistant-intro p,
 .assistant-layer .assistant-voice-state-row>div>small,
 .assistant-layer .assistant-voice-error,
 .assistant-layer .assistant-message,
 .assistant-layer .assistant-support-action small,
-.assistant-layer .emmi-disclaimer { font-size:var(--font-emmi);line-height:1.5; }
+.assistant-layer .emmi-disclaimer { font-size:var(--emmi-panel-body);line-height:1.5; }
 .assistant-layer .assistant-talk-button strong,
 .assistant-layer .assistant-voice-state-row>div>strong,
 .assistant-layer .assistant-quick h2,
 .assistant-layer .assistant-human-support h2,
-.assistant-layer .assistant-support-action strong { font-size:var(--font-card-title);line-height:1.4; }
-.assistant-layer .assistant-question-form input { min-height:54px;font-size:var(--font-emmi);line-height:1.45; }
-.assistant-layer .assistant-message strong { font-size:var(--font-helper);line-height:var(--line-helper); }
+.assistant-layer .assistant-support-action strong { font-size:var(--emmi-panel-title);line-height:1.4; }
+.assistant-layer .assistant-question-form input { min-height:54px;font-size:var(--emmi-panel-body);line-height:1.45; }
+.assistant-layer .assistant-message strong { font-size:var(--emmi-panel-helper);line-height:var(--line-helper); }
+.assistant-layer .assistant-error p,
+.assistant-layer .assistant-error-actions button,
+.assistant-layer .assistant-error-actions a,
 .assistant-layer .assistant-message-action,
 .assistant-layer .assistant-quick button,
 .assistant-layer .assistant-common-questions button,
 .assistant-layer .assistant-faq-toggle,
 .assistant-layer .assistant-voice-options-toggle,
-.assistant-layer .assistant-voice-options button { min-height:48px;font-size:17px;line-height:1.4; }
+.assistant-layer .assistant-voice-options button { min-height:48px;font-size:var(--emmi-panel-action);line-height:1.4; }
 .shell:not(:has(.prototype-console)) .emmi-contextual-nudge,
 .shell:not(:has(.prototype-console)) .emmi-guide-transcript,
 .shell:not(:has(.prototype-console)) .emmi-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
@@ -1741,7 +1747,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 
 @media (max-width:599px) {
   .shell:not(:has(.prototype-console)) .actions { grid-template-columns:minmax(92px,.72fr) minmax(0,1.45fr); }
-  .assistant-layer .assistant-intro h1 { font-size:28px; }
+  .assistant-layer .assistant-intro h1 { font-size:1.75rem; }
 }
 @media (max-width:374px) {
   body { font-size:var(--font-body); }
@@ -1757,7 +1763,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .screen:has(.invitation-stage) .emmi-welcome-identity strong { margin-top:2px;font-size:16px;line-height:1.4; }
 .screen:has(.invitation-stage) .emmi-welcome-copy { gap:0; }
 .screen:has(.invitation-stage) .emmi-welcome-copy p { font-size:17px;line-height:1.48; }
-.screen:has(.invitation-stage) .emmi-welcome-actions .button { justify-self:start;width:auto;min-height:48px;padding:10px 14px;font-size:17px; }
+.screen:has(.invitation-stage) .emmi-welcome-actions .button { justify-self:stretch;min-height:48px;padding:10px 8px;font-size:17px; }
 .screen:has(.invitation-stage) .emmi-welcome-choice { gap:7px; }
 .screen:has(.invitation-stage) .emmi-welcome-choice p { font-size:17px;line-height:1.4; }
 .emmi-welcome-active-actions { display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center; }
@@ -1776,14 +1782,10 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .care-circle-early:focus-visible { outline:3px solid var(--primary-600);outline-offset:3px; }
 .screen:has(.invitation-stage) .actions .button.primary { font-size:var(--font-button); }
 .screen:has(.invitation-stage) .contact-line { padding-right:0; }
-.shell:has(.invitation-stage) .emmi-assistant { position:fixed;right:max(4px,calc((100vw - var(--patient-shell-width))/2 + 4px));bottom:calc(14px + env(safe-area-inset-bottom));min-height:44px;padding:3px 12px 3px 3px; }
-.shell:has(.invitation-stage) .emmi-avatar,
-.shell:has(.invitation-stage) .emmi-avatar img { width:36px;height:36px; }
 .shell:has(.recommendation-screen) .emmi-assistant { bottom:env(safe-area-inset-bottom); }
 
 @media (max-width:374px) {
   .screen:has(.invitation-stage) .emmi-welcome { padding:12px; }
   .screen:has(.invitation-stage) .emmi-welcome-identity { grid-template-columns:50px minmax(0,1fr); }
   .screen:has(.invitation-stage) .emmi-welcome-identity img { width:50px;height:50px; }
-  .screen:has(.invitation-stage) .emmi-welcome-actions .button { width:100%; }
 }
