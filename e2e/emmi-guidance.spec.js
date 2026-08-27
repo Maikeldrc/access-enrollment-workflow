@@ -437,6 +437,8 @@ test("compact EMMI stays readable and untruncated at 125% and 150% text scaling"
   await page.getByRole("button", { name: /See how it works/i }).click();
   for (const scale of [1, 1.25, 1.5]) {
     await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
+    // The guide re-renders whenever the voice state moves, so measure a settled bar.
+    await expect(page.locator(".emmi-guide-actions button").first()).toBeVisible();
     const audit = await page.locator(".emmi-guide").evaluate(node => {
       const buttons = [...node.querySelectorAll(".emmi-guide-actions button")];
       return {

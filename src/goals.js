@@ -191,3 +191,83 @@ const ACTION_ICONS = Object.freeze({
 });
 
 export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";
+
+// A goal only has progress once the patient has personalized a plan for it. Before that My Goals
+// says so plainly rather than showing "0 of 7", which reads as failure for something never started.
+export const goalIsReadyToPersonalize = goal => !goal || goal.planStatus !== "COMPLETED";
+
+const startOfWeek = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+
+const weeklyCompletions = (goal, templateId, weekStart) =>
+  (goal.actions || [])
+    .filter(action => action.templateId === templateId)
+    .flatMap(action => action.completionHistory || [])
+    .filter(entry => new Date(`${entry.date}T00:00:00`) >= weekStart).length;
+
+// Different goals measure progress differently: readings arrive from a monitor, activity is a
+// count of days, education is topics learned. Forcing all of them into "X of Y completed" makes
+// the number meaningless, so each goal reports only the metrics it actually has.
+export function goalProgressMetrics(goal, { runtime = null, now = new Date() } = {}) {
+  if (!goal) return [];
+  const weekStart = startOfWeek(now);
+  const actions = goal.actions || [];
+  const hasTemplate = templateId => actions.some(action => action.templateId === templateId);
+  return [
+    runtime?.trend?.count ? { id: "readings", count: runtime.trend.count } : null,
+    hasTemplate("medications-as-directed") ? { id: "medicationCheckIns", count: weeklyCompletions(goal, "medications-as-directed", weekStart) } : null,
+    hasTemplate("be-active") ? { id: "activeDays", count: weeklyCompletions(goal, "be-active", weekStart) } : null,
+    (goal.educationHistory || []).some(item => item.status === "COMPLETED")
+      ? { id: "topicsLearned", count: (goal.educationHistory || []).filter(item => item.status === "COMPLETED" && new Date(item.completedAt) >= weekStart).length }
+      : null
+  ].filter(Boolean);
+}
+
+// Structured, not copy: the caller localizes. Returning a shape rather than a sentence is what
+// lets My Goals and Goal Detail describe the same state without drifting apart.
+export function goalProgressSummary(goal, { runtime = null, now = new Date() } = {}) {
+  if (goalIsReadyToPersonalize(goal)) return { kind: "READY" };
+  const metrics = goalProgressMetrics(goal, { runtime, now });
+  if (metrics.length) return { kind: "METRICS", metrics, trendDirection: runtime?.trend?.direction || null };
+  const latest = (goal.progress || []).at(-1);
+  if (latest?.patientReportedStatus) return { kind: "PATIENT_REPORTED", status: latest.patientReportedStatus };
+  return { kind: "NONE" };
+}
+
+// One resolver for "what should I do next", so a goal card, Goal Detail and EMMI cannot each
+// invent their own answer. Blood pressure knows more about itself than a generic goal does, so it
+// walks its own ladder; everything else falls back to the plan's own next incomplete step.
+export function goalNextBestAction(goal, { runtime = null, educationPending = false, now = new Date() } = {}) {
+  if (!goal) return { key: "CHECK_IN" };
+  if (goalIsReadyToPersonalize(goal)) return { key: "FINISH_PLAN" };
+  if (goal.goalType === "BLOOD_PRESSURE_CONTROL" && runtime) {
+    const readings = runtime.readings || [];
+    if (!readings.length) return { key: "TAKE_READING" };
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const latest = runtime.latest || readings.at(-1);
+    if (latest && new Date(latest.timestamp) >= today) return { key: "UNDERSTAND_READING" };
+    if (educationPending) return { key: "LEARN_NUMBERS" };
+    if (runtime.trend?.direction && runtime.trend.direction !== "INSUFFICIENT_DATA") return { key: "REVIEW_TREND" };
+    return { key: "TAKE_READING" };
+  }
+  const today = now.toISOString().slice(0, 10);
+  const pending = (goal.actions || []).find(action =>
+    action.status === "ACTIVE" && !(action.completionHistory || []).some(entry => entry.date === today));
+  if (pending) return { key: "COMPLETE_ACTION", actionId: pending.id, title: pending.title };
+  if (educationPending) return { key: "LEARN_NUMBERS" };
+  return { key: "CHECK_IN" };
+}
+
+// My Goals leads with what matters most and keeps everything else below it, so the order has to
+// come from the patient's own priorities rather than from insertion order.
+const GOAL_SORT_RANK = goal => {
+  if (goal.priority === "PRIMARY") return 0;
+  if (goal.priority === "SECONDARY") return 1;
+  if (goal.status === "ACHIEVED") return 5;
+  if (goal.status === "PAUSED") return 4;
+  if (!goalIsReadyToPersonalize(goal)) return 2;
+  return 3;
+};
+
+export const sortGoalsForPatient = goals =>
+  [...(goals || [])].sort((a, b) => GOAL_SORT_RANK(a) - GOAL_SORT_RANK(b));

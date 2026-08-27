@@ -19,6 +19,7 @@ import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transition
 import { EmmiConversationManager } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
+import { getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -26,7 +27,7 @@ import { resolveNextBestAction } from "./nextBestAction.js";
 import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
-import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, localGoalText, resolveGoalIcon, suggestedActionsFor } from "./goals.js";
+import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 
 const app = document.querySelector("#app");
@@ -70,9 +71,9 @@ let state = {
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiExpandedOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
 let emmiAuditLog = null;
 let emmiTools = null;
@@ -83,6 +84,11 @@ let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiSheetReturnAction = "open-emmi-voice-options";
+// Which control opened the expanded panel: focus goes back to it on close, and analytics record
+// the surface without ever needing a second event model per surface.
+let emmiExpandedReturnFocus = null;
+let emmiExpandedSource = "screen-action";
+let emmiOverlayHistoryEntry = false;
 let emmiHesitationTimer = null;
 let emmiHesitationCleanup = null;
 
@@ -326,12 +332,12 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
   return assurance ? `<p class="contextual-assurance" data-assurance-type="${type}">${icon(assurance.icon)}<span>${assurance.message}</span></p>` : "";
 };
 // The floating pill is EMMI scrolled out of reach, not a second assistant: it says her name,
-// shows what she is doing, and opens the expanded panel rather than jumping somewhere else.
-// Home keeps the direct route into the conversation, because Home is where EMMI is introduced.
+// shows what she is doing, and opens the expanded panel in place. One tap, one destination, on
+// every screen — the patient never lands on an intermediate menu about EMMI instead of EMMI.
 const emmiAssistant = () => {
   const status = state.screen === "INVITATION" ? "" : emmiFloatingStatus();
   const guideState = emmiGuideState();
-  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="${state.screen === "INVITATION" ? "help" : "open-emmi-expanded"}" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span><span class="emmi-assistant-label"><b>EMMI</b>${status ? `<i>${status}</i>` : ""}</span>${guideState === "SPEAKING" ? `<i class="emmi-audio-activity" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}</button>`;
+  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span><span class="emmi-assistant-label"><b>EMMI</b>${status ? `<i>${status}</i>` : ""}</span>${guideState === "SPEAKING" ? `<i class="emmi-audio-activity" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}</button>`;
 };
 
 function header() {
@@ -413,12 +419,17 @@ function emmiHomeVoiceStatus() {
   return L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
 }
 
+// The introduction card is the only EMMI on Home, so it carries both ways in: the voice EMMI is
+// introducing, and the conversation itself. Kreyòl has no voice yet and would otherwise be left
+// with an explanation and no way to reach EMMI at all.
+const emmiWelcomeAskButton = () => `<button type="button" class="button secondary emmi-welcome-ask" data-action="help" data-emmi-source="home-intro" aria-haspopup="dialog">${icon("chat")} ${emmiLabels().ask}</button>`;
+
 function emmiWelcomeVoiceControls() {
-  if (!emmiVoiceIsSupported(languageCode())) return `<div class="emmi-welcome-choice emmi-voice-text-only" data-voice-state="UNSUPPORTED"><p role="status"><strong>${L("EMMI text is available", "El chat de EMMI está disponible", "EMMI disponib pa mesaj")}</strong><small class="emmi-welcome-error">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</small></p></div>`;
-  if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${emmiLabels().guideMe}</button></div>`;
+  if (!emmiVoiceIsSupported(languageCode())) return `<div class="emmi-welcome-choice emmi-voice-text-only" data-voice-state="UNSUPPORTED"><p role="status"><strong>${L("EMMI text is available", "El chat de EMMI está disponible", "EMMI disponib pa mesaj")}</strong><small class="emmi-welcome-error">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</small></p><div class="emmi-welcome-actions">${emmiWelcomeAskButton()}</div></div>`;
+  if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary emmi-welcome-voice" data-action="enable-emmi-guidance">${icon("mic")} ${emmiLabels().guideMe}</button>${emmiWelcomeAskButton()}</div>`;
   const busy = emmiGuidanceIsBusy();
   const unavailable = state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError);
-  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("rotate")} ${emmiLabels().repeat}</button><button type="button" data-action="disable-emmi-guidance">${emmiLabels().turnOff}</button></div></div>`;
+  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="help" data-emmi-source="home-intro" aria-haspopup="dialog">${icon("chat")} ${emmiLabels().ask}</button><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("rotate")} ${emmiLabels().repeat}</button><button type="button" data-action="disable-emmi-guidance">${emmiLabels().turnOff}</button></div></div>`;
 }
 
 function emmiWelcome(providerReferral, physicianName) {
@@ -794,7 +805,7 @@ function ensureEmmiRuntime() {
   emmiLive ||= new EmmiLiveClient({
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
-    onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); },
+    onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; refreshVoiceGuidanceControls(); },
     onTranscript: (role, text) => {
       const cleaned = String(text || "").trim(); if (!cleaned) return;
       const last = state.assistantMessages.at(-1);
@@ -935,29 +946,15 @@ function syncEmmiNavigationContext(override = {}) {
   return Boolean(previousScreen);
 }
 
-function assistantQuickQuestions(context) {
-  if (context.currentScreen === "MY_GOALS" && context.activeGoal?.latestReading) return [L("What does my latest blood pressure reading mean?", "¿Qué significa mi lectura más reciente de presión arterial?", "Kisa dènye lekti tansyon mwen vle di?"), L("How has my blood pressure been this week?", "¿Cómo ha estado mi presión esta semana?", "Kijan tansyon mwen te ye semèn sa a?"), L("What is my care-team target?", "¿Cuál es el objetivo definido por mi equipo?", "Ki sib ekip swen mwen fikse a?"), L("I’m having trouble with my goal", "Tengo dificultades con mi meta", "Mwen gen pwoblèm ak objektif mwen")];
-  if (["GOALS", "MY_GOALS"].includes(context.currentScreen)) return [L("Why are you asking about my goals?", "¿Por qué preguntan por mis metas?", "Poukisa nou mande m sou objektif mwen?"), L("Can I change a goal later?", "¿Puedo cambiar una meta después?", "Èske mwen ka chanje yon objektif pita?"), L("Can you help me personalize my plan?", "¿Puede ayudarme a personalizar mi plan?", "Èske ou ka ede m pèsonalize plan mwen?"), L("I’m having trouble with my goal", "Tengo dificultades con mi meta", "Mwen gen pwoblèm ak objektif mwen")];
-  if (context.currentScreen === "HEALTH_INFORMATION_REVIEW") return [L("What does high blood pressure mean?", "¿Qué significa presión arterial alta?", "Kisa tansyon wo vle di?"), L("Can EMMI confirm this information?", "¿Puede EMMI confirmar esta información?", "Èske EMMI ka konfime enfòmasyon sa a?"), L("I’m not sure this is correct", "No estoy seguro de que esto sea correcto", "Mwen pa sèten sa kòrèk"), L("How can my care team help?", "¿Cómo puede ayudar mi equipo?", "Kijan ekip swen mwen ka ede?")];
-  if (context.currentScreen === "MEDICATIONS_REVIEW") return [L("What is Lisinopril?", "¿Qué es Lisinopril?", "Kisa Lisinopril ye?"), L("I don’t know my dose", "No sé cuál es mi dosis", "Mwen pa konnen dòz mwen"), L("I’m not sure if I take this", "No estoy seguro de tomar esto", "Mwen pa sèten si mwen pran sa"), L("Help me review my medications", "Ayúdeme a revisar mis medicamentos", "Ede m revize medikaman mwen yo")];
-  if (["CARE_CIRCLE_INVITE", "MY_CARE_CIRCLE", "CARE_CIRCLE_PERMISSIONS"].includes(context.currentScreen)) return [L("How does the invitation work?", "¿Cómo funciona la invitación?", "Kijan envitasyon an mache?"), L("Can they make decisions for me?", "¿Puede tomar decisiones por mí?", "Èske moun nan ka pran desizyon pou mwen?"), L("Can I remove them later?", "¿Puedo eliminarlo después?", "Èske mwen ka retire moun nan apre?")];
-  if (["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(context.currentScreen)) return [L("Why do you need my phone?", "¿Por qué necesitan mi teléfono?", "Poukisa nou bezwen telefòn mwen?"), L("Why do I need to verify it?", "¿Por qué debo verificarlo?", "Poukisa mwen bezwen verifye li?"), L("What does Personal Representative mean?", "¿Qué significa Representante personal?", "Kisa Reprezantan pèsonèl vle di?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
-  if (context.currentScreen === "ACCESS_BP_DEVICE_INFO") return [L("I don’t have a measuring tape", "No tengo una cinta métrica", "Mwen pa gen yon riban mezi"), L("How do I measure my arm?", "¿Cómo mido mi brazo?", "Kijan pou m mezire bra mwen?"), L("I’m not sure which arm to use", "No sé qué brazo usar", "Mwen pa sèten ki bra pou m itilize"), L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")];
-  if (["ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"].includes(context.currentScreen)) return [L("Do I need to take my blood pressure again now?", "¿Necesito tomarme la presión otra vez ahora?", "Èske mwen bezwen pran tansyon mwen ankò kounye a?"), L("Is my monitor connected?", "¿Mi monitor está conectado?", "Èske aparèy mwen konekte?"), L("I need a monitor", "Necesito un monitor", "Mwen bezwen yon aparèy"), L("I need help", "Necesito ayuda", "Mwen bezwen èd")];
-  if (context.currentScreen === "DECISION_MAKER") return [L("Can my daughter help me?", "¿Puede ayudarme mi hija?", "Èske pitit fi mwen ka ede m?"), L("What is a Personal Representative?", "¿Qué es un Representante personal?", "Kisa yon Reprezantan pèsonèl ye?"), L("Who should complete this?", "¿Quién debe completar esto?", "Ki moun ki dwe ranpli sa a?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
-  if (context.currentScreen === "INVITATION") return [L("What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"), L("Can someone help me with this?", "¿Puede alguien ayudarme con esto?", "Èske yon moun ka ede m ak sa?"), L("Do I have to enroll?", "¿Tengo que inscribirme?", "Èske mwen oblije enskri?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
-  if (context.currentScreen === "ENROLLMENT_CONFIRMED") return [L("Invite someone I trust", "Invitar a alguien de confianza", "Envite yon moun mwen fè konfyans"), L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
-  if (context.currentScreen === "CONSENT_REVIEW") return [L("What am I agreeing to?", "¿Qué estoy aceptando?", "Kisa mwen dakò ak?"), L("Can I change my mind?", "¿Puedo cambiar de opinión?", "Èske mwen ka chanje lide mwen?"), L("What will this cost?", "¿Cuánto costará?", "Ki sa ki pral pri sa a?"), L("Does this change my Medicare?", "¿Esto cambia mi Medicare?", "Èske sa chanje Medicare mwen an?"), L("What does signing as a personal representative mean?", "¿Qué significa firmar como representante personal?", "Ki sa siyati vle di antanke reprezantan pèsonèl?")];
-  if (context.currentScreen === "DISCLOSURE" && context.program === "ACCESS") return [L("What does voluntary mean?", "¿Qué significa voluntario?", "Kisa volontè vle di?"), L("Will my Medicare benefits change?", "¿Cambiarán mis beneficios de Medicare?", "Èske benefis Medicare mwen yo ap chanje?"), L("Will this cost me anything?", "¿Esto tendrá algún costo?", "Èske sa ap koute m anyen?"), L("Can I change ACCESS providers?", "¿Puedo cambiar de proveedor ACCESS?", "Èske mwen ka chanje founisè ACCESS?")];
-  if (["ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_IDENTIFIER", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"].includes(context.currentScreen)) return state.accessOutcome === "notEligible"
-    ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?")]
-    : [L("What is Medicare checking?", "¿Qué está verificando Medicare?", "Kisa chèk Medicare ye?"), L("Will this affect my benefits?", "¿Esto afectará mis beneficios?", "Èske sa ap afekte benefis mwen yo?"), L("Why do you need my information?", "¿Por qué necesitan mi información?", "Poukisa ou bezwen enfòmasyon mwen?")];
-  if (context.currentScreen === "CARE_RECOMMENDATION" && context.program === "ACCESS") return [L("What does ACCESS care include?", "¿Qué incluye el cuidado ACCESS?", "Kisa swen ACCESS gen ladan?"), L("Will I keep seeing my doctor?", "¿Seguiré viendo a mi médico?", "Èske mwen pral kontinye wè doktè mwen an?"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
-  if (context.currentScreen === "CARE_RECOMMENDATION") return [L("What does recommended care mean?", "¿Qué significa cuidado recomendado?", "Kisa swen rekòmande vle di?"), L("Will I keep seeing my doctor?", "¿Seguiré viendo a mi médico?", "Èske mwen pral kontinye wè doktè mwen an?"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
-  return context.program === "ACCESS"
-    ? [L("What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("What happens next?", "¿Qué sucede después?", "Kisa k ap pase apre?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")]
-    : [L("How does this care help me?", "¿Cómo me ayuda este cuidado?", "Ki jan swen sa a ede m?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
-}
+// Quick questions are contextual by definition, so they are resolved from the screen and the
+// patient's own record in one place rather than assembled inside whichever EMMI surface happens
+// to be rendering. Every surface asks the same resolver the same question.
+const assistantQuickQuestions = context => getEmmiQuickQuestions({
+  currentScreen: context.currentScreen,
+  program: context.program,
+  locale: languageCode(),
+  context
+});
 
 function assistantScreenExplanation(screen) {
   const explanations = {
@@ -1200,6 +1197,7 @@ const emmiGuideStatusLabel = guideState => ({
 // something", Voice options is "I want to change how EMMI speaks to me".
 const emmiLabels = () => ({
   ask: L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI"),
+  talk: L("Talk to EMMI", "Hablar con EMMI", "Pale ak EMMI"),
   voiceOptions: L("Voice options", "Opciones de voz", "Opsyon vwa"),
   guideMe: L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa"),
   pause: L("Pause", "Pausar", "Poze"),
@@ -1209,6 +1207,10 @@ const emmiLabels = () => ({
   read: L("Read message", "Leer mensaje", "Li mesaj la"),
   hide: L("Hide message", "Ocultar mensaje", "Kache mesaj la"),
   close: L("Close", "Cerrar", "Fèmen"),
+  // Closing EMMI is closing EMMI, never leaving enrollment: the patient has not gone anywhere.
+  closeEmmi: L("Close EMMI", "Cerrar EMMI", "Fèmen EMMI"),
+  mute: L("Mute", "Silenciar", "Etenn mikwofòn"),
+  unmute: L("Unmute", "Activar micrófono", "Limen mikwofòn"),
   retry: L("Try again", "Intentar de nuevo", "Eseye ankò")
 });
 
@@ -1218,13 +1220,17 @@ const emmiGuidanceTranscriptText = () => state.emmiGuidanceTranscript
 
 // Voice options only ever controls the voice experience. It is deliberately not a settings
 // menu: no account, program or knowledge options belong here.
-function emmiVoiceOptionRows(guideState) {
+// One set of voice controls, wherever the patient opens Voice options from. The expanded panel
+// adds the microphone, because that is the only surface where a live conversation is in front of
+// the patient and muting themselves is something they may need mid-sentence.
+function emmiVoiceOptionRows(guideState, { includeMute = false } = {}) {
   const labels = emmiLabels();
   const transcript = emmiGuidanceTranscriptText();
   const busy = ["SPEAKING", "THINKING", "UPDATING"].includes(guideState);
   return `<div class="emmi-sheet-actions">
       <button type="button" data-action="toggle-emmi-guidance-pause">${icon(guideState === "PAUSED" ? "play" : "pause", "emmi-sheet-icon")}<span>${guideState === "PAUSED" ? labels.resume : labels.pause}</span></button>
       <button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled" : ""}>${icon("rotate", "emmi-sheet-icon")}<span>${labels.repeat}</span></button>
+      ${includeMute ? `<button type="button" data-assistant-action="mute" aria-pressed="${state.assistantVoiceMuted}">${icon(state.assistantVoiceMuted ? "micOff" : "mic", "emmi-sheet-icon")}<span>${state.assistantVoiceMuted ? labels.unmute : labels.mute}</span></button>` : ""}
       ${transcript ? `<button type="button" data-action="toggle-emmi-transcript" aria-expanded="${state.emmiTranscriptOpen}" aria-controls="emmi-guide-transcript">${icon("document", "emmi-sheet-icon")}<span>${state.emmiTranscriptOpen ? labels.hide : labels.read}</span></button>` : ""}
     </div>
     ${state.emmiTranscriptOpen && transcript ? `<p class="emmi-guide-transcript" id="emmi-guide-transcript">${escapeHtml(transcript)}</p>` : ""}
@@ -1250,21 +1256,6 @@ function emmiVoiceOptionsSheet(guideState) {
   });
 }
 
-// The expanded panel is what the floating pill opens. It is the same EMMI, the same voice and
-// the same conversation in a fuller presentation, so it never greets the patient again.
-function emmiExpandedSheet(guideState) {
-  const labels = emmiLabels();
-  const voiceLive = !["OFF", "UNSUPPORTED", "ERROR"].includes(guideState);
-  return emmiBottomSheet({
-    id: "emmi-expanded",
-    title: "EMMI",
-    status: emmiGuideStatusLabel(guideState),
-    body: `<button type="button" class="emmi-sheet-primary" data-action="help">${icon("chat", "emmi-sheet-icon")}<span>${labels.ask}</span></button>
-      ${voiceLive ? `<p class="emmi-sheet-section">${labels.voiceOptions}</p>${emmiVoiceOptionRows(guideState)}` : ""}
-      ${guideState === "OFF" && emmiVoiceIsSupported(languageCode()) ? `<button type="button" class="emmi-sheet-tertiary" data-action="enable-emmi-guidance">${icon("mic", "emmi-sheet-icon")}<span>${labels.guideMe}</span></button>` : ""}`
-  });
-}
-
 // EMMI is introduced on the Home screen. Everywhere after it this is the compact card: EMMI's
 // identity and live status stay visible, one conversational action stays direct, and everything
 // about how EMMI speaks moves behind a single, plainly named button.
@@ -1273,9 +1264,7 @@ function voiceGuidancePanel() {
   const labels = emmiLabels();
   const guideLabel = L("EMMI contextual guidance", "Orientación contextual de EMMI", "Gid kontèks EMMI");
   const guideState = emmiGuideState();
-  const sheet = state.emmiExpandedOpen
-    ? emmiExpandedSheet(guideState)
-    : state.emmiVoiceOptionsOpen ? emmiVoiceOptionsSheet(guideState) : "";
+  const sheet = state.emmiVoiceOptionsOpen ? emmiVoiceOptionsSheet(guideState) : "";
 
   // Voice off, or a language EMMI cannot speak: never offer Voice options, because there is no
   // voice guidance to adjust yet. Ask EMMI stays available either way.
@@ -1283,21 +1272,19 @@ function voiceGuidancePanel() {
     const canEnable = guideState === "OFF" && emmiVoiceIsSupported(languageCode());
     return `<section class="emmi-guide emmi-guide-off" data-guide-state="${guideState}" aria-label="${guideLabel}">
       <div class="emmi-guide-row"><img class="emmi-guide-avatar" src="/assets/emmi-assistant.png" alt=""><div class="emmi-guide-copy"><strong>EMMI</strong><span class="emmi-guide-off-copy">${emmiGuideStatusLabel(guideState)}</span></div></div>
-      <div class="emmi-guide-off-actions"><button type="button" class="emmi-guide-button" data-action="help">${labels.ask}</button>${canEnable ? `<button type="button" class="emmi-guide-button emmi-guide-button-lead" data-action="enable-emmi-guidance">${icon("mic", "emmi-guide-button-icon")}<span>${labels.guideMe}</span></button>` : ""}</div>
+      <div class="emmi-guide-off-actions"><button type="button" class="emmi-guide-button" data-action="help" data-emmi-source="compact" aria-haspopup="dialog">${labels.ask}</button>${canEnable ? `<button type="button" class="emmi-guide-button emmi-guide-button-lead" data-action="enable-emmi-guidance">${icon("mic", "emmi-guide-button-icon")}<span>${labels.guideMe}</span></button>` : ""}</div>
       ${canEnable ? "" : `<p class="emmi-guide-voice-unavailable" role="status">${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</p>`}
       ${sheet}
     </section>`;
   }
 
-  // Pause never appears while EMMI is listening to the patient, and Ask EMMI is not repeated
-  // while EMMI speaks: barge-in already lets the patient simply start talking.
+  // With voice on the pair is always Ask EMMI and Voice options, so the buttons under a 65+
+  // patient's thumb never change label as EMMI speaks, listens or thinks. Pause lives inside
+  // Voice options — except while paused, where Resume is the only way back and has to be in
+  // reach without opening anything first.
   const primary = guideState === "PAUSED"
     ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${labels.resume}</button>`
-    : guideState === "SPEAKING"
-      ? `<button type="button" class="emmi-guide-primary" data-action="toggle-emmi-guidance-pause">${labels.pause}</button>`
-      : ["LISTENING", "THINKING", "UPDATING"].includes(guideState)
-        ? ""
-        : `<button type="button" class="emmi-guide-primary" data-action="help">${labels.ask}</button>`;
+    : `<button type="button" class="emmi-guide-primary" data-action="help" data-emmi-source="compact" aria-haspopup="dialog">${labels.ask}</button>`;
   const retry = guideState === "ERROR" ? `<button type="button" data-action="repeat-emmi-guidance">${labels.retry}</button>` : "";
   const voiceOptions = guideState === "ERROR" ? "" : `<button type="button" class="emmi-guide-voice-options" data-action="open-emmi-voice-options" aria-haspopup="dialog" aria-expanded="${state.emmiVoiceOptionsOpen}">${icon("audioLines", "emmi-guide-control-icon")}<span>${labels.voiceOptions}</span></button>`;
   return `<section class="emmi-guide" data-guide-state="${guideState}" aria-label="${guideLabel}">
@@ -1310,46 +1297,123 @@ function voiceGuidancePanel() {
   </section>`;
 }
 
-// Compact and floating are two presentations of one EMMI, so exactly one of them is ever on
-// screen. The pill also stands down rather than sit on top of anything the patient can act on:
-// at 384px a fixed overlay and a full-width Continue button cannot share the same corner, and
-// never covering the screen's own work is the rule that wins.
-function syncFloatingEmmiVisibility() {
+// One controller decides which EMMI the patient is looking at. Its inputs are the screen, whether
+// EMMI's anchor — the Home introduction card or the compact card — is still in the viewport, and
+// whether the expanded panel is open. Its output is exactly one presentation, so no component
+// ever has to decide for itself and no two of them can appear together.
+const EMMI_PRESENTATION = { HOME_INTRO: "HOME_INTRO", COMPACT: "COMPACT", FLOATING: "FLOATING", EXPANDED: "EXPANDED", NONE: "NONE" };
+
+// Home introduces EMMI in full; every screen after it carries the compact card. Whichever one the
+// screen has is the anchor the floating pill hands off with.
+const emmiAnchorElement = () => document.querySelector(".emmi-welcome, .emmi-guide");
+
+// The handoff happens only once the card has left the viewport completely: any part of it still on
+// screen keeps the pill away, so the patient never sees two EMMIs at once.
+function emmiAnchorIsVisible() {
+  const anchor = emmiAnchorElement();
+  if (!anchor) return false;
+  const box = anchor.getBoundingClientRect();
+  return Boolean(box.height) && box.bottom > 0 && box.top < innerHeight;
+}
+
+function emmiPresentationMode() {
+  if (state.assistantOpen) return EMMI_PRESENTATION.EXPANDED;
+  if (state.emmiVoiceOptionsOpen) return state.screen === "INVITATION" ? EMMI_PRESENTATION.HOME_INTRO : EMMI_PRESENTATION.COMPACT;
+  if (emmiAnchorIsVisible()) return state.screen === "INVITATION" ? EMMI_PRESENTATION.HOME_INTRO : EMMI_PRESENTATION.COMPACT;
+  return EMMI_PRESENTATION.FLOATING;
+}
+
+// The pill never sits on top of anything the patient acts on or reads for orientation: at 384px a
+// fixed overlay and a full-width Continue button cannot share the same corner. It does not yield
+// for every paragraph — on a long text screen that would hide EMMI entirely, which is worse than a
+// pill resting beside a line of body copy.
+const FLOATING_EMMI_BLOCKERS = "#screen-content button,#screen-content a,#screen-content input,#screen-content select,#screen-content textarea,#screen-content label,#screen-content .button,#screen-content h1,#screen-content h2,#screen-content h3,#screen-content .contextual-assurance,#screen-content .contact-line";
+
+const floatingEmmiBlockedBy = box => [...document.querySelectorAll(FLOATING_EMMI_BLOCKERS)]
+  .map(node => node.getBoundingClientRect())
+  .filter(rect => rect.width && rect.height && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom);
+
+// Given the choice, EMMI moves rather than disappears: landing on the support phone number or the
+// page's own CTA, the pill steps up above it and checks again. Only when there is nowhere left to
+// stand does it hand the corner back to the screen entirely.
+function placeFloatingEmmi(floating) {
+  floating.style.transform = "";
+  const resting = floating.getBoundingClientRect();
+  const blocked = floatingEmmiBlockedBy(resting);
+  if (!blocked.length) return true;
+  const lift = Math.round(resting.bottom - Math.min(...blocked.map(rect => rect.top)) + 12);
+  floating.style.transform = `translateY(${-lift}px)`;
+  const lifted = floating.getBoundingClientRect();
+  if (lifted.top >= 12 && !floatingEmmiBlockedBy(lifted).length) return true;
+  floating.style.transform = "";
+  return false;
+}
+
+let emmiIntroReported = false;
+let emmiFloatingReported = false;
+function syncEmmiPresentation() {
+  const mode = emmiPresentationMode();
+  const shell = document.querySelector(".shell");
   const floating = document.querySelector(".emmi-assistant");
-  if (!floating) return;
-  const compact = document.querySelector(".emmi-guide");
-  const sheetOpen = Boolean(state.emmiVoiceOptionsOpen || state.emmiExpandedOpen);
-  const compactBox = compact?.getBoundingClientRect();
-  const compactVisible = Boolean(compactBox && compactBox.bottom > 0 && compactBox.top < innerHeight && compactBox.height);
-  if (sheetOpen || compactVisible) { floating.classList.add("emmi-assistant-suppressed"); return; }
+  const publish = resolved => shell?.setAttribute("data-emmi-presentation", resolved);
+  if (mode === EMMI_PRESENTATION.HOME_INTRO && !emmiIntroReported) {
+    emmiIntroReported = true;
+    audit(state, "emmi_intro_visible", "success", { screen: state.screen });
+  }
+  if (mode !== EMMI_PRESENTATION.FLOATING) {
+    floating?.classList.add("emmi-assistant-suppressed");
+    emmiFloatingReported = false;
+    publish(mode);
+    return;
+  }
+  if (!floating) { publish(EMMI_PRESENTATION.NONE); return; }
   floating.classList.remove("emmi-assistant-suppressed");
-  const box = floating.getBoundingClientRect();
-  const covers = [...document.querySelectorAll("#screen-content button,#screen-content a,#screen-content input,#screen-content select,#screen-content textarea,#screen-content label,#screen-content .button,#screen-content .contextual-assurance,#screen-content .contact-line")]
-    .some(node => {
-      const rect = node.getBoundingClientRect();
-      return rect.width && rect.height && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom;
-    });
-  floating.classList.toggle("emmi-assistant-suppressed", covers);
+  const placed = placeFloatingEmmi(floating);
+  floating.classList.toggle("emmi-assistant-suppressed", !placed);
+  publish(placed ? EMMI_PRESENTATION.FLOATING : EMMI_PRESENTATION.NONE);
+  if (!placed) { emmiFloatingReported = false; return; }
+  if (emmiFloatingReported) return;
+  emmiFloatingReported = true;
+  audit(state, "emmi_floating_shown", "success", { screen: state.screen });
 }
 
 // Scrolling is what moves EMMI between presentations, so the handoff is recalculated on every
-// scroll and resize rather than only when a screen renders.
-let emmiFloatingSyncQueued = false;
-function scheduleFloatingEmmiSync() {
-  if (emmiFloatingSyncQueued) return;
-  emmiFloatingSyncQueued = true;
-  requestAnimationFrame(() => { emmiFloatingSyncQueued = false; syncFloatingEmmiVisibility(); });
+// scroll and resize rather than only when a screen renders. IntersectionObserver watches the
+// anchor itself, which reports the crossing far more cheaply and precisely than scroll alone.
+let emmiPresentationSyncQueued = false;
+function scheduleEmmiPresentationSync() {
+  if (emmiPresentationSyncQueued) return;
+  emmiPresentationSyncQueued = true;
+  requestAnimationFrame(() => { emmiPresentationSyncQueued = false; syncEmmiPresentation(); });
 }
+
+let emmiAnchorObserver = null;
+function observeEmmiAnchor() {
+  if (typeof IntersectionObserver === "undefined") return;
+  emmiAnchorObserver ||= new IntersectionObserver(() => scheduleEmmiPresentationSync(), { threshold: 0 });
+  emmiAnchorObserver.disconnect();
+  const anchor = emmiAnchorElement();
+  if (anchor) emmiAnchorObserver.observe(anchor);
+}
+
 if (typeof window !== "undefined") {
-  addEventListener("scroll", scheduleFloatingEmmiSync, { passive: true });
-  addEventListener("resize", scheduleFloatingEmmiSync);
-  // Escape belongs to the sheet wherever focus happens to be: the patient may have opened it
-  // from the pill and never moved focus inside it.
+  addEventListener("scroll", scheduleEmmiPresentationSync, { passive: true });
+  addEventListener("resize", scheduleEmmiPresentationSync);
+  // Escape closes whichever EMMI is open, wherever focus happens to be: the patient may have
+  // opened it from the pill and never moved focus inside it.
   addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
-    if (!state.emmiVoiceOptionsOpen && !state.emmiExpandedOpen) return;
+    if (state.assistantOpen) { event.preventDefault(); closeAssistant(); return; }
+    if (!state.emmiVoiceOptionsOpen) return;
     event.preventDefault();
     closeEmmiSheets();
+  });
+  // Opening EMMI is a state change, not a journey step, so Back closes the panel and leaves the
+  // patient exactly where they were instead of walking them out of enrollment.
+  addEventListener("popstate", () => {
+    if (!state.assistantOpen) return;
+    emmiOverlayHistoryEntry = false;
+    closeAssistant({ fromHistory: true });
   });
 }
 
@@ -1362,12 +1426,11 @@ const emmiFloatingStatus = () => ({
   UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…")
 })[emmiGuideState()] || "";
 
-// One close path for both sheets, so dismissal, transcript state, body scroll lock and focus
-// return can never drift apart between the compact card and the expanded panel.
+// One close path for the voice options sheet, so dismissal, transcript state, body scroll lock
+// and focus return can never drift apart between the surfaces that open it.
 function closeEmmiSheets({ returnFocus = true } = {}) {
   const trigger = emmiSheetReturnAction;
   state.emmiVoiceOptionsOpen = false;
-  state.emmiExpandedOpen = false;
   state.emmiTranscriptOpen = false;
   refreshVoiceGuidanceControls();
   if (returnFocus) requestAnimationFrame(() => document.querySelector(`[data-action="${trigger}"]`)?.focus({ preventScroll: true }));
@@ -1399,8 +1462,9 @@ function refreshVoiceGuidanceControls() {
       const sheet = replacement.querySelector(".emmi-sheet");
       if (sheet) trapFocusWithin(sheet);
     }
-    document.body.classList.toggle("emmi-sheet-open", Boolean(state.emmiVoiceOptionsOpen || state.emmiExpandedOpen));
-    scheduleFloatingEmmiSync();
+    document.body.classList.toggle("emmi-sheet-open", Boolean(state.emmiVoiceOptionsOpen));
+    observeEmmiAnchor();
+    scheduleEmmiPresentationSync();
   }
   const welcome = document.querySelector(".emmi-welcome-choice");
   if (welcome) {
@@ -1426,6 +1490,9 @@ function refreshVoiceGuidanceControls() {
       repeat.setAttribute("aria-disabled", String(repeat.disabled));
     }
   }
+  // The expanded panel shows the same voice state through the same controls, so it is refreshed
+  // from here too rather than by every caller remembering to.
+  if (state.assistantOpen) refreshAssistantLayer();
 }
 
 function deliverEmmiGuidance(message, screen = state.screen, { connect = false } = {}) {
@@ -1484,31 +1551,68 @@ function scheduleEmmiHesitationSupport() {
   armTimer();
 }
 
+// The expanded panel is EMMI in full, opened over the screen the patient is already on. It is a
+// presentation of the same assistant — same session, same voice, same conversation — never a
+// place the patient travelled to, so it greets nobody and closing it changes nothing.
+const assistantHeroCopy = screen => ({
+  MY_GOALS: L("Ask me about your goals, your readings, or what to do next.", "Pregúnteme sobre sus metas, sus lecturas o el siguiente paso.", "Mande m sou objektif ou, lekti ou yo, oswa pwochen etap la."),
+  GOALS: L("Ask me about your goals, your readings, or what to do next.", "Pregúnteme sobre sus metas, sus lecturas o el siguiente paso.", "Mande m sou objektif ou, lekti ou yo, oswa pwochen etap la."),
+  MEDICATIONS_REVIEW: L("Ask me about your medications or this review.", "Pregúnteme sobre sus medicamentos o esta revisión.", "Mande m sou medikaman ou yo oswa revizyon sa a."),
+  HEALTH_INFORMATION_REVIEW: L("Ask me about your health information or this review.", "Pregúnteme sobre su información de salud o esta revisión.", "Mande m sou enfòmasyon sante ou oswa revizyon sa a."),
+  MY_CARE: L("Ask me anything about your care.", "Pregúnteme lo que quiera sobre su cuidado.", "Mande m nenpòt bagay sou swen ou."),
+  ENROLLMENT_CONFIRMED: L("Ask me anything about your care and what happens next.", "Pregúnteme sobre su cuidado y lo que sigue.", "Mande m sou swen ou ak sa k ap vini apre.")
+})[screen] || L("Ask me anything about your enrollment or care.", "Pregúnteme sobre su inscripción o cuidado.", "Mande m nenpòt bagay sou enskripsyon oswa swen ou.");
+
+// One conversation entry, not two competing ones: a single voice control that reflects the voice
+// state the patient already has, and a single question field. Nothing here restarts a session or
+// offers to enable something that is already running.
+function assistantVoiceEntry(guideState) {
+  if (!EMMI_CONFIG.enableVoice) return "";
+  const labels = emmiLabels();
+  if (!emmiVoiceIsSupported(languageCode())) return `<div class="assistant-voice-error assistant-voice-capability" role="status">${icon("info")}<span>${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</span></div>`;
+  // A session the patient can hear counts as voice being on, whatever the guidance preference says
+  // — the panel reports what is happening rather than what was configured.
+  const live = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
+  if (!live && ["OFF", "ERROR", "UNSUPPORTED"].includes(guideState)) return `<button class="assistant-talk-button" type="button" data-assistant-action="start-voice">${icon("mic")}<strong>${labels.talk}</strong></button>`;
+  const detail = state.assistantVoiceDetail === "session_ending_soon"
+    ? L("This voice session will end soon, but your enrollment progress is saved.", "Esta sesión terminará pronto, pero su progreso está guardado.", "Sesyon vwa sa a pral fini byento, men pwogrè ou anrejistre.")
+    : L("Speak naturally. You can interrupt EMMI.", "Hable con naturalidad. Puede interrumpir a EMMI.", "Pale nòmalman. Ou ka entèwonp EMMI.");
+  return `<section class="assistant-voice-state" data-voice-state="${state.assistantVoiceState}">
+      <div class="assistant-voice-state-row"><span class="assistant-voice-orb">${icon(state.assistantVoiceMuted ? "micOff" : "mic")}</span><div><strong role="status" aria-live="polite">${live ? assistantVoiceCopy() : emmiGuideStatusLabel(guideState)}</strong><small>${detail}</small></div></div>
+      <button type="button" class="assistant-voice-options-toggle" data-assistant-action="voice-options" aria-expanded="${state.assistantVoiceOptionsOpen}" aria-controls="assistant-voice-options">${icon("audioLines")}<span>${labels.voiceOptions}</span></button>
+      ${state.assistantVoiceOptionsOpen ? `<div class="assistant-voice-options" id="assistant-voice-options">${emmiVoiceOptionRows(guideState, { includeMute: live })}</div>` : ""}
+    </section>`;
+}
+
 function assistantLayer() {
   const context = assistantContext();
   const quickQuestions = assistantQuickQuestions(context);
+  const labels = emmiLabels();
+  const guideState = emmiGuideState();
   const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}</div>`).join("")
     + (state.assistantBusy ? `<div class="assistant-message assistant assistant-thinking" role="status"><strong>EMMI</strong><p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p></div>` : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
     : [L("Is participation voluntary?", "¿La participación es voluntaria?", "Èske patisipasyon volontè?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")];
-  const voiceActive = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
+  // EMMI has already introduced herself on Home. Reopening her later continues that conversation,
+  // so the hero asks what the patient needs instead of saying hello a second time.
   const assistantTitle = emmiConversationManager?.contextForModel().hasGreeted || state.emmiWelcomeAcknowledged
     ? L("How can I help?", "¿Cómo puedo ayudarle?", "Kijan mwen ka ede w?")
     : L("Hi, I’m EMMI. How can I help?", "Hola, soy EMMI. ¿Cómo puedo ayudar?", "Bonjou, mwen se EMMI. Kijan mwen ka ede?");
-  return `<aside class="assistant-layer" role="dialog" aria-modal="true" aria-labelledby="assistant-title">
-    <header class="assistant-header"><div class="assistant-identity"><strong>EMMI</strong><small>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</small></div><button class="language" data-assistant-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button><button class="assistant-close" data-assistant-action="close" aria-label="${L("Back to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon")}">×</button></header>
-    <div class="assistant-content"><div class="assistant-intro"><img src="/assets/emmi-assistant.png" alt=""><div><h1 id="assistant-title" tabindex="-1">${assistantTitle}</h1><p>${L("Ask me anything about your enrollment or care.", "Pregúnteme sobre su inscripción o cuidado.", "Mande m nenpòt bagay sou enskripsyon oswa swen ou.")}</p></div></div>
-      ${EMMI_CONFIG.enableVoice ? !emmiVoiceIsSupported(languageCode()) ? `<div class="assistant-voice-error assistant-voice-capability" role="status">${icon("info")}<span>${assistantVoiceErrorCopyFor("VOICE_UNAVAILABLE_FOR_LOCALE")}</span></div>` : voiceActive ? `<section class="assistant-voice-panel" aria-live="polite" data-voice-state="${state.assistantVoiceState}"><span class="assistant-voice-orb">${icon(state.assistantVoiceMuted ? "micOff" : "mic")}</span><div><strong>${assistantVoiceCopy()}</strong><small>${state.assistantVoiceDetail === "session_ending_soon" ? L("This voice session will end soon, but your enrollment progress is saved.", "Esta sesión terminará pronto, pero su progreso está guardado.", "Sesyon vwa sa a pral fini byento, men pwogrè ou anrejistre.") : L("Speak naturally. You can interrupt EMMI.", "Hable con naturalidad. Puede interrumpir a EMMI.", "Pale nòmalman. Ou ka entèwonp EMMI.")}</small></div><div class="assistant-voice-controls"><button type="button" data-assistant-action="mute" aria-pressed="${state.assistantVoiceMuted}">${icon(state.assistantVoiceMuted ? "micOff" : "mic")} ${state.assistantVoiceMuted ? L("Unmute", "Activar micrófono", "Limen mikwofòn") : L("Mute", "Silenciar", "Etenn mikwofòn")}</button><button type="button" data-assistant-action="end-voice">${L("End conversation", "Terminar conversación", "Fini konvèsasyon")}</button></div></section>` : `<button class="assistant-talk-button" type="button" data-assistant-action="start-voice">${icon("mic")}<span><strong>${L("Talk to EMMI", "Hablar con EMMI", "Pale ak EMMI")}</strong><small>${L("Use your voice or continue typing", "Use su voz o continúe escribiendo", "Sèvi ak vwa ou oswa kontinye ekri")}</small></span></button>` : ""}
+  return `<aside class="assistant-layer" role="dialog" aria-modal="true" aria-label="${L("EMMI – Your ITERA Care Assistant", "EMMI – Su Asistente de cuidado de ITERA", "EMMI – Asistan swen ITERA ou")}">
+    <header class="assistant-header"><div class="assistant-identity"><strong>EMMI</strong><small>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</small></div><button class="language" data-assistant-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button><button class="assistant-close" data-assistant-action="close" aria-label="${labels.closeEmmi}">×</button></header>
+    <div class="assistant-content"><div class="assistant-intro"><img src="/assets/emmi-assistant.png" alt=""><div><h1 id="assistant-title" tabindex="-1">${assistantTitle}</h1><p>${assistantHeroCopy(context.currentScreen)}</p></div></div>
+      ${assistantVoiceEntry(guideState)}
       ${state.assistantVoiceError && emmiVoiceIsSupported(languageCode()) ? `<div class="assistant-voice-error" role="status">${icon("info")}<span>${assistantVoiceErrorCopy()}</span></div>` : ""}
       ${EMMI_CONFIG.enableText ? `<form class="assistant-question-form"><label class="sr-only" for="assistant-question">${L("Ask a question", "Haga una pregunta", "Poze yon kesyon")}</label><input id="assistant-question" name="question" type="text" autocomplete="off" placeholder="${L("Ask a question…", "Haga una pregunta…", "Poze yon kesyon…")}" ${state.assistantBusy ? "disabled" : ""}><button type="submit" aria-label="${L("Send question", "Enviar pregunta", "Voye kesyon")}" ${state.assistantBusy ? "disabled" : ""}>${icon("arrowRight")}</button></form>` : ""}
       ${messages ? `<section class="assistant-conversation" aria-live="polite">${messages}</section>` : ""}
-      ${EMMI_CONFIG.enableText ? `<section class="assistant-quick"><h2>${L("Quick questions", "Preguntas rápidas", "Kesyon rapid")}</h2><div>${quickQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question)}">${question}</button>`).join("")}</div></section>
+      ${state.assistantError ? `<section class="assistant-error" role="alert"><p>${L("I’m having trouble connecting right now.", "Estoy teniendo problemas de conexión en este momento.", "Mwen gen pwoblèm pou m konekte kounye a.")}</p><div class="assistant-error-actions"><button type="button" data-assistant-action="retry">${icon("rotate")}<span>${labels.retry}</span></button><a href="tel:+13053948070" data-assistant-action="human-support">${icon("phone")}<span>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</span></a></div></section>` : ""}
+      ${EMMI_CONFIG.enableText ? `<section class="assistant-quick"><h2>${L("Quick questions", "Preguntas rápidas", "Kesyon rapid")}</h2><div>${quickQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question.label)}" data-question-id="${question.id}" data-question-intent="${question.intent}">${escapeHtml(question.label)}</button>`).join("")}</div></section>
       <button class="assistant-faq-toggle" type="button" data-assistant-action="faq" aria-expanded="${state.assistantFaqOpen}">${L("Browse common questions", "Ver preguntas comunes", "Gade kesyon komen")} ${icon("chevronRight")}</button>
-      ${state.assistantFaqOpen ? `<section class="assistant-common-questions">${commonQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question)}">${question}</button>`).join("")}</section>` : ""}` : ""}
-      <section class="assistant-human-support"><h2>${L("Prefer to talk with someone?", "¿Prefiere hablar con alguien?", "Ou prefere pale ak yon moun?")}</h2><a class="assistant-support-action" href="tel:+13053948070">${icon("phone")}<span><strong>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</strong><small>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</small></span></a><button class="assistant-support-action" type="button" data-assistant-action="callback">${icon("phone")}<span><strong>${L("Have someone call me", "Quiero que alguien me llame", "Mande yon moun rele m")}</strong><small>${L("EMMI will confirm before sending the request", "EMMI confirmará antes de enviar la solicitud", "EMMI ap konfime anvan li voye demann lan")}</small></span></button></section>
+      ${state.assistantFaqOpen ? `<section class="assistant-common-questions">${commonQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question)}" data-question-id="common-question">${question}</button>`).join("")}</section>` : ""}` : ""}
+      <section class="assistant-human-support"><h2>${L("Prefer to talk with someone?", "¿Prefiere hablar con alguien?", "Ou prefere pale ak yon moun?")}</h2><a class="assistant-support-action" href="tel:+13053948070" data-assistant-action="human-support">${icon("phone")}<span><strong>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</strong><small>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</small></span></a><button class="assistant-support-action" type="button" data-assistant-action="callback">${icon("phone")}<span><strong>${L("Have someone call me", "Quiero que alguien me llame", "Mande yon moun rele m")}</strong><small>${L("EMMI will confirm before sending the request", "EMMI confirmará antes de enviar la solicitud", "EMMI ap konfime anvan li voye demann lan")}</small></span></button></section>
       <p class="emmi-disclaimer">${icon("info")}<span>${L("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.", "EMMI es una asistente de IA, no una profesional clínica. Para emergencias médicas, llame al 911.", "EMMI se yon asistan IA, li pa yon pwofesyonèl klinik. Pou ijans medikal, rele 911.")}</span></p>
-      <button class="button secondary assistant-back" type="button" data-assistant-action="close">${icon("arrowLeft", "button-icon")} ${L("Back to enrollment", "Volver a la inscripción", "Retounen nan enskripsyon")}</button>
+      <button class="button secondary assistant-back" type="button" data-assistant-action="close">${icon("arrowLeft", "button-icon")} ${labels.closeEmmi}</button>
     </div></aside>`;
 }
 
@@ -2137,26 +2241,134 @@ function goals() {
   return goalDiscovery();
 }
 
-const goalProgressCopy = goal => {
-  const actions = goal.actions || [];
-  const periodic = actions.find(action => action.targetCount);
-  if (periodic) {
-    const today = new Date();
-    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
-    const completed = (periodic.completionHistory || []).filter(entry => new Date(`${entry.date}T00:00:00`) >= weekStart).length;
-    return L(`${completed} of ${periodic.targetCount} planned actions this week`, `${completed} de ${periodic.targetCount} acciones planificadas esta semana`, `${completed} sou ${periodic.targetCount} aksyon planifye semèn sa a`);
-  }
-  const milestone = actions.find(action => action.actionType === "ONE_TIME" && action.status === "COMPLETED");
-  if (milestone) return L("A planned step is complete", "Un paso del plan está completado", "Yon etap nan plan an fini");
-  const latest = (goal.progress || []).at(-1);
-  return latest?.patientReportedStatus ? ({ GOING_WELL: L("Going well", "Va bien", "Sa ap mache byen"), DIFFICULTY: L("Having some difficulty", "Con algunas dificultades", "Gen kèk difikilte"), NOT_STARTED: L("Not started yet", "Aún no comenzada", "Poko kòmanse") }[latest.patientReportedStatus] || "") : L("Ready when you are", "Listo cuando usted quiera", "Pare lè ou pare");
+const goalMetricCopy = (id, count) => ({
+  readings: L(`${count} readings received`, `${count} lecturas recibidas`, `${count} lekti resevwa`),
+  medicationCheckIns: L(`${count} medication check-ins`, `${count} registros de medicamentos`, `${count} tcheke medikaman`),
+  activeDays: L(`${count} active days`, `${count} días activos`, `${count} jou aktif`),
+  topicsLearned: L(`${count} topics learned`, `${count} temas aprendidos`, `${count} sijè aprann`)
+})[id] || "";
+
+const goalStatusCopy = goal => {
+  if (goal.status === "ACHIEVED") return L("Goal reached", "Meta alcanzada", "Objektif reyalize");
+  if (goal.status === "PAUSED") return L("Paused", "En pausa", "An poz");
+  if (goalIsReadyToPersonalize(goal)) return L("Ready when you are", "Listo cuando usted quiera", "Pare lè ou pare");
+  return L("In progress", "En curso", "Ap avanse");
 };
 
-function myGoalsDashboard() {
-  const goals = activePatientGoals();
-  const cards = goals.map(goal => { const nextAction = (goal.actions || []).find(action => action.status === "ACTIVE" && !(action.completionHistory || []).some(entry => entry.date === new Date().toISOString().slice(0,10))); const planLabel = goal.planStatus === "COMPLETED" ? L("View plan", "Ver plan", "Gade plan") : goal.planPersonalizationStatus === "DEFERRED" || goal.planStatus === "DEFERRED" ? L("Continue personalizing my plan", "Continuar personalizando mi plan", "Kontinye pèsonalize plan mwen") : L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen"); return `<article class="my-goal-card ${goal.priority === "PRIMARY" ? "primary-goal" : ""}" data-goal-status="${goal.status}">${goal.priority === "PRIMARY" ? `<span class="goal-priority-label">${L("My priority", "Mi prioridad", "Priyorite mwen")}</span>` : ""}<div class="my-goal-heading">${goalIcon(goal)}<h2>${escapeHtml(goalDisplayName(goal, state.language))}</h2></div>${goal.whyItMatters ? `<div class="goal-why-preview"><small>${L("Why this matters to me", "Por qué esto me importa", "Poukisa sa enpòtan pou mwen")}</small><p>${escapeHtml(goal.whyItMatters)}</p></div>` : ""}<div class="goal-progress-preview"><small>${L("Progress", "Progreso", "Pwogrè")}</small><strong>${goalProgressCopy(goal)}</strong></div>${nextAction ? `<div class="goal-next-step"><small>${L("Next step", "Próximo paso", "Pwochen etap")}</small><p>${escapeHtml(nextAction.title)}</p></div>` : ""}<button type="button" class="text-button" data-action="view-goal" data-goal-id="${goal.id}">${planLabel} ${icon("arrowRight")}</button></article>`; }).join("");
-  return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("The goals you’re working toward with support from your care team.", "Las metas en las que está trabajando con el apoyo de su equipo de atención.", "Objektif w ap travay sou yo avèk sipò ekip swen ou."), L("Your care", "Su cuidado", "Swen ou"))}${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}<div class="my-goals-list">${cards || `<div class="goals-empty">${icon("goals")}<strong>${L("Choose a goal that matters to you", "Elija una meta que le importe", "Chwazi yon objektif ki enpòtan pou ou")}</strong></div>`}</div><button type="button" class="link-card add-goal-card" data-action="add-another-goal">${icon("goals")}<span><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose something else you’d like to work toward", "Elija algo más que le gustaría lograr", "Chwazi yon lòt bagay ou ta renmen reyalize")}</small></span><b>›</b></button><div class="actions">${cta(L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen"), "back", true)}</div>`;
+const goalStatusIcon = goal => {
+  if (goal.status === "ACHIEVED") return "check";
+  if (goal.status === "PAUSED") return "clock";
+  return goalIsReadyToPersonalize(goal) ? "clock" : "check";
+};
+
+const goalNextStepCopy = key => ({
+  FINISH_PLAN: L("Finish personalizing your plan", "Termine de personalizar su plan", "Fini pèsonalize plan ou"),
+  TAKE_READING: L("Take your next blood pressure reading", "Tome su próxima lectura de presión arterial", "Pran pwochen lekti tansyon ou"),
+  UNDERSTAND_READING: L("Understand your latest blood pressure reading", "Entienda su lectura más reciente de presión arterial", "Konprann dènye lekti tansyon ou"),
+  REVIEW_TREND: L("Review your 7-day trend", "Revise su tendencia de 7 días", "Gade tandans 7 jou ou"),
+  LEARN_NUMBERS: L("Learn what your blood pressure numbers mean", "Aprenda qué significan sus números de presión", "Aprann sa chif tansyon ou vle di"),
+  CHECK_IN: L("Tell us how this goal is going", "Cuéntenos cómo va esta meta", "Di nou kijan objektif sa a ap mache")
+})[key] || "";
+
+// Blood pressure is the one goal with live runtime data behind it, so it is the one goal whose
+// progress and next step can be specific. Everything else answers from its own plan.
+const goalRuntimeFor = goal => (goal.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null);
+
+const goalEducationPending = goal => Boolean(nextBestGoalEducation({
+  goalType: goal.goalType,
+  completedTopicIds: (goal.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId)
+}));
+
+const goalNextStep = goal => {
+  const next = goalNextBestAction(goal, { runtime: goalRuntimeFor(goal), educationPending: goalEducationPending(goal) });
+  return next.key === "COMPLETE_ACTION" ? next.title || "" : goalNextStepCopy(next.key);
+};
+
+// Progress is only ever what the goal actually measured. A goal with no plan yet says so instead
+// of reporting zero of something the patient never agreed to.
+function goalProgressMarkup(goal) {
+  const summary = goalProgressSummary(goal, { runtime: goalRuntimeFor(goal) });
+  if (summary.kind === "READY") return "";
+  if (summary.kind === "METRICS") {
+    const trend = summary.trendDirection && summary.trendDirection !== "INSUFFICIENT_DATA" ? bpTrendShortCopy(summary.trendDirection) : "";
+    return `<div class="goal-summary-block">
+      <span class="goal-summary-label">${L("This week", "Esta semana", "Semèn sa a")}</span>
+      <ul class="goal-metric-list">${summary.metrics.map(metric => `<li>${icon("check")}<span>${goalMetricCopy(metric.id, metric.count)}</span></li>`).join("")}</ul>
+      ${trend ? `<p class="goal-metric-trend">${trend}</p>` : ""}
+    </div>`;
+  }
+  const copy = summary.kind === "PATIENT_REPORTED"
+    ? ({ GOING_WELL: L("Going well", "Va bien", "Sa ap mache byen"), DIFFICULTY: L("Having some difficulty", "Con algunas dificultades", "Gen kèk difikilte"), NOT_STARTED: L("Not started yet", "Aún no comenzada", "Poko kòmanse") }[summary.status] || "")
+    : L("No progress recorded yet", "Aún no hay progreso registrado", "Poko gen pwogrè anrejistre");
+  return `<div class="goal-summary-block"><span class="goal-summary-label">${L("This week", "Esta semana", "Semèn sa a")}</span><p class="goal-summary-value">${copy}</p></div>`;
 }
+
+const bpTrendShortCopy = direction => ({
+  STABLE: L("Stable trend", "Tendencia estable", "Tandans estab"),
+  TRENDING_UP: L("Trending higher", "Tendencia más alta", "Tandans monte"),
+  TRENDING_DOWN: L("Trending lower", "Tendencia más baja", "Tandans desann")
+})[direction] || "";
+
+const goalCardCta = goal => (goalIsReadyToPersonalize(goal)
+  ? { label: L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen"), action: "view-goal" }
+  : { label: L("View my goal", "Ver mi meta", "Gade objektif mwen"), action: "view-goal" });
+
+// The primary goal gets the fuller treatment: progress, the next step and a lead action. Other
+// goals stay deliberately lighter, so the patient's own priority is the thing that stands out.
+function primaryGoalCard(goal) {
+  const nextStep = goalNextStep(goal);
+  const ctaAction = goalCardCta(goal);
+  return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" aria-labelledby="goal-title-${goal.id}">
+    <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
+    ${goalProgressMarkup(goal)}
+    ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
+    <button type="button" class="goal-card-cta" data-action="${ctaAction.action}" data-goal-id="${goal.id}"><span>${ctaAction.label}</span>${icon("arrowRight")}</button>
+  </article>`;
+}
+
+function secondaryGoalCard(goal) {
+  const ctaAction = goalCardCta(goal);
+  const ready = goalIsReadyToPersonalize(goal);
+  return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" aria-labelledby="goal-title-${goal.id}">
+    <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
+    <p class="goal-card-status">${icon(goalStatusIcon(goal))}<span>${goalStatusCopy(goal)}</span></p>
+    <p class="goal-card-support">${ready
+      ? L("Personalize how you’d like to work on this goal.", "Personalice cómo le gustaría trabajar en esta meta.", "Pèsonalize kijan ou ta renmen travay sou objektif sa a.")
+      : escapeHtml(goalNextStep(goal))}</p>
+    <button type="button" class="goal-card-cta" data-action="${ctaAction.action}" data-goal-id="${goal.id}"><span>${ctaAction.label}</span>${icon("arrowRight")}</button>
+  </article>`;
+}
+
+function myGoalsDashboard() {
+  const goals = sortGoalsForPatient(activePatientGoals());
+  if (!goals.length) {
+    return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("See what you’re working toward and what comes next.", "Vea en qué está trabajando y qué sigue.", "Gade sa w ap travay pou li ak sa k ap vini."))}
+      <section class="goals-empty">${icon("goals", "goals-empty-icon")}<h2>${L("Your goals will appear here", "Sus metas aparecerán aquí", "Objektif ou yo ap parèt isit la")}</h2><p>${L("Choose a goal that matters to you and we’ll help you work toward it.", "Elija una meta que le importe y le ayudaremos a trabajar en ella.", "Chwazi yon objektif ki enpòtan pou ou epi n ap ede w travay sou li.")}</p></section>
+      ${addGoalCard()}
+      ${backToCareAction()}`;
+  }
+  const primary = goals.find(goal => goal.priority === "PRIMARY") || goals[0];
+  const others = goals.filter(goal => goal.id !== primary.id);
+  return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("See what you’re working toward and what comes next.", "Vea en qué está trabajando y qué sigue.", "Gade sa w ap travay pou li ak sa k ap vini."))}
+    ${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}
+    <section class="goal-group" aria-labelledby="goal-group-priority">
+      <h2 class="goal-group-heading" id="goal-group-priority">${L("My priority", "Mi prioridad", "Priyorite mwen")}</h2>
+      ${primaryGoalCard(primary)}
+    </section>
+    ${others.length ? `<section class="goal-group" aria-labelledby="goal-group-other">
+      <h2 class="goal-group-heading" id="goal-group-other">${L("Other goals", "Otras metas", "Lòt objektif")}</h2>
+      ${others.map(secondaryGoalCard).join("")}
+    </section>` : ""}
+    ${addGoalCard()}
+    ${backToCareAction()}`;
+}
+
+const addGoalCard = () => `<button type="button" class="add-goal-action" data-action="add-another-goal">
+  <span class="add-goal-mark" aria-hidden="true">+</span>
+  <span class="add-goal-copy"><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose another goal you’d like to work toward.", "Elija otra meta en la que le gustaría trabajar.", "Chwazi yon lòt objektif ou ta renmen travay sou li.")}</small></span>
+</button>`;
+
+const backToCareAction = () => `<div class="goal-back-actions"><button type="button" class="button secondary goal-back-to-care" data-action="back">${icon("arrowLeft")}<span>${L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</span></button></div>`;
 
 const goalHealthLocale = () => ({ en: "en-US", es: "es-US", ht: "ht-HT" }[state.language] || "en-US");
 
@@ -2582,7 +2794,6 @@ function render() {
   emmiHesitationCleanup = null;
   state.emmiContextualNudgeVisible = false;
   state.emmiVoiceOptionsOpen = false;
-  state.emmiExpandedOpen = false;
   document.body.classList.remove("emmi-sheet-open");
   state.assistantOpen = false;
   document.body.classList.remove("assistant-open");
@@ -3381,23 +3592,33 @@ async function runAlignment() {
     state.screen = "ENROLLMENT_CONFIRMED"; draftStore.save(state); render();
   }
 }
+// Re-rendering the panel must never cost the patient what they were typing: the field is restored
+// from the live DOM, not from state, because a half-written question is not application state.
 function refreshAssistantLayer({ focusInput = false } = {}) {
   const current = document.querySelector(".assistant-layer");
   if (!current) return;
+  const draft = current.querySelector("#assistant-question")?.value || "";
+  const activeSelection = document.activeElement?.id === "assistant-question";
   current.outerHTML = assistantLayer();
   bindAssistantLayer();
   const layer = document.querySelector(".assistant-layer");
-  if (focusInput) layer?.querySelector("#assistant-question")?.focus();
+  const input = layer?.querySelector("#assistant-question");
+  if (input && draft) input.value = draft;
+  if (focusInput || activeSelection) input?.focus();
   else layer?.querySelector(".assistant-conversation")?.lastElementChild?.scrollIntoView({ block: "nearest" });
 }
 
-async function askEmmi(question) {
+async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   const cleaned = question.trim();
   if (!cleaned || state.assistantBusy) return;
   const runtime = ensureEmmiRuntime();
+  state.assistantError = "";
+  state.assistantRetryQuestion = "";
   state.assistantMessages.push({ role: "user", text: cleaned });
   emmiConversationManager?.recordTurn("user", cleaned, { screen: state.screen });
   runtime.audit.transcript("user", cleaned);
+  // Analytics record that a question was asked and where it came from, never what was asked.
+  audit(state, source === "quick-question" ? "emmi_quick_question_selected" : "emmi_question_submitted", "success", { screen: state.screen, source, questionId });
   const criticalSafety = /(call 911|emergency|chest pain|can'?t breathe|cannot breathe|dolor.*pecho|no puedo respirar|rele 911|ijans|pa ka respire)/i.test(cleaned);
   const contextIndependent = !/(this|that|button|screen|here|esto|eso|botón|pantalla|aquí|sa a|bouton|ekran|isit)/i.test(cleaned);
   if (!["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) && runtime.live.sendText(cleaned, {
@@ -3418,23 +3639,37 @@ async function askEmmi(question) {
     runtime.audit.transcript("assistant", response.text);
     audit(state, "emmi_question", response.emergency ? "emergency_guidance" : state.assistantOriginScreen);
   } catch {
-    const text = L("I can’t confirm that information right now. You can keep using enrollment or ask the ITERA care team for help.", "No puedo confirmar esa información ahora. Puede continuar con la inscripción o pedir ayuda al equipo de ITERA.", "Mwen pa ka konfime enfòmasyon sa a kounye a. Ou ka kontinye enskripsyon an oswa mande ekip ITERA èd.");
-    state.assistantMessages.push({ role: "assistant", text }); emmiConversationManager?.recordTurn("assistant", text, { screen: state.screen }); if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted(); runtime.audit.transcript("assistant", text);
+    // A failed answer keeps the patient in EMMI with a way forward, rather than a dead end or a
+    // fabricated reply: try again, or reach a person.
+    state.assistantError = "CONNECTION";
+    state.assistantRetryQuestion = cleaned;
+    audit(state, "emmi_answer_failed", "failed", { screen: state.screen });
   } finally {
     const remainingThinkingTime = 300 - (Date.now() - thinkingStartedAt);
     if (remainingThinkingTime > 0) await new Promise(resolve => setTimeout(resolve, remainingThinkingTime));
     state.assistantBusy = false;
-    refreshAssistantLayer({ focusInput: true });
+    refreshAssistantLayer({ focusInput: !state.assistantError });
   }
 }
 
-function closeAssistant() {
+// Closing restores the screen exactly: same route, same scroll, same form state, same voice
+// session. Nothing about enrollment or the conversation is rebuilt, because nothing was left.
+function closeAssistant({ fromHistory = false } = {}) {
+  if (!state.assistantOpen) return;
   const scrollY = state.assistantScrollY;
   const languageChanged = state.assistantLanguageChanged;
+  const trigger = emmiExpandedReturnFocus;
   state.assistantOpen = false;
   state.assistantLanguageChanged = false;
+  state.assistantVoiceOptionsOpen = false;
+  state.assistantError = "";
   document.body.classList.remove("assistant-open");
   document.querySelector(".assistant-layer")?.remove();
+  setPatientExperienceInert(false);
+  stopAssistantKeyboardWatch();
+  audit(state, "emmi_expanded_closed", "success", { screen: state.screen, source: emmiExpandedSource });
+  // Voice guidance is global state, so an open panel is not what keeps a session alive. Only a
+  // session the patient never turned on is torn down with the panel that started it.
   if (!state.emmiVoiceGuidance) {
     if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("ended");
     emmiAuditLog?.end();
@@ -3442,21 +3677,33 @@ function closeAssistant() {
     emmiTools = null;
     emmiLive = null;
   }
-  if (languageChanged) render();
+  if (!fromHistory && emmiOverlayHistoryEntry) { emmiOverlayHistoryEntry = false; history.back(); }
+  if (languageChanged) { render(); return; }
+  refreshVoiceGuidanceControls();
   requestAnimationFrame(() => {
     window.scrollTo({ top: scrollY, behavior: "auto" });
-    document.querySelector(".emmi-assistant")?.focus({ preventScroll: true });
+    scheduleEmmiPresentationSync();
+    // Focus goes back to what opened EMMI. If that control has since stood down — the pill hands
+    // over to the compact card as the patient returns to the top — the surviving EMMI takes it.
+    requestAnimationFrame(() => {
+      const candidates = [trigger, document.querySelector(".emmi-assistant:not(.emmi-assistant-suppressed)"), document.querySelector('.emmi-guide [data-action="help"]')];
+      candidates.find(node => node?.isConnected && node.offsetParent !== null)?.focus({ preventScroll: true });
+    });
   });
 }
 
 function bindAssistantLayer() {
   const layer = document.querySelector(".assistant-layer");
   if (!layer) return;
+  // Voice options inside the panel reuse the compact card's controls, so they carry data-action
+  // and need the shared handlers bound onto this freshly rendered subtree.
+  bindActions(layer);
+  trapFocusWithin(layer);
   layer.querySelector(".assistant-question-form")?.addEventListener("submit", event => {
     event.preventDefault();
     askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
   });
-  layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => askEmmi(button.dataset.assistantQuestion || "")));
+  layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" })));
   layer.querySelectorAll("[data-assistant-growth]").forEach(button => button.addEventListener("click", () => {
     const growthAction = button.dataset.assistantGrowth;
     const originScreen = state.assistantOriginScreen || state.screen;
@@ -3472,21 +3719,40 @@ function bindAssistantLayer() {
     render();
   }));
   layer.querySelectorAll("[data-assistant-action]").forEach(control => control.addEventListener("click", event => {
-    event.preventDefault();
     const action = control.dataset.assistantAction;
+    // The care team number is a real phone call, so the link is left to do its job.
+    if (action === "human-support") { audit(state, "emmi_human_support_selected", "success", { screen: state.screen, channel: "phone" }); return; }
+    event.preventDefault();
     if (action === "close") closeAssistant();
     if (action === "faq") { state.assistantFaqOpen = !state.assistantFaqOpen; refreshAssistantLayer(); }
-    if (action === "callback") askEmmi(L("Can someone call me?", "¿Puede llamarme alguien?", "Èske yon moun ka rele m?"));
+    if (action === "callback") askEmmi(L("Can someone call me?", "¿Puede llamarme alguien?", "Èske yon moun ka rele m?"), { questionId: "request-callback", source: "human-support" });
+    if (action === "retry") {
+      const question = state.assistantRetryQuestion;
+      state.assistantError = "";
+      state.assistantRetryQuestion = "";
+      refreshAssistantLayer();
+      if (question) askEmmi(question, { questionId: "retry", source: "retry" });
+    }
+    if (action === "voice-options") { state.assistantVoiceOptionsOpen = !state.assistantVoiceOptionsOpen; refreshAssistantLayer(); }
     if (action === "start-voice") {
       if (!emmiVoiceIsSupported(languageCode())) { state.assistantVoiceError = "VOICE_UNAVAILABLE_FOR_LOCALE"; refreshAssistantLayer(); return; }
-      state.assistantVoiceError = ""; refreshAssistantLayer();
+      state.assistantVoiceError = "";
+      // Starting to talk here is the same act as Guide me with voice on Home: one global voice
+      // state, so closing the panel afterwards does not silently end what the patient started.
+      state.emmiVoiceGuidance = true;
+      state.emmiVoiceGuidancePaused = false;
+      state.emmiWelcomeAcknowledged = true;
+      state.assistantVoiceMuted = false;
+      persistEmmiPreferences();
+      audit(state, "emmi_voice_started", "success", { screen: state.screen, source: "expanded" });
+      refreshAssistantLayer();
       const priorConversation = emmiConversationManager?.contextForModel();
       const initialGuidance = state.emmiVoiceGuidance && state.emmiGuidanceTranscript
         ? emmiGuidancePrompt(state.emmiGuidanceTranscript)
         : priorConversation?.recentTurns?.length ? emmiConversationManager.recoveryInstruction() : "";
+      ensureEmmiRuntime().live.prepareAudioPlayback();
       ensureEmmiRuntime().live.connect(initialGuidance).catch(() => { /* The live client publishes a safe, localized error state. */ });
     }
-    if (action === "end-voice") { emmiTransitionManager?.cancel("explicit_end", { immediate: true }); ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
     if (action === "mute") { state.assistantVoiceMuted = !state.assistantVoiceMuted; ensureEmmiRuntime().live.setMuted(state.assistantVoiceMuted); refreshAssistantLayer(); }
     if (action === "language") {
       state.assistantVoiceError = "";
@@ -3499,14 +3765,56 @@ function bindAssistantLayer() {
   }));
 }
 
-function showHelp() {
+// While EMMI is expanded the screen underneath is inactive, not merely covered: a screen reader
+// or a stray tab must not reach a Continue button the patient cannot see.
+function setPatientExperienceInert(inert) {
+  document.querySelectorAll(".shell > .app-header, .shell > #screen-content, .shell > .screen").forEach(node => {
+    node.toggleAttribute("inert", inert);
+    if (inert) node.setAttribute("aria-hidden", "true");
+    else node.removeAttribute("aria-hidden");
+  });
+}
+
+// The on-screen keyboard shrinks the visual viewport without telling CSS, so the panel is told
+// how tall it really is. Without this the input and Send sit under the keyboard while the patient
+// types into them.
+let assistantKeyboardCleanup = null;
+function startAssistantKeyboardWatch() {
+  const viewport = window.visualViewport;
+  if (!viewport) return;
+  const apply = () => {
+    const layer = document.querySelector(".assistant-layer");
+    if (!layer) return;
+    layer.style.height = `${Math.round(viewport.height)}px`;
+    layer.style.top = `${Math.round(viewport.offsetTop)}px`;
+  };
+  apply();
+  viewport.addEventListener("resize", apply);
+  viewport.addEventListener("scroll", apply);
+  assistantKeyboardCleanup = () => {
+    viewport.removeEventListener("resize", apply);
+    viewport.removeEventListener("scroll", apply);
+  };
+}
+function stopAssistantKeyboardWatch() {
+  assistantKeyboardCleanup?.();
+  assistantKeyboardCleanup = null;
+}
+
+// Opening EMMI is a presentation change, not navigation: the route, the step, the form and the
+// scroll position are all left exactly as they are, and remembered so closing can restore them.
+function showHelp(trigger = null) {
   if (state.assistantOpen || !state.offer) return;
   if (!emmiPrototypeIsSafe()) return;
   if (state.assistantOriginScreen !== state.screen) state.assistantFaqOpen = false;
+  emmiExpandedReturnFocus = trigger instanceof HTMLElement ? trigger : null;
+  emmiExpandedSource = emmiExpandedReturnFocus?.dataset.emmiSource || "screen-action";
   state.assistantOpen = true;
   state.assistantOriginScreen = state.screen;
   state.assistantScrollY = window.scrollY;
   state.assistantLanguageChanged = false;
+  state.assistantVoiceOptionsOpen = false;
+  state.emmiVoiceOptionsOpen = false;
   ensureEmmiRuntime();
   if (import.meta.env.DEV) {
     const previewState = new URLSearchParams(location.search).get("emmiState");
@@ -3515,9 +3823,18 @@ function showHelp() {
       state.assistantVoiceDetail = previewState === "TOOL_RUNNING" ? emmiToolStatusLabel("getExpectedAccessCost") : "prototype_visual_preview";
     }
   }
+  if (emmiExpandedSource === "floating") audit(state, "emmi_floating_opened", "success", { screen: state.screen });
+  audit(state, "emmi_expanded_opened", "success", { screen: state.screen, source: emmiExpandedSource });
   document.body.classList.add("assistant-open");
   document.querySelector(".shell")?.insertAdjacentHTML("beforeend", assistantLayer());
+  setPatientExperienceInert(true);
   bindAssistantLayer();
+  startAssistantKeyboardWatch();
+  syncEmmiPresentation();
+  // Back should close EMMI rather than walk the patient out of enrollment. One entry, added only
+  // when the browser supports it, and consumed again by whichever close happens first.
+  try { history.pushState({ emmiOverlay: true }, ""); emmiOverlayHistoryEntry = true; }
+  catch { emmiOverlayHistoryEntry = false; }
   requestAnimationFrame(() => document.querySelector("#assistant-title")?.focus({ preventScroll: true }));
 }
 
@@ -3971,7 +4288,6 @@ function bind() {
       state.emmiVoiceGuidance = false;
       state.emmiVoiceGuidancePaused = false;
       state.emmiVoiceOptionsOpen = false;
-      state.emmiExpandedOpen = false;
       state.emmiTranscriptOpen = false;
       state.emmiWelcomeAcknowledged = true;
       state.emmiGuidanceTranscript = "";
@@ -3981,11 +4297,10 @@ function bind() {
       render();
       return;
     }
-    if (action === "open-emmi-voice-options" || action === "open-emmi-expanded") {
+    if (action === "open-emmi-voice-options") {
       // Remember what opened the sheet so focus can go back exactly where the patient left it.
-      emmiSheetReturnAction = action === "open-emmi-expanded" ? "open-emmi-expanded" : "open-emmi-voice-options";
-      state.emmiExpandedOpen = action === "open-emmi-expanded";
-      state.emmiVoiceOptionsOpen = action === "open-emmi-voice-options";
+      emmiSheetReturnAction = "open-emmi-voice-options";
+      state.emmiVoiceOptionsOpen = true;
       state.emmiTranscriptOpen = false;
       refreshVoiceGuidanceControls();
       requestAnimationFrame(() => document.querySelector(".emmi-sheet-close")?.focus({ preventScroll: true }));
@@ -4264,10 +4579,10 @@ function bind() {
     if (action === "remove-added-medication") { state.additionalMedications = state.additionalMedications.filter(item => item.id !== el.dataset.medicationId); state.additionalMedicationsStatus = state.additionalMedications.length ? "ADDED" : "UNREVIEWED"; audit(state, "patient_reported_medication_removed", "success", { additionalMedicationId: el.dataset.medicationId }); draftStore.save(state); render(); }
     if (action === "help") {
       // The conversation is the same EMMI: closing the sheet is presentation, not a new session.
-      if (state.emmiVoiceOptionsOpen || state.emmiExpandedOpen) closeEmmiSheets({ returnFocus: false });
-      showHelp();
+      if (state.emmiVoiceOptionsOpen) closeEmmiSheets({ returnFocus: false });
+      showHelp(el);
     }
-    if (action === "authority-document") showHelp();
+    if (action === "authority-document") showHelp(el);
     if (action === "callback") { state.callbackRequested = true; state.returnScreen = state.screen; state.screen = "CALLBACK_CONFIRMED"; audit(state, "callback_requested"); render(); }
     if (action === "return") { state.screen = state.returnScreen || "INVITATION"; render(); }
     if (action === "language") {
@@ -4591,7 +4906,8 @@ function bind() {
     const optionalSupport = document.querySelector("[data-optional-support]");
     if (optionalSupport) optionalSupport.hidden = !completionRoleAcceptsCareCircle();
   });
-  scheduleFloatingEmmiSync();
+  observeEmmiAnchor();
+  syncEmmiPresentation();
   bindEmmiDrag();
 }
 

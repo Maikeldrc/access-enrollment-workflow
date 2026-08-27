@@ -523,7 +523,7 @@ p { margin:0; }
 
 /* Patient Goals: patient-owned goals, planning, progress and care-team support. */
 .goals-screen { padding-bottom:calc(var(--patient-bottom-safe-gap) + 24px + env(safe-area-inset-bottom)); }
-.goals-screen .goal-list,.goal-action-options,.goal-barrier-options,.my-goals-list { display:grid;gap:12px;width:100%; }
+.goals-screen .goal-list,.goal-action-options,.goal-barrier-options { display:grid;gap:12px;width:100%; }
 .goals-screen .goal-list .check-row,.goal-action-options .check-row,.goal-barrier-options .check-row { width:100%;min-width:0;min-height:56px;margin:0;padding:14px 16px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary); }
 .goals-screen .goal-list .check-row:has(input:checked),.goal-action-options .check-row:has(input:checked),.goal-barrier-options .check-row:has(input:checked) { border-color:var(--primary-500);background:var(--primary-50);box-shadow:0 0 0 1px var(--primary-500); }
 /* Goal category iconography. One container, one stroke colour and one glyph size everywhere, so
@@ -546,8 +546,6 @@ p { margin:0; }
 .choice-card.is-unavailable strong { color:var(--text-secondary); }
 .choice-card.is-unavailable .goal-icon { color:var(--text-secondary);background:color-mix(in srgb,var(--border-default) 34%,var(--surface-primary)); }
 .choice-card.is-unavailable .choice-dot { opacity:.5; }
-.my-goal-heading { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center; }
-.my-goal-heading h2 { margin:0; }
 .goal-detail-hero { display:grid;grid-template-columns:48px minmax(0,1fr);gap:13px;align-items:start;margin:0 0 6px; }
 .goal-detail-hero h1 { margin:0; }
 .goal-detail-hero-icon { flex:0 0 48px;width:48px;height:48px;margin-top:2px;border-radius:14px; }
@@ -568,25 +566,61 @@ p { margin:0; }
 .goal-plan-team-note { margin:0;padding:13px 15px;border-radius:13px;color:var(--text-secondary);background:var(--surface-secondary);font-size:16px;line-height:1.5; }
 .goal-plan-choice { display:grid;gap:12px; }
 .goal-plan-choice .button { width:100%; }
-.goal-plan-summary,.goal-detail-section,.clinical-target-card,.my-goal-card { border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.055); }
+.goal-plan-summary,.goal-detail-section,.clinical-target-card { border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.055); }
 .goal-plan-summary { display:grid;gap:0;margin:18px 0;overflow:hidden; }
 .goal-plan-summary>div { padding:16px 18px;border-bottom:1px solid var(--border-default); }
 .goal-plan-summary>div:last-child { border-bottom:0; }
-.goal-plan-summary small,.goal-why-preview small,.goal-progress-preview small,.goal-next-step small { display:block;margin-bottom:4px;color:var(--text-secondary);font-size:16px;line-height:1.45; }
-.goal-plan-summary strong,.goal-progress-preview strong { font-size:18px;line-height:1.42; }
+.goal-plan-summary small { display:block;margin-bottom:4px;color:var(--text-secondary);font-size:16px;line-height:1.45; }
+.goal-plan-summary strong { font-size:18px;line-height:1.42; }
 .goal-plan-summary p,.goal-plan-summary ul { margin:5px 0 0;font-size:17px;line-height:1.55; }
 .goal-plan-summary ul { padding-left:22px; }
-.my-goal-card { position:relative;padding:18px;overflow:hidden; }
-.my-goal-card.primary-goal { border-color:var(--primary-300);background:linear-gradient(180deg,var(--primary-50),var(--surface-primary) 55%); }
-.my-goal-card h2 { margin:4px 0 12px;font-size:22px;line-height:1.32; }
-.goal-priority-label { display:inline-flex;align-items:center;min-height:30px;padding:4px 10px;border-radius:999px;color:var(--primary-700);background:var(--primary-100);font-size:15px;font-weight:800; }
-.goal-why-preview,.goal-progress-preview { margin-top:12px; }
-.goal-next-step { margin-top:12px;padding-top:12px;border-top:1px solid var(--border-default); }
-.goal-next-step p { margin:0;color:var(--text-primary);font-size:17px;line-height:1.48; }
-.goal-why-preview p { margin:0;color:var(--text-secondary);font-size:17px;line-height:1.5; }
-.my-goal-card .text-button { margin-top:14px; }
-.add-goal-card { width:100%;margin-top:14px; }
-.goals-empty { display:grid;justify-items:center;gap:8px;padding:24px;border:1px dashed var(--border-default);border-radius:18px;text-align:center; }
+/* My Goals: what matters most, how it is going, what to do next — then everything else. The
+   hierarchy is carried by grouping and card weight, not by decoration. Nothing here sets a fixed
+   height or clips text: cards grow with the content, in any language, at any text size. */
+.goal-group { display:grid;gap:11px;width:100%;margin:0 0 22px; }
+.goal-group-heading { margin:0;color:var(--text-muted);font-size:16px;font-weight:800;letter-spacing:.07em;line-height:1.3;text-transform:uppercase; }
+.goal-card { display:grid;gap:12px;width:100%;min-width:0;padding:17px 16px;border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary); }
+.goal-card-primary { gap:14px;padding:19px 18px;border-color:var(--primary-300);background:linear-gradient(180deg,var(--primary-50),var(--surface-primary) 62%);box-shadow:0 8px 24px rgba(0,78,137,.06); }
+/* The icon sits with the first line of the title, not floating in the middle of a wrapped one. */
+.goal-card-head { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start; }
+.goal-card-icon { margin-top:1px; }
+.goal-card-title { min-width:0;margin:0;font-size:19px;font-weight:800;line-height:1.28;overflow-wrap:anywhere; }
+.goal-card-primary .goal-card-title { font-size:21px;line-height:1.26; }
+.goal-card-primary .goal-card-head { grid-template-columns:48px minmax(0,1fr); }
+.goal-card-primary .goal-card-icon { width:48px;height:48px;flex-basis:48px;border-radius:14px; }
+.goal-card-primary .goal-card-icon .icon svg { width:24px;height:24px; }
+.goal-summary-block { display:grid;gap:4px;min-width:0; }
+.goal-summary-label { color:var(--text-muted);font-size:15px;font-weight:800;letter-spacing:.06em;line-height:1.3;text-transform:uppercase; }
+.goal-summary-value { margin:0;color:var(--text-primary);font-size:17px;line-height:1.5;overflow-wrap:anywhere; }
+.goal-metric-list { display:grid;gap:5px;margin:0;padding:0;list-style:none; }
+.goal-metric-list li { display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;color:var(--text-primary);font-size:17px;line-height:1.45; }
+.goal-metric-list .icon { width:22px;height:22px;flex:0 0 22px;margin-top:1px;border-radius:0;color:var(--primary-600);background:transparent; }
+.goal-metric-list .icon svg { width:19px;height:19px; }
+.goal-metric-trend { margin:2px 0 0;color:var(--text-secondary);font-size:16px;line-height:1.45; }
+.goal-card-status { display:flex;align-items:center;gap:8px;margin:0;color:var(--text-primary);font-size:17px;font-weight:700;line-height:1.4; }
+.goal-card-status .icon { flex:0 0 22px;width:22px;height:22px;border-radius:0;color:var(--primary-600);background:transparent; }
+.goal-card-status .icon svg { width:19px;height:19px; }
+.goal-card-support { margin:0;color:var(--text-secondary);font-size:17px;line-height:1.5;overflow-wrap:anywhere; }
+/* Long translations wrap inside the button instead of overflowing it or shrinking the type. */
+.goal-card-cta { display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-width:0;height:auto;min-height:48px;padding:11px 14px;border:1px solid var(--primary-600);border-radius:12px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:17px;font-weight:700;line-height:1.35;text-align:center;white-space:normal;overflow-wrap:anywhere;cursor:pointer; }
+.goal-card-primary .goal-card-cta { color:var(--surface-primary);background:var(--primary-600);border-color:var(--primary-600); }
+.goal-card-cta:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.goal-card-cta .icon { flex:0 0 20px;width:20px;height:20px;border-radius:0;color:inherit;background:transparent; }
+.goal-card-cta .icon svg { width:19px;height:19px; }
+/* Adding a goal is an action, not another finished goal, so it reads as one. */
+.add-goal-action { display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;width:100%;min-height:64px;margin:0 0 20px;padding:15px 16px;border:2px dashed var(--primary-300);border-radius:18px;background:transparent;font:inherit;text-align:left;cursor:pointer; }
+.add-goal-mark { display:grid;place-items:center;width:44px;height:44px;border-radius:13px;color:var(--primary-700);background:var(--primary-50);font-size:26px;font-weight:700;line-height:1; }
+.add-goal-copy { display:grid;gap:2px;min-width:0; }
+.add-goal-copy strong { color:var(--primary-700);font-size:18px;font-weight:800;line-height:1.3; }
+.add-goal-copy small { color:var(--text-secondary);font-size:16px;line-height:1.45;overflow-wrap:anywhere; }
+.add-goal-action:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.goal-back-actions { display:grid;width:100%;margin:0 0 4px; }
+.goal-back-to-care .icon { width:22px;height:22px;border-radius:0;color:inherit;background:transparent; }
+.goal-back-to-care { display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:auto;min-height:52px;white-space:normal; }
+.goals-empty { display:grid;justify-items:center;gap:8px;margin-bottom:20px;padding:26px 20px;border:1px dashed var(--border-default);border-radius:18px;text-align:center; }
+.goals-empty h2 { margin:0;font-size:20px;line-height:1.3; }
+.goals-empty p { margin:0;color:var(--text-secondary);font-size:17px;line-height:1.5; }
+.goals-empty-icon { width:52px;height:52px;border-radius:15px; }
 .goal-notice { margin:0 0 16px;padding:13px 15px;border-radius:14px;color:var(--primary-800);background:var(--primary-50);font-size:17px;line-height:1.5; }
 .goal-detail-section,.clinical-target-card { margin:14px 0;padding:17px; }
 .goal-detail-section h2,.clinical-target-card strong { margin:0 0 8px;font-size:19px;line-height:1.4; }
@@ -605,7 +639,7 @@ p { margin:0; }
 .goal-manage button { min-height:48px;padding:10px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:16px;font-weight:700;text-align:left;cursor:pointer; }
 
 @media (max-width:430px) {
-  .goals-screen,.goals-screen form,.goals-screen fieldset,.my-goals-list,.my-goal-card,.goal-plan-summary { min-width:0;max-width:100%; }
+  .goals-screen,.goals-screen form,.goals-screen fieldset,.goal-group,.goal-card,.goal-plan-summary { min-width:0;max-width:100%; }
   .goal-priority-form .choice-card,.goal-plan-form .check-row { grid-template-columns:auto auto minmax(0,1fr); }
   .goal-priority-form .choice-card strong,.goal-list .check-row>span:last-child,.goal-action-options .check-row>span:last-child { overflow-wrap:anywhere; }
   .goal-action-row { grid-template-columns:minmax(0,1fr); }
@@ -982,32 +1016,37 @@ p { margin:0; }
 .assistant-identity { min-width:0; }
 .assistant-identity strong,.assistant-identity small { display:block; }
 .assistant-identity strong { font-size:1.04rem;letter-spacing:.04em; }
-.assistant-identity small { margin-top:1px;overflow:hidden;color:var(--text-muted);font-size:.78rem;font-weight:650;line-height:1.25;text-overflow:ellipsis;white-space:nowrap; }
+.assistant-identity small { margin-top:1px;color:var(--text-muted);font-size:.78rem;font-weight:650;line-height:1.25; }
 .assistant-header .language { min-width:44px;min-height:44px;padding:0 4px; }
-.assistant-close { display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;font-size:2rem;line-height:1;cursor:pointer; }
+.assistant-close { display:grid;place-items:center;width:48px;height:48px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;font-size:2rem;line-height:1;cursor:pointer; }
 .assistant-close:hover { background:var(--surface-purple); }
 .assistant-content { display:flex;flex:1;flex-direction:column;padding:24px 24px calc(24px + env(safe-area-inset-bottom)); }
 .assistant-intro { display:grid;grid-template-columns:58px 1fr;gap:13px;align-items:center; }
 .assistant-intro img { display:block;width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 7px 9px rgba(0,78,137,.15)); }
 .assistant-intro h1 { margin:0;font-size:1.72rem;line-height:1.15;letter-spacing:-.035em; }
 .assistant-intro p { margin:6px 0 0;color:var(--text-secondary);font-size:1.0625rem;line-height:1.45; }
-.assistant-talk-button { display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;width:100%;min-height:68px;margin-top:20px;padding:10px 14px;border:1.5px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--primary-50);font:inherit;text-align:left;cursor:pointer;box-shadow:0 7px 20px rgba(7,77,145,.06); }
-.assistant-talk-button>.icon { width:44px;height:44px;color:var(--surface-primary);background:var(--primary-600); }
-.assistant-talk-button strong,.assistant-talk-button small { display:block; }
-.assistant-talk-button strong { font-size:1.08rem;line-height:1.3; }
-.assistant-talk-button small { margin-top:2px;color:var(--text-secondary);font-size:.96rem;line-height:1.35; }
-.assistant-voice-panel { display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center;margin-top:20px;padding:14px;border:1.5px solid var(--primary-300);border-radius:16px;background:var(--primary-50);box-shadow:0 7px 20px rgba(7,77,145,.06); }
-.assistant-voice-panel>div>strong,.assistant-voice-panel>div>small { display:block; }
-.assistant-voice-panel>div>strong { font-size:1.08rem;line-height:1.3; }
-.assistant-voice-panel>div>small { margin-top:2px;color:var(--text-secondary);font-size:.94rem;line-height:1.4; }
+.assistant-talk-button { display:flex;gap:12px;align-items:center;width:100%;min-height:60px;margin-top:20px;padding:8px 16px 8px 8px;border:1.5px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--primary-50);font:inherit;text-align:left;cursor:pointer;box-shadow:0 7px 20px rgba(7,77,145,.06); }
+.assistant-talk-button>.icon { flex:0 0 44px;width:44px;height:44px;color:var(--surface-primary);background:var(--primary-600); }
+.assistant-talk-button strong { font-size:1.08rem;font-weight:700;line-height:1.3; }
+.assistant-voice-state { display:grid;gap:12px;margin-top:20px;padding:14px;border:1.5px solid var(--primary-300);border-radius:16px;background:var(--primary-50);box-shadow:0 7px 20px rgba(7,77,145,.06); }
+.assistant-voice-state-row { display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center; }
+.assistant-voice-state-row>div>strong,.assistant-voice-state-row>div>small { display:block; }
+.assistant-voice-state-row>div>strong { font-size:1.08rem;line-height:1.3; }
+.assistant-voice-state-row>div>small { margin-top:2px;color:var(--text-secondary);font-size:.94rem;line-height:1.4; }
+.assistant-voice-options-toggle { display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;padding:8px 12px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:700;cursor:pointer; }
+.assistant-voice-options-toggle .icon { width:22px;height:22px;color:var(--primary-600);background:transparent; }
+.assistant-voice-options { display:grid;gap:9px; }
 .assistant-voice-orb { display:grid;place-items:center;width:52px;height:52px;border-radius:50%;color:var(--surface-primary);background:var(--primary-600);box-shadow:0 0 0 7px rgba(67,117,217,.10); }
 .assistant-voice-orb .icon { color:inherit;background:transparent; }
-.assistant-voice-panel[data-voice-state="LISTENING"] .assistant-voice-orb,.assistant-voice-panel[data-voice-state="USER_SPEAKING"] .assistant-voice-orb { animation:emmi-pulse 1.5s ease-in-out infinite; }
-.assistant-voice-panel[data-voice-state="EMMI_THINKING"] .assistant-voice-orb,.assistant-voice-panel[data-voice-state="TOOL_RUNNING"] .assistant-voice-orb { animation:emmi-breathe 1.1s ease-in-out infinite; }
-.assistant-voice-panel[data-voice-state="EMMI_SPEAKING"] .assistant-voice-orb { animation:emmi-speaking .72s ease-in-out infinite alternate; }
-.assistant-voice-controls { grid-column:1/-1;display:grid;grid-template-columns:1fr 1.35fr;gap:8px;margin-top:2px; }
-.assistant-voice-controls button { display:flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:8px 10px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:.94rem;font-weight:700;cursor:pointer; }
-.assistant-voice-controls .icon { width:22px;height:22px;color:var(--primary-600);background:transparent; }
+.assistant-voice-state[data-voice-state="LISTENING"] .assistant-voice-orb,.assistant-voice-state[data-voice-state="USER_SPEAKING"] .assistant-voice-orb { animation:emmi-pulse 1.5s ease-in-out infinite; }
+.assistant-voice-state[data-voice-state="EMMI_THINKING"] .assistant-voice-orb,.assistant-voice-state[data-voice-state="TOOL_RUNNING"] .assistant-voice-orb { animation:emmi-breathe 1.1s ease-in-out infinite; }
+.assistant-voice-state[data-voice-state="EMMI_SPEAKING"] .assistant-voice-orb { animation:emmi-speaking .72s ease-in-out infinite alternate; }
+/* A failed answer keeps the patient inside EMMI with two real ways forward. */
+.assistant-error { margin-top:16px;padding:14px;border:1px solid var(--primary-100);border-radius:14px;background:var(--surface-primary); }
+.assistant-error p { margin:0 0 12px;color:var(--text-primary);font-size:1.0625rem;line-height:1.45; }
+.assistant-error-actions { display:grid;gap:9px; }
+.assistant-error-actions button,.assistant-error-actions a { display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:10px 12px;border:1px solid var(--primary-300);border-radius:11px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1.0625rem;font-weight:700;text-decoration:none;cursor:pointer; }
+.assistant-error-actions .icon { width:22px;height:22px;color:var(--primary-600);background:transparent; }
 .assistant-voice-error { display:flex;gap:9px;align-items:flex-start;margin-top:12px;padding:11px 12px;border:1px solid var(--primary-100);border-radius:11px;color:var(--text-secondary);background:var(--surface-primary);font-size:.96rem;line-height:1.45; }
 .assistant-voice-error .icon { flex:0 0 24px;width:24px;height:24px; }
 @keyframes emmi-pulse { 50% { box-shadow:0 0 0 13px rgba(67,117,217,.05);transform:scale(1.04); } }
@@ -1020,7 +1059,7 @@ p { margin:0; }
 .assistant-question-form button { display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:10px;color:var(--surface-primary);background:var(--primary-600);cursor:pointer; }
 .assistant-question-form button .icon { color:inherit;background:transparent; }
 .assistant-conversation { display:grid;gap:10px;margin-top:16px; }
-.assistant-message { max-width:92%;padding:13px 15px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);font-size:1rem;line-height:1.5; }
+.assistant-message { max-width:92%;padding:13px 15px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);font-size:1.0625rem;line-height:1.5; }
 .assistant-message.user { justify-self:end;color:var(--text-primary);background:var(--primary-50);border-color:var(--primary-100); }
 .assistant-message.assistant { justify-self:start; }
 .assistant-message strong { display:block;margin-bottom:3px;font-size:.82rem; }
@@ -1031,7 +1070,7 @@ p { margin:0; }
 .assistant-quick { margin-top:21px; }
 .assistant-quick h2,.assistant-human-support h2 { margin:0 0 10px;font-size:1.0625rem;line-height:1.4; }
 .assistant-quick>div { display:grid;gap:8px; }
-.assistant-quick button,.assistant-common-questions button { min-height:48px;padding:10px 13px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font-size:1rem;font-weight:600;line-height:1.35;text-align:left;cursor:pointer; }
+.assistant-quick button,.assistant-common-questions button { min-height:48px;padding:12px 13px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font-size:1.0625rem;font-weight:600;line-height:1.35;text-align:left;overflow-wrap:anywhere;cursor:pointer; }
 .assistant-quick button:hover,.assistant-common-questions button:hover { border-color:var(--primary-300);background:var(--primary-50); }
 .assistant-faq-toggle { display:flex;align-items:center;gap:6px;min-height:48px;margin-top:10px;padding:0;border:0;color:var(--primary-600);background:transparent;font-size:1rem;font-weight:700;cursor:pointer; }
 .assistant-faq-toggle .icon { width:20px;height:20px;color:inherit;background:transparent;transition:transform .15s ease; }
@@ -1042,10 +1081,10 @@ p { margin:0; }
 .assistant-support-action .icon { width:40px;height:40px; }
 .assistant-support-action strong,.assistant-support-action small { display:block; }
 .assistant-support-action strong { font-size:1rem;line-height:1.35; }
-.assistant-support-action small { margin-top:3px;color:var(--text-muted);font-size:.96rem;line-height:1.4; }
+.assistant-support-action small { margin-top:3px;color:var(--text-muted);font-size:1rem;line-height:1.4; }
 .assistant-layer .emmi-disclaimer { margin-top:18px;border:0;background:transparent;color:var(--text-muted);font-size:.9375rem;line-height:1.45; }
 .assistant-layer .emmi-disclaimer .icon { flex:0 0 22px;width:22px;height:22px; }
-.assistant-back { width:100%;margin-top:16px;min-height:52px;font-size:1rem; }
+.assistant-back { width:100%;margin-top:16px;min-height:52px;font-size:1.0625rem; }
 .assistant-debug { margin-top:14px;color:var(--text-muted);font-size:.82rem; }
 .assistant-debug summary { min-height:44px;padding:12px 0;cursor:pointer; }
 .assistant-debug pre { max-height:260px;margin:0;padding:10px;border-radius:9px;background:var(--surface-primary);font-size:.7rem;line-height:1.4;white-space:pre-wrap;word-break:break-word;overflow:auto; }
@@ -1259,7 +1298,7 @@ p { margin:0; }
 .emmi-welcome-copy { display:grid;gap:8px; }
 .emmi-welcome-copy p { margin:0;color:var(--text-secondary);font-size:1rem;line-height:1.5; }
 .emmi-welcome-copy .emmi-empowerment { color:var(--text-primary);font-weight:700; }
-.emmi-welcome-actions { display:grid;gap:9px; }
+.emmi-welcome-actions { display:flex;flex-wrap:wrap;gap:9px; }
 .emmi-welcome-actions .button { width:100%;min-height:54px;margin:0;font-size:1rem; }
 .emmi-welcome-actions .button .icon { width:22px;height:22px;color:inherit;background:transparent; }
 .emmi-welcome-choice { display:grid;gap:9px; }
@@ -1487,7 +1526,7 @@ p { margin:0; }
 @media (min-width:600px) { body { padding:28px 0; }.shell { width:var(--patient-shell-width);max-width:100%;min-height:max(844px,calc(100dvh - 56px));border:1px solid rgba(225,225,237,.9);border-radius:24px;box-shadow:0 0 30px rgba(0,78,137,.08); }.floating-help { bottom:112px; } }
 @media (min-width:600px) { .emmi-assistant { right:calc((100vw - var(--patient-shell-width))/2 + 10px);bottom:24px; }.contextual-assurance { width:calc(100% - 72px); } }
 @media (min-width:600px) { .prototype-console { min-height:calc(100dvh - 56px);margin:0 auto; } }
-@media (max-width:480px) { .assistant-content { padding-left:18px;padding-right:18px; }.assistant-intro { grid-template-columns:50px 1fr; }.assistant-intro img { width:50px;height:50px; }.assistant-intro h1 { font-size:1.5rem; }.assistant-voice-controls { grid-template-columns:1fr; } }
+@media (max-width:480px) { .assistant-content { padding-left:18px;padding-right:18px; }.assistant-intro { grid-template-columns:50px 1fr; }.assistant-intro img { width:50px;height:50px; }.assistant-intro h1 { font-size:1.5rem; } }
 @media (max-width:860px) {
   .prototype-console { width:min(100% - 28px,760px);border-radius:22px; }
   .prototype-header { padding:0 28px; }
@@ -1673,14 +1712,13 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .assistant-layer .assistant-identity small { font-size:var(--font-helper);line-height:var(--line-helper); }
 .assistant-layer .assistant-intro h1 { font-size:28px;line-height:1.23; }
 .assistant-layer .assistant-intro p,
-.assistant-layer .assistant-talk-button small,
-.assistant-layer .assistant-voice-panel>div>small,
+.assistant-layer .assistant-voice-state-row>div>small,
 .assistant-layer .assistant-voice-error,
 .assistant-layer .assistant-message,
 .assistant-layer .assistant-support-action small,
 .assistant-layer .emmi-disclaimer { font-size:var(--font-emmi);line-height:1.5; }
 .assistant-layer .assistant-talk-button strong,
-.assistant-layer .assistant-voice-panel>div>strong,
+.assistant-layer .assistant-voice-state-row>div>strong,
 .assistant-layer .assistant-quick h2,
 .assistant-layer .assistant-human-support h2,
 .assistant-layer .assistant-support-action strong { font-size:var(--font-card-title);line-height:1.4; }
@@ -1690,7 +1728,8 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .assistant-layer .assistant-quick button,
 .assistant-layer .assistant-common-questions button,
 .assistant-layer .assistant-faq-toggle,
-.assistant-layer .assistant-voice-controls button { min-height:48px;font-size:17px;line-height:1.4; }
+.assistant-layer .assistant-voice-options-toggle,
+.assistant-layer .assistant-voice-options button { min-height:48px;font-size:17px;line-height:1.4; }
 .shell:not(:has(.prototype-console)) .emmi-contextual-nudge,
 .shell:not(:has(.prototype-console)) .emmi-guide-transcript,
 .shell:not(:has(.prototype-console)) .emmi-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }

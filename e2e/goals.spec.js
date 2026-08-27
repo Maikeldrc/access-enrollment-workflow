@@ -35,7 +35,7 @@ test("multiple goals support priority, planning and longitudinal My Goals", asyn
   await page.getByRole("button", { name: /My Goals/ }).click();
   await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();
   await expect(page.getByText("My priority")).toBeVisible();
-  await page.getByRole("button", { name: /View plan/ }).click();
+  await page.getByRole("button", { name: /View my goal/ }).click();
   // The clinical target is care-team owned; the patient adjusts their own actions instead.
   await expect(page.getByText("Set by your care team")).toBeVisible();
   await expect(page.getByText(/You can adjust the actions in your personal plan/)).toBeVisible();
@@ -176,7 +176,7 @@ test("goal detail turns connected readings into understandable longitudinal prog
     select.value = "MY_GOALS";
     select.dispatchEvent(new Event("change"));
   });
-  await page.getByRole("button", { name: "View plan" }).click();
+  await page.getByRole("button", { name: "View my goal" }).click();
 
   await expect(page.getByRole("heading", { name: "Keep my blood pressure under control" })).toBeVisible();
   await expect(page.locator(".goal-health-card")).toContainText("120 / 80");
@@ -252,7 +252,7 @@ for (const width of [360, 375, 384, 390, 393, 412, 430]) {
       select.value = "MY_GOALS";
       select.dispatchEvent(new Event("change"));
     });
-    await page.getByRole("button", { name: "View plan" }).click();
+    await page.getByRole("button", { name: "View my goal" }).click();
     const audit = await page.locator("#screen-content").evaluate(root => ({
       rootOverflow: root.scrollWidth > root.clientWidth + 1,
       documentOverflow: document.documentElement.scrollWidth > innerWidth + 1,
@@ -280,7 +280,7 @@ for (const scale of [1.25, 1.5]) {
       select.value = "MY_GOALS";
       select.dispatchEvent(new Event("change"));
     });
-    await page.getByRole("button", { name: "View plan" }).click();
+    await page.getByRole("button", { name: "View my goal" }).click();
     await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
     const overflow = await page.locator("#screen-content").evaluate(root => root.scrollWidth > root.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1);
     expect(overflow).toBe(false);
@@ -300,7 +300,7 @@ test("longitudinal goal detail is complete in Spanish and Kreyòl", async ({ pag
     select.value = "MY_GOALS";
     select.dispatchEvent(new Event("change"));
   });
-  await page.getByRole("button", { name: "View plan" }).click();
+  await page.getByRole("button", { name: "View my goal" }).click();
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.getByRole("heading", { name: "Mantener mi presión arterial bajo control" })).toBeVisible();
   await expect(page.locator(".goal-health-card")).toContainText("Recibida automáticamente desde su monitor");
@@ -372,9 +372,9 @@ test("goals carry a category icon that is the same goal-by-goal and screen-by-sc
   await page.getByRole("button", { name: /My Goals/ }).click();
 
   // My Goals and Goal Detail complete the chain: one goal, one icon, everywhere.
-  await expect(page.locator('.my-goal-card:has-text("Better understand my medications") .goal-icon')).toHaveAttribute("data-goal-category", "MEDICATIONS");
-  expect(await page.locator('.my-goal-card:has-text("Better understand my medications") .goal-icon svg').innerHTML()).toBe(medicationsGlyph);
-  await page.locator('.my-goal-card:has-text("Keep my blood pressure under control")').getByRole("button", { name: /View plan/ }).click();
+  await expect(page.locator('.goal-card:has-text("Better understand my medications") .goal-icon')).toHaveAttribute("data-goal-category", "MEDICATIONS");
+  expect(await page.locator('.goal-card:has-text("Better understand my medications") .goal-icon svg').innerHTML()).toBe(medicationsGlyph);
+  await page.locator('.goal-card:has-text("Keep my blood pressure under control")').getByRole("button", { name: /View my goal/ }).click();
   await expect(page.locator(".goal-detail-hero .goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
 });
 
@@ -430,4 +430,185 @@ test("a custom goal the patient writes falls back to the generic target icon", a
   await expect(page.locator(".goal-selected-card .goal-icon")).toHaveAttribute("data-goal-category", "GENERIC");
   // A fallback still draws an icon: no blank container, no crash.
   await expect(page.locator(".goal-selected-card .goal-icon svg")).toBeVisible();
+});
+
+async function reachMyGoals(page, { width = 384, extraGoals = true } = {}) {
+  await page.setViewportSize({ width, height: 824 });
+  await page.goto("/?scenario=ccm-happy");
+  await page.locator("#screen-select").selectOption("GOALS", { force: true });
+  await page.getByLabel("Keep my blood pressure under control").check();
+  if (extraGoals) {
+    await page.getByLabel("Avoid hospital visits").check();
+    await page.getByLabel("Better understand my medications").check();
+    await page.getByLabel("Stay active").check();
+    await page.getByRole("button", { name: "Choose my priorities" }).click();
+    await page.getByRole("group", { name: "Primary priority" }).getByLabel("Keep my blood pressure under control").check();
+    await page.getByRole("button", { name: "Continue" }).click();
+  } else {
+    // A single goal skips prioritization and goes straight to the plan offer.
+    await page.getByRole("button", { name: "Continue" }).click();
+  }
+  await page.getByRole("button", { name: "Personalize my plan" }).click();
+  await page.getByLabel("Check my blood pressure regularly").check();
+  await page.getByRole("button", { name: "Review my plan" }).click();
+  await page.getByRole("button", { name: "Save my plan" }).click();
+  await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
+  await page.getByRole("button", { name: "Go to my dashboard" }).click();
+  await page.getByRole("button", { name: /My Goals/ }).click();
+  await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();
+}
+
+test("My Goals leads with the priority, its real progress and the next step", async ({ page }) => {
+  test.setTimeout(120000);
+  await reachMyGoals(page);
+
+  // The priority is its own section and its own card weight, not a badge on an identical card.
+  const priority = page.locator(".goal-card-primary");
+  await expect(page.getByRole("heading", { name: "My priority" })).toBeVisible();
+  await expect(priority).toContainText("Keep my blood pressure under control");
+  await expect(priority.locator(".goal-icon")).toHaveAttribute("data-goal-category", "CARDIOVASCULAR");
+
+  // Progress comes from the blood pressure runtime, not from a generic "0 of 7 planned actions".
+  await expect(priority).toContainText("5 readings received");
+  await expect(priority).toContainText("Stable trend");
+  await expect(priority).not.toContainText(/planned actions/);
+
+  // The next step is resolved from the goal's state, and the CTA reflects that Goal Detail now
+  // holds readings, trends, education and the plan.
+  await expect(priority).toContainText("Understand your latest blood pressure reading");
+  await expect(priority.getByRole("button", { name: /View my goal/ })).toBeVisible();
+  await expect(priority.getByRole("button", { name: /View plan/ })).toHaveCount(0);
+
+  // Goals with no plan yet report readiness instead of inventing progress.
+  const other = page.locator('.goal-card:not(.goal-card-primary):has-text("Avoid hospital visits")');
+  await expect(page.getByRole("heading", { name: "Other goals" })).toBeVisible();
+  await expect(other).toContainText("Ready when you are");
+  await expect(other).toContainText("Personalize how you’d like to work on this goal.");
+  await expect(other).not.toContainText(/This week|readings received|0 of/);
+  await expect(other.getByRole("button", { name: /Personalize my plan/ })).toBeVisible();
+
+  // The priority reads as one sentence to a screen reader, in the order it is displayed.
+  expect((await priority.innerText()).replace(/\s+/g, " ").trim())
+    .toBe("Keep my blood pressure under control THIS WEEK 5 readings received Stable trend NEXT STEP Understand your latest blood pressure reading View my goal");
+
+  // Adding a goal is an action, and going back is a full-width navigation control.
+  const addGoal = page.locator(".add-goal-action");
+  await expect(addGoal).toContainText("Add another goal");
+  await expect(addGoal).toContainText("Choose another goal you’d like to work toward.");
+  const backButton = page.getByRole("button", { name: /Back to My Care/ });
+  const layout = await page.evaluate(() => {
+    const back = document.querySelector(".goal-back-to-care").getBoundingClientRect();
+    const card = document.querySelector(".goal-card").getBoundingClientRect();
+    const add = document.querySelector(".add-goal-action").getBoundingClientRect();
+    return { backWidth: Math.round(back.width), cardWidth: Math.round(card.width), addHeight: add.height, backHeight: back.height };
+  });
+  expect(layout.backWidth).toBe(layout.cardWidth);
+  expect(layout.backHeight).toBeGreaterThanOrEqual(48);
+  expect(layout.addHeight).toBeGreaterThanOrEqual(48);
+  await expect(backButton).toBeVisible();
+});
+
+test("a single goal shows no empty Other goals section", async ({ page }) => {
+  test.setTimeout(120000);
+  await reachMyGoals(page, { extraGoals: false });
+  await expect(page.getByRole("heading", { name: "My priority" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Other goals" })).toHaveCount(0);
+  await expect(page.locator(".goal-card")).toHaveCount(1);
+  await expect(page.locator(".add-goal-action")).toBeVisible();
+});
+
+test("My Goals survives long copy, every mobile width and 150% text scaling", async ({ page }) => {
+  test.setTimeout(180000);
+  await reachMyGoals(page);
+  for (const width of [360, 375, 384, 390, 393, 412, 430]) {
+    await page.setViewportSize({ width, height: 824 });
+    for (const scale of [1, 1.25, 1.5]) {
+      await page.evaluate(value => {
+        document.documentElement.style.fontSize = `${16 * value}px`;
+        document.documentElement.style.setProperty("--font-body", `${18 * value}px`);
+      }, scale);
+      // Copy 30-50% longer than the real strings, to prove the cards grow rather than break.
+      await page.evaluate(() => {
+        document.querySelectorAll(".goal-card-title").forEach(node => {
+          node.textContent = "Better understand how my medications support my heart health over time";
+        });
+        document.querySelectorAll(".goal-card-cta span").forEach(node => {
+          node.textContent = "Personalizar completamente mi plan de cuidado";
+        });
+      });
+      const audit = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll(".goal-card")];
+        const ctas = [...document.querySelectorAll(".goal-card-cta")];
+        // Scoped to the goals content: the shared security footer clamps its own fixed line.
+        const goalNodes = [...document.querySelectorAll(".goal-group *, .add-goal-action *, .goal-back-actions *")];
+        const clipped = goalNodes.filter(node =>
+          (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1) && getComputedStyle(node).overflow !== "visible");
+        return {
+          overflow: document.documentElement.scrollWidth > innerWidth,
+          clipped: clipped.map(node => `${node.tagName}.${node.className}`),
+          ellipsis: goalNodes.filter(node => {
+            const style = getComputedStyle(node);
+            return style.textOverflow === "ellipsis" || (style.webkitLineClamp && style.webkitLineClamp !== "none");
+          }).map(node => `${node.tagName}.${node.className}:${getComputedStyle(node).textOverflow}/${getComputedStyle(node).webkitLineClamp}`),
+          fixedHeights: cards.some(card => getComputedStyle(card).height !== "auto" && card.style.height),
+          minCtaHeight: Math.min(...ctas.map(cta => cta.getBoundingClientRect().height)),
+          ctaOverflow: ctas.some(cta => cta.scrollWidth > cta.clientWidth + 1),
+          minFont: Math.min(...[...document.querySelectorAll(".goal-card-title,.goal-card-support,.goal-summary-value,.goal-card-cta")].map(node => parseFloat(getComputedStyle(node).fontSize))),
+          cardWidths: [...new Set(cards.map(card => Math.round(card.getBoundingClientRect().width)))]
+        };
+      });
+      const label = `${width}px @${scale}x`;
+      expect(audit.overflow, `${label} horizontal scroll`).toBe(false);
+      expect(audit.clipped, `${label} clipping`).toEqual([]);
+      expect(audit.ellipsis, `${label} ellipsis`).toEqual([]);
+      expect(audit.fixedHeights, `${label} fixed card height`).toBe(false);
+      expect(audit.minCtaHeight, `${label} CTA touch target`).toBeGreaterThanOrEqual(48);
+      expect(audit.ctaOverflow, `${label} CTA overflow`).toBe(false);
+      expect(audit.minFont, `${label} font`).toBeGreaterThanOrEqual(16);
+      expect(audit.cardWidths, `${label} one card width`).toHaveLength(1);
+    }
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "";
+      document.documentElement.style.removeProperty("--font-body");
+    });
+  }
+});
+
+test("My Goals holds together in Spanish and Kreyòl", async ({ page }) => {
+  test.setTimeout(120000);
+  await reachMyGoals(page);
+  for (const expected of ["Mi prioridad", "Priyorite mwen"]) {
+    await page.locator('[data-action="language"]').first().click();
+    await expect(page.getByRole("heading", { name: expected })).toBeVisible();
+    const audit = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      clipped: [...document.querySelectorAll("#screen-content *")].filter(node =>
+        node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflow !== "visible").length,
+      minCtaHeight: Math.min(...[...document.querySelectorAll(".goal-card-cta")].map(node => node.getBoundingClientRect().height))
+    }));
+    expect(audit.overflow, `${expected} overflow`).toBe(false);
+    expect(audit.clipped, `${expected} clipping`).toBe(0);
+    expect(audit.minCtaHeight, `${expected} CTA touch target`).toBeGreaterThanOrEqual(48);
+  }
+});
+
+test("the floating EMMI never covers a goal action on My Goals", async ({ page }) => {
+  test.setTimeout(120000);
+  await reachMyGoals(page);
+  for (const offset of [0, 400, 700, 1200, 99999]) {
+    await page.evaluate(y => window.scrollTo(0, y), offset);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const covered = await page.evaluate(() => {
+      const pill = document.querySelector(".emmi-assistant");
+      if (!pill || getComputedStyle(pill).display === "none") return [];
+      const box = pill.getBoundingClientRect();
+      return [...document.querySelectorAll("#screen-content button, #screen-content h1, #screen-content h2, #screen-content h3")]
+        .filter(node => {
+          const rect = node.getBoundingClientRect();
+          return rect.width && rect.height && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom;
+        })
+        .map(node => node.textContent.trim().slice(0, 30));
+    });
+    expect(covered, `scrolled ${offset}`).toEqual([]);
+  }
 });
