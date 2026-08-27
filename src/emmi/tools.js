@@ -1,4 +1,5 @@
 import { EMMI_CONFIG, EMMI_SYSTEM_PROMPT_VERSION, emmiPrototypeIsSafe } from "./config.js";
+import { getEmmiVoiceIdentity } from "./voiceIdentity.js";
 import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS } from "../mock/emmiFixtures.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
@@ -18,10 +19,12 @@ export const selectDemoPatientId = ({ language = "en", completionRole = "patient
 
 export class EmmiAuditLog {
   constructor({ sessionId, demoPatientId, locale, currentScreen, model = EMMI_CONFIG.model }) {
-    this.entry = { conversationId: id("EMMI"), sessionId, demoPatientId, locale, currentScreen, startedAt: new Date().toISOString(), endedAt: null, userTranscript: [], assistantTranscript: [], toolsCalled: [], toolResults: [], callbackRequested: false, careTeamTaskCreated: false, clinicalEscalationTriggered: false, model, systemPromptVersion: EMMI_SYSTEM_PROMPT_VERSION };
+    const voice = getEmmiVoiceIdentity(locale);
+    this.entry = { conversationId: id("EMMI"), sessionId, demoPatientId, locale, currentScreen, startedAt: new Date().toISOString(), endedAt: null, userTranscript: [], assistantTranscript: [], toolsCalled: [], toolResults: [], callbackRequested: false, careTeamTaskCreated: false, clinicalEscalationTriggered: false, model, systemPromptVersion: EMMI_SYSTEM_PROMPT_VERSION, voiceId: voice.voiceId, voiceVersion: voice.voiceVersion, voiceProvider: voice.provider, voiceEvents: [] };
     this.persist();
   }
-  updateContext({ locale, currentScreen }) { this.entry.locale = locale; this.entry.currentScreen = currentScreen; this.persist(); }
+  updateContext({ locale, currentScreen }) { const voice = getEmmiVoiceIdentity(locale); this.entry.locale = locale; this.entry.currentScreen = currentScreen; this.entry.voiceId = voice.voiceId; this.entry.voiceVersion = voice.voiceVersion; this.entry.voiceProvider = voice.provider; this.persist(); }
+  voiceEvent(type, details = {}) { this.entry.voiceEvents.push({ timestamp: new Date().toISOString(), type, ...clone(details) }); this.persist(); }
   transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), text }); this.persist(); }
   tool(name, args, result) {
     const timestamp = new Date().toISOString();

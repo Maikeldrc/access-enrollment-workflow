@@ -60,4 +60,12 @@ describe("EMMI prototype tools", () => {
     expect(serialized).toContain("getExpectedAccessCost");
     expect(serialized).not.toMatch(/audioData|apiKey|ephemeralToken|GEMINI_API_KEY/i);
   });
+
+  it("records non-PHI voice identity metadata for consistency debugging", () => {
+    const { audit } = makeRuntime();
+    audit.voiceEvent("EMMI_VOICE_SESSION_CONFIGURED", { voiceId: "Sulafat", voiceVersion: "emmi-voice-v1", provider: "gemini-live", locale: "EN", screenId: "INVITATION", connectionId: "voice-1" });
+    const entry = EmmiAuditLog.all().at(-1);
+    expect(entry).toMatchObject({ voiceId: "Sulafat", voiceVersion: "emmi-voice-v1", voiceProvider: "gemini-live" });
+    expect(entry.voiceEvents.at(-1)).toMatchObject({ type: "EMMI_VOICE_SESSION_CONFIGURED", voiceId: "Sulafat", screenId: "INVITATION" });
+  });
 });

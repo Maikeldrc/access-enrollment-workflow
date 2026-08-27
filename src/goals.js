@@ -107,3 +107,24 @@ export function goalDisplayName(goal, locale = "en") {
 export function suggestedActionsFor(goalType) {
   return (GOAL_CONFIG[goalType] || GOAL_CONFIG.CUSTOM).suggestedActions || [];
 }
+
+// Each suggested action maps to an icon that carries its meaning, so a patient can scan the
+// plan visually instead of reading every line. Unmapped actions fall back to the goal target.
+const ACTION_ICONS = Object.freeze({
+  "check-bp": "chart",
+  "medications-as-directed": "pill",
+  "learn-bp-numbers": "book",
+  "reduce-salt": "nutrition",
+  "be-active": "activity",
+  "safe-routine": "home",
+  "ask-for-support": "people",
+  "prepare-appointments": "document",
+  "notice-changes": "heart",
+  "call-care-team": "phone",
+  "follow-care-plan": "plan",
+  "learn-purpose": "book",
+  "make-question-list": "document",
+  "review-with-team": "people"
+});
+
+export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";

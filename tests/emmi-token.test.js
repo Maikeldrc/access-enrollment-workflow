@@ -19,7 +19,10 @@ describe("EMMI ephemeral token endpoint safety", () => {
     expect(config.lockAdditionalFields).toEqual([]);
     expect(config.liveConnectConstraints).toMatchObject({
       model: "gemini-live-model",
-      config: { responseModalities: ["AUDIO"] }
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Sulafat" } } }
+      }
     });
     expect(config.liveConnectConstraints.config).not.toHaveProperty("systemInstruction");
     expect(config.liveConnectConstraints.config).not.toHaveProperty("tools");

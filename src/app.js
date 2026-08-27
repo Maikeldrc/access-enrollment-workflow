@@ -3,10 +3,10 @@ import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferTex
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, CalendarDays, ChartNoAxesColumnIncreasing,
+  Activity, ArrowLeft, ArrowRight, BadgeCheck, Bell, BookOpen, CalendarDays, ClipboardCheck, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
   HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
-  Share2, Stethoscope, TabletSmartphone, Target, UserPlus, UserRound, UsersRound, Wifi
+  Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi
 } from "lucide";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
@@ -14,6 +14,7 @@ import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/
 import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
 import { buildHomeNarration, buildNarration, buildTransitionNarration } from "./emmi/narrative.js";
 import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transitionManager.js";
+import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -21,7 +22,7 @@ import { resolveNextBestAction } from "./nextBestAction.js";
 import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
-import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalDisplayName, localGoalText, suggestedActionsFor } from "./goals.js";
+import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalDisplayName, localGoalText, suggestedActionsFor } from "./goals.js";
 
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
@@ -100,6 +101,15 @@ const iconMap = {
   language: Globe2,
   wifi: Wifi,
   goals: Target,
+  // Goal action iconography: each icon carries meaning, so it reads as comprehension aid
+  // rather than decoration.
+  bell: Bell,
+  sliders: SlidersHorizontal,
+  activity: Activity,
+  book: BookOpen,
+  nutrition: Utensils,
+  plan: ClipboardCheck,
+  trending: TrendingUp,
   share: Share2,
   userPlus: UserPlus,
   check: Check,
@@ -703,6 +713,10 @@ function ensureEmmiRuntime() {
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
     onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
+    onVoiceIdentity: (type, details) => {
+      emmiAuditLog?.voiceEvent(type, details);
+      audit(state, type.toLowerCase(), type === "EMMI_VOICE_MISMATCH" ? "blocked" : "success", details);
+    },
     onError: code => { state.assistantVoiceError = code; state.assistantVoiceState = "ERROR"; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); }
   });
   return { context, tools: emmiTools, live: emmiLive, audit: emmiAuditLog };
@@ -950,6 +964,7 @@ const assistantVoiceErrorCopy = () => ({
   gemini_not_configured: L("Voice is not configured for this prototype. You can continue by typing.", "La voz no está configurada para este prototipo. Puede continuar escribiendo.", "Vwa pa konfigire pou pwototip sa a. Ou ka kontinye ekri."),
   voice_disabled: L("Voice assistance is turned off. You can continue by typing.", "La asistencia por voz está desactivada. Puede continuar escribiendo.", "Asistans vwa etenn. Ou ka kontinye ekri."),
   voice_locale_fallback: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa poko disponib nan lang sa a. Ou ka toujou pale ak EMMI alekri an Kreyòl."),
+  voice_identity_mismatch: L("Voice guidance is temporarily unavailable. You can continue using EMMI by text.", "La guía por voz no está disponible temporalmente. Puede continuar usando EMMI por texto.", "Gid vwa pa disponib pou yon ti tan. Ou ka kontinye itilize EMMI alekri."),
   session_timeout: L("This voice session ended. Your enrollment progress is saved, and you can start a new session.", "Esta sesión de voz terminó. Su progreso está guardado y puede iniciar otra sesión.", "Sesyon vwa sa a fini. Pwogrè ou anrejistre epi ou ka kòmanse yon lòt sesyon."),
   connection_failed: L("I’m having trouble connecting right now. You can continue by typing or use the enrollment screens.", "Tengo problemas para conectarme. Puede continuar escribiendo o usar las pantallas de inscripción.", "Mwen gen pwoblèm pou konekte. Ou ka kontinye ekri oswa itilize ekran enskripsyon yo."),
   connection_lost: L("Connection lost. You can try again or continue by typing.", "Se perdió la conexión. Puede intentarlo de nuevo o continuar escribiendo.", "Koneksyon an pèdi. Ou ka eseye ankò oswa kontinye ekri.")
@@ -1778,8 +1793,28 @@ function goalPlanReview() {
   const draft = state.goalPlanDraft;
   const suggestions = suggestedActionsFor(goal?.goalType);
   const selected = suggestions.filter(action => draft.actionIds.includes(action.id));
-  const items = [...selected.map(action => localGoalText(action.title, state.language)), ...(draft.customAction ? [draft.customAction] : [])];
-  return `${titleBlock(L("Here’s the plan you created", "Este es el plan que creó", "Men plan ou te kreye a"), L("Review it before you save it.", "Revíselo antes de guardarlo.", "Revize li anvan ou sove li."), L("My plan", "Mi plan", "Plan mwen"))}<section class="goal-plan-summary"><div><small>${L("Goal", "Meta", "Objektif")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div>${draft.whyItMatters ? `<div><small>${L("Why it matters", "Por qué importa", "Poukisa li enpòtan")}</small><p>${escapeHtml(draft.whyItMatters)}</p></div>` : ""}<div><small>${L("Actions", "Acciones", "Aksyon")}</small><ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><small>${L("Frequency", "Frecuencia", "Frekans")}</small><p>${frequencyLabel(draft.frequency)}</p></div><div><small>${L("Reminders", "Recordatorios", "Rapèl")}</small><p>${draft.remindersEnabled ? L("On", "Activados", "Limen") : L("Off", "Desactivados", "Etenn")}</p></div></section><div class="actions">${cta(L("Change something", "Cambiar algo", "Chanje yon bagay"), "goal-plan-change", true)}${cta(L("Save my plan", "Guardar mi plan", "Sove plan mwen"), "goal-plan-save")}</div>`;
+  // Each chosen step becomes a scannable row with its own icon rather than a bullet in a list.
+  const rows = [
+    ...selected.map(action => ({
+      icon: goalActionIcon(action.id),
+      title: localGoalText(action.title, state.language),
+      meta: action.frequency ? frequencyLabel(draft.frequency) : ""
+    })),
+    ...(draft.customAction ? [{ icon: "goals", title: draft.customAction, meta: "" }] : [])
+  ];
+  return `${titleBlock(L("Review your plan", "Revise su plan", "Revize plan ou"), L("Look it over before saving. You can change it later.", "Revíselo antes de guardarlo. Puede cambiarlo más adelante.", "Gade l anvan ou sove l. Ou ka chanje l pita."), L("My plan", "Mi plan", "Plan mwen"))}
+    <section class="care-plan-card">
+      <div class="care-plan-goal">${icon("goals", "care-plan-goal-icon")}<div><span class="care-plan-eyebrow">${L("My goal", "Mi meta", "Objektif mwen")}</span><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div></div>
+      ${draft.whyItMatters ? `<p class="care-plan-why">${icon("heart")}<span>${escapeHtml(draft.whyItMatters)}</span></p>` : ""}
+      <h2 class="care-plan-heading">${L("What I’m going to do", "Lo que voy a hacer", "Sa m pral fè")}</h2>
+      <ul class="care-plan-actions">${rows.map(row => `<li class="care-plan-action">${icon(row.icon)}<div><strong>${escapeHtml(row.title)}</strong>${row.meta ? `<small>${escapeHtml(row.meta)}</small>` : ""}</div></li>`).join("")}</ul>
+      <div class="care-plan-meta">
+        <p>${icon("calendar")}<span><small>${L("Frequency", "Frecuencia", "Frekans")}</small><strong>${frequencyLabel(draft.frequency)}</strong></span></p>
+        <p>${icon("bell")}<span><small>${L("Reminders", "Recordatorios", "Rapèl")}</small><strong>${draft.remindersEnabled ? L("On", "Activados", "Limen") : L("Off", "Desactivados", "Etenn")}</strong></span></p>
+      </div>
+    </section>
+    <p class="care-plan-reassurance">${L("You can change this plan later.", "Puede cambiar este plan más adelante.", "Ou ka chanje plan sa a pita.")}</p>
+    <div class="goal-stacked-actions">${cta(L("Save my plan", "Guardar mi plan", "Sove plan mwen"), "goal-plan-save")}${cta(L("Edit plan", "Editar plan", "Modifye plan"), "goal-plan-change", true)}</div>`;
 }
 
 function goals() {
@@ -1820,10 +1855,47 @@ function goalDetail() {
   if (state.goalDetailView === "BARRIERS") return `${titleBlock(L("What’s getting in the way?", "¿Qué se lo está dificultando?", "Kisa k ap anpeche w?"), L("Choose the answer that fits best.", "Elija la respuesta que mejor corresponda.", "Chwazi repons ki pi byen mache."), L("Barriers", "Dificultades", "Difikilte"))}<form id="goal-barrier-form"><div class="goal-barrier-options">${[["NOT_WELL",L("I don’t feel well", "No me siento bien", "Mwen pa santi m byen")],["FORGET",L("I forget", "Se me olvida", "Mwen bliye")],["NO_TIME",L("I don’t have time", "No tengo tiempo", "Mwen pa gen tan")],["SAFETY_WORRY",L("I’m worried about doing it safely", "Me preocupa hacerlo de forma segura", "Mwen enkyete pou m fè sa an sekirite")],["MEDICATION_TROUBLE",L("I’m having trouble with my medications", "Tengo dificultades con mis medicamentos", "Mwen gen pwoblèm ak medikaman mwen")],["NO_EQUIPMENT",L("I don’t have the equipment I need", "No tengo el equipo que necesito", "Mwen pa gen ekipman mwen bezwen")],["OTHER",L("Something else", "Algo más", "Yon lòt bagay")]].map(([value,label]) => `<label class="check-row"><input type="radio" name="barrierType" value="${value}"><span class="check-box">✓</span><span>${label}</span></label>`).join("")}</div><label class="field">${L("Tell us more (optional)", "Cuéntenos más (opcional)", "Di nou plis (opsyonèl)")}<textarea name="barrierNotes" rows="3" maxlength="300"></textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "save-goal-barrier")}</div>`;
   if (state.goalDetailView === "SUPPORT") return `${titleBlock(L("How can we help?", "¿Cómo podemos ayudarle?", "Kijan nou ka ede w?"), title, L("Support I need", "Apoyo que necesito", "Sipò mwen bezwen"))}<div class="choice-list goal-support-options">${[["REMINDER",L("Remind me", "Recordármelo", "Fè m sonje")],["ADJUST_PLAN",L("Help me adjust my plan", "Ayudarme a ajustar mi plan", "Ede m ajiste plan mwen")],["EXPLAIN",L("Explain this to me", "Explicármelo", "Eksplike m sa")],["CARE_TEAM",L("Talk to my care team", "Hablar con mi equipo de atención", "Pale ak ekip swen mwen")],["UNSURE",L("I’m not sure", "No estoy seguro", "Mwen pa sèten")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-support-request" data-support="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
   if (state.goalDetailView === "ACHIEVE_CONFIRM") return `${art("check", true)}${titleBlock(L("Are you ready to mark this goal as achieved?", "¿Está listo para marcar esta meta como lograda?", "Èske ou pare pou make objektif sa a kòm reyalize?"), title)}<p class="lead">${L("This only updates your personal goal. It does not change a clinical target or your care plan.", "Esto solo actualiza su meta personal. No cambia un objetivo clínico ni su plan de cuidado.", "Sa mete ajou objektif pèsonèl ou sèlman. Li pa chanje yon sib klinik ni plan swen ou.")}</p><div class="actions">${cta(L("Not yet", "Todavía no", "Poko"), "goal-detail-back", true)}${cta(L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize"), "confirm-goal-achieved")}</div>`;
-  const actionRows = (goal.actions || []).map(action => { const doneToday = (action.completionHistory || []).some(item => item.date === new Date().toISOString().slice(0,10)); return `<article class="goal-action-row"><div><strong>${escapeHtml(action.title)}</strong><small>${action.frequency ? frequencyLabel(action.frequency) : L("One-time step", "Paso único", "Etap yon sèl fwa")}</small></div><button type="button" data-action="complete-goal-action" data-action-id="${action.id}" ${doneToday || action.status === "COMPLETED" ? "disabled" : ""}>${doneToday || action.status === "COMPLETED" ? `✓ ${L("Done", "Hecho", "Fini")}` : L("Done today", "Hecho hoy", "Fè jodi a")}</button></article>`; }).join("");
-  const actionsList = actionRows ? `${actionRows}<button type="button" class="text-button" data-action="plan-active-goal">${L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen")} ${icon("arrowRight")}</button>` : "";
-  const clinicalTarget = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? `<aside class="clinical-target-card">${icon("shield")}<div><small>${L("Clinical target", "Objetivo clínico", "Sib klinik")}</small><strong>${L("Blood pressure target", "Objetivo de presión arterial", "Sib tansyon")}</strong><p>${L("Set by your care team. You cannot edit it here.", "Definido por su equipo de atención. No puede editarlo aquí.", "Ekip swen ou fikse li. Ou pa ka modifye li isit la.")}</p></div></aside>` : "";
-  return `${titleBlock(title, goal.status === "PAUSED" ? L("This goal is paused. You can return to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.") : goal.status === "ACHIEVED" ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.") : L("A goal you chose for yourself.", "Una meta que usted eligió.", "Yon objektif ou te chwazi pou tèt ou."), L("My goal", "Mi meta", "Objektif mwen"))}${clinicalTarget}<section class="goal-detail-section"><h2>${L("Why this matters to me", "Por qué esto me importa", "Poukisa sa enpòtan pou mwen")}</h2>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p>` : `<button type="button" class="text-button" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué importa", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</section><section class="goal-detail-section"><h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>${actionsList || `<button type="button" class="text-button" data-action="plan-active-goal">${L("Create a plan", "Crear un plan", "Kreye yon plan")} ${icon("arrowRight")}</button>`}</section><section class="goal-detail-section"><h2>${L("My progress", "Mi progreso", "Pwogrè mwen")}</h2><strong>${goalProgressCopy(goal)}</strong><button type="button" class="text-button" data-action="open-goal-checkin">${L("How is this goal going?", "¿Cómo va esta meta?", "Kijan objektif sa a ap mache?")} ${icon("arrowRight")}</button></section><details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button></div></details><div class="actions">${cta(L("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen"), "goal-detail-to-list", true)}</div>`;
+  const today = new Date().toISOString().slice(0, 10);
+  const goalActions = goal.actions || [];
+  const doneCount = goalActions.filter(action => (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED").length;
+  // Each action is its own row: icon for meaning, frequency as secondary metadata, and one
+  // large button whose state says plainly whether it is done today.
+  const actionRows = goalActions.map(action => {
+    const doneToday = (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED";
+    return `<li class="goal-action ${doneToday ? "is-done" : ""}">
+      ${icon(goalActionIcon(action.sourceActionId || action.id), "goal-action-icon")}
+      <div class="goal-action-copy"><strong>${escapeHtml(action.title)}</strong>${action.frequency ? `<small>${icon("calendar")}${frequencyLabel(action.frequency)}</small>` : ""}</div>
+      <button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}" ${doneToday ? "disabled" : ""} aria-pressed="${doneToday}">${doneToday ? `${icon("check")}${L("Done today", "Hecho hoy", "Fè jodi a")}` : L("Mark done", "Marcar hecho", "Make fèt")}</button>
+    </li>`;
+  }).join("");
+  const clinicalTarget = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? `<aside class="goal-panel clinical-target-card">${icon("shield")}<div><span class="goal-panel-eyebrow">${L("Set by your care team", "Definido por su equipo de atención", "Ekip swen ou fikse li")}</span><strong>${L("Keep your blood pressure under control", "Controlar su presión arterial", "Kontwole tansyon ou")}</strong><p>${L("Your care team sets this clinical target. You can still adjust the actions in your plan.", "Su equipo de atención establece este objetivo clínico. Usted puede ajustar las acciones de su plan.", "Ekip swen ou fikse sib klinik sa a. Ou ka toujou ajiste aksyon nan plan ou.")}</p></div></aside>` : "";
+  const total = goalActions.length;
+  const percent = total ? Math.round((doneCount / total) * 100) : 0;
+  const progressBody = total === 0
+    ? `<p class="goal-progress-empty">${L("Create a plan to start tracking your progress.", "Cree un plan para comenzar a seguir su progreso.", "Kreye yon plan pou kòmanse swiv pwogrè ou.")}</p>`
+    : `<p class="goal-progress-count"><strong>${doneCount} ${L("of", "de", "sou")} ${total}</strong><span>${L("actions completed today", "acciones completadas hoy", "aksyon fèt jodi a")}</span></p>
+       <div class="goal-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${doneCount}" aria-label="${L("Goal progress", "Progreso de la meta", "Pwogrè objektif la")}"><span style="width:${percent}%"></span></div>
+       ${doneCount === 0 ? `<p class="goal-progress-empty">${L("This is a fresh start. Mark an action when you complete it.", "Esto está comenzando. Marque una acción cuando la complete.", "Sa ap kòmanse. Make yon aksyon lè ou fini l.")}</p>` : ""}`;
+  const statusLead = goal.status === "PAUSED"
+    ? L("This goal is paused. You can return to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.")
+    : goal.status === "ACHIEVED"
+      ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.")
+      : L("Work on simple steps and keep track of your progress.", "Trabaje en pasos sencillos y lleve un registro de su progreso.", "Travay sou etap senp epi swiv pwogrè ou.");
+  return `${titleBlock(title, statusLead, L("My goal", "Mi meta", "Objektif mwen"))}
+    ${clinicalTarget}
+    <section class="goal-panel goal-why">${icon("heart")}<div><span class="goal-panel-eyebrow">${L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen")}</span>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p><button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Edit", "Editar", "Modifye")}</button>` : `<button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué es importante", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</div></section>
+    <section class="goal-section">
+      <h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>
+      ${actionRows ? `<p class="goal-section-support">${L("Mark what you have completed today.", "Marque lo que haya completado hoy.", "Make sa ou fini jodi a.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
+      <button type="button" class="goal-secondary-button" data-action="plan-active-goal">${icon("sliders")}<span>${actionRows ? L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen") : L("Create a plan", "Crear un plan", "Kreye yon plan")}</span></button>
+    </section>
+    <section class="goal-section goal-progress">
+      <h2>${L("My progress", "Mi progreso", "Pwogrè mwen")}</h2>
+      ${progressBody}
+      <button type="button" class="goal-secondary-button" data-action="open-goal-checkin">${icon("trending")}<span>${L("How is this goal going?", "¿Cómo va esta meta?", "Kijan objektif sa a ap mache?")}</span></button>
+    </section>
+    <details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button></div></details>
+    <button type="button" class="goal-back-button" data-action="goal-detail-to-list">${icon("arrowLeft")}<span>${L("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen")}</span></button>`;
 }
 
 function myGoals() {
@@ -2116,7 +2188,8 @@ renderers.CARE_CIRCLE_REMOVE_CONFIRMATION = careCircleRemoveConfirmation;
 
 function devPanel() {
   if (import.meta.env.PROD) return "";
-  return `<aside class="dev-panel ${state.devOpen ? "open" : ""}"><button class="dev-toggle" data-action="dev">Demo</button><div><label>Scenario<select id="scenario-select">${Object.entries(SCENARIOS).map(([id, x]) => `<option value="${id}" ${id === state.scenarioId ? "selected" : ""}>${x.label}</option>`).join("")}</select></label><label>Jump to<select id="screen-select">${journeyFor(state).map(x => `<option value="${x}" ${x === state.screen ? "selected" : ""}>${x}</option>`).join("")}</select></label><button class="small-action" data-action="clear">Clear saved demo</button></div></aside>`;
+  const voice = emmiLive?.voiceIdentitySnapshot() || emmiVoiceMetadata(languageCode(), { sessionId: state.sessionId, screenId: state.screen });
+  return `<aside class="dev-panel ${state.devOpen ? "open" : ""}"><button class="dev-toggle" data-action="dev">Demo</button><div><label>Scenario<select id="scenario-select">${Object.entries(SCENARIOS).map(([id, x]) => `<option value="${id}" ${id === state.scenarioId ? "selected" : ""}>${x.label}</option>`).join("")}</select></label><label>Jump to<select id="screen-select">${journeyFor(state).map(x => `<option value="${x}" ${x === state.screen ? "selected" : ""}>${x}</option>`).join("")}</select></label><section class="emmi-voice-debug" aria-label="EMMI Voice Debug"><strong>EMMI Voice Debug</strong><span>voiceId: ${voice.voiceId || "TEXT_ONLY"}</span><span>voiceVersion: ${voice.voiceVersion}</span><span>locale: ${voice.locale}</span><span>provider: ${voice.provider}</span><span>sessionId: ${voice.sessionId || state.sessionId}</span></section><button class="small-action" data-action="clear">Clear saved demo</button></div></aside>`;
 }
 
 function render() {

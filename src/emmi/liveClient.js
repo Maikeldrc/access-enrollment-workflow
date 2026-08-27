@@ -2,6 +2,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { EMMI_CONFIG } from "./config.js";
 import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
+import { EmmiVoiceIdentityGuard, getEmmiSpeechConfig } from "./voiceIdentity.js";
 
 const bytesToBase64 = bytes => {
   let binary = "";
@@ -30,13 +31,14 @@ const pcm16 = floats => {
 };
 
 export class EmmiLiveClient {
-  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError }) {
+  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity }) {
     this.getContext = getContext;
     this.executeTool = executeTool;
     this.onState = onState;
     this.onTranscript = onTranscript;
     this.onTurnComplete = onTurnComplete;
     this.onError = onError;
+    this.onVoiceIdentity = onVoiceIdentity;
     this.state = "DISCONNECTED";
     this.muted = false;
     this.session = null;
@@ -53,9 +55,15 @@ export class EmmiLiveClient {
     this.gracefulHandoff = null;
     this.warningTimer = null;
     this.endTimer = null;
+    this.connectionSequence = 0;
+    this.voiceIdentity = new EmmiVoiceIdentityGuard({
+      sessionId: this.getContext()?.sessionId || "",
+      onEvent: (type, details) => this.onVoiceIdentity?.(type, details)
+    });
   }
   setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
   isActive() { return !["DISCONNECTED", "ERROR"].includes(this.state); }
+  voiceIdentitySnapshot() { return this.voiceIdentity.snapshot(); }
   // Must be called synchronously from the click that starts voice. An AudioContext created
   // later (inside a socket callback) is born suspended, so the welcome plays silently and only
   // starts working after some later user gesture resumes it.
@@ -82,7 +90,10 @@ export class EmmiLiveClient {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
     // Kreyòl has no supported live voice, so it stays a text experience rather than a silent
     // switch to English. Never treat KR as Korean.
-    if (this.getContext().locale === "KR") throw this.fail("voice_locale_fallback");
+    const context = this.getContext();
+    const connectionId = `emmi_voice_${++this.connectionSequence}`;
+    const canonicalVoice = this.voiceIdentity.resolve(context.locale, null, { screenId: context.currentScreen, connectionId });
+    if (!canonicalVoice.supported) throw this.fail("voice_locale_fallback");
     this.prepareAudioPlayback();
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("microphone_denied");
@@ -93,10 +104,13 @@ export class EmmiLiveClient {
     if (simulated === "429") throw this.fail("rate_limited");
     if (simulated === "connection") throw this.fail("connection_failed");
     let response;
-    try { response = await fetch("/api/emmi/live-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }); }
+    try { response = await fetch("/api/emmi/live-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locale: canonicalVoice.locale }) }); }
     catch { throw this.fail("connection_failed"); }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : payload.error || "connection_failed");
+    const resolvedVoice = this.voiceIdentity.resolve(context.locale, payload.voiceIdentity, { screenId: context.currentScreen, connectionId });
+    if (!payload.voiceIdentity || payload.voiceIdentity.voiceId !== resolvedVoice.voiceId || payload.voiceIdentity.voiceVersion !== resolvedVoice.voiceVersion || payload.voiceIdentity.provider !== resolvedVoice.provider) throw this.fail("voice_identity_mismatch");
+    this.onVoiceIdentity?.("EMMI_VOICE_SESSION_CONFIGURED", { ...resolvedVoice, sessionId: context.sessionId, screenId: context.currentScreen, connectionId });
     try {
       // Ephemeral auth tokens are only served on v1alpha: the SDK routes them to
       // BidiGenerateContentConstrained, which does not exist on v1beta, so the socket never
@@ -106,6 +120,7 @@ export class EmmiLiveClient {
         model: payload.model || EMMI_CONFIG.model,
         config: {
           responseModalities: [Modality.AUDIO],
+          speechConfig: getEmmiSpeechConfig(resolvedVoice.locale),
           thinkingConfig: { thinkingLevel: "minimal" },
           inputAudioTranscription: {}, outputAudioTranscription: {},
           systemInstruction: buildEmmiSystemInstruction(this.getContext()),

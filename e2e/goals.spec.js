@@ -36,7 +36,9 @@ test("multiple goals support priority, planning and longitudinal My Goals", asyn
   await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();
   await expect(page.getByText("My priority")).toBeVisible();
   await page.getByRole("button", { name: /View plan/ }).click();
-  await expect(page.getByText("Set by your care team. You cannot edit it here.")).toBeVisible();
+  // The clinical target is care-team owned; the patient adjusts their own actions instead.
+  await expect(page.getByText("Set by your care team")).toBeVisible();
+  await expect(page.getByText(/You can still adjust the actions in your plan/)).toBeVisible();
   await page.getByRole("button", { name: /How is this goal going/ }).click();
   await page.getByRole("button", { name: "I’m having some difficulty" }).click();
   await page.getByLabel("I forget").check();
@@ -90,4 +92,114 @@ test("goal discovery copy is available in Spanish and Kreyòl", async ({ page })
   await expect(page.getByRole("heading", { name: "¿Qué es lo más importante para usted?" })).toBeVisible();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
   await expect(page.getByRole("heading", { name: "Ki sa ki pi enpòtan pou ou?" })).toBeVisible();
+});
+
+// Walks the goal flow to the plan review, which is the screen the patient confirms.
+async function openPlanReview(page) {
+  await openGoals(page);
+  await page.getByLabel("Keep my blood pressure under control").check();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: /Make a plan now/ }).click();
+  for (const label of ["Check my blood pressure regularly", "Take my medications as directed", "Learn what my blood pressure numbers mean"]) {
+    await page.getByLabel(label).check();
+  }
+  await page.getByRole("button", { name: /Continue|Review/ }).click();
+  await expect(page.getByRole("heading", { name: "Review your plan" })).toBeVisible();
+}
+
+test("care plan review reads as a personal plan rather than an administrative table", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openPlanReview(page);
+
+  const card = page.locator(".care-plan-card");
+  await expect(card).toBeVisible();
+  // The goal leads the screen, and each step is a scannable row with its own icon.
+  await expect(card.locator(".care-plan-goal strong")).toHaveText("Keep my blood pressure under control");
+  await expect(card.getByRole("heading", { name: "What I’m going to do" })).toBeVisible();
+  const rows = card.locator(".care-plan-action");
+  await expect(rows).toHaveCount(3);
+  for (const row of await rows.all()) await expect(row.locator("svg")).toBeVisible();
+
+  await expect(page.getByText("You can change this plan later.")).toBeVisible();
+  // Primary first, secondary beneath, neither squeezed into a shared row.
+  const buttons = page.locator(".goal-stacked-actions .button");
+  await expect(buttons.nth(0)).toHaveText(/Save my plan/);
+  await expect(buttons.nth(1)).toHaveText(/Edit plan/);
+  await expect(page.getByRole("button", { name: "Change something" })).toHaveCount(0);
+
+  const audit = await page.evaluate(() => {
+    const root = document.querySelector("#screen-content");
+    const smallest = [...root.querySelectorAll(".care-plan-action strong, .care-plan-action small, .care-plan-meta strong")]
+      .map(node => parseFloat(getComputedStyle(node).fontSize));
+    return {
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto").length,
+      minFont: Math.min(...smallest),
+      minCta: Math.min(...[...root.querySelectorAll(".goal-stacked-actions .button")].map(node => node.getBoundingClientRect().height)),
+      tables: root.querySelectorAll("table").length
+    };
+  });
+  expect(audit.overflow).toBe(false);
+  expect(audit.clipped).toBe(0);
+  expect(audit.minFont).toBeGreaterThanOrEqual(16);
+  expect(audit.minCta).toBeGreaterThanOrEqual(44);
+  expect(audit.tables).toBe(0);
+});
+
+test("goal detail shows what to do, what was done today, and real progress", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openPlanReview(page);
+  await page.getByRole("button", { name: /Save my plan/ }).click();
+  await page.evaluate(() => {
+    const select = document.querySelector("#screen-select");
+    const option = document.createElement("option");
+    option.value = "MY_GOALS";
+    select.appendChild(option);
+    select.value = "MY_GOALS";
+    select.dispatchEvent(new Event("change"));
+  });
+  await page.getByRole("button", { name: "View plan" }).click();
+
+  await expect(page.getByRole("heading", { name: "My actions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My progress" })).toBeVisible();
+  const actions = page.locator(".goal-action");
+  await expect(actions.first().locator(".goal-action-icon svg")).toBeVisible();
+
+  // Progress is derived from real action state, never invented.
+  await expect(page.locator(".goal-progress-count")).toContainText("0 of 3");
+  await expect(page.locator(".goal-progress-empty")).toContainText("fresh start");
+  const first = actions.first().locator(".goal-action-button");
+  await expect(first).toHaveText(/Mark done/);
+  await first.click();
+  await expect(first).toHaveText(/Done today/);
+  await expect(first).toBeDisabled();
+  await expect(actions.first()).toHaveClass(/is-done/);
+  await expect(page.locator(".goal-progress-count")).toContainText("1 of 3");
+
+  // Navigation and plan adjustment are full buttons, not small inline links.
+  await expect(page.locator(".goal-back-button")).toContainText("Back to My Goals");
+  await expect(page.locator(".goal-secondary-button").first()).toContainText("Adjust my plan");
+  // A clinical target is presented as care-team owned, never patient-editable here.
+  await expect(page.locator(".clinical-target-card")).toContainText("Set by your care team");
+
+  const audit = await page.evaluate(() => {
+    const root = document.querySelector("#screen-content");
+    const columns = [...root.querySelectorAll(":scope > h1, :scope > .goal-panel, :scope > .goal-section, :scope > .goal-back-button")].map(node => node.getBoundingClientRect());
+    const buttons = [...root.querySelectorAll(".goal-action-button, .goal-secondary-button, .goal-back-button")];
+    return {
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      clipped: [...root.querySelectorAll("*")].filter(node => node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "auto").length,
+      leftEdges: new Set(columns.map(rect => Math.round(rect.left))).size,
+      rightEdges: new Set(columns.map(rect => Math.round(rect.right))).size,
+      minButton: Math.min(...buttons.map(node => node.getBoundingClientRect().height)),
+      minFont: Math.min(...[...root.querySelectorAll(".goal-action-copy strong, .goal-action-copy small")].map(node => parseFloat(getComputedStyle(node).fontSize)))
+    };
+  });
+  expect(audit.overflow).toBe(false);
+  expect(audit.clipped).toBe(0);
+  // One global mobile grid: every section shares the same left and right edge.
+  expect(audit.leftEdges).toBe(1);
+  expect(audit.rightEdges).toBe(1);
+  expect(audit.minButton).toBeGreaterThanOrEqual(44);
+  expect(audit.minFont).toBeGreaterThanOrEqual(16);
 });
