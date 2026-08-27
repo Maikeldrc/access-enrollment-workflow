@@ -2479,7 +2479,7 @@ test("prototype cards and scenario summary remain usable across tablet and deskt
   }
 });
 
-test("patient experience uses a centered 390px mobile shell on desktop and full width on phones", async ({ page }) => {
+test("patient experience uses a centered 384px mobile shell on desktop and full width on phones", async ({ page }) => {
   for (const width of [1366, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
@@ -2502,7 +2502,7 @@ test("patient experience uses a centered 390px mobile shell on desktop and full 
         emmiInside: Boolean(emmi && emmi.left >= rect.left && emmi.right <= rect.right)
       };
     });
-    expect(layout.width).toBeCloseTo(390, 0);
+    expect(layout.width).toBeCloseTo(384, 0);
     expect(layout.centered).toBe(true);
     expect(layout.minHeight).toBeGreaterThanOrEqual(844);
     expect(layout.horizontalOverflow).toBe(false);
@@ -2682,6 +2682,7 @@ test("core mobile screens tolerate 125 and 150 percent content scaling", async (
 
 test("patient screens share one page gutter and one content column", async ({ page }) => {
   const viewports = [
+    { width: 384, height: 824, gutter: [14, 17] },
     { width: 360, height: 800, gutter: [11, 13] },
     { width: 375, height: 812, gutter: [14, 16] },
     { width: 390, height: 844, gutter: [14, 17] },
@@ -2749,6 +2750,8 @@ test("the floating assistant never covers an action once the patient reaches it"
 
 test("patient screens end with their content instead of an empty scroll tail", async ({ page }) => {
   const viewports = [
+    // 384x824 is the primary mobile reference (Samsung Galaxy S25 Ultra).
+    { width: 384, height: 824 },
     { width: 360, height: 800 },
     { width: 375, height: 812 },
     { width: 390, height: 844 },

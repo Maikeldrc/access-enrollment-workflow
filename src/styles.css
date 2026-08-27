@@ -72,7 +72,10 @@
 /* Patient Experience horizontal system: the shell owns the viewport, the page owns the outer
    gutter, and components never invent their own outer width. */
 :root {
-  --patient-shell-width:430px;
+  /* Primary mobile reference: Samsung Galaxy S25 Ultra at 384 CSS px (384x824).
+     This sizes the desktop patient preview only; on a real phone the shell is 100% width and
+     the layout stays fluid from roughly 360px to 430px. */
+  --patient-shell-width:384px;
   --patient-page-gutter:clamp(12px,4vw,16px);
   --patient-card-radius:14px;
   --patient-card-padding:16px;
@@ -516,6 +519,62 @@ p { margin:0; }
 @media (max-width:374px) {
   .flow-completion-transition { padding:16px; }
   .flow-completion-transition h2 { font-size:22px; }
+}
+
+/* Patient Goals: patient-owned goals, planning, progress and care-team support. */
+.goals-screen { padding-bottom:calc(var(--patient-bottom-safe-gap) + 24px + env(safe-area-inset-bottom)); }
+.goals-screen .goal-list,.goal-action-options,.goal-barrier-options,.my-goals-list { display:grid;gap:12px;width:100%; }
+.goals-screen .goal-list .check-row,.goal-action-options .check-row,.goal-barrier-options .check-row { width:100%;min-width:0;min-height:56px;margin:0;padding:14px 16px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary); }
+.goals-screen .goal-list .check-row:has(input:checked),.goal-action-options .check-row:has(input:checked),.goal-barrier-options .check-row:has(input:checked) { border-color:var(--primary-500);background:var(--primary-50);box-shadow:0 0 0 1px var(--primary-500); }
+.custom-goal-field,.goals-note-field,.goal-plan-form>.field { margin-top:18px; }
+.goal-priority-form,.goal-plan-form { display:grid;gap:22px; }
+.goal-priority-form fieldset,.goal-plan-form fieldset { min-width:0;margin:0;padding:0;border:0; }
+.goal-priority-form legend,.goal-plan-form legend { margin-bottom:10px;color:var(--text-primary);font-size:18px;font-weight:800;line-height:1.4; }
+.goal-plan-note { margin:18px 0; }
+.goal-plan-choice { display:grid;gap:12px; }
+.goal-plan-choice .button { width:100%; }
+.goal-plan-summary,.goal-detail-section,.clinical-target-card,.my-goal-card { border:1px solid var(--border-default);border-radius:18px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.055); }
+.goal-plan-summary { display:grid;gap:0;margin:18px 0;overflow:hidden; }
+.goal-plan-summary>div { padding:16px 18px;border-bottom:1px solid var(--border-default); }
+.goal-plan-summary>div:last-child { border-bottom:0; }
+.goal-plan-summary small,.goal-why-preview small,.goal-progress-preview small,.goal-next-step small { display:block;margin-bottom:4px;color:var(--text-secondary);font-size:16px;line-height:1.45; }
+.goal-plan-summary strong,.goal-progress-preview strong { font-size:18px;line-height:1.42; }
+.goal-plan-summary p,.goal-plan-summary ul { margin:5px 0 0;font-size:17px;line-height:1.55; }
+.goal-plan-summary ul { padding-left:22px; }
+.my-goal-card { position:relative;padding:18px;overflow:hidden; }
+.my-goal-card.primary-goal { border-color:var(--primary-300);background:linear-gradient(180deg,var(--primary-50),var(--surface-primary) 55%); }
+.my-goal-card h2 { margin:4px 0 12px;font-size:22px;line-height:1.32; }
+.goal-priority-label { display:inline-flex;align-items:center;min-height:30px;padding:4px 10px;border-radius:999px;color:var(--primary-700);background:var(--primary-100);font-size:15px;font-weight:800; }
+.goal-why-preview,.goal-progress-preview { margin-top:12px; }
+.goal-next-step { margin-top:12px;padding-top:12px;border-top:1px solid var(--border-default); }
+.goal-next-step p { margin:0;color:var(--text-primary);font-size:17px;line-height:1.48; }
+.goal-why-preview p { margin:0;color:var(--text-secondary);font-size:17px;line-height:1.5; }
+.my-goal-card .text-button { margin-top:14px; }
+.add-goal-card { width:100%;margin-top:14px; }
+.goals-empty { display:grid;justify-items:center;gap:8px;padding:24px;border:1px dashed var(--border-default);border-radius:18px;text-align:center; }
+.goal-notice { margin:0 0 16px;padding:13px 15px;border-radius:14px;color:var(--primary-800);background:var(--primary-50);font-size:17px;line-height:1.5; }
+.goal-detail-section,.clinical-target-card { margin:14px 0;padding:17px; }
+.goal-detail-section h2,.clinical-target-card strong { margin:0 0 8px;font-size:19px;line-height:1.4; }
+.goal-detail-section p,.clinical-target-card p { margin:0;color:var(--text-secondary);font-size:17px;line-height:1.52; }
+.goal-detail-section .text-button { display:flex;margin-top:12px; }
+.goal-action-row { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border-default); }
+.goal-action-row:last-child { border-bottom:0; }
+.goal-action-row p { color:var(--text-primary); }
+.goal-action-row button { min-width:48px;min-height:48px; }
+.goal-response-button { width:100%;min-height:56px;padding:12px 16px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:17px;font-weight:700;line-height:1.4;text-align:left;cursor:pointer; }
+.goal-response-button:hover { border-color:var(--primary-500);background:var(--primary-50); }
+.goal-response-button:focus-visible { outline:3px solid var(--primary-500);outline-offset:3px; }
+.goal-manage { margin:16px 0;border-top:1px solid var(--border-default);border-bottom:1px solid var(--border-default); }
+.goal-manage summary { min-height:52px;padding:14px 2px;font-size:17px;font-weight:750;cursor:pointer; }
+.goal-manage>div { display:grid;gap:8px;padding:0 0 14px; }
+.goal-manage button { min-height:48px;padding:10px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:16px;font-weight:700;text-align:left;cursor:pointer; }
+
+@media (max-width:430px) {
+  .goals-screen,.goals-screen form,.goals-screen fieldset,.my-goals-list,.my-goal-card,.goal-plan-summary { min-width:0;max-width:100%; }
+  .goal-priority-form .choice-card,.goal-plan-form .check-row { grid-template-columns:auto auto minmax(0,1fr); }
+  .goal-priority-form .choice-card strong,.goal-list .check-row>span:last-child,.goal-action-options .check-row>span:last-child { overflow-wrap:anywhere; }
+  .goal-action-row { grid-template-columns:minmax(0,1fr); }
+  .goal-action-row button { justify-self:start; }
 }
 
 .shell:has(.access-consent-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }

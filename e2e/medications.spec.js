@@ -100,7 +100,7 @@ for (const locale of [
   await expect(page.getByRole("heading", { name: locale.additional })).toBeVisible();
 });
 
-for (const width of [360, 375, 390, 393, 430]) test(`medication review is responsive at ${width}px`, async ({ page }) => {
+for (const width of [384, 360, 375, 390, 393, 430]) test(`medication review is responsive at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 780 });
   await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
   const result = await page.evaluate(() => {

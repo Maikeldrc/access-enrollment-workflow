@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+// 384x824 is the primary mobile reference (Samsung Galaxy S25 Ultra); the rest stay in the
+// matrix so the header remains fluid from roughly 360px to 430px.
 const viewports = [
+  [384, 824],
   [360, 800],
   [375, 812],
   [390, 844],
@@ -63,7 +66,7 @@ test("global patient header remains balanced across supported mobile viewports",
     expect(layout.brandCenterDelta).toBeLessThanOrEqual(1);
     expect(layout.languageTouchHeight).toBeGreaterThanOrEqual(44);
     expect(layout.shellWidth).toBe(width);
-    if ([375, 390, 412, 430].includes(width)) {
+    if ([384, 375, 390, 412, 430].includes(width)) {
       await page.screenshot({ path: `qa-evidence/header/header-${width}.png`, fullPage: true });
     }
   }

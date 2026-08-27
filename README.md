@@ -109,3 +109,38 @@ The local prototype audit record is stored under `itera.emmi.prototype.audit.v1`
 - Unit coverage verifies no program-selection state exists, ACCESS alignment precedes success, RPM shipping branches correctly, MBI is requested only when missing, and safe drafts omit sensitive values.
 - Browser tests verify ACCESS does not claim enrollment at eligibility, RPM shipping reaches address confirmation, and Spanish language switching works.
 - Production build output is generated in `dist/`.
+
+## Responsive reference
+
+The Patient Experience is fluid from roughly 360px to 430px. It is not designed for a single
+width, but one width is the primary reference for design decisions and visual QA.
+
+**Primary mobile reference — Samsung Galaxy S25 Ultra**
+
+| | |
+| --- | --- |
+| CSS viewport | **384 × 824** |
+| DPR | 3.75 (device pixel ratio never drives layout; CSS viewport does) |
+| Device type | Mobile, touch enabled |
+
+`--patient-shell-width: 384px` in `src/styles.css` sizes the **desktop patient preview** only.
+On a real phone the shell is `width: 100%` and the browser viewport controls the width — there
+are no artificial side bands. The Prototype Setup / Configure Patient Scenario console is not
+constrained by this and stays desktop-friendly.
+
+**QA matrix** — validate 384 first, then check the rest for regressions:
+
+| Width | Role |
+| --- | --- |
+| 360 | narrow Android stress test |
+| 375 | compact mobile |
+| **384** | **primary reference (S25 Ultra)** |
+| 390 | common modern mobile |
+| 393 | additional modern mobile |
+| 412 | wider Android configuration |
+| 430 | large mobile |
+
+There is deliberately no `@media (width: 384px)` rule. The layout is fluid — flex, grid,
+`minmax`, `clamp`, `width: 100%` and natural wrapping — so 384px is a validation target rather
+than a hardcoded size. Narrower widths reduce the page gutter before they touch typography;
+text is never shrunk below senior-friendly sizes to make it fit.

@@ -132,7 +132,7 @@ for (const locale of [
   await expect(page.getByRole("heading", { name: locale.next })).toBeVisible();
 });
 
-for (const width of [360, 375, 390, 393, 430]) test(`health information review is responsive at ${width}px`, async ({ page }) => {
+for (const width of [384, 360, 375, 390, 393, 430]) test(`health information review is responsive at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 780 });
   const result = await page.evaluate(() => {
     const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
