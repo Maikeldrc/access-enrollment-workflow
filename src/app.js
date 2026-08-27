@@ -11,7 +11,8 @@ import {
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
-import { emmiVoiceIsSupported, getHomeWelcome, resolveEmmiLanguage } from "./emmi/messages.js";
+import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
+import { buildHomeNarration, buildNarration } from "./emmi/narrative.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -844,44 +845,39 @@ const assistantVoiceErrorCopy = () => ({
 // Resolved from the central EMMI message config at call time, so the welcome always follows
 // the language the patient has selected right now — including on "Repeat welcome".
 function emmiSpokenWelcome() {
-  return getHomeWelcome({
-    locale: languageCode(),
-    providerReferral: isProviderReferralSource(state.offer?.enrollmentSource),
-    physicianDisplayName: state.offer?.physician?.displayName || state.offer?.referringProvider?.name || ""
-  });
+  // Home carries the fullest narration of the journey: it introduces the actual program the
+  // patient was invited to, why it exists and how it can help, not a generic greeting.
+  return buildHomeNarration({ locale: languageCode(), ...emmiNarrativeRuntime() }).narrationText;
 }
 
 function emmiGuidanceForScreen(screen = state.screen) {
-  const transition = state.offer ? currentFlowTransition() : null;
-  const transitionGuidance = transition ? L(
-    `Your enrollment is complete. ${localized(transition.nextStepTitle)} is next${transition.estimatedDuration ? ` and takes ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. You can continue now, or come back to it later.`,
-    `Su inscripción está completa. El siguiente paso es ${localized(transition.nextStepTitle).toLowerCase()}${transition.estimatedDuration ? ` y toma ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. Puede continuar ahora o regresar más tarde.`,
-    `Enskripsyon ou fini. Pwochen etap la se ${localized(transition.nextStepTitle).toLowerCase()}${transition.estimatedDuration ? ` epi li pran ${localized(transition.estimatedDuration).toLowerCase()}` : ""}. Ou ka kontinye kounye a oswa retounen pita.`
-  ) : "";
-  const messages = {
-    DECISION_MAKER: L("Choose who is completing this process. If you’re completing it yourself and would like someone you trust to help remotely, you can invite them here.", "Elija quién está completando este proceso. Si lo completa usted mismo y desea que alguien de confianza le ayude a distancia, puede invitarlo aquí.", "Chwazi ki moun k ap ranpli pwosesis sa a. Si se ou menm k ap ranpli l epi ou ta renmen yon moun ou fè konfyans ede w a distans, ou ka envite l isit la."),
-    IDENTITY_VERIFICATION: L("This only takes a moment. Confirming your information helps us securely verify who you are.", "Esto solo toma un momento. Confirmar su información nos ayuda a verificar su identidad de forma segura.", "Sa pran yon ti moman sèlman. Konfime enfòmasyon ou ede nou verifye idantite w an sekirite."),
-    CARE_RECOMMENDATION: L("Here you can see the support your care team can provide between visits.", "Aquí puede ver el apoyo que su equipo de atención puede brindarle entre visitas.", "La a ou ka wè sipò ekip swen ou ka ba ou ant vizit yo."),
-    ACCESS_PRE_ELIGIBILITY_NOTICE: L("This quick Medicare check tells us whether ACCESS is available to you. It does not change your Medicare benefits.", "Esta breve verificación de Medicare indica si ACCESS está disponible para usted. No cambia sus beneficios de Medicare.", "Ti chèk Medicare sa a montre si ACCESS disponib pou ou. Li pa chanje benefis Medicare ou yo."),
-    ACCESS_ELIGIBILITY_RESULT: state.accessOutcome === "eligible" ? L("Good news. You’re eligible to continue. Your enrollment is not complete yet, and I’ll guide you through the remaining steps.", "Buenas noticias. Es elegible para continuar. Su inscripción aún no está completa y le guiaré en los pasos restantes.", "Bon nouvèl. Ou kalifye pou kontinye. Enskripsyon ou poko fini, epi m ap gide w nan etap ki rete yo.") : "",
-    CONSENT_REVIEW: L("You’re almost done. This page summarizes the most important information, including your expected cost, before you decide whether to enroll.", "Ya casi termina. Esta página resume la información más importante, incluido el costo esperado, antes de que decida si desea inscribirse.", "Ou prèske fini. Paj sa a rezime enfòmasyon ki pi enpòtan yo, ansanm ak pri ou prevwa a, anvan ou deside si w ap enskri."),
-    ENROLLMENT_CONFIRMED: transitionGuidance,
-    FLOW_DEFERRED: L("Your enrollment is complete. Your care setup is saved for whenever you’re ready.", "Su inscripción está completa. La configuración de su cuidado está guardada para cuando esté listo.", "Enskripsyon ou fini. Konfigirasyon swen ou anrejistre pou lè ou pare."),
-    MY_CARE: transitionGuidance,
-    MEDICATIONS_REVIEW: L("Review each medication one at a time. It’s okay to say you’re not sure, and your care team can review any changes with you.", "Revise cada medicamento uno por uno. Puede indicar que no está seguro y su equipo de atención podrá revisar los cambios con usted.", "Revize chak medikaman youn apre lòt. Ou ka di ou pa sèten, epi ekip swen ou ka revize nenpòt chanjman avèk ou."),
-    CARE_CIRCLE_INVITE: L("You can choose someone from your contacts when available or enter their information yourself. Review everything before you send the invitation.", "Puede elegir a alguien de sus contactos cuando esté disponible o ingresar sus datos. Revise todo antes de enviar la invitación.", "Ou ka chwazi yon moun nan kontak ou lè sa disponib oswa antre enfòmasyon yo. Revize tout bagay anvan ou voye envitasyon an."),
-    MY_CARE_CIRCLE: L("Here you can invite, review, or remove the people you trust for basic Care Circle support.", "Aquí puede invitar, revisar o eliminar a las personas de confianza para apoyo básico del Círculo de cuidado.", "La a ou ka envite, revize, oswa retire moun ou fè konfyans pou sipò debaz Sèk swen."),
-    ACCESS_BASELINE: L("This health check helps your care team understand your starting point and personalize your support.", "Esta evaluación ayuda a su equipo de atención a conocer su punto de partida y personalizar su apoyo.", "Evalyasyon sa a ede ekip swen ou konprann pwen depa ou epi adapte sipò ou."),
-    ACCESS_MEASURE: L("This step helps us understand how we’ll get your blood pressure starting point.", "Este paso nos ayuda a saber cómo obtendremos su presión arterial inicial.", "Etap sa a ede nou konnen kijan n ap jwenn premye mezi tansyon ou."),
-    ACCESS_BP_DEVICE_VERIFICATION: L("If ITERA already has a monitor assigned to you, I can help confirm it automatically.", "Si ITERA ya tiene un monitor asignado para usted, puedo ayudarle a confirmarlo automáticamente.", "Si ITERA deja gen yon aparèy ki asiyen pou ou, mwen ka ede konfime li otomatikman."),
-    ACCESS_BP_DEVICE_RESULT: L("Please confirm that the monitor shown is the one you have with you.", "Confirme que el monitor mostrado es el que tiene con usted.", "Tanpri konfime aparèy yo montre a se sa ou genyen avè w la."),
-    ACCESS_BP_GUIDED_SETUP: L("I can guide you through preparing your monitor one simple step at a time.", "Puedo guiarle para preparar su monitor, un paso sencillo a la vez.", "Mwen ka gide w pou prepare aparèy ou, yon etap senp alafwa."),
-    ACCESS_BP_MEASUREMENT: L("Take your time and follow each instruction. I’m here if you need help.", "Tómese su tiempo y siga cada instrucción. Estoy aquí si necesita ayuda.", "Pran tan ou epi suiv chak enstriksyon. Mwen la si ou bezwen èd.")
-  };
-  return messages[screen] || "";
+  // EMMI explains the screen's purpose, not its labels. Everything comes from the shared
+  // narrative engine so voice and text say the same thing, in the patient's active language.
+  const narration = buildNarration({ screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
+  return narration?.narrationText || "";
 }
 
-const emmiGuidancePrompt = message => L(`Give only this short guidance in a calm, warm voice. Do not add extra details: ${message}`, `Ofrezca únicamente esta breve orientación con una voz tranquila y amable. No agregue detalles: ${message}`, `Bay sèlman ti konsèy sa a avèk yon vwa kalm ak janti. Pa ajoute lòt detay: ${message}`);
+// Only facts the runtime actually knows are handed to the narration. A missing value simply
+// removes that sentence rather than inviting the model to invent one.
+function emmiNarrativeRuntime() {
+  const action = state.offer ? currentNextBestAction() : null;
+  return {
+    program: state.offer?.pathway,
+    programDisplayName: localized(programDisclosureConfig(state.offer?.pathway)?.displayName) || state.offer?.program || "",
+    providerReferral: isProviderReferralSource(state.offer?.enrollmentSource),
+    physicianDisplayName: state.offer?.physician?.displayName || state.offer?.referringProvider?.name || "",
+    medicationCount: Array.isArray(state.careMedications) ? state.careMedications.filter(item => item.active).length : null,
+    deviceVendor: state.deviceVerificationStatus === "VERIFIED" || state.patientDeviceConfirmed ? state.deviceVendor || null : null,
+    nextStepLabel: action ? localized(action.label) : null
+  };
+}
+
+
+const emmiGuidancePrompt = message => L(
+  `Say the following to the patient in a calm, warm, unhurried voice, as their care guide rather than a narrator reading the screen. Keep the meaning and the reassurance intact, use natural spoken English, and do not add facts that are not here: ${message}`,
+  `Diga lo siguiente al paciente con una voz tranquila, cálida y sin prisa, como su guía de cuidado y no como alguien que lee la pantalla. Conserve el significado y la tranquilidad que transmite, use un español natural y hablado, y no agregue datos que no estén aquí: ${message}`,
+  `Di sa ki annapre a bay pasyan an avèk yon vwa kalm, cho e san prese, tankou gid swen li olye yon moun k ap li ekran an. Kenbe sans lan ak rekonfò a, sèvi ak yon Kreyòl natirèl pou pale, epi pa ajoute enfòmasyon ki pa la: ${message}`
+);
 
 // EMMI is introduced on the Home screen. Everywhere after it, this is a compact contextual
 // control that must not compete with the screen's own question.

@@ -53,17 +53,18 @@ test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", 
   await page.getByRole("button", { name: /See how it works/i }).click();
 
   const transcript = page.locator(".emmi-guidance-transcript");
-  await expect(transcript).toContainText("Choose who is completing this process.");
+  await expect(transcript).toContainText("who is filling this out today");
+  await expect(transcript).toContainText("you still make the decisions about your care");
 
   // Switching language must move the whole EMMI experience, not just the surrounding UI.
   await page.locator('[data-action="language"]').first().click();
   await expect(page.locator(".emmi-guidance-bar")).toContainText("La guía por voz está activa");
-  await expect(transcript).toContainText("Elija quién está completando este proceso.");
-  await expect(transcript).not.toContainText("Choose who is completing");
+  await expect(transcript).toContainText("quién está completando esto hoy");
+  await expect(transcript).not.toContainText("who is filling this out today");
 
   // KR is Haitian Creole in this product, never Korean.
   await page.locator('[data-action="language"]').first().click();
-  await expect(transcript).toContainText("Chwazi ki moun k ap ranpli pwosesis sa a.");
+  await expect(transcript).toContainText("ki moun k ap ranpli sa a jodi a");
   await expect(transcript).not.toContainText(/[가-힯]/);
 
   // Ask EMMI opens in the active language too.
@@ -114,7 +115,7 @@ test("shows persistent, accessible guidance controls after opt-in", async ({ pag
   await expect(controls.getByRole("button", { name: "Repeat", exact: true })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Ask EMMI" })).toBeVisible();
   await expect(controls.getByRole("button", { name: "Turn off", exact: true })).toBeVisible();
-  await expect(controls).toContainText("If you’re completing it yourself and would like someone you trust to help remotely, you can invite them here.");
+  await expect(controls).toContainText("who is filling this out today");
 
   // The compact control replaces the floating EMMI while it is on screen.
   await expect(page.locator(".emmi-assistant")).toBeHidden();

@@ -46,7 +46,8 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "requestCallback", description: "Request a fictional care-team callback only after explicit patient confirmation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, reason: { type: "STRING" }, preferredLanguage: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "reason", "preferredLanguage", "confirmed"] } },
   { name: "createCareTeamTask", description: "Create a fictional care-team task only after explicit patient confirmation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, category: { type: "STRING" }, reason: { type: "STRING" }, priority: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "category", "reason", "priority", "confirmed"] } },
   { name: "saveEnrollmentProgress", description: "Save current navigation only. Cannot consent, enroll, or change eligibility.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, currentScreen: { type: "STRING" } }, required: ["patientId", "currentScreen"] } },
-  { name: "evaluateClinicalEscalation", description: "Apply deterministic MOCK safety rules to a fictional reading and symptoms. The model must not decide severity.", parameters: { type: "OBJECT", properties: { systolic: { type: "NUMBER" }, diastolic: { type: "NUMBER" }, symptoms: { type: "STRING" } }, required: ["systolic", "diastolic", "symptoms"] } }
+  { name: "evaluateClinicalEscalation", description: "Apply deterministic MOCK safety rules to a fictional reading and symptoms. The model must not decide severity.", parameters: { type: "OBJECT", properties: { systolic: { type: "NUMBER" }, diastolic: { type: "NUMBER" }, symptoms: { type: "STRING" } }, required: ["systolic", "diastolic", "symptoms"] } },
+  { name: "searchKnowledge", description: "Look up ITERA's approved explanations of programs, Medicare, enrollment, devices, care and safety topics. Use for conceptual questions such as 'What is CCM?' or 'What is a Care Circle?'. This returns general education only and is never a source for what is true for this patient: for eligibility, cost, devices, medications, enrollment status or next step, call the matching patient tool instead.", parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] } }
 ] }];
 
 export class EmmiToolOrchestrator {
@@ -89,6 +90,32 @@ export class EmmiToolOrchestrator {
       if (emergencySymptoms || Number(args.systolic) >= 180 || Number(args.diastolic) >= 120) result = { severity: "EMERGENCY", instruction: "CALL_911", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
       else if (Number(args.systolic) >= 160 || Number(args.diastolic) >= 100) result = { severity: "CARE_TEAM_REVIEW", instruction: "CREATE_HIGH_PRIORITY_TASK", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
       else result = { severity: "NORMAL", instruction: "CONTINUE", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
+    } else if (name === "searchKnowledge") {
+      // Retrieval runs on the server so the Knowledge Base is never shipped to the browser.
+      // Only the journey context needed to pick a document is sent; no patient identifiers.
+      const response = await fetch("/api/emmi/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: String(args.query || ""), program: context.program || null, currentScreen: context.currentScreen || null })
+      });
+      if (!response.ok) throw new Error("knowledge_unavailable");
+      const retrieved = await response.json();
+      result = {
+        sourceType: "ITERA_KNOWLEDGE_BASE",
+        // Ranked below every runtime source, so the model prefers tool results on conflict.
+        sourcePriority: retrieved.sourcePriority,
+        authority: "GENERAL_EDUCATION_ONLY",
+        intent: retrieved.intent,
+        riskLevel: retrieved.riskLevel,
+        requiredTool: retrieved.requiredTool,
+        mustNotAnswerAlone: retrieved.mustNotAnswerAlone,
+        note: retrieved.mustNotAnswerAlone
+          ? "Safety topic. Never advise starting, stopping or changing a medication or judge severity yourself. Follow the deterministic safety rules and offer the care team."
+          : retrieved.requiredTool
+            ? `This is general information only. The patient asked something personal, so call ${retrieved.requiredTool} and answer from that result.`
+            : "General education. Do not state anything patient-specific from this content.",
+        passages: retrieved.chunks
+      };
     } else throw new Error("unknown_tool");
     this.auditLog?.tool(name, args, result);
     return result;

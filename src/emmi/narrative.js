@@ -1,0 +1,649 @@
+// EMMI Narrative Engine.
+//
+// EMMI does not read the screen — it gives meaning to the screen. Every narration is built
+// from an objective (purpose / benefit / reassurance / action) rather than from the visible
+// copy, so the patient hears what this step is, why it matters, how it can help, what to do,
+// and that they stay in control.
+//
+// Voice and text render the same objective: there is no separate voice script. Dynamic facts
+// (medication counts, device vendor, physician, cost) are only spoken when runtime supplies
+// them — never invented.
+//
+// Each language is authored natively rather than translated mechanically, so the Spanish and
+// Kreyòl narrations read naturally for an older adult instead of sounding converted.
+
+const T = (en, es, ht) => Object.freeze({ en, es, ht });
+
+// Narration length is matched to the weight of the screen, not to one global limit.
+export const NARRATION_SECONDS = Object.freeze({
+  PROGRAM_INTRODUCTION: [25, 40],
+  CONCEPTUAL: [15, 25],
+  SIMPLE_TASK: [7, 15],
+  TRANSITION: [15, 20]
+});
+
+const objective = ({ purpose, benefit, reassurance, action, tone = "reassuring", risk = "low", length = "CONCEPTUAL", dynamic = [] }) =>
+  Object.freeze({ purpose, benefit, reassurance, action, tone, risk, length, dynamic });
+
+// One narration per screen, authored as a whole so each language flows naturally.
+// `dynamic` lists the runtime fields the narration may reference when they are available.
+export const NARRATIVE_OBJECTIVES = Object.freeze({
+  DECISION_MAKER: objective({
+    length: "CONCEPTUAL",
+    purpose: T(
+      "Before we continue, we just need to know who is filling this out today.",
+      "Antes de continuar, solo necesitamos saber quién está completando esto hoy.",
+      "Anvan nou kontinye, nou jis bezwen konnen ki moun k ap ranpli sa a jodi a."
+    ),
+    benefit: T(
+      "Knowing this lets us set up the rest of the experience correctly for you.",
+      "Saberlo nos permite preparar correctamente el resto de la experiencia para usted.",
+      "Lè nou konnen sa, nou ka prepare rès eksperyans lan kòrèkteman pou ou."
+    ),
+    reassurance: T(
+      "If someone is simply helping you, you still make the decisions about your care.",
+      "Si alguien solo le está ayudando, usted sigue tomando las decisiones sobre su cuidado.",
+      "Si yon moun ap senpleman ede w, se ou menm ki toujou pran desizyon sou swen ou."
+    ),
+    action: T(
+      "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "Elija la opción que le describe: para usted mismo, alguien que le ayuda, o un representante personal autorizado para tomar decisiones médicas.",
+      "Chwazi opsyon ki dekri ou: pou tèt ou, yon moun k ap ede w, oswa yon reprezantan pèsonèl ki otorize pou pran desizyon swen sante."
+    )
+  }),
+
+  PERSONAL_REPRESENTATIVE_DETAILS: objective({
+    risk: "medium",
+    purpose: T(
+      "A personal representative is different from someone who is simply helping today.",
+      "Un representante personal es diferente de alguien que solo está ayudando hoy.",
+      "Yon reprezantan pèsonèl diferan de yon moun k ap senpleman ede jodi a."
+    ),
+    benefit: T(
+      "This option is for someone authorized to make healthcare decisions for the patient, so we ask for a few details about that person.",
+      "Esta opción es para alguien autorizado a tomar decisiones médicas por el paciente, por eso pedimos algunos datos sobre esa persona.",
+      "Opsyon sa a se pou yon moun ki otorize pou pran desizyon swen sante pou pasyan an, se sa k fè nou mande kèk detay sou moun sa a."
+    ),
+    reassurance: T(
+      "We will explain each step, and you can ask me anything before continuing.",
+      "Le explicaremos cada paso y puede preguntarme lo que necesite antes de continuar.",
+      "N ap eksplike chak etap, epi ou ka mande m nenpòt bagay anvan ou kontinye."
+    ),
+    action: T(
+      "Enter the representative's information to continue.",
+      "Ingrese la información del representante para continuar.",
+      "Antre enfòmasyon reprezantan an pou kontinye."
+    )
+  }),
+
+  IDENTITY_VERIFICATION: objective({
+    length: "SIMPLE_TASK",
+    purpose: T(
+      "This is a quick identity check so we know we are working with the right record.",
+      "Esta es una verificación rápida de identidad para asegurarnos de trabajar con el registro correcto.",
+      "Sa a se yon ti verifikasyon idantite pou nou konnen n ap travay ak bon dosye a."
+    ),
+    benefit: T(
+      "It helps protect your health information.",
+      "Ayuda a proteger su información de salud.",
+      "Li ede pwoteje enfòmasyon sante ou."
+    ),
+    reassurance: T(
+      "This check does not change your Medicare benefits and does not enroll you in anything by itself.",
+      "Esta verificación no cambia sus beneficios de Medicare ni le inscribe en nada por sí sola.",
+      "Verifikasyon sa a pa chanje benefis Medicare ou epi li pa enskri w nan anyen poukont li."
+    ),
+    action: T(
+      "Enter your date of birth and ZIP code.",
+      "Ingrese su fecha de nacimiento y su código postal.",
+      "Antre dat nesans ou ak kòd postal ou."
+    )
+  }),
+
+  CARE_RECOMMENDATION: objective({
+    purpose: T(
+      "Here you can see the kind of support your care team can provide between doctor visits.",
+      "Aquí puede ver el tipo de apoyo que su equipo de cuidado puede brindarle entre visitas al médico.",
+      "Isit la ou ka wè kalite sipò ekip swen ou ka ba ou ant vizit kay doktè."
+    ),
+    benefit: T(
+      "Your care team can check in with you, help you stay on track with your plan, and keep important information connected with the doctors you already see.",
+      "Su equipo puede comunicarse con usted, ayudarle a seguir su plan y mantener la información importante conectada con los médicos que ya consulta.",
+      "Ekip swen ou ka pran nouvèl ou, ede w suiv plan ou, epi kenbe enfòmasyon enpòtan konekte ak doktè ou deja wè yo."
+    ),
+    reassurance: T(
+      "Nothing is decided yet, and you can ask me about anything here.",
+      "Todavía no se ha decidido nada y puede preguntarme sobre cualquier cosa aquí.",
+      "Anyen poko deside, epi ou ka mande m sou nenpòt bagay isit la."
+    ),
+    action: T(
+      "Take a look, and continue when you are ready.",
+      "Échele un vistazo y continúe cuando esté listo.",
+      "Gade yon ti kras, epi kontinye lè ou pare."
+    )
+  }),
+
+  ACCESS_PRE_ELIGIBILITY_NOTICE: objective({
+    risk: "medium",
+    purpose: T(
+      "This quick Medicare check tells us whether this care option is available to you.",
+      "Esta breve verificación de Medicare nos indica si esta opción de cuidado está disponible para usted.",
+      "Ti verifikasyon Medicare sa a di nou si opsyon swen sa a disponib pou ou."
+    ),
+    benefit: T(
+      "It saves you from going through steps that may not apply to you.",
+      "Le evita seguir pasos que quizá no le corresponden.",
+      "Li anpeche w fè etap ki ka pa aplike pou ou."
+    ),
+    reassurance: T(
+      "It does not change your Medicare benefits or coverage, and being eligible does not mean you are enrolled — you will still review the important details before deciding.",
+      "No cambia sus beneficios ni su cobertura de Medicare, y ser elegible no significa estar inscrito: usted revisará los detalles importantes antes de decidir.",
+      "Li pa chanje benefis ni kouvèti Medicare ou, epi si ou kalifye sa pa vle di ou enskri — w ap toujou revize detay enpòtan yo anvan ou deside."
+    ),
+    action: T(
+      "Review the notice and confirm when you are ready for us to check.",
+      "Revise el aviso y confirme cuando esté listo para que verifiquemos.",
+      "Revize avi a epi konfime lè ou pare pou nou verifye."
+    )
+  }),
+
+  ACCESS_ELIGIBILITY_RESULT: objective({
+    risk: "high",
+    purpose: T(
+      "This is the result of the Medicare check.",
+      "Este es el resultado de la verificación de Medicare.",
+      "Sa a se rezilta verifikasyon Medicare a."
+    ),
+    benefit: T(
+      "It tells you whether this care option is available to you right now.",
+      "Le indica si esta opción de cuidado está disponible para usted en este momento.",
+      "Li di w si opsyon swen sa a disponib pou ou kounye a."
+    ),
+    reassurance: T(
+      "Your enrollment is not complete yet, and your Medicare benefits are unchanged either way.",
+      "Su inscripción aún no está completa y sus beneficios de Medicare no cambian en ningún caso.",
+      "Enskripsyon ou poko fini, epi benefis Medicare ou pa chanje nan tou de ka yo."
+    ),
+    action: T(
+      "I will guide you through the steps that come next.",
+      "Le guiaré por los pasos que siguen.",
+      "M ap gide w nan etap ki vin apre yo."
+    )
+  }),
+
+  DISCLOSURE: objective({
+    risk: "medium",
+    purpose: T(
+      "This page highlights the most important things to know before you decide.",
+      "Esta página resume lo más importante que debe saber antes de decidir.",
+      "Paj sa a make bagay ki pi enpòtan pou w konnen anvan ou deside."
+    ),
+    benefit: T(
+      "It covers your choice to participate, any expected cost, and how the program works.",
+      "Cubre su decisión de participar, el costo esperado y cómo funciona el programa.",
+      "Li kouvri chwa ou pou patisipe, nenpòt depans ou prevwa, ak kijan pwogram nan mache."
+    ),
+    reassurance: T(
+      "Take your time. If anything is unclear, you can ask me before continuing.",
+      "Tómese su tiempo. Si algo no está claro, puede preguntarme antes de continuar.",
+      "Pran tan ou. Si yon bagay pa klè, ou ka mande m anvan ou kontinye."
+    ),
+    action: T(
+      "Read through each point and confirm that you have reviewed it.",
+      "Lea cada punto y confirme que lo ha revisado.",
+      "Li chak pwen epi konfime ou revize yo."
+    )
+  }),
+
+  CONSENT_REVIEW: objective({
+    risk: "high",
+    purpose: T(
+      "You are at the final decision step.",
+      "Está en el paso final de la decisión.",
+      "Ou nan dènye etap desizyon an."
+    ),
+    benefit: T(
+      "Everything that matters for your decision is gathered here, including the expected cost and your rights.",
+      "Todo lo importante para su decisión está reunido aquí, incluido el costo esperado y sus derechos.",
+      "Tout sa ki enpòtan pou desizyon ou rasanble isit la, ansanm ak depans ou prevwa a ak dwa ou yo."
+    ),
+    reassurance: T(
+      "Enrolling is your choice, and you can ask me questions before you decide.",
+      "Inscribirse es su decisión, y puede hacerme preguntas antes de decidir.",
+      "Enskri se chwa ou, epi ou ka poze m kesyon anvan ou deside."
+    ),
+    action: T(
+      "Review the information, and if you decide to go ahead, use the checkboxes and continue.",
+      "Revise la información y, si decide continuar, marque las casillas y siga adelante.",
+      "Revize enfòmasyon an, epi si ou deside kontinye, tcheke kaz yo epi ale pi devan."
+    )
+  }),
+
+  ENROLLMENT_CONFIRMED: objective({
+    tone: "celebratory",
+    length: "TRANSITION",
+    dynamic: ["nextStepLabel", "estimatedDuration"],
+    purpose: T(
+      "You did it — your enrollment is complete.",
+      "Lo logró: su inscripción está completa.",
+      "Ou fè l — enskripsyon ou fini."
+    ),
+    benefit: T(
+      "You now have ongoing support from your ITERA care team.",
+      "Ahora cuenta con el apoyo continuo de su equipo de cuidado de ITERA.",
+      "Kounye a ou gen sipò kontinyèl ekip swen ITERA ou."
+    ),
+    reassurance: T(
+      "You can continue now or come back when you are ready.",
+      "Puede continuar ahora o volver cuando esté listo.",
+      "Ou ka kontinye kounye a oswa retounen lè ou pare."
+    ),
+    action: T(
+      "The next step helps us understand your health a little better so we can personalize your care.",
+      "El siguiente paso nos ayuda a conocer mejor su salud para poder personalizar su cuidado.",
+      "Pwochen etap la ede nou konprann sante ou yon ti kras pi byen pou nou ka pèsonalize swen ou."
+    )
+  }),
+
+  CLINICAL_VERIFICATION: objective({
+    purpose: T(
+      "Here we are checking the health information we already have on file for you.",
+      "Aquí estamos revisando la información de salud que ya tenemos registrada.",
+      "Isit la n ap tcheke enfòmasyon sante nou deja genyen nan dosye ou."
+    ),
+    benefit: T(
+      "Your answers help your care team keep your information accurate.",
+      "Sus respuestas ayudan a su equipo a mantener su información correcta.",
+      "Repons ou yo ede ekip swen ou kenbe enfòmasyon ou kòrèk."
+    ),
+    reassurance: T(
+      "If you are not sure about something, that is okay — you can ask for help.",
+      "Si no está seguro de algo, está bien: puede pedir ayuda.",
+      "Si ou pa sèten sou yon bagay, sa pa grav — ou ka mande èd."
+    ),
+    action: T(
+      "Confirm if everything looks right, or tell us what changed.",
+      "Confirme si todo está correcto, o díganos qué cambió.",
+      "Konfime si tout bagay sanble kòrèk, oswa di nou kisa ki chanje."
+    )
+  }),
+
+  MEDICATIONS_REVIEW: objective({
+    risk: "high",
+    dynamic: ["medicationCount"],
+    purpose: T(
+      "Keeping your medication list up to date helps your care team understand what you are actually taking today.",
+      "Mantener su lista de medicamentos al día ayuda a su equipo a saber qué está tomando realmente hoy.",
+      "Kenbe lis medikaman ou ajou ede ekip swen ou konprann kisa ou reyèlman ap pran jodi a."
+    ),
+    benefit: T(
+      "An accurate list helps your care team coordinate your care more safely.",
+      "Una lista precisa ayuda a su equipo a coordinar su cuidado con más seguridad.",
+      "Yon lis egzak ede ekip swen ou kowòdone swen ou pi an sekirite."
+    ),
+    reassurance: T(
+      "You do not need to remember everything perfectly, and nothing here is telling you to start or stop a medicine.",
+      "No necesita recordarlo todo a la perfección, y nada aquí le indica empezar o dejar un medicamento.",
+      "Ou pa bezwen sonje tout bagay pafètman, epi anyen isit la pa di w kòmanse oswa sispann yon medikaman."
+    ),
+    action: T(
+      "Review each medicine and tell us whether you still take it, whether something changed, or if you are not sure.",
+      "Revise cada medicamento y díganos si aún lo toma, si algo cambió, o si no está seguro.",
+      "Revize chak medikaman epi di nou si w ap toujou pran l, si yon bagay chanje, oswa si ou pa sèten."
+    )
+  }),
+
+  CARE_PREFERENCES: objective({
+    length: "SIMPLE_TASK",
+    purpose: T(
+      "These questions help us understand how you prefer to be contacted and supported.",
+      "Estas preguntas nos ayudan a saber cómo prefiere que le contactemos y le apoyemos.",
+      "Kesyon sa yo ede nou konprann kijan ou prefere nou kontakte w epi sipòte w."
+    ),
+    benefit: T(
+      "Choosing what works best for you makes it easier for your care team to reach you in a way that fits your routine.",
+      "Elegir lo que mejor le funcione facilita que su equipo le contacte de una forma que se ajuste a su rutina.",
+      "Chwazi sa ki pi bon pou ou fè li pi fasil pou ekip swen ou jwenn ou yon fason ki adapte ak woutin ou."
+    ),
+    reassurance: T(
+      "You can change these later.",
+      "Puede cambiarlas más adelante.",
+      "Ou ka chanje yo pita."
+    ),
+    action: T(
+      "Choose the options that fit you best.",
+      "Elija las opciones que mejor se ajusten a usted.",
+      "Chwazi opsyon ki pi bon pou ou."
+    )
+  }),
+
+  GOALS: objective({
+    tone: "encouraging",
+    purpose: T(
+      "This part is about what matters to you.",
+      "Esta parte se trata de lo que es importante para usted.",
+      "Pati sa a konsène sa ki enpòtan pou ou."
+    ),
+    benefit: T(
+      "Your care is not only about medical numbers — it should also support the things you want to keep doing in your life, like staying active, keeping your blood pressure under control, or remaining independent.",
+      "Su cuidado no se trata solo de cifras médicas: también debe apoyar lo que usted quiere seguir haciendo en su vida, como mantenerse activo, controlar su presión arterial o seguir siendo independiente.",
+      "Swen ou pa sèlman sou chif medikal — li ta dwe sipòte tou bagay ou vle kontinye fè nan lavi ou, tankou rete aktif, kontwole tansyon ou, oswa rete endepandan."
+    ),
+    reassurance: T(
+      "You can change them later, and your care team can help you build a plan that works for you.",
+      "Puede cambiarlos después, y su equipo puede ayudarle a crear un plan que funcione para usted.",
+      "Ou ka chanje yo pita, epi ekip swen ou ka ede w bati yon plan ki mache pou ou."
+    ),
+    action: T(
+      "Choose the goals that matter most to you.",
+      "Elija los objetivos que más le importan.",
+      "Chwazi objektif ki pi enpòtan pou ou."
+    )
+  }),
+
+  ACCESS_BASELINE: objective({
+    dynamic: ["estimatedDuration"],
+    purpose: T(
+      "This health check helps your care team understand your starting point.",
+      "Esta evaluación ayuda a su equipo de cuidado a conocer su punto de partida.",
+      "Chèk sante sa a ede ekip swen ou konprann pwen depa ou."
+    ),
+    benefit: T(
+      "Knowing where you are starting is what lets your care team personalize the support you receive.",
+      "Saber desde dónde parte es lo que permite a su equipo personalizar el apoyo que recibe.",
+      "Konnen kote ou kòmanse se sa ki pèmèt ekip swen ou pèsonalize sipò ou resevwa."
+    ),
+    reassurance: T(
+      "Your progress is saved, so you can stop and come back later.",
+      "Su progreso se guarda, así que puede detenerse y volver más tarde.",
+      "Pwogrè ou anrejistre, konsa ou ka kanpe epi retounen pita."
+    ),
+    action: T(
+      "We will go through it one step at a time.",
+      "Lo haremos paso a paso.",
+      "N ap fè l yon etap alafwa."
+    )
+  }),
+
+  RPM_DEVICE_PATH: objective({
+    dynamic: ["deviceVendor"],
+    purpose: T(
+      "A connected monitor lets your care team receive readings from home between visits.",
+      "Un monitor conectado permite que su equipo reciba mediciones desde su casa entre visitas.",
+      "Yon monitè konekte pèmèt ekip swen ou resevwa mezi lakay ou ant vizit yo."
+    ),
+    benefit: T(
+      "Instead of waiting until your next office visit, your care team can see how things are going and respond earlier when something needs attention.",
+      "En lugar de esperar a su próxima consulta, su equipo puede ver cómo va todo y responder antes si algo necesita atención.",
+      "Olye pou n tann pwochen vizit ou, ekip swen ou ka wè kijan bagay yo ap mache epi reyaji pi bonè lè yon bagay bezwen atansyon."
+    ),
+    reassurance: T(
+      "We will help you get the right monitor connected and show you what to do — you do not need to figure out the technology on your own.",
+      "Le ayudaremos a conectar el monitor adecuado y le mostraremos qué hacer: no tiene que resolver la tecnología por su cuenta.",
+      "N ap ede w konekte bon monitè a epi montre w kisa pou fè — ou pa bezwen konprann teknoloji a poukont ou."
+    ),
+    action: T(
+      "Let us know whether you already have a monitor or need one from ITERA.",
+      "Díganos si ya tiene un monitor o si necesita uno de ITERA.",
+      "Fè nou konnen si ou deja gen yon monitè oswa si ou bezwen youn nan men ITERA."
+    )
+  }),
+
+  ACCESS_BP_DEVICE_RESULT: objective({
+    dynamic: ["deviceVendor"],
+    purpose: T(
+      "We found the monitor assigned to your care.",
+      "Encontramos el monitor asignado a su cuidado.",
+      "Nou jwenn monitè ki asiyen pou swen ou."
+    ),
+    benefit: T(
+      "Confirming it now means your readings will reach your care team correctly.",
+      "Confirmarlo ahora asegura que sus mediciones lleguen correctamente a su equipo.",
+      "Konfime l kounye a vle di mezi ou yo ap rive kòrèkteman jwenn ekip swen ou."
+    ),
+    reassurance: T(
+      "If it is not the monitor you have with you, tell us and we will help sort it out.",
+      "Si no es el monitor que tiene con usted, díganos y le ayudaremos a resolverlo.",
+      "Si se pa monitè ou genyen avèk ou a, di nou epi n ap ede w rezoud sa."
+    ),
+    action: T(
+      "Confirm whether this is the monitor you have.",
+      "Confirme si este es el monitor que tiene.",
+      "Konfime si se monitè sa a ou genyen."
+    )
+  }),
+
+  ACCESS_BP_GUIDED_SETUP: objective({
+    length: "SIMPLE_TASK",
+    purpose: T(
+      "Let us get your monitor ready to take a reading.",
+      "Vamos a preparar su monitor para tomar una medición.",
+      "Ann pare monitè ou pou pran yon mezi."
+    ),
+    benefit: T(
+      "A good setup is what makes the reading accurate and lets it reach your care team.",
+      "Una buena preparación es lo que hace que la medición sea precisa y llegue a su equipo.",
+      "Yon bon preparasyon se sa ki fè mezi a egzak epi ki pèmèt li rive jwenn ekip swen ou."
+    ),
+    reassurance: T(
+      "Take your time — I will go one step at a time and you can ask me to repeat anything.",
+      "Tómese su tiempo: iré paso a paso y puede pedirme que repita lo que necesite.",
+      "Pran tan ou — m ap ale yon etap alafwa epi ou ka mande m repete nenpòt bagay."
+    ),
+    action: T(
+      "Sit comfortably with your arm supported, and place the cuff on your bare upper arm.",
+      "Siéntese cómodamente con el brazo apoyado y coloque el brazalete en la parte superior del brazo descubierto.",
+      "Chita alèz ak bra ou apiye, epi mete manchèt la sou pati anwo bra ou san rad."
+    )
+  }),
+
+  ACCESS_BP_MEASUREMENT: objective({
+    risk: "medium",
+    purpose: T(
+      "This first reading confirms that your monitor can send information to ITERA.",
+      "Esta primera medición confirma que su monitor puede enviar información a ITERA.",
+      "Premye mezi sa a konfime ke monitè ou ka voye enfòmasyon bay ITERA."
+    ),
+    benefit: T(
+      "It also begins building your starting blood pressure picture, which your care team uses to personalize your support.",
+      "También comienza a formar su panorama inicial de presión arterial, que su equipo usa para personalizar su apoyo.",
+      "Li kòmanse tou bati premye pòtrè tansyon ou, ke ekip swen ou itilize pou pèsonalize sipò ou."
+    ),
+    reassurance: T(
+      "You do not need to take all of your starting readings at once — we keep track as more come in.",
+      "No necesita tomar todas sus mediciones iniciales de una vez: llevamos el registro a medida que llegan.",
+      "Ou pa bezwen pran tout premye mezi ou yo yon sèl kou — n ap swiv yo pandan lòt yo ap rive."
+    ),
+    action: T(
+      "Start the reading when you are ready and stay still while it works.",
+      "Inicie la medición cuando esté listo y quédese quieto mientras funciona.",
+      "Kòmanse mezi a lè ou pare epi rete trankil pandan l ap travay."
+    )
+  }),
+
+  CARE_CIRCLE_INVITE: objective({
+    risk: "medium",
+    purpose: T(
+      "You can invite someone you trust to help with things like reminders, setup, or next steps.",
+      "Puede invitar a alguien de confianza para ayudarle con recordatorios, la configuración o los próximos pasos.",
+      "Ou ka envite yon moun ou fè konfyans pou ede w ak bagay tankou rapèl, konfigirasyon, oswa pwochen etap yo."
+    ),
+    benefit: T(
+      "Having someone alongside you can make the process easier to manage.",
+      "Tener a alguien a su lado puede hacer que el proceso sea más fácil de manejar.",
+      "Gen yon moun bò kote w ka fè pwosesis la pi fasil pou jere."
+    ),
+    reassurance: T(
+      "You remain in control of your care. This invitation does not let that person consent, sign, or make healthcare decisions for you.",
+      "Usted mantiene el control de su cuidado. Esta invitación no permite que esa persona consienta, firme ni tome decisiones médicas por usted.",
+      "Se ou ki gen kontwòl swen ou. Envitasyon sa a pa pèmèt moun sa a bay konsantman, siyen, oswa pran desizyon swen sante pou ou."
+    ),
+    action: T(
+      "Share their name and mobile number if you would like to invite them.",
+      "Comparta su nombre y número de celular si desea invitarle.",
+      "Pataje non li ak nimewo telefòn li si ou ta renmen envite l."
+    )
+  }),
+
+  ONBOARDING_COMPLETE: objective({
+    tone: "celebratory",
+    length: "TRANSITION",
+    purpose: T(
+      "That is this part finished — nicely done.",
+      "Con esto termina esta parte: bien hecho.",
+      "Sa fini pati sa a — byen fèt."
+    ),
+    benefit: T(
+      "What you shared helps your ITERA care team personalize the support they give you.",
+      "Lo que compartió ayuda a su equipo de ITERA a personalizar el apoyo que le brindan.",
+      "Sa ou pataje a ede ekip swen ITERA ou pèsonalize sipò yo ba ou."
+    ),
+    reassurance: T(
+      "Your care team will review it and reach out if they have any follow-up questions.",
+      "Su equipo lo revisará y se comunicará si tiene alguna pregunta de seguimiento.",
+      "Ekip swen ou ap revize l epi kontakte w si yo gen kesyon."
+    ),
+    action: T(
+      "You can keep going or come back whenever it suits you.",
+      "Puede continuar o volver cuando le convenga.",
+      "Ou ka kontinye oswa retounen lè sa convenab pou ou."
+    )
+  })
+});
+
+// Home narration is the fullest of the journey: it introduces the actual program the patient
+// was invited to, never a generic script, and never another program's terminology.
+const PROGRAM_INTRODUCTION = {
+  ACCESS: T(
+    "You have been invited to learn about a Medicare care option called ACCESS. ACCESS is designed to give you more support with your health between regular doctor visits — not to replace your doctors. Depending on your needs, that can mean regular check-ins, help following your care plan, support with medications or health goals, and, when appropriate, monitoring from home. The idea is to make it easier for you and your doctors to stay connected and address health needs earlier.",
+    "Le han invitado a conocer una opción de cuidado de Medicare llamada ACCESS. ACCESS está pensada para darle más apoyo con su salud entre las visitas habituales al médico, no para reemplazar a sus médicos. Según lo que necesite, puede incluir comunicación periódica, ayuda para seguir su plan de cuidado, apoyo con los medicamentos o sus objetivos de salud y, cuando corresponda, monitoreo desde casa. La idea es que a usted y a sus médicos les resulte más fácil mantenerse conectados y atender antes lo que sea importante.",
+    "Yo envite w aprann sou yon opsyon swen Medicare yo rele ACCESS. ACCESS fèt pou ba ou plis sipò ak sante ou ant vizit regilye kay doktè — li pa la pou ranplase doktè ou yo. Selon bezwen ou, sa ka vle di pran nouvèl ou regilyèman, èd pou suiv plan swen ou, sipò ak medikaman oswa objektif sante ou, epi, lè sa apwopriye, siveyans lakay ou. Lide a se fè li pi fasil pou ou menm ak doktè ou yo rete konekte epi okipe bezwen sante pi bonè."
+  ),
+  CCM: T(
+    "Chronic Care Management is designed for people managing ongoing health conditions who may benefit from support between regular doctor visits. Your ITERA care team can help keep your care organized, review your health needs and medications, work with you on goals that matter to you, and keep your care connected with your doctors. Think of it as added support between visits.",
+    "El Manejo de Cuidados Crónicos está pensado para personas que viven con condiciones de salud continuas y que pueden beneficiarse de apoyo entre las visitas al médico. Su equipo de ITERA puede ayudarle a mantener su cuidado organizado, revisar sus necesidades de salud y sus medicamentos, trabajar con usted en los objetivos que le importan y mantener su cuidado conectado con sus médicos. Piénselo como un apoyo adicional entre visitas.",
+    "Jesyon Swen Kwonik fèt pou moun k ap jere pwoblèm sante kontinyèl ki ka benefisye de sipò ant vizit regilye kay doktè. Ekip swen ITERA ou ka ede kenbe swen ou òganize, revize bezwen sante ou ak medikaman ou, travay avè w sou objektif ki enpòtan pou ou, epi kenbe swen ou konekte ak doktè ou yo. Panse a li kòm sipò anplis ant vizit yo."
+  ),
+  RPM: T(
+    "Remote Patient Monitoring lets your care team receive important health readings from home, such as your blood pressure, using a connected monitor. Instead of waiting until your next office visit to see how things are going, your care team can use those readings to support your ongoing care. We will help you with the monitor, show you how to use it, and explain what happens with your readings.",
+    "El Monitoreo Remoto del Paciente permite que su equipo reciba mediciones importantes desde su casa, como su presión arterial, mediante un monitor conectado. En lugar de esperar a su próxima consulta para ver cómo va todo, su equipo puede usar esas mediciones para apoyar su cuidado continuo. Le ayudaremos con el monitor, le enseñaremos a usarlo y le explicaremos qué sucede con sus mediciones.",
+    "Siveyans Pasyan a Distans pèmèt ekip swen ou resevwa mezi sante enpòtan lakay ou, tankou tansyon ou, ak yon monitè konekte. Olye pou n tann pwochen vizit ou pou wè kijan bagay yo ap mache, ekip swen ou ka itilize mezi sa yo pou sipòte swen ou. N ap ede w ak monitè a, montre w kijan pou itilize l, epi eksplike sa k ap pase ak mezi ou yo."
+  ),
+  PCM: T(
+    "Principal Care Management is focused support for the one health condition that needs the most attention right now. Your ITERA care team can help you stay on top of that condition between doctor visits, review your medications, and keep your care connected with the doctors you already see.",
+    "El Manejo de Cuidado Principal es un apoyo enfocado en la condición de salud que más atención necesita en este momento. Su equipo de ITERA puede ayudarle a mantenerse al día con esa condición entre visitas, revisar sus medicamentos y mantener su cuidado conectado con los médicos que ya consulta.",
+    "Jesyon Swen Prensipal se sipò ki konsantre sou yon sèl pwoblèm sante ki bezwen plis atansyon kounye a. Ekip swen ITERA ou ka ede w rete anfòm ak pwoblèm sa a ant vizit kay doktè, revize medikaman ou, epi kenbe swen ou konekte ak doktè ou deja wè yo."
+  ),
+  // Combined programs are told as one story, never as two products.
+  CCM_RPM: T(
+    "Your care brings together two kinds of support that work as one. Your ITERA care team can stay connected with you between doctor visits, and a connected monitor can share important health readings from home. Together, that gives your care team a fuller picture of how you are doing between visits and helps keep your care organized.",
+    "Su cuidado reúne dos tipos de apoyo que funcionan como uno solo. Su equipo de ITERA puede mantenerse en contacto con usted entre visitas al médico, y un monitor conectado puede compartir mediciones importantes desde su casa. Juntos, le dan a su equipo una imagen más completa de cómo está entre visitas y ayudan a mantener su cuidado organizado.",
+    "Swen ou mete ansanm de kalite sipò ki travay kòm yon sèl. Ekip swen ITERA ou ka rete konekte avè w ant vizit kay doktè, epi yon monitè konekte ka pataje mezi sante enpòtan lakay ou. Ansanm, sa bay ekip swen ou yon pòtrè pi konplè sou kijan w ap fè ant vizit yo epi ede kenbe swen ou òganize."
+  ),
+  PCM_RPM: T(
+    "Your care brings together two kinds of support that work as one. Your ITERA care team focuses on the health condition that needs the most attention right now, and a connected monitor can share important readings from home. Together, that helps your care team follow how you are doing between visits.",
+    "Su cuidado reúne dos tipos de apoyo que funcionan como uno solo. Su equipo de ITERA se enfoca en la condición de salud que más atención necesita ahora, y un monitor conectado puede compartir mediciones importantes desde su casa. Juntos, ayudan a su equipo a seguir cómo está usted entre visitas.",
+    "Swen ou mete ansanm de kalite sipò ki travay kòm yon sèl. Ekip swen ITERA ou konsantre sou pwoblèm sante ki bezwen plis atansyon kounye a, epi yon monitè konekte ka pataje mezi enpòtan lakay ou. Ansanm, sa ede ekip swen ou suiv kijan w ap fè ant vizit yo."
+  )
+};
+
+// Programs without approved bespoke copy fall back to their configured display name rather
+// than inventing a description or borrowing another program's terminology.
+const PROGRAM_INTRODUCTION_FALLBACK = displayName => T(
+  `You have been invited to learn about ${displayName}, ongoing care support from ITERA HEALTH between your regular doctor visits. Your care team can help keep your care organized and connected with the doctors you already see.`,
+  `Le han invitado a conocer ${displayName}, un apoyo continuo de cuidado de ITERA HEALTH entre sus visitas habituales al médico. Su equipo puede ayudar a mantener su cuidado organizado y conectado con los médicos que ya consulta.`,
+  `Yo envite w aprann sou ${displayName}, yon sipò swen kontinyèl nan men ITERA HEALTH ant vizit regilye ou kay doktè. Ekip swen ou ka ede kenbe swen ou òganize epi konekte ak doktè ou deja wè yo.`
+);
+
+const HOME_OPENING = T("Hi, I'm EMMI, your ITERA Care Assistant.", "Hola, soy EMMI, su Asistente de cuidado de ITERA.", "Bonjou, mwen se EMMI, Asistan swen ITERA ou.");
+
+const HOME_PHYSICIAN = physician => T(
+  `${physician}'s care team invited you to learn about additional support available through Medicare. Your doctor remains part of your care, while ITERA can support you between visits.`,
+  `El equipo de ${physician} le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas.`,
+  `Ekip swen ${physician} envite w aprann sou sipò anplis ki disponib atravè Medicare. Doktè ou rete yon pati nan swen ou, pandan ITERA ka sipòte w ant vizit yo.`
+);
+
+const HOME_CLOSING = T(
+  "Taking part is your choice, and I will explain each step in simple terms before you decide. When you're ready, choose 'See how it works.'",
+  "Participar es su decisión, y le explicaré cada paso en palabras sencillas antes de que decida. Cuando esté listo, elija 'Vea cómo funciona'.",
+  "Patisipe se chwa ou, epi m ap eksplike chak etap an mo senp anvan ou deside. Lè ou pare, chwazi 'Gade kijan sa fonksyone'."
+);
+
+const pick = (entry, locale) => {
+  const key = { EN: "en", ES: "es", KR: "ht" }[String(locale || "EN").toUpperCase()] || "en";
+  return entry?.[key] || entry?.en || "";
+};
+
+const sentences = parts => parts.filter(Boolean).map(part => part.trim()).filter(Boolean).join(" ");
+
+export function buildHomeNarration({ locale = "EN", program, programDisplayName = "", providerReferral = false, physicianDisplayName = "" } = {}) {
+  const introduction = PROGRAM_INTRODUCTION[program] || PROGRAM_INTRODUCTION_FALLBACK(programDisplayName || program || "this care");
+  // A physician is only mentioned when the referral source and a real name both support it.
+  const referral = providerReferral && physicianDisplayName ? pick(HOME_PHYSICIAN(physicianDisplayName), locale) : "";
+  return {
+    narrationText: sentences([pick(HOME_OPENING, locale), referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]),
+    narrationPurpose: "PROGRAM_INTRODUCTION",
+    estimatedSeconds: NARRATION_SECONDS.PROGRAM_INTRODUCTION
+  };
+}
+
+// Runtime facts are appended only when supplied. Nothing here invents a count, a vendor or a
+// duration: an absent value simply produces a narration without that sentence.
+function dynamicSentences(fields, runtime, locale) {
+  const lines = [];
+  if (fields.includes("medicationCount") && Number.isFinite(runtime.medicationCount) && runtime.medicationCount > 0) {
+    const count = runtime.medicationCount;
+    lines.push(pick(T(
+      `We have ${count} on file for you to look at.`,
+      `Tenemos ${count} registrados para que los revise.`,
+      `Nou gen ${count} nan dosye a pou w gade.`
+    ), locale));
+  }
+  if (fields.includes("deviceVendor") && runtime.deviceVendor) {
+    lines.push(pick(T(
+      `Your care setup shows a ${runtime.deviceVendor} monitor.`,
+      `Su configuración de cuidado muestra un monitor ${runtime.deviceVendor}.`,
+      `Konfigirasyon swen ou montre yon monitè ${runtime.deviceVendor}.`
+    ), locale));
+  }
+  if (fields.includes("estimatedDuration") && runtime.estimatedDuration) {
+    lines.push(pick(T(
+      `It should take about ${runtime.estimatedDuration}.`,
+      `Debería tomar unos ${runtime.estimatedDuration}.`,
+      `Li ta dwe pran anviwon ${runtime.estimatedDuration}.`
+    ), locale));
+  }
+  if (fields.includes("nextStepLabel") && runtime.nextStepLabel) {
+    lines.push(pick(T(
+      `When you're ready, choose "${runtime.nextStepLabel}".`,
+      `Cuando esté listo, elija "${runtime.nextStepLabel}".`,
+      `Lè ou pare, chwazi "${runtime.nextStepLabel}".`
+    ), locale));
+  }
+  return lines;
+}
+
+export function buildNarration({ screen, locale = "EN", runtime = {} } = {}) {
+  if (screen === "INVITATION") return buildHomeNarration({ locale, ...runtime });
+  const spec = NARRATIVE_OBJECTIVES[screen];
+  if (!spec) return null;
+  // ORIENT -> EXPLAIN/BENEFIT -> REASSURE -> ACTION, then any runtime detail worth saying.
+  const narrationText = sentences([
+    pick(spec.purpose, locale),
+    pick(spec.benefit, locale),
+    pick(spec.reassurance, locale),
+    pick(spec.action, locale),
+    ...dynamicSentences(spec.dynamic, runtime, locale)
+  ]);
+  return {
+    narrationText,
+    narrationPurpose: screen,
+    tone: spec.tone,
+    riskLevel: spec.risk,
+    estimatedSeconds: NARRATION_SECONDS[spec.length],
+    // Development-only trace of what the narration was trying to achieve (§55).
+    objective: { purpose: pick(spec.purpose, locale), benefit: pick(spec.benefit, locale), reassurance: pick(spec.reassurance, locale), action: pick(spec.action, locale), dynamicUsed: spec.dynamic.filter(field => runtime[field] != null) }
+  };
+}
+
+export const narratedScreens = () => Object.keys(NARRATIVE_OBJECTIVES);
