@@ -63,6 +63,7 @@ let emmiAuditLog = null;
 let emmiTools = null;
 let emmiLive = null;
 let emmiGuidanceTimer = null;
+let emmiGuidanceVisibilityObserver = null;
 let emmiHesitationTimer = null;
 let emmiHesitationCleanup = null;
 
@@ -308,8 +309,7 @@ function invitation() {
       ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You’ll review the details before you enroll", "Revisará los detalles antes de inscribirse", "W ap revize detay yo anvan ou enskri")]
     ].map(([i,label,detail]) => `<div class="invitation-benefit">${icon(i)}<span><strong>${label}</strong><small>${detail}</small></span></div>`).join("")}</section>
     ${actions(L("See how it works", "Vea cómo funciona", "Gade kijan sa fonksyone"), false)}
-    <p class="contact-line"><span class="contact-label">${icon("phone", "contact-phone")}<span>${L("Need help? Call", "¿Necesita ayuda? Llame al", "Bezwen èd? Rele")}</span></span> <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>
-    ${careCircleEarlyPrompt()}`;
+    <p class="contact-line"><span class="contact-label">${icon("phone", "contact-phone")}<span>${L("Need help? Call", "¿Necesita ayuda? Llame al", "Bezwen èd? Rele")}</span></span> <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>`;
 }
 
 function persistEmmiPreferences() {
@@ -318,13 +318,26 @@ function persistEmmiPreferences() {
   if (state.identityVerified) draftStore.save(state);
 }
 
+const emmiGuidanceIsBusy = () => ["CONNECTING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(state.assistantVoiceState);
+
+function emmiHomeVoiceStatus() {
+  if (state.assistantVoiceState === "EMMI_SPEAKING") return L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…");
+  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return L("Connecting EMMI…", "Conectando con EMMI…", "N ap konekte EMMI…");
+  if (state.assistantVoiceState === "ERROR") return L("Voice guidance is unavailable", "La guía por voz no está disponible", "Gid vwa pa disponib");
+  return L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+}
+
+function emmiWelcomeVoiceControls() {
+  if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`;
+  const busy = emmiGuidanceIsBusy();
+  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong></p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
+}
+
 function emmiWelcome(providerReferral, physicianName) {
   return `<section class="emmi-welcome" aria-labelledby="emmi-welcome-title">
     <div class="emmi-welcome-identity"><img src="/assets/emmi-assistant.png" alt=""><div><h2 id="emmi-welcome-title">${L("Hi, I’m EMMI.", "Hola, soy EMMI.", "Bonjou, mwen se EMMI.")}</h2><strong>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</strong></div></div>
     <div class="emmi-welcome-copy"><p>${L("I can guide you through each step and answer questions along the way.", "Puedo guiarle en cada paso y responder sus preguntas durante el proceso.", "Mwen ka gide w nan chak etap epi reponn kesyon ou pandan pwosesis la.")}</p></div>
-    ${state.emmiVoiceGuidance
-      ? `<div class="emmi-welcome-choice"><p><strong>${L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen")}</strong></p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance">${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`
-      : `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`}
+    ${emmiWelcomeVoiceControls()}
   </section>`;
 }
 
@@ -334,7 +347,24 @@ function decisionMaker() {
       ${choice("patient", "person", L("For myself", "Para mí", "Pou tèt mwen"), L("I am the patient.", "Soy el paciente.", "Mwen se pasyan an."), state.completionRole === "patient")}
       ${choice("helper", "people", L("Helping the patient", "Ayudando al paciente", "Ede pasyan an"), L("The patient is present and will make the decisions.", "El paciente está presente y tomará las decisiones.", "Pasyan an prezan epi l ap pran desizyon yo."), state.completionRole === "helper")}
       ${choice("personalRepresentative", "shield", L("Personal representative", "Representante personal", "Reprezantan pèsonèl"), L("I’m authorized to make healthcare decisions for the patient.", "Estoy autorizado para tomar decisiones de atención médica por el paciente.", "Mwen otorize pou pran desizyon swen sante pou pasyan an."), isPersonalRepresentative())}
-    </form>${careCircleEarlyPrompt(true)}${actions(t().continue)}`;
+    </form>${optionalSupportPrompt()}${actions(t().continue)}`;
+}
+
+// Care Circle is optional support, never a fourth answer to "Who is completing this?".
+// It only makes sense when the patient is completing the enrollment themselves: a helper or a
+// personal representative is already a second person in the room.
+const completionRoleAcceptsCareCircle = () => state.completionRole === "patient" && state.role !== "representative";
+
+function optionalSupportPrompt() {
+  const hidden = completionRoleAcceptsCareCircle() ? "" : "hidden";
+  const label = `<span class="optional-support-label">${L("Optional support", "Apoyo opcional", "Sipò opsyonèl")}</span>`;
+  // An invitation that was already sent is never re-sent or silently discarded.
+  if (["INVITED", "ACTIVE"].includes(state.careCircleStatus)) {
+    const name = state.supportPersonName || L("someone you trust", "alguien de confianza", "yon moun ou fè konfyans");
+    return `<section class="optional-support" data-optional-support ${hidden}>${label}<div class="optional-support-card optional-support-status">${icon("check")}<span><strong>${L("Invitation sent", "Invitación enviada", "Envitasyon voye")}</strong><span class="optional-support-copy">${L(`${name} can help you through this process. You still make the decisions about your care.`, `${name} puede ayudarle en este proceso. Usted sigue tomando las decisiones sobre su cuidado.`, `${name} ka ede w nan pwosesis sa a. Se ou menm k ap toujou pran desizyon sou swen ou.`)}</span></span></div></section>`;
+  }
+  if (!careCirclePromptAllowed()) return "";
+  return `<section class="optional-support" data-optional-support ${hidden}>${label}<button type="button" class="optional-support-card" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="optional-support-copy">${L("Invite someone you trust to help with this process.", "Invite a alguien de confianza para que le ayude con este proceso.", "Envite yon moun ou fè konfyans pou ede w ak pwosesis sa a.")}</span><span class="optional-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button></section>`;
 }
 
 const patientFirstName = () => String(state.offer?.patient?.displayName || L("The patient", "El paciente", "Pasyan an")).split(/\s+/)[0].replace(/[^\p{L}'’-]/gu, "") || L("The patient", "El paciente", "Pasyan an");
@@ -342,12 +372,12 @@ const careCirclePromptAllowed = () => !isPersonalRepresentative() && state.careC
 
 function careCircleEarlyPrompt(compact = false) {
   if (!careCirclePromptAllowed()) return "";
-  return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="care-circle-support-copy">${L("Invite a family member, caregiver, or someone you trust to help with this process.", "Invite a un familiar, cuidador o persona de confianza para que le ayude con este proceso.", "Envite yon fanmi, moun k ap bay swen, oswa yon moun ou fè konfyans pou ede w ak pwosesis sa a.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
+  return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="care-circle-support-copy">${L("Invite someone you trust to help you through this process.", "Invite a alguien de confianza para que le ayude durante este proceso.", "Envite yon moun ou fè konfyans pou ede w pandan pwosesis sa a.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
 }
 
 function careCircleInvite() {
   const relationships = [["spouse", L("Spouse", "Cónyuge", "Konjwen")], ["child", L("Child", "Hijo o hija", "Pitit")], ["family", L("Family member", "Familiar", "Manm fanmi")], ["caregiver", L("Caregiver", "Cuidador", "Moun k ap bay swen")], ["friend", L("Friend", "Amigo o amiga", "Zanmi")], ["other", L("Other", "Otro", "Lòt")]];
-  return `${titleBlock(L("Invite someone you trust", "Invite a alguien de confianza", "Envite yon moun ou fè konfyans"), L("They can help you through the process, but you’ll still make the decisions about your care.", "Puede ayudarle durante el proceso, pero usted seguirá tomando las decisiones sobre su cuidado.", "Moun nan ka ede w pandan pwosesis la, men se ou menm k ap toujou pran desizyon sou swen ou."), L("Care Circle", "Círculo de cuidado", "Sèk swen"))}<form id="care-circle-invite-form" class="growth-form"><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="name" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="tel" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")} <small>${L("Optional", "Opcional", "Opsyonèl")}</small><select name="supportPersonRelationship"><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label></form><aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("You remain in control", "Usted mantiene el control", "Se ou ki gen kontwòl")}</strong><span>${L("This invitation does not allow the person to consent, sign, or make healthcare decisions for you.", "Esta invitación no permite que la persona dé consentimiento, firme ni tome decisiones médicas por usted.", "Envitasyon sa a pa pèmèt moun nan bay konsantman, siyen, oswa pran desizyon swen sante pou ou.")}</span></p></aside><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(L("Back", "Atrás", "Retounen"), "growth-return", true)}${cta(L("Send invitation", "Enviar invitación", "Voye envitasyon"), "send-care-circle-invite")}</div>`;
+  return `${titleBlock(L("Invite someone you trust", "Invite a alguien de confianza", "Envite yon moun ou fè konfyans"), L("They can help you through the process, but you’ll still make the decisions about your care.", "Puede ayudarle durante el proceso, pero usted seguirá tomando las decisiones sobre su cuidado.", "Moun nan ka ede w pandan pwosesis la, men se ou menm k ap toujou pran desizyon sou swen ou."), L("Care Circle", "Círculo de cuidado", "Sèk swen"))}<form id="care-circle-invite-form" class="growth-form"><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="name" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="tel" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")}<select name="supportPersonRelationship" required><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label></form><aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("You remain in control", "Usted mantiene el control", "Se ou ki gen kontwòl")}</strong><span>${L("This invitation does not allow the person to consent, sign, or make healthcare decisions for you.", "Esta invitación no permite que la persona dé consentimiento, firme ni tome decisiones médicas por usted.", "Envitasyon sa a pa pèmèt moun nan bay konsantman, siyen, oswa pran desizyon swen sante pou ou.")}</span></p></aside><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(L("Back", "Atrás", "Retounen"), "growth-return", true)}${cta(L("Send invitation", "Enviar invitación", "Voye envitasyon"), "send-care-circle-invite")}</div>`;
 }
 
 function careCircleInviteSent() {
@@ -616,6 +646,7 @@ function assistantQuickQuestions(context) {
   if (["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(context.currentScreen)) return [L("Why do you need my phone?", "¿Por qué necesitan mi teléfono?", "Poukisa nou bezwen telefòn mwen?"), L("Why do I need to verify it?", "¿Por qué debo verificarlo?", "Poukisa mwen bezwen verifye li?"), L("What does Personal Representative mean?", "¿Qué significa Representante personal?", "Kisa Reprezantan pèsonèl vle di?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
   if (context.currentScreen === "ACCESS_BP_DEVICE_INFO") return [L("I don’t have a measuring tape", "No tengo una cinta métrica", "Mwen pa gen yon riban mezi"), L("How do I measure my arm?", "¿Cómo mido mi brazo?", "Kijan pou m mezire bra mwen?"), L("I’m not sure which arm to use", "No sé qué brazo usar", "Mwen pa sèten ki bra pou m itilize"), L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")];
   if (["ACCESS_MEASURE", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"].includes(context.currentScreen)) return [L("Do I need to take my blood pressure again now?", "¿Necesito tomarme la presión otra vez ahora?", "Èske mwen bezwen pran tansyon mwen ankò kounye a?"), L("Is my monitor connected?", "¿Mi monitor está conectado?", "Èske aparèy mwen konekte?"), L("I need a monitor", "Necesito un monitor", "Mwen bezwen yon aparèy"), L("I need help", "Necesito ayuda", "Mwen bezwen èd")];
+  if (context.currentScreen === "DECISION_MAKER") return [L("Can my daughter help me?", "¿Puede ayudarme mi hija?", "Èske pitit fi mwen ka ede m?"), L("What is a Personal Representative?", "¿Qué es un Representante personal?", "Kisa yon Reprezantan pèsonèl ye?"), L("Who should complete this?", "¿Quién debe completar esto?", "Ki moun ki dwe ranpli sa a?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
   if (context.currentScreen === "INVITATION") return [L("What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"), L("Can someone help me with this?", "¿Puede alguien ayudarme con esto?", "Èske yon moun ka ede m ak sa?"), L("Do I have to enroll?", "¿Tengo que inscribirme?", "Èske mwen oblije enskri?"), L("Talk with someone", "Hablar con alguien", "Pale ak yon moun")];
   if (context.currentScreen === "ENROLLMENT_CONFIRMED") return [L("Invite someone I trust", "Invitar a alguien de confianza", "Envite yon moun mwen fè konfyans"), L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"), L("What happens next?", "¿Qué sucede después?", "Kisa ki rive apre sa?")];
   if (context.currentScreen === "CONSENT_REVIEW") return [L("What am I agreeing to?", "¿Qué estoy aceptando?", "Kisa mwen dakò ak?"), L("Can I change my mind?", "¿Puedo cambiar de opinión?", "Èske mwen ka chanje lide mwen?"), L("What will this cost?", "¿Cuánto costará?", "Ki sa ki pral pri sa a?"), L("Does this change my Medicare?", "¿Esto cambia mi Medicare?", "Èske sa chanje Medicare mwen an?"), L("What does signing as a personal representative mean?", "¿Qué significa firmar como representante personal?", "Ki sa siyati vle di antanke reprezantan pèsonèl?")];
@@ -757,6 +788,7 @@ function emmiSpokenWelcome() {
 
 function emmiGuidanceForScreen(screen = state.screen) {
   const messages = {
+    DECISION_MAKER: L("Choose who is completing this process. If you’re completing it yourself and would like someone you trust to help remotely, you can invite them here.", "Elija quién está completando este proceso. Si lo completa usted mismo y desea que alguien de confianza le ayude a distancia, puede invitarlo aquí.", "Chwazi ki moun k ap ranpli pwosesis sa a. Si se ou menm k ap ranpli l epi ou ta renmen yon moun ou fè konfyans ede w a distans, ou ka envite l isit la."),
     IDENTITY_VERIFICATION: L("This only takes a moment. Confirming your information helps us securely verify who you are.", "Esto solo toma un momento. Confirmar su información nos ayuda a verificar su identidad de forma segura.", "Sa pran yon ti moman sèlman. Konfime enfòmasyon ou ede nou verifye idantite w an sekirite."),
     CARE_RECOMMENDATION: L("Here you can see the support your care team can provide between visits.", "Aquí puede ver el apoyo que su equipo de atención puede brindarle entre visitas.", "La a ou ka wè sipò ekip swen ou ka ba ou ant vizit yo."),
     ACCESS_PRE_ELIGIBILITY_NOTICE: L("This quick Medicare check tells us whether ACCESS is available to you. It does not change your Medicare benefits.", "Esta breve verificación de Medicare indica si ACCESS está disponible para usted. No cambia sus beneficios de Medicare.", "Ti chèk Medicare sa a montre si ACCESS disponib pou ou. Li pa chanje benefis Medicare ou yo."),
@@ -775,17 +807,46 @@ function emmiGuidanceForScreen(screen = state.screen) {
 
 const emmiGuidancePrompt = message => L(`Give only this short guidance in a calm, warm voice. Do not add extra details: ${message}`, `Ofrezca únicamente esta breve orientación con una voz tranquila y amable. No agregue detalles: ${message}`, `Bay sèlman ti konsèy sa a avèk yon vwa kalm ak janti. Pa ajoute lòt detay: ${message}`);
 
+// EMMI is introduced on the Home screen. Everywhere after it, this is a compact contextual
+// control that must not compete with the screen's own question.
 function voiceGuidancePanel() {
   if (!state.emmiVoiceGuidance || state.screen === "INVITATION") return "";
   const voiceConnected = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
-  const status = state.emmiVoiceGuidancePaused ? L("Voice guidance: Paused", "Guía por voz: En pausa", "Gid vwa: An poz") : L("Voice guidance: On", "Guía por voz: Activa", "Gid vwa: Limen");
-  return `<section class="emmi-guidance-bar" aria-label="${L("EMMI voice guidance controls", "Controles de guía por voz de EMMI", "Kontwòl gid vwa EMMI")}"><div class="emmi-guidance-heading"><img src="/assets/emmi-assistant.png" alt=""><div><strong>${status}</strong><small>EMMI — ${L("here to guide you, whenever you need it", "aquí para guiarle cuando lo necesite", "la pou gide w lè ou bezwen li")}</small></div></div>${state.emmiGuidanceTranscript ? `<p class="emmi-guidance-transcript">${escapeHtml(state.emmiGuidanceTranscript)}</p>` : ""}<div class="emmi-guidance-actions"><button type="button" data-action="toggle-emmi-guidance-pause">${state.emmiVoiceGuidancePaused ? L("Resume voice", "Reanudar voz", "Rekòmanse vwa") : L("Pause voice", "Pausar voz", "Mete vwa an poz")}</button><button type="button" data-action="repeat-emmi-guidance" ${!voiceConnected && state.assistantVoiceError ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></section>`;
+  const status = state.emmiVoiceGuidancePaused ? L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz") : emmiHomeVoiceStatus();
+  return `<section class="emmi-guidance-bar" aria-label="${L("EMMI voice guidance controls", "Controles de guía por voz de EMMI", "Kontwòl gid vwa EMMI")}"><div class="emmi-guidance-heading"><img src="/assets/emmi-assistant.png" alt=""><div><strong>${status}</strong><small>${L("EMMI is here if you need help.", "EMMI está aquí si necesita ayuda.", "EMMI la si ou bezwen èd.")}</small></div></div>${state.emmiGuidanceTranscript ? `<p class="emmi-guidance-transcript">${escapeHtml(state.emmiGuidanceTranscript)}</p>` : ""}<div class="emmi-guidance-actions"><button type="button" data-action="toggle-emmi-guidance-pause">${state.emmiVoiceGuidancePaused ? L("Resume", "Reanudar", "Rekòmanse") : L("Pause", "Pausar", "Poze")}</button><button type="button" data-action="repeat-emmi-guidance" ${!voiceConnected && state.assistantVoiceError ? "disabled" : ""}>${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="help">${L("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn off", "Desactivar", "Etenn")}</button></div></section>`;
+}
+
+// While the compact control is on screen there is no reason to also float the EMMI button:
+// two EMMI affordances at once is noise, and the floating one can crowd the actions row.
+function syncFloatingEmmiVisibility() {
+  const floating = document.querySelector(".emmi-assistant");
+  if (!floating) return;
+  emmiGuidanceVisibilityObserver?.disconnect();
+  emmiGuidanceVisibilityObserver = null;
+  const bar = document.querySelector(".emmi-guidance-bar");
+  if (!bar) { floating.classList.remove("emmi-assistant-suppressed"); return; }
+  floating.classList.add("emmi-assistant-suppressed");
+  if (typeof IntersectionObserver !== "function") return;
+  emmiGuidanceVisibilityObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => floating.classList.toggle("emmi-assistant-suppressed", entry.isIntersecting));
+  }, { threshold: 0 });
+  emmiGuidanceVisibilityObserver.observe(bar);
 }
 
 function refreshVoiceGuidanceControls() {
   const current = document.querySelector(".emmi-guidance-bar");
-  if (!current) return;
-  current.outerHTML = voiceGuidancePanel();
+  if (current) { current.outerHTML = voiceGuidancePanel(); syncFloatingEmmiVisibility(); }
+  const welcome = document.querySelector(".emmi-welcome-choice");
+  if (welcome) {
+    welcome.dataset.voiceState = state.assistantVoiceState;
+    const status = welcome.querySelector("p strong");
+    if (status) status.textContent = emmiHomeVoiceStatus();
+    const repeat = welcome.querySelector('[data-action="repeat-emmi-guidance"]');
+    if (repeat) {
+      repeat.disabled = emmiGuidanceIsBusy();
+      repeat.setAttribute("aria-disabled", String(repeat.disabled));
+    }
+  }
 }
 
 function deliverEmmiGuidance(message, screen = state.screen, { connect = false } = {}) {
@@ -2485,15 +2546,16 @@ function bind() {
       const data = Object.fromEntries(new FormData(form));
       const supportPersonName = String(data.supportPersonName || "").trim();
       const supportPersonPhone = phoneDigits(data.supportPersonPhone);
-      if (!supportPersonName || supportPersonPhone.length !== 10) {
+      const supportPersonRelationship = String(data.supportPersonRelationship || "");
+      if (!supportPersonName || supportPersonPhone.length !== 10 || !supportPersonRelationship) {
         state.supportPersonName = supportPersonName;
         state.supportPersonPhone = formatPhone(supportPersonPhone);
-        state.supportPersonRelationship = data.supportPersonRelationship || "";
-        state.error = L("Enter their name and a 10-digit mobile number.", "Ingrese su nombre y un número celular de 10 dígitos.", "Antre non moun nan ak yon nimewo mobil 10 chif.");
+        state.supportPersonRelationship = supportPersonRelationship;
+        state.error = L("Enter their name, a 10-digit mobile number, and their relationship to you.", "Ingrese su nombre, un número celular de 10 dígitos y su relación con usted.", "Antre non moun nan, yon nimewo mobil 10 chif, ak relasyon li avèk ou.");
         render(); return;
       }
-      const invite = growthStore.createSupportInvite({ inviterPatientId: state.offer.patient.id, patientFirstName: patientFirstName(), supportPersonName, phone: supportPersonPhone, relationship: data.supportPersonRelationship || "", sessionId: state.sessionId, origin: location.origin });
-      Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: "INVITED", supportPersonName, supportPersonPhone: formatPhone(supportPersonPhone), supportPersonRelationship: data.supportPersonRelationship || "", supportInviteId: invite.inviteId, supportInviteToken: invite.token, supportInviteStatus: invite.status, supportInviteSentAt: invite.sentAt, screen: "CARE_CIRCLE_INVITE_SENT", error: "" });
+      const invite = growthStore.createSupportInvite({ inviterPatientId: state.offer.patient.id, patientFirstName: patientFirstName(), supportPersonName, phone: supportPersonPhone, relationship: supportPersonRelationship, sessionId: state.sessionId, origin: location.origin });
+      Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: "INVITED", supportPersonName, supportPersonPhone: formatPhone(supportPersonPhone), supportPersonRelationship, supportInviteId: invite.inviteId, supportInviteToken: invite.token, supportInviteStatus: invite.status, supportInviteSentAt: invite.sentAt, screen: "CARE_CIRCLE_INVITE_SENT", error: "" });
       audit(state, "care_circle_invitation_sent", "success", { inviteId: invite.inviteId, relationship: invite.supportPerson.relationship, supportRole: invite.supportRole, completionRole: state.completionRole });
       if (state.identityVerified) draftStore.save(state);
       render();
@@ -2536,6 +2598,8 @@ function bind() {
       state.emmiVoiceGuidancePaused = false;
       state.emmiWelcomeAcknowledged = true;
       state.assistantVoiceMuted = false;
+      state.assistantVoiceState = "CONNECTING";
+      state.assistantVoiceError = "";
       state.emmiLastGuidanceScreen = "";
       persistEmmiPreferences();
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
@@ -2565,6 +2629,7 @@ function bind() {
       return;
     }
     if (action === "repeat-emmi-guidance") {
+      if (emmiGuidanceIsBusy()) return;
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || state.emmiGuidanceTranscript);
       if (!state.emmiVoiceGuidance) { state.emmiVoiceGuidance = true; state.emmiWelcomeAcknowledged = true; persistEmmiPreferences(); }
       state.emmiVoiceGuidancePaused = false;
@@ -2906,6 +2971,13 @@ function bind() {
     audit(state, "access_full_disclosure_viewed", "success", state.accessDisclosureView);
     draftStore.save(state);
   });
+  const choiceForm = state.screen === "DECISION_MAKER" ? document.querySelector("#choice-form") : null;
+  choiceForm?.addEventListener("change", event => {
+    state.completionRole = event.target.value || state.completionRole;
+    const optionalSupport = document.querySelector("[data-optional-support]");
+    if (optionalSupport) optionalSupport.hidden = !completionRoleAcceptsCareCircle();
+  });
+  syncFloatingEmmiVisibility();
   bindEmmiDrag();
 }
 
