@@ -83,7 +83,7 @@ describe("enrollment state machine", () => {
 
   it("marks ACCESS enrollment confirmation as a completed transition before care activation", () => {
     const confirmation = progressFor(stateFor("access-happy", { screen: "ENROLLMENT_CONFIRMED" }));
-    expect(confirmation).toMatchObject({ label: "Getting started", current: 1, total: 1, percent: 100 });
+    expect(confirmation).toMatchObject({ label: "Enrollment complete", current: 1, total: 1, percent: 100 });
     expect(progressFor(stateFor("access-happy", { screen: "ACCESS_BASELINE" })).percent).toBeLessThan(100);
   });
 

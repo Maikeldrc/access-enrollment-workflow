@@ -44,6 +44,7 @@ describe("EMMI prototype tools", () => {
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 165, diastolic: 101, symptoms: "none" })).severity).toBe("CARE_TEAM_REVIEW");
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 181, diastolic: 121, symptoms: "none" })).severity).toBe("EMERGENCY");
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "chest pain" })).instruction).toBe("CALL_911");
+    expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "I passed out after taking it" })).instruction).toBe("CALL_911");
   });
 
   it("exposes no tool that can consent, attest authority, enroll, or change eligibility", () => {

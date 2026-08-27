@@ -159,10 +159,20 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       deviceUncertaintyStep: Boolean(state.deviceUncertaintyStep)
     });
     Object.assign(safe, {
+      healthInformationStepStatus: state.healthInformationStepStatus,
       healthInformationReviewStatus: state.healthInformationReviewStatus,
       healthInformationReviewResult: state.healthInformationReviewResult,
+      healthInformationReviewedAt: state.healthInformationReviewedAt,
+      healthInformationReviewedBy: state.healthInformationReviewedBy,
+      healthInformationReviewSource: state.healthInformationReviewSource,
+      healthInformationFlowStep: state.healthInformationFlowStep,
+      healthInformationUpdateDraft: state.healthInformationUpdateDraft ? { id: state.healthInformationUpdateDraft.id || "", updateType: state.healthInformationUpdateDraft.updateType || "", relatedConditionIds: [...(state.healthInformationUpdateDraft.relatedConditionIds || [])], patientReportedText: state.healthInformationUpdateDraft.patientReportedText || "" } : null,
+      patientReportedHealthUpdates: (state.patientReportedHealthUpdates || []).map(({ id, patientId, relatedConditionIds, updateType, patientReportedText, patientReportedStatus, source, createdAt, updatedAt, status, careTeamTaskId }) => ({ id, patientId, relatedConditionIds: [...(relatedConditionIds || [])], updateType, patientReportedText, patientReportedStatus, source, createdAt, updatedAt, status, careTeamTaskId })),
       medicationsReviewStatus: state.medicationsReviewStatus,
       careMedications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
+      medicationReviews: Object.fromEntries(Object.entries(state.medicationReviews || {}).map(([id, review]) => [id, { medicationId: review.medicationId, sourceMedicationSnapshot: review.sourceMedicationSnapshot, reviewStatus: review.reviewStatus, patientReportedDose: review.patientReportedDose || "", patientReportedFrequency: review.patientReportedFrequency || "", patientNotes: review.patientNotes || "", reviewedAt: review.reviewedAt, source: review.source, actorContext: review.actorContext }])),
+      additionalMedications: (state.additionalMedications || []).map(({ id, medicationName, dose, frequency, frequencyLabel, source, createdAt }) => ({ id, medicationName, dose, frequency, frequencyLabel, source, createdAt })),
+      additionalMedicationsStatus: state.additionalMedicationsStatus,
       carePreferencesStatus: state.carePreferencesStatus,
       preferredContactMethod: state.preferredContactMethod,
       preferredCareLanguage: state.preferredCareLanguage,
@@ -174,9 +184,11 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
     Object.assign(safe, {
       supportRole: state.supportRole,
       careCircleStatus: state.careCircleStatus,
+      careCircleContext: state.careCircleContext,
       supportPersonName: state.supportPersonName,
       supportPersonPhone: state.supportPersonPhone,
       supportPersonRelationship: state.supportPersonRelationship,
+      supportPersonRelationshipOther: state.supportPersonRelationshipOther,
       supportInviteId: state.supportInviteId,
       supportInviteToken: state.supportInviteToken,
       supportInviteStatus: state.supportInviteStatus,
