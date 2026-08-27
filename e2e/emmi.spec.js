@@ -61,7 +61,7 @@ test("EMMI offers safe voice fallbacks and localized Kreyòl text", async ({ pag
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
   dialog = await page.getByRole("button", { name: "Mande Emmi, asistan swen" }).click().then(() => page.getByRole("dialog"));
   await dialog.getByRole("button", { name: "Pale ak EMMI" }).click();
-  await expect(dialog.getByText(/Asistans vwa pa disponib nan lang sa a/i)).toBeVisible();
+  await expect(dialog.getByText(/Gid vwa poko disponib nan lang sa a/i)).toBeVisible();
   await expect(dialog.getByPlaceholder("Poze yon kesyon…")).toBeEnabled();
 });
 

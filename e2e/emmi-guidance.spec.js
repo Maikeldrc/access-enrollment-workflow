@@ -27,7 +27,9 @@ test("introduces EMMI compactly with voice off by default and preserves opt-out"
 });
 
 test("Guide me with voice starts the welcome session without a second click", async ({ page }) => {
-  await page.context().grantPermissions(["microphone"], { origin: "http://127.0.0.1:4174" });
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [] }) } });
+  });
   let tokenRequests = 0;
   await page.route("**/api/emmi/live-token", async route => {
     tokenRequests += 1;
@@ -37,8 +39,66 @@ test("Guide me with voice starts the welcome session without a second click", as
   await expect.poll(() => tokenRequests).toBe(1);
   await expect(page.getByRole("button", { name: /Repeat welcome/i })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("itera.emmi.preferences.v1"))?.emmiVoiceGuidance)).toBe(true);
+  // A connect that failed must never report itself as active, or the patient waits for audio
+  // that is not coming and assumes "Repeat welcome" is what starts it.
+  await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".emmi-welcome-choice")).toContainText("Voice guidance is unavailable");
   await page.getByRole("button", { name: /Turn voice off/i }).click();
   await expect(page.getByRole("button", { name: /Guide me with voice/i })).toBeVisible();
+});
+
+test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+
+  const transcript = page.locator(".emmi-guidance-transcript");
+  await expect(transcript).toContainText("Choose who is completing this process.");
+
+  // Switching language must move the whole EMMI experience, not just the surrounding UI.
+  await page.locator('[data-action="language"]').first().click();
+  await expect(page.locator(".emmi-guidance-bar")).toContainText("La guía por voz está activa");
+  await expect(transcript).toContainText("Elija quién está completando este proceso.");
+  await expect(transcript).not.toContainText("Choose who is completing");
+
+  // KR is Haitian Creole in this product, never Korean.
+  await page.locator('[data-action="language"]').first().click();
+  await expect(transcript).toContainText("Chwazi ki moun k ap ranpli pwosesis sa a.");
+  await expect(transcript).not.toContainText(/[가-힯]/);
+
+  // Ask EMMI opens in the active language too.
+  await page.locator('.emmi-guidance-bar [data-action="help"]').click();
+  const assistant = page.locator(".assistant-layer");
+  await expect(assistant).toContainText("Bonjou, mwen se EMMI. Kijan mwen ka ede?");
+  await expect(assistant).toContainText("Mande m nenpòt bagay sou enskripsyon oswa swen ou.");
+  await expect(assistant).not.toContainText("Ask me anything");
+});
+
+test("voice activation and its controls stay in the language the patient selected", async ({ page }) => {
+  await page.context().grantPermissions(["microphone"], { origin: "http://127.0.0.1:4174" });
+  let tokenRequests = 0;
+  await page.route("**/api/emmi/live-token", route => {
+    tokenRequests += 1;
+    return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "connection_failed" }) });
+  });
+
+  await page.locator('[data-action="language"]').first().click();
+  await page.getByRole("button", { name: "Guíeme con voz" }).click();
+  await expect.poll(() => tokenRequests).toBe(1);
+  const card = page.locator(".emmi-welcome-choice");
+  await expect(card).toContainText("La guía por voz no está disponible");
+  await expect(card).toContainText("Tengo problemas para conectarme.");
+  await expect(card).not.toContainText("Voice guidance");
+  await expect(page.getByRole("button", { name: "Repetir bienvenida" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Desactivar voz" })).toBeVisible();
+
+  // Kreyòl has no live voice, so EMMI says so in Kreyòl instead of switching to English.
+  await page.getByRole("button", { name: "Desactivar voz" }).click();
+  await page.locator('[data-action="language"]').first().click();
+  await page.getByRole("button", { name: "Gide m ak vwa" }).click();
+  await expect(card).toContainText("Gid vwa poko disponib nan lang sa a.");
+  await expect(card).not.toContainText(/[가-힯]/);
+  expect(tokenRequests).toBe(1);
 });
 
 test("shows persistent, accessible guidance controls after opt-in", async ({ page }) => {
@@ -73,7 +133,7 @@ test("Care Circle stays optional support and is scoped to patients completing fo
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await expect(optionalSupport).toBeVisible();
   await expect(optionalSupport).toContainText("Optional support");
-  await expect(optionalSupport).toContainText("Invite someone you trust to help with this process.");
+  await expect(optionalSupport).toContainText("Invite someone you trust to help you through this process.");
   await expect(optionalSupport).not.toContainText("Not now");
   await expect(optionalSupport.locator("input[type='radio']")).toHaveCount(0);
 
@@ -88,7 +148,8 @@ test("Care Circle stays optional support and is scoped to patients completing fo
   // Continue is driven only by the completion role; the invitation is never a prerequisite.
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
 
-  // The floating EMMI must never sit on top of the action row.
+  // The floating EMMI must never sit on top of the action row once the patient reaches it.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const overlap = await page.evaluate(() => {
     const emmi = document.querySelector(".emmi-assistant").getBoundingClientRect();
     return [...document.querySelectorAll(".actions .button")].some(button => {

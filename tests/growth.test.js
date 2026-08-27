@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GROWTH_PROMPT_COOLDOWN_MS, GrowthStore, growthPromptAvailable } from "../src/growth.js";
+import { GROWTH_PROMPT_COOLDOWN_MS, RESEND_COOLDOWN_MS, GrowthStore, growthPromptAvailable } from "../src/growth.js";
 
 const memoryStorage = () => {
   const values = new Map();
@@ -10,14 +10,34 @@ describe("Care Circle prototype storage", () => {
   it("creates a scoped temporary link without patient identifiers and preserves the patient decision role", () => {
     const store = new GrowthStore(memoryStorage());
     const invite = store.createSupportInvite({ inviterPatientId: "DEMO-P001", patientFirstName: "Robert", supportPersonName: "Angela Demo", phone: "305-555-0199", relationship: "Child", sessionId: "session-demo", origin: "https://example.test" });
-    expect(invite.status).toBe("SENT");
+    expect(invite.status).toBe("PENDING");
     expect(invite.supportRole).toBe("CARE_CIRCLE_MEMBER");
     expect(invite.completionRole).toBe("PATIENT");
     expect(invite.temporarySupportLink).not.toContain("DEMO-P001");
     expect(invite.temporarySupportLink).not.toContain("Robert");
+    expect(invite.temporarySupportLink).toContain("/care-circle/invite/");
+    expect(invite.permissionScope).toBe("CARE_CIRCLE_BASIC_SUPPORT");
     expect(store.acceptSupportInvite(invite.token).status).toBe("ACCEPTED");
-    expect(store.revokeSupportInvite(invite.inviteId).status).toBe("REVOKED");
-    expect(store.acceptSupportInvite(invite.token).status).toBe("REVOKED");
+    expect(store.revokeSupportInvite(invite.inviteId).status).toBe("CANCELED");
+    expect(store.acceptSupportInvite(invite.token).status).toBe("CANCELED");
+  });
+
+  it("guards resends and supports removal without changing the invitation scope", () => {
+    const store = new GrowthStore(memoryStorage());
+    const invite = store.createSupportInvite({ inviterPatientId: "DEMO-P001", supportPersonName: "Angela", phone: "3055550199", context: "ONGOING_CARE", origin: "https://example.test" });
+    expect(store.resendSupportInvite(invite.inviteId).status).toBe("COOLDOWN");
+    const resent = store.resendSupportInvite(invite.inviteId, Date.now() + RESEND_COOLDOWN_MS + 1);
+    expect(resent.status).toBe("PENDING");
+    expect(resent.sendCount).toBe(2);
+    expect(store.removeCareCircleMember(invite.inviteId).status).toBe("CANCELED");
+  });
+
+  it("resolves expired invitations without exposing a new state to the patient", () => {
+    const store = new GrowthStore(memoryStorage());
+    const invite = store.createSupportInvite({ inviterPatientId: "DEMO-P001", supportPersonName: "Angela", phone: "3055550199", origin: "https://example.test" });
+    store.updateSupportInvite(invite.inviteId, { expiresAt: new Date(Date.now() - 1000).toISOString() });
+    expect(store.findSupportInvite(invite.token).status).toBe("EXPIRED");
+    expect(store.acceptSupportInvite(invite.token).status).toBe("EXPIRED");
   });
 });
 

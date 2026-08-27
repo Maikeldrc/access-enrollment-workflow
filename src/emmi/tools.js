@@ -85,7 +85,7 @@ export class EmmiToolOrchestrator {
     } else if (name === "saveEnrollmentProgress") { result = { success: true, patientId, currentScreen: context.currentScreen, protectedFieldsUnchanged: ["consent", "eligibility", "enrollmentStatus"] }; this.onProgress(result); }
     else if (name === "evaluateClinicalEscalation") {
       const symptoms = String(args.symptoms || "").toLowerCase();
-      const emergencySymptoms = /(chest pain|can.?t breathe|difficulty breathing|stroke|severe bleeding|very bad|dolor de pecho|no puedo respirar|muy mal|doulè nan pwatrin|pa ka respire)/i.test(symptoms);
+      const emergencySymptoms = /(chest pain|can.?t breathe|difficulty breathing|stroke|severe bleeding|very bad|pass(?:ed)? out|faint(?:ed|ing)?|dolor de pecho|no puedo respirar|muy mal|me desmay|desmayo|doulè nan pwatrin|pa ka respire|endispoze|pèdi konesans)/i.test(symptoms);
       if (emergencySymptoms || Number(args.systolic) >= 180 || Number(args.diastolic) >= 120) result = { severity: "EMERGENCY", instruction: "CALL_911", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
       else if (Number(args.systolic) >= 160 || Number(args.diastolic) >= 100) result = { severity: "CARE_TEAM_REVIEW", instruction: "CREATE_HIGH_PRIORITY_TASK", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
       else result = { severity: "NORMAL", instruction: "CONTINUE", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };

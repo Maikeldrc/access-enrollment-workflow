@@ -290,10 +290,10 @@ test("progress header uses contextual stages without exposing step counts", asyn
   for (const [screen, stage] of checks) {
     await page.locator("#screen-select").selectOption(screen, { force: true });
     const meta = page.locator(".progress-meta");
-    await expect(meta.locator("span").first()).toHaveText(screen === "ACCESS_BASELINE" ? "Your care" : "Enrollment");
-    await expect(meta.locator("span").last()).toHaveText(stage);
+    await expect(meta.locator("span")).toHaveCount(1);
+    await expect(meta.locator("span")).toHaveText(stage);
     await expect(meta).not.toContainText(/step|\d+\s*(?:of|\/)\s*\d+/i);
-    const progress = page.getByRole("progressbar", { name: screen === "ACCESS_BASELINE" ? "Your care progress" : "Enrollment progress" });
+    const progress = page.getByRole("progressbar", { name: "Journey progress" });
     await expect(progress).toHaveAttribute("aria-valuemax", "100");
     await expect(progress).toHaveAttribute("aria-valuetext", stage);
   }
@@ -304,11 +304,11 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
 
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment complete");
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
-  await expect(page.getByRole("progressbar", { name: "Enrollment progress" })).toHaveAttribute("aria-valuenow", "100");
+  await expect(page.locator(".progress-meta span")).toHaveCount(1);
+  await expect(page.locator(".progress-meta span")).toHaveText("Enrollment complete");
+  await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
   await expect(page.getByRole("heading", { name: "Welcome to your ACCESS experience" })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH coordinates this care with Dr. Fresner.", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA HEALTH works with Dr. Fresner to help keep your care coordinated.", { exact: true })).toBeVisible();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
   await expect(page.getByText("Your care team will call you within 2 business days", { exact: true })).toBeVisible();
   await expect(page.getByText("We’ll review your personalized care plan", { exact: true })).toBeVisible();
@@ -324,19 +324,40 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await expect(details).toContainText("Signing role: Patient");
   await expect(details).toContainText("Applicable disclosures: Version 2.1");
 
-  await page.getByRole("button", { name: "Start health check" }).click();
+  await page.getByRole("button", { name: "Start my health check" }).click();
   await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
+  await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
-  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "NOT_STARTED", screen: "ACCESS_BASELINE" });
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "IN_PROGRESS", screen: "ACCESS_BASELINE", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } } });
+});
+
+test("CCM can defer Getting Started without reopening enrollment and resume from My Care", async ({ page }) => {
+  await page.goto("/?scenario=ccm-happy");
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await expect(page.getByRole("heading", { name: "Ready to set up your care?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Set up my care" })).toBeVisible();
+  await page.getByRole("button", { name: "I’ll do this later" }).click();
+  await expect(page.getByRole("heading", { name: "No problem — you can continue later." })).toBeVisible();
+  let lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "NOT_STARTED", flowProgress: { GETTING_STARTED: { status: "DEFERRED", resumeRoute: "ONBOARDING" } } });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "No problem — you can continue later." })).toBeVisible();
+  await page.getByRole("button", { name: "Go to My Care" }).click();
+  await expect(page.getByRole("heading", { name: "My Care" })).toBeVisible();
+  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await page.getByRole("button", { name: "Continue setting up your care" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ONBOARDING" } } });
+  expect(lifecycle.audit.some(event => event.eventType === "next_flow_deferred")).toBe(true);
+  expect(lifecycle.audit.some(event => event.eventType === "next_flow_resumed")).toBe(true);
 });
 
 test("ACCESS enrollment confirmation does not invent physician involvement for direct outreach", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
-  await expect(page.getByText("ITERA HEALTH helps coordinate this care with your existing doctors.", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("Dr. Fresner");
 });
 
@@ -357,14 +378,14 @@ test("ACCESS enrollment confirmation copy is localized in Spanish and Kreyòl", 
 
 test("shared enrollment welcome adapts to every program and enrollment source", async ({ page }) => {
   const programs = [
-    ["ACCESS", "ACCESS", "Start health check", "ACCESS_BASELINE"],
-    ["CCM", "CCM", "Get started", "ONBOARDING"],
-    ["RPM", "RPM", "Set up monitoring", "RPM_DEVICE_PATH"],
-    ["CCM + RPM", "CCM_RPM", "Get started", "RPM_DEVICE_PATH"],
-    ["PCM", "PCM", "Get started", "ONBOARDING"],
-    ["PCM + RPM", "PCM_RPM", "Get started", "RPM_DEVICE_PATH"],
-    ["ASM", "ASM", "Go to my care", "ONBOARDING"],
-    ["APCM", "APCM", "Go to my care", "ONBOARDING"]
+    ["ACCESS", "ACCESS", "Start my health check", "ACCESS_BASELINE"],
+    ["CCM", "CCM", "Set up my care", "ONBOARDING"],
+    ["RPM", "RPM", "Set up my monitor", "RPM_DEVICE_PATH"],
+    ["CCM + RPM", "CCM_RPM", "Continue getting started", "RPM_DEVICE_PATH"],
+    ["PCM", "PCM", "Continue getting started", "ONBOARDING"],
+    ["PCM + RPM", "PCM_RPM", "Continue getting started", "RPM_DEVICE_PATH"],
+    ["ASM", "ASM", "Continue getting started", "ONBOARDING"],
+    ["APCM", "APCM", "Continue getting started", "ONBOARDING"]
   ];
   for (const [radioLabel, program, ctaLabel, nextRoute] of programs) {
     for (const referral of [false, true]) {
@@ -378,18 +399,75 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
       const welcome = page.locator(`.enrollment-welcome-screen[data-program="${program}"]`);
       await expect(welcome).toHaveAttribute("data-next-route", nextRoute);
       await expect(welcome.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
+      await expect(welcome.locator(".enrollment-welcome-highlight")).toHaveCount(2);
       await expect(welcome.locator(".next-card .info-row")).toHaveCount(3);
       await expect(welcome.getByRole("button", { name: ctaLabel })).toBeVisible();
       await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment complete");
-      await expect(page.getByRole("progressbar", { name: "Enrollment progress" })).toHaveAttribute("aria-valuenow", "100");
-      if (referral) await expect(welcome.getByText(/coordinates this care with Dr\. Fresner\./)).toBeVisible();
+      await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
+      if (referral) await expect(welcome.getByText(/works with Dr\. Fresner to help keep your care coordinated\./)).toBeVisible();
       else {
-        await expect(welcome.getByText("ITERA HEALTH helps coordinate this care with your existing doctors.", { exact: true })).toBeVisible();
         await expect(welcome).not.toContainText("Dr. Fresner");
+        if (["ACCESS", "CCM"].includes(program)) await expect(welcome.getByText("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", { exact: true })).toBeVisible();
       }
       await welcome.locator(".enrollment-consent-details summary").click();
       await expect(welcome.locator(".enrollment-consent-details")).toContainText("Program:");
+
+      // Enrollment is done; the next care step must come before any optional support, and the
+      // growth ask has no place on this screen.
+      await expect(welcome).not.toContainText("Share ACCESS");
+      await expect(welcome).not.toContainText("Not now");
+      await expect(welcome.locator("[data-share-access-moment]")).toHaveCount(0);
+      const careCircle = welcome.locator("[data-care-circle-support]");
+      await expect(careCircle).toHaveCount(1);
+      await expect(careCircle).toContainText("Optional support");
+      await expect(careCircle).toContainText("Want someone you trust to help with your care?");
+      await expect(careCircle).toContainText("Add someone to my Care Circle");
+      const ctaBottom = await welcome.getByRole("button", { name: ctaLabel }).evaluate(node => node.getBoundingClientRect().bottom);
+      const careCircleTop = await careCircle.evaluate(node => node.getBoundingClientRect().top);
+      expect(careCircleTop).toBeGreaterThan(ctaBottom);
+      // Programs without a device must not be told a Care Circle member helps with one.
+      if (["CCM", "PCM", "ASM", "APCM"].includes(program)) await expect(careCircle).not.toContainText(/monitor|device/i);
     }
+  }
+});
+
+test("CCM enrollment welcome uses one primary message and two compact support highlights", async ({ page }) => {
+  await page.goto("/?scenario=ccm-happy");
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  const welcome = page.locator('.enrollment-welcome-screen[data-program="CCM"]');
+  await expect(welcome.getByRole("heading", { name: "Welcome to your Chronic Care Management experience" })).toBeVisible();
+  await expect(welcome.locator(":scope > .lead")).toHaveText("You now have ongoing support to help manage your health between doctor visits.");
+  const highlights = welcome.locator(".enrollment-welcome-highlight");
+  await expect(highlights).toHaveCount(2);
+  await expect(highlights.nth(0)).toContainText("Step-by-step support");
+  await expect(highlights.nth(0)).toContainText("We’ll guide you as you get started.");
+  await expect(highlights.nth(1)).toContainText("Connected with your doctor");
+  await expect(highlights.nth(1)).toContainText("ITERA HEALTH works with Dr. Fresner");
+  await expect(welcome.locator(".enrollment-welcome-reassurance, .enrollment-welcome-context")).toHaveCount(0);
+  await expect(welcome.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
+});
+
+test("enrollment welcome highlights align without clipping on supported mobile widths", async ({ page }) => {
+  for (const width of [360, 375, 390, 393, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/?scenario=ccm-happy");
+    await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+    const layout = await page.locator(".enrollment-welcome-screen").evaluate(root => {
+      const highlights = root.querySelector(".enrollment-welcome-highlights").getBoundingClientRect();
+      const next = root.querySelector(".next-card").getBoundingClientRect();
+      const transition = root.querySelector(".flow-completion-transition").getBoundingClientRect();
+      const transitionButtons = [...root.querySelectorAll(".flow-transition-actions .button")];
+      const clipped = [...root.querySelectorAll(".enrollment-welcome-highlight strong, .enrollment-welcome-highlight p")].some(element => element.scrollWidth > element.clientWidth || element.scrollHeight > element.clientHeight);
+      return {
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        fullWidth: Math.abs(highlights.width - next.width) < 1,
+        aligned: Math.abs(highlights.left - next.left) < 1,
+        clipped,
+        transitionFits: transition.left >= 0 && transition.right <= innerWidth,
+        transitionButtonsFit: transitionButtons.every(button => button.scrollWidth <= button.clientWidth && button.getBoundingClientRect().height >= 48)
+      };
+    });
+    expect(layout).toEqual({ overflow: false, fullWidth: true, aligned: true, clipped: false, transitionFits: true, transitionButtonsFit: true });
   }
 });
 
@@ -405,8 +483,7 @@ test("ACCESS first health check is post-enrollment, deferrable, resumable, and i
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_BASELINE", { force: true });
 
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Getting started");
+  await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
   await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
   await expect(page.getByText("This helps your ACCESS care team understand your starting point and personalize your care.", { exact: true })).toBeVisible();
   await expect(page.getByText("Questions about your health", { exact: true })).toBeVisible();
@@ -457,7 +534,7 @@ test("ACCESS first health check is post-enrollment, deferrable, resumable, and i
 test("ACCESS blood pressure starting point uses a verified-device workflow and no manual BP entry", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
   await expect(page.locator(".eyebrow")).toHaveText("Blood pressure health check");
   await expect(page.getByRole("heading", { name: "Your blood pressure starting point" })).toBeVisible();
   await expect(page.getByText("This helps your care team understand your blood pressure today and personalize your care.", { exact: true })).toBeVisible();
@@ -472,7 +549,7 @@ test("ACCESS blood pressure baseline copy is complete in Spanish and Kreyòl", a
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Su cuidado");
+  await expect(page.locator(".progress-meta span")).toHaveText("Primeros pasos");
   await expect(page.locator(".eyebrow")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Su presión arterial inicial" })).toBeVisible();
   await expect(page.getByText("Esto ayuda a su equipo de atención a conocer su presión arterial actual y personalizar su cuidado.", { exact: true })).toBeVisible();
@@ -483,7 +560,7 @@ test("ACCESS blood pressure baseline copy is complete in Spanish and Kreyòl", a
   await expect(page.getByText("ITERA puede ayudarle a obtener uno.", { exact: true })).toBeVisible();
   await expect(page.getByText("Su información de salud está protegida", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Swen ou");
+  await expect(page.locator(".progress-meta span")).toHaveText("Kòmanse");
   await expect(page.locator(".eyebrow")).toHaveText("Tchekòp tansyon");
   await expect(page.getByRole("heading", { name: "Pwen depa tansyon ou" })).toBeVisible();
   await expect(page.getByText("Mwen bezwen yon aparèy pou mezire tansyon", { exact: true })).toBeVisible();
@@ -511,7 +588,7 @@ test("ACCESS device-needed branch keeps enrollment complete and BP pending witho
   expect(lifecycle.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["bp_device_information_saved", "bp_device_fulfillment_requested"]));
   await page.getByRole("button", { name: "Continue my health check" }).click();
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Your care");
+  await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
 });
 
 test("ACCESS cuff selection keeps exact arm measurement optional and auto-matches configured inventory", async ({ page }) => {
@@ -931,8 +1008,8 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
 
-  await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment");
-  await expect(page.locator(".progress-meta span").last()).toHaveText("Consent");
+  await expect(page.locator(".progress-meta span")).toHaveCount(1);
+  await expect(page.locator(".progress-meta span")).toHaveText("Consent");
   await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await expect(page.locator("#screen-select option[value='DISCLOSURE']")).toHaveCount(0);
@@ -1319,6 +1396,7 @@ test("personal representative screens remain senior-friendly and clear of Emmi",
   await page.goto("/?scenario=access-representative");
   for (const screenName of ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION"]) {
     await page.locator("#screen-select").selectOption(screenName, { force: true });
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const layout = await page.locator(".representative-details-screen").evaluate(screen => {
       const assistant = document.querySelector(".emmi-assistant").getBoundingClientRect();
       const protectedElements = [...screen.querySelectorAll(".field,.verified-phone-status,.check-row,.actions,.representative-otp-links")];
@@ -1360,9 +1438,10 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await expect(page.locator(".progress-meta span").last()).toHaveText("Your care");
   const assistant = page.locator(".emmi-assistant");
   await expect(assistant).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator(".recommendation-screen").evaluate(screen => {
     const assistantRect = document.querySelector(".emmi-assistant").getBoundingClientRect();
-    const important = [...screen.querySelectorAll(".info-row strong,.info-row p,.note>span,.actions")].map(element => element.getBoundingClientRect());
+    const important = [...screen.querySelectorAll(".actions .button")].map(element => element.getBoundingClientRect());
     const overlaps = important.some(rect => !(assistantRect.right <= rect.left || assistantRect.left >= rect.right || assistantRect.bottom <= rect.top || assistantRect.top >= rect.bottom));
     return {
       overlaps,
@@ -1408,9 +1487,10 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await expect(page.locator(".recommendation-screen")).not.toContainText("I have questions");
 
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator(".recommendation-screen").evaluate(screen => {
     const assistant = document.querySelector(".emmi-assistant").getBoundingClientRect();
-    const protectedElements = [...screen.querySelectorAll(".info-row strong,.info-row p,.note>span,.actions,.contextual-assurance")];
+    const protectedElements = [...screen.querySelectorAll(".actions .button")];
     const overlaps = protectedElements.some(element => {
       const rect = element.getBoundingClientRect();
       return !(assistant.right <= rect.left || assistant.left >= rect.right || assistant.bottom <= rect.top || assistant.top >= rect.bottom);
@@ -1898,9 +1978,10 @@ test("ACCESS does not confirm enrollment at eligibility", async ({ page }) => {
   await expect(page.locator("#screen-content")).not.toContainText(/coverage is approved|Medicare approved your care|you’re enrolled|enrollment is confirmed/i);
   const assistant = page.locator(".emmi-assistant");
   await expect(assistant).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator("#screen-content").evaluate(screen => {
     const bot = document.querySelector(".emmi-assistant").getBoundingClientRect();
-    const protectedElements = [...screen.querySelectorAll(".next-card strong,.next-card .icon,.actions,.contextual-assurance")];
+    const protectedElements = [...screen.querySelectorAll(".actions .button")];
     return {
       overlaps: protectedElements.filter(element => {
         const rect = element.getBoundingClientRect();
@@ -2102,7 +2183,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await acknowledgement.check();
   await page.evaluate(() => window.scrollTo(0, 120));
   const scrollBefore = await page.evaluate(() => window.scrollY);
-  const progressBefore = await page.getByRole("progressbar", { name: "Enrollment progress" }).getAttribute("aria-valuenow");
+  const progressBefore = await page.getByRole("progressbar", { name: "Journey progress" }).getAttribute("aria-valuenow");
 
   await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
   const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
@@ -2160,7 +2241,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect(dialog).toHaveCount(0);
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
   await expect(acknowledgement).toBeChecked();
-  await expect(page.getByRole("progressbar", { name: "Enrollment progress" })).toHaveAttribute("aria-valuenow", progressBefore);
+  await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", progressBefore);
   await expect(page.getByRole("button", { name: "Ask Emmi, Care Assistant" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
@@ -2252,6 +2333,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     await expect(footer).toHaveCount(1);
     await expect(footer).toHaveAttribute("data-assurance-type", type);
     await expect(footer).toContainText(message);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const audit = await page.locator("#screen-content").evaluate(screenContent => {
       const assurance = screenContent.querySelector(".contextual-assurance");
       const actionArea = screenContent.querySelector(".actions") || [...screenContent.querySelectorAll(".button")].at(-1);
@@ -2495,7 +2577,7 @@ test("all traditional programs complete their implemented patient journey", asyn
 
     const includesRpm = program.includes("RPM");
     if (includesRpm) {
-      await page.getByRole("button", { name: program === "RPM" ? "Set up monitoring" : "Get started" }).click();
+      await page.getByRole("button", { name: program === "RPM" ? "Set up my monitor" : "Continue getting started" }).click();
       await expect(page.getByRole("heading", { name: "Let’s prepare your home monitor" })).toBeVisible();
       await page.getByRole("radio", { name: /I already have a monitor/ }).check();
       await page.getByRole("button", { name: "Continue" }).click();
@@ -2503,7 +2585,8 @@ test("all traditional programs complete their implemented patient journey", asyn
       await page.getByRole("button", { name: "I took my reading" }).click();
       await expect(page.getByRole("heading", { name: "Home monitoring is ready" })).toBeVisible({ timeout: 5000 });
     } else {
-      await page.getByRole("button", { name: ["ASM", "APCM"].includes(program) ? "Go to my care" : "Get started" }).click();
+      // The post-enrollment CTA comes from resolveNextBestAction, so it differs per program.
+      await page.getByRole("button", { name: program === "CCM" ? "Set up my care" : "Continue getting started" }).click();
       await page.getByRole("button", { name: "Save and continue" }).click();
       const completion = page.getByRole("heading", { name: "You’re off to a great start" });
       // The care-setup modules vary by program, so advance until the completion screen appears.
@@ -2593,6 +2676,73 @@ test("core mobile screens tolerate 125 and 150 percent content scaling", async (
       }));
       expect(audit.overflow, `${screen} overflows at ${scale * 100}%`).toBe(false);
       expect(audit.clipped, `${screen} clips content at ${scale * 100}%`).toBe(false);
+    }
+  }
+});
+
+test("patient screens share one page gutter and one content column", async ({ page }) => {
+  const viewports = [
+    { width: 360, height: 800, gutter: [11, 13] },
+    { width: 375, height: 812, gutter: [14, 16] },
+    { width: 390, height: 844, gutter: [14, 17] },
+    { width: 393, height: 852, gutter: [14, 17] },
+    { width: 412, height: 915, gutter: [15, 17] },
+    { width: 430, height: 932, gutter: [15, 17] }
+  ];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ONBOARDING_COMPLETE"];
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto("/?scenario=access-happy");
+    for (const screen of screens) {
+      await page.locator("#screen-select").selectOption(screen, { force: true });
+      const layout = await page.evaluate(() => {
+        // Some screens wrap their content in a single structural div; measure inside it.
+        const root = document.querySelector("#screen-content > .enrollment-welcome-screen") || document.querySelector("#screen-content");
+        // Full-width members of the page column. Centred art and inline text links are excluded:
+        // they are deliberately not part of the column.
+        const columns = [...root.querySelectorAll(":scope > .next-card, :scope > .disclosure-card, :scope > .consent-summary, :scope > .choice-list, :scope > .button.primary, :scope > .actions, :scope > .card-list, :scope > .emmi-welcome, :scope > .invitation-benefits, :scope > .invitation-stage, :scope > .optional-support, :scope > .access-precheck-list, :scope > form, :scope > h1")];
+        const rects = columns.map(node => node.getBoundingClientRect()).filter(rect => rect.width > 60);
+        const lefts = rects.map(rect => rect.left);
+        const rights = rects.map(rect => rect.right);
+        return {
+          measured: rects.length,
+          left: Math.min(...lefts),
+          leftSpread: Math.max(...lefts) - Math.min(...lefts),
+          rightSpread: Math.max(...rights) - Math.min(...rights),
+          rightGutter: innerWidth - Math.max(...rights),
+          overflow: document.documentElement.scrollWidth > innerWidth
+        };
+      });
+      expect(layout.measured, `${screen} @${viewport.width}`).toBeGreaterThan(0);
+      expect(layout.overflow, `${screen} @${viewport.width} overflow`).toBe(false);
+      // Every column member starts and ends on the same coordinate (subpixel rounding only).
+      expect(layout.leftSpread, `${screen} @${viewport.width} left`).toBeLessThanOrEqual(1.5);
+      expect(layout.rightSpread, `${screen} @${viewport.width} right`).toBeLessThanOrEqual(1.5);
+      expect(layout.left, `${screen} @${viewport.width} gutter`).toBeGreaterThanOrEqual(viewport.gutter[0]);
+      expect(layout.left).toBeLessThanOrEqual(viewport.gutter[1]);
+      expect(Math.abs(layout.left - layout.rightGutter), `${screen} @${viewport.width} symmetry`).toBeLessThanOrEqual(1.5);
+    }
+  }
+});
+
+test("the floating assistant never covers an action once the patient reaches it", async ({ page }) => {
+  for (const viewport of [{ width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/?scenario=access-happy");
+    for (const screen of ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ONBOARDING_COMPLETE"]) {
+      await page.locator("#screen-select").selectOption(screen, { force: true });
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const covered = await page.evaluate(() => {
+        const assistant = document.querySelector(".emmi-assistant");
+        if (!assistant || getComputedStyle(assistant).display === "none") return false;
+        const box = assistant.getBoundingClientRect();
+        return [...document.querySelectorAll("#screen-content .actions .button, #screen-content .button.primary, #screen-content a, #screen-content input, #screen-content select")]
+          .some(node => {
+            const rect = node.getBoundingClientRect();
+            return rect.width && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom;
+          });
+      });
+      expect(covered, `${screen} @${viewport.width}`).toBe(false);
     }
   }
 });

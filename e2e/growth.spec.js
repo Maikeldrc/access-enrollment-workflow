@@ -14,7 +14,8 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
   await page.getByRole("button", { name: /See how it works/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
-  await expect(page.getByText(/does not allow the person to consent, sign/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Choose from my contacts/i })).toHaveCount(0);
+  await expect(page.getByText(/does not allow this person to consent, sign/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Angela Demo");
   await page.getByLabel("Mobile number").fill("3055550199");
   await page.getByLabel(/Relationship to you/).selectOption("child");
@@ -23,20 +24,58 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
   await expect(page.getByText(/No diagnosis, Medicare number, or clinical information/i)).toBeVisible();
   const supportLink = await page.getByRole("link", { name: /Preview support invitation/i }).getAttribute("href");
-  expect(supportLink).toContain("/support/accept?token=");
+  expect(supportLink).toContain("/care-circle/invite/");
   expect(supportLink).not.toContain("patient_demo");
 
   const supportPage = await context.newPage();
   await supportPage.goto(supportLink);
-  await expect(supportPage.getByRole("heading", { name: "You’ve been invited to help" })).toBeVisible();
+  await expect(supportPage.getByRole("heading", { name: "You’ve been invited to join a Care Circle" })).toBeVisible();
   await expect(supportPage.getByText(/does not make you a Personal Representative/i)).toBeVisible();
-  await supportPage.getByRole("button", { name: /Continue helping/i }).click();
+  await supportPage.getByRole("button", { name: /Accept invitation/i }).click();
   await expect(supportPage.getByRole("heading", { name: "You’re ready to help" })).toBeVisible();
 
   const invite = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.care-circle.prototype.v1")).invites.at(-1));
   expect(invite.status).toBe("ACCEPTED");
   expect(invite.supportRole).toBe("CARE_CIRCLE_MEMBER");
   expect(invite.completionRole).toBe("PATIENT");
+});
+
+test("Contact Picker denial keeps the manual fallback fully usable", async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => { throw new DOMException("Denied", "NotAllowedError"); } } }));
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
+  await page.getByLabel("Their name").fill("Manual Contact");
+  await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("family");
+  await expect(page.getByRole("button", { name: /Send invitation/i })).toBeEnabled();
+});
+
+test("EMMI explains Care Circle boundaries without taking an action", async ({ page }) => {
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Ask Emmi/i }).click();
+  await page.getByRole("button", { name: /Can they make decisions for me/i }).click();
+  await expect(page.getByText(/They cannot consent, sign, or make healthcare decisions for you/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);
+});
+
+test("Contact Picker is progressive, editable, and never sends automatically", async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => [{ name: ["Maria Sample"], tel: [{ value: "3055550199", type: ["mobile"] }, { value: "7865550102", type: ["home"] }] }] } }));
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await expect(page.getByLabel("Their name")).toHaveValue("Maria Sample");
+  await expect(page.getByText(/Which mobile number/i)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);
+  await page.getByRole("radio", { name: /mobile/i }).check();
+  await page.getByLabel("Their name").fill("Maria Edited");
+  await page.getByLabel(/Relationship to you/).selectOption("friend");
+  await page.getByRole("button", { name: /Send invitation/i }).click();
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
 });
 
 test("Personal Representative remains distinct from Care Circle", async ({ page }) => {
@@ -48,10 +87,23 @@ test("Personal Representative remains distinct from Care Circle", async ({ page 
   await expect(page.getByRole("button", { name: "Invite someone to help" })).toHaveCount(0);
 });
 
-test("post-enrollment Share ACCESS opens a public, unpersonalized landing", async ({ page, context }) => {
-  await page.evaluate(() => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "access-happy", screen: "ENROLLMENT_CONFIRMED", role: "patient", completionRole: "patient", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", accessOutcome: "eligible", language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: [] })));
+const seedDraft = (page, screen) => page.evaluate(value => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "access-happy", screen: value, role: "patient", completionRole: "patient", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", accessOutcome: "eligible", language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: [] })), screen);
+
+test("Share ACCESS waits for a value moment instead of interrupting enrollment completion", async ({ page }) => {
+  await seedDraft(page, "ENROLLMENT_CONFIRMED");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Welcome to your ACCESS experience" })).toBeVisible();
+  // Just finishing enrollment is not a value moment: the patient has not experienced the service.
+  await expect(page.getByRole("button", { name: "Share ACCESS" })).toHaveCount(0);
+  await expect(page.locator(".enrollment-welcome-screen")).not.toContainText("Share ACCESS");
+});
+
+test("Share ACCESS opens a public, unpersonalized landing after Getting Started completes", async ({ page, context }) => {
+  await seedDraft(page, "ONBOARDING_COMPLETE");
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+  await expect(page.locator('[data-share-access-moment="GETTING_STARTED_COMPLETED"]')).toBeVisible();
+  await expect(page.getByText("Know someone who may benefit from learning about ACCESS?")).toBeVisible();
   await page.getByRole("button", { name: "Share ACCESS" }).click();
   await expect(page.getByRole("heading", { name: "Share information about ACCESS" })).toBeVisible();
   await page.getByRole("button", { name: "Copy link" }).click();
@@ -79,7 +131,7 @@ test("Care Circle moves from Home to Who is completing and remains optional", as
   const card = page.locator("[data-optional-support]");
   await expect(card).toBeVisible();
   await expect(card).toContainText("Optional support");
-  await expect(card).toContainText("Invite someone you trust to help with this process.");
+  await expect(card).toContainText("Invite someone you trust to help you through this process.");
   await expect(card).toContainText("Invite someone");
   await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);
   await page.reload();
@@ -93,9 +145,43 @@ test("Care Circle remains natural and complete in Spanish and Kreyòl", async ({
   await page.getByRole("button", { name: /Vea cómo funciona/i }).click();
   await page.getByRole("button", { name: /¿Quiere que alguien le ayude?/i }).click();
   await expect(page.getByRole("heading", { name: "Invite a alguien de confianza" })).toBeVisible();
-  await expect(page.getByText(/no permite que la persona dé consentimiento/i)).toBeVisible();
+  await expect(page.getByText(/no permite que esta persona dé consentimiento/i)).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Envite yon moun ou fè konfyans" })).toBeVisible();
-  await expect(page.getByText(/pa pèmèt moun nan bay konsantman/i)).toBeVisible();
+  await expect(page.getByText(/pa pèmèt moun sa a bay konsantman/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("My Care Circle shows and manages longitudinal invitation status", async ({ page }) => {
+  await page.evaluate(() => {
+    const now = new Date().toISOString();
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "access-happy", screen: "MY_CARE", role: "patient", completionRole: "patient", identityVerified: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED", accessOutcome: "eligible", language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: [] }));
+    localStorage.setItem("itera.care-circle.prototype.v1", JSON.stringify({ invites: [{ inviteId: "CARE-DEMO", token: "SUPPORT-DEMO", inviterPatientId: "patient_demo", patientFirstName: "John", supportPerson: { name: "Maria Demo", relationship: "friend", phone: "3055550199" }, permissionScope: "CARE_CIRCLE_BASIC_SUPPORT", context: "ONGOING_CARE", status: "PENDING", sentAt: now, lastSentAt: now, sendCount: 1, expiresAt: new Date(Date.now() + 86400000).toISOString(), temporarySupportLink: `${location.origin}/care-circle/invite/SUPPORT-DEMO` }] }));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: /My Care Circle/i }).click();
+  await expect(page.getByRole("heading", { name: "My Care Circle" })).toBeVisible();
+  await expect(page.getByText("Maria Demo")).toBeVisible();
+  await expect(page.getByText("Pending", { exact: true })).toBeVisible();
+  await page.getByText("Manage", { exact: true }).click();
+  await page.getByRole("button", { name: "Cancel invitation" }).click();
+  await expect(page.getByText("Canceled", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${width}px without EMMI overlap`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 780 });
+  await page.reload();
+  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  const result = await page.evaluate(() => {
+    const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
+    const actions = document.querySelector(".care-circle-sticky-actions")?.getBoundingClientRect();
+    const overlaps = emmi && actions ? !(emmi.right <= actions.left || emmi.left >= actions.right || emmi.bottom <= actions.top || emmi.top >= actions.bottom) : false;
+    const emmiElement = document.querySelector(".emmi-assistant");
+    return { overflow: document.documentElement.scrollWidth > window.innerWidth, overlaps, formWidth: document.querySelector("#care-circle-invite-form")?.getBoundingClientRect().width || 0, emmi: emmi ? { top: emmi.top, bottom: emmi.bottom, cssBottom: getComputedStyle(emmiElement).bottom, inlineTop: emmiElement.style.top } : null, actions: actions ? { top: actions.top, bottom: actions.bottom } : null };
+  });
+  expect(result.overflow).toBe(false);
+  expect(result.overlaps, JSON.stringify(result)).toBe(false);
+  expect(result.formWidth).toBeGreaterThan(width - 72);
 });

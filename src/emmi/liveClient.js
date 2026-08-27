@@ -49,9 +49,31 @@ export class EmmiLiveClient {
     this.endTimer = null;
   }
   setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
+  isActive() { return !["DISCONNECTED", "ERROR"].includes(this.state); }
+  // Must be called synchronously from the click that starts voice. An AudioContext created
+  // later (inside a socket callback) is born suspended, so the welcome plays silently and only
+  // starts working after some later user gesture resumes it.
+  prepareAudioPlayback() {
+    try {
+      this.outputContext ||= new AudioContext({ sampleRate: 24000 });
+      if (this.outputContext.state === "suspended") this.outputContext.resume();
+    } catch { /* Playback falls back to the lazy path in playAudio. */ }
+  }
+  // The locale is baked into the session's system instruction, so a language change needs a
+  // fresh session rather than a context update.
+  async restartForLocale(initialText = "") {
+    if (!this.isActive()) return false;
+    this.stopPlayback();
+    this.disconnect("locale_changed");
+    await this.connect(initialText);
+    return true;
+  }
   async connect(initialText = "") {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
+    // Kreyòl has no supported live voice, so it stays a text experience rather than a silent
+    // switch to English. Never treat KR as Korean.
     if (this.getContext().locale === "KR") throw this.fail("voice_locale_fallback");
+    this.prepareAudioPlayback();
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("microphone_denied");
     this.setState("CONNECTING");
@@ -66,7 +88,10 @@ export class EmmiLiveClient {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : payload.error || "connection_failed");
     try {
-      const ai = new GoogleGenAI({ apiKey: payload.token, httpOptions: { apiVersion: "v1beta" } });
+      // Ephemeral auth tokens are only served on v1alpha: the SDK routes them to
+      // BidiGenerateContentConstrained, which does not exist on v1beta, so the socket never
+      // opens and no audio is ever produced.
+      const ai = new GoogleGenAI({ apiKey: payload.token, httpOptions: { apiVersion: "v1alpha" } });
       this.session = await ai.live.connect({
         model: payload.model || EMMI_CONFIG.model,
         config: {
@@ -81,13 +106,16 @@ export class EmmiLiveClient {
             this.startAudioCapture();
             this.setState("LISTENING");
             this.startTimers();
-            if (initialText) setTimeout(() => this.sendText(initialText), 0);
           },
           onmessage: message => this.handleMessage(message),
           onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"),
           onclose: () => { if (this.state !== "DISCONNECTED") this.disconnect("connection_lost"); }
         }
       });
+      // connect() resolves once the server has acknowledged setup. Sending the welcome from
+      // onopen instead sends it before the handshake finishes and the turn is dropped, which is
+      // why the first tap connected but stayed silent.
+      if (initialText) this.sendText(initialText);
       return true;
     } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"); }
   }
@@ -134,7 +162,8 @@ export class EmmiLiveClient {
     }
   }
   playAudio(encoded) {
-    this.outputContext ||= new AudioContext({ sampleRate: 24000 });
+    this.prepareAudioPlayback();
+    if (!this.outputContext) return;
     const bytes = base64ToBytes(encoded);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const buffer = this.outputContext.createBuffer(1, Math.floor(bytes.byteLength / 2), 24000);
@@ -147,7 +176,9 @@ export class EmmiLiveClient {
     source.onended = () => this.sources.delete(source);
   }
   stopPlayback() { this.sources.forEach(source => { try { source.stop(); } catch { /* Already stopped. */ } }); this.sources.clear(); this.nextPlaybackAt = 0; }
-  sendText(text) { if (!this.session) return false; this.setState("EMMI_THINKING"); this.session.sendRealtimeInput({ text }); return true; }
+  // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
+  // text turn sent that way is accepted silently and never produces a spoken reply.
+  sendText(text) { if (!this.session) return false; this.setState("EMMI_THINKING"); this.session.sendClientContent({ turns: text, turnComplete: true }); return true; }
   setMuted(value) { this.muted = value; this.onState?.(this.state, value ? "muted" : "unmuted"); }
   disconnect(reason = "ended") {
     clearTimeout(this.warningTimer); clearTimeout(this.endTimer); this.stopPlayback();

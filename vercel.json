@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/access/learn", "destination": "/index.html" },
-    { "source": "/support/accept", "destination": "/index.html" }
+    { "source": "/support/accept", "destination": "/index.html" },
+    { "source": "/care-circle/invite/:token", "destination": "/index.html" }
   ]
 }
