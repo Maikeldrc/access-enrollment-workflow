@@ -95,6 +95,7 @@ export function createPatientGoal({ type, customTitle = "", patientId = "", now 
     careTeamReviewStatus: type === "CUSTOM" ? "PENDING" : "NOT_REQUIRED",
     actions: [],
     progress: [],
+    educationHistory: [],
     barriers: [],
     supportRequests: [],
     reviews: [],

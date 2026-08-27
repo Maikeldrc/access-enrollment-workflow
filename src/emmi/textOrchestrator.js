@@ -10,6 +10,10 @@ const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|soy elegible|cali
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)/i;
 const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
+const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|d[eè]nye lekti|tansyon mwen.*jodi/i;
+const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
+const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
+const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
 const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|dokt[eè] mwen/i;
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
@@ -147,6 +151,22 @@ const runtimeAnswer = ({ tool, result, locale, context }) => {
     const goals = result.goals || [];
     return goals.length ? pick(locale, { EN: `Your current goal${goals.length > 1 ? "s are" : " is"}: ${goals.map(item => item.title).join("; ")}. You can change personal goals later.`, ES: `Su${goals.length > 1 ? "s metas actuales son" : " meta actual es"}: ${goals.map(item => item.title).join("; ")}. Puede cambiar sus metas personales después.`, KR: `Objektif ou${goals.length > 1 ? " yo se" : " se"}: ${goals.map(item => item.title).join("; ")}. Ou ka chanje objektif pèsonèl yo pita.` }) : pick(locale, { EN: "You have not saved a personal goal yet.", ES: "Todavía no ha guardado una meta personal.", KR: "Ou poko sove yon objektif pèsonèl." });
   }
+  if (tool === "getLatestReading") {
+    const reading = result.reading;
+    if (!reading) return pick(locale, { EN: "I can’t confirm a recent blood pressure reading right now.", ES: "Ahora mismo no puedo confirmar una lectura reciente de presión arterial.", KR: "Mwen pa ka konfime yon dènye lekti tansyon kounye a." });
+    const status = reading.classification === "WITHIN_EXPECTED_RANGE"
+      ? pick(locale, { EN: "It is within the range your care team is following.", ES: "Está dentro del rango que sigue su equipo de atención.", KR: "Li nan limit ekip swen ou ap suiv la." })
+      : pick(locale, { EN: "Use the status and next step shown by your care team in the app.", ES: "Use el estado y el próximo paso indicado por su equipo en la aplicación.", KR: "Swiv eta ak pwochen etap ekip swen ou montre nan aplikasyon an." });
+    return pick(locale, { EN: `Your latest reading was ${reading.systolic}/${reading.diastolic} mmHg. ${status} The top number is the pressure when the heart pumps, and the bottom number is the pressure between beats.`, ES: `Su lectura más reciente fue ${reading.systolic}/${reading.diastolic} mmHg. ${status} El número superior es la presión cuando el corazón bombea y el inferior es la presión entre latidos.`, KR: `Dènye lekti ou te ${reading.systolic}/${reading.diastolic} mmHg. ${status} Chif anlè a se presyon lè kè a ponpe; chif anba a se presyon ant batman yo.` });
+  }
+  if (tool === "getReadingTrend") {
+    const trend = result.trend;
+    if (!trend || trend.direction === "INSUFFICIENT_DATA") return pick(locale, { EN: "There are not enough verified readings to describe a trend yet.", ES: "Aún no hay suficientes lecturas verificadas para describir una tendencia.", KR: "Poko gen ase lekti verifye pou dekri yon tandans." });
+    const direction = trend.direction === "STABLE" ? pick(locale, { EN: "fairly stable", ES: "bastante estables", KR: "prèske estab" }) : trend.direction === "TRENDING_UP" ? pick(locale, { EN: "trending higher", ES: "con tendencia más alta", KR: "gen tandans monte" }) : pick(locale, { EN: "trending lower", ES: "con tendencia más baja", KR: "gen tandans desann" });
+    return pick(locale, { EN: `Your ${trend.periodDays}-day average is ${trend.averageSystolic}/${trend.averageDiastolic} mmHg from ${trend.count} readings. The calculated trend is ${direction}. Readings can vary for different reasons, so I won’t guess at a cause.`, ES: `Su promedio de ${trend.periodDays} días es ${trend.averageSystolic}/${trend.averageDiastolic} mmHg, calculado con ${trend.count} lecturas. La tendencia calculada se mantiene ${direction}. Las lecturas pueden variar por distintas razones, así que no atribuiré una causa.`, KR: `Mwayèn ${trend.periodDays} jou ou se ${trend.averageSystolic}/${trend.averageDiastolic} mmHg nan ${trend.count} lekti. Tandans kalkile a ${direction}. Lekti yo ka varye pou plizyè rezon, kidonk mwen p ap devine kòz la.` });
+  }
+  if (tool === "getClinicalTarget") return result.target ? pick(locale, { EN: `Your care-team-defined target is less than ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Your care team owns this clinical target.`, ES: `El objetivo definido por su equipo es menos de ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Este objetivo clínico pertenece a su equipo de atención.`, KR: `Sib ekip swen ou fikse a se mwens pase ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Ekip swen ou responsab sib klinik sa a.` }) : unavailable(locale);
+  if (tool === "getGoalProgress") return result.progress ? pick(locale, { EN: `${result.progress.readingCountThisWeek || 0} connected readings were received this week. Other steps are counted only when you report them or complete the related EMMI lesson.`, ES: `Esta semana se recibieron ${result.progress.readingCountThisWeek || 0} lecturas conectadas. Los demás pasos solo se cuentan cuando usted los registra o completa la lección correspondiente con EMMI.`, KR: `Nou resevwa ${result.progress.readingCountThisWeek || 0} lekti konekte semèn sa a. Lòt etap yo konte sèlman lè ou rapòte yo oswa fini leson EMMI ki mache avè l.` }) : unavailable(locale);
   if (tool === "getCareTeam") return result.physicianDisplayName ? pick(locale, { EN: `${result.physicianDisplayName} remains part of your care. ITERA provides additional support and does not replace your doctor.`, ES: `${result.physicianDisplayName} continúa siendo parte de su cuidado. ITERA brinda apoyo adicional y no reemplaza a su médico.`, KR: `${result.physicianDisplayName} rete yon pati nan swen ou. ITERA bay sipò anplis epi li pa ranplase doktè ou.` }) : pick(locale, { EN: "Your regular doctors remain part of your care. ITERA provides additional support and does not replace them.", ES: "Sus médicos habituales continúan formando parte de su cuidado. ITERA brinda apoyo adicional y no los reemplaza.", KR: "Doktè ou deja genyen yo rete nan swen ou. ITERA bay sipò anplis epi li pa ranplase yo." });
   if (tool === "getNextBestAction") return pick(locale, { EN: `Your next step is “${result.label}.”`, ES: `Su próximo paso es “${result.label}”.`, KR: `Pwochen etap ou se “${result.label}”.` });
   return unavailable(locale);
@@ -198,15 +218,21 @@ export class EmmiTextOrchestrator {
     else if (ELIGIBILITY.test(question)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(question)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(question)) tool = "getAssignedDevice";
+    else if (LATEST_HEALTH_READING.test(question)) tool = "getLatestReading";
+    else if (HEALTH_TREND.test(question)) tool = "getReadingTrend";
+    else if (CLINICAL_TARGET.test(question)) tool = "getClinicalTarget";
+    else if (GOAL_PROGRESS.test(question)) tool = "getGoalProgress";
     else if (GOAL_STATUS.test(question)) tool = "getPatientGoals";
     else if (DOCTOR_STATUS.test(question)) tool = "getCareTeam";
     else if (NEXT_STEP.test(question)) tool = "getNextBestAction";
     if (tool) {
-      trace.intent = ({ getExpectedAccessCost: "COST_QUESTION", getEnrollmentContext: "ELIGIBILITY_QUESTION", getMedicationList: "MEDICATION_QUESTION", getAssignedDevice: "DEVICE_QUESTION", getPatientGoals: "GOAL_QUESTION", getCareTeam: "CARE_TEAM_QUESTION", getNextBestAction: "NEXT_STEP" })[tool];
+      trace.intent = ({ getExpectedAccessCost: "COST_QUESTION", getEnrollmentContext: "ELIGIBILITY_QUESTION", getMedicationList: "MEDICATION_QUESTION", getAssignedDevice: "DEVICE_QUESTION", getLatestReading: "LATEST_READING", getReadingTrend: "READING_TREND", getClinicalTarget: "CLINICAL_TARGET", getGoalProgress: "GOAL_PROGRESS", getPatientGoals: "GOAL_QUESTION", getCareTeam: "CARE_TEAM_QUESTION", getNextBestAction: "NEXT_STEP" })[tool];
       trace.toolCalls.push(tool);
       try {
         const args = tool === "getExpectedAccessCost" ? { patientId: context.patientId, accessTrack: context.accessTrack }
-          : ["getEnrollmentContext", "getMedicationList", "getAssignedDevice", "getPatientGoals", "getCareTeam", "getNextBestAction"].includes(tool) ? { patientId: context.patientId } : {};
+          : ["getLatestReading", "getReadingTrend", "getClinicalTarget"].includes(tool) ? { patientId: context.patientId, metricType: "BLOOD_PRESSURE", ...(tool === "getReadingTrend" ? { periodDays: 7 } : {}) }
+            : tool === "getGoalProgress" ? { patientId: context.patientId, goalId: context.activeGoal?.id || "" }
+              : ["getEnrollmentContext", "getMedicationList", "getAssignedDevice", "getPatientGoals", "getCareTeam", "getNextBestAction"].includes(tool) ? { patientId: context.patientId } : {};
         const result = await this.executeTool(tool, args);
         trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push(tool); emit("EMMI_ANSWER_ROUTED");
         return { text: runtimeAnswer({ tool, result, locale, context }), trace };

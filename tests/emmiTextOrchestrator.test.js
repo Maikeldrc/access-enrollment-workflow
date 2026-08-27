@@ -18,13 +18,17 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
     if (name === "getAssignedDevice") return { found: true, displayName: "Tenovi Connected Blood Pressure Monitor", deviceId: "TEN-8842", integrationStatus: "CONNECTED" };
     if (name === "getMedicationList") return { medications: [{ name: "Lisinopril", details: "10 mg", active: true }] };
     if (name === "getPatientGoals") return { goals: [{ title: "Mantener mi presión arterial bajo control" }] };
+    if (name === "getLatestReading") return { reading: { systolic: 120, diastolic: 80, classification: "WITHIN_EXPECTED_RANGE" } };
+    if (name === "getReadingTrend") return { trend: { periodDays: 7, count: 5, averageSystolic: 124, averageDiastolic: 81, direction: "STABLE" } };
+    if (name === "getClinicalTarget") return { target: { systolicMaximum: 139, diastolicMaximum: 89 } };
+    if (name === "getGoalProgress") return { progress: { readingCountThisWeek: 5 } };
     if (name === "getCareTeam") return { physicianDisplayName: "Dr. Fresner" };
     if (name === "getNextBestAction") return { label: "Continuar" };
     if (name === "evaluateClinicalEscalation") return { instruction: "CALL_911" };
     throw new Error(`unexpected ${name}`);
   });
   const orchestrator = new EmmiTextOrchestrator({
-    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM" }),
+    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" } }),
     getConversation: () => ({ conversationSessionId: "conv-1", conversationSummary: conversation.summary || "", recentTurns: conversation.turns || [] }),
     executeTool,
     screenExplanation: () => locale === "ES" ? "Esta pantalla explica el cuidado disponible." : "This screen explains the available care.",
@@ -69,6 +73,10 @@ describe("Ask EMMI answer-first orchestration", () => {
     ["¿Qué monitor tengo?", "getAssignedDevice", /Tenovi/],
     ["¿Está conectado mi monitor?", "getAssignedDevice", /conectado/],
     ["¿Qué medicamentos tienen registrados?", "getMedicationList", /Lisinopril/],
+    ["¿Qué significa mi lectura más reciente de presión arterial?", "getLatestReading", /120\/80/],
+    ["¿Cómo ha estado mi presión esta semana?", "getReadingTrend", /124\/81/],
+    ["¿Cuál es mi objetivo de presión?", "getClinicalTarget", /140\/90/],
+    ["¿Cómo voy con mi meta?", "getGoalProgress", /5 lecturas/],
     ["¿Cuál es mi meta?", "getPatientGoals", /presión arterial/],
     ["¿Mi médico sigue siendo mi médico?", "getCareTeam", /Dr\. Fresner/],
     ["¿Qué sigue?", "getNextBestAction", /Continuar/]

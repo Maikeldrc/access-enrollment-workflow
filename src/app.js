@@ -25,6 +25,7 @@ import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./f
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalDisplayName, localGoalText, suggestedActionsFor } from "./goals.js";
+import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
@@ -666,6 +667,8 @@ function assistantContext() {
   const currentScreen = state.assistantOriginScreen || state.screen;
   const emmiCurrentScreen = currentScreen === "CLINICAL_VERIFICATION" ? "HEALTH_INFORMATION_REVIEW" : currentScreen;
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
+  const activeGoalRecord = currentGoal();
+  const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
   if (!emmiConversationManager) {
     emmiConversationManager = new EmmiConversationManager({
@@ -710,7 +713,18 @@ function assistantContext() {
     deviceScenario,
     goalFlowStep: state.goalFlowStep,
     patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
-    activeGoal: currentGoal() ? { id: currentGoal().id, title: goalDisplayName(currentGoal(), state.language), status: currentGoal().status, priority: currentGoal().priority } : null,
+    activeGoal: activeGoalRecord ? {
+      id: activeGoalRecord.id,
+      title: goalDisplayName(activeGoalRecord, state.language),
+      status: activeGoalRecord.status,
+      priority: activeGoalRecord.priority,
+      latestReading: activeGoalHealth?.latest || null,
+      readingTrend: activeGoalHealth?.trend || null,
+      clinicalTarget: activeGoalHealth?.clinicalTarget || null,
+      actions: (activeGoalRecord.actions || []).map(action => ({ id: action.id, title: action.title, verificationMethod: resolveGoalActionVerification(action), status: action.status })),
+      progress: activeGoalHealth ? { readingCountThisWeek: activeGoalHealth.trend.count } : null,
+      nextBestEducation: nextBestGoalEducation({ goalType: activeGoalRecord.goalType, completedTopicIds: (activeGoalRecord.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId) })
+    } : null,
     medications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
     emmiConversation: emmiConversationManager.contextForModel()
   };
@@ -721,6 +735,10 @@ const emmiToolStatusLabel = name => ({
   getExpectedAccessCost: L("Checking your ACCESS cost…", "Revisando su costo de ACCESS…", "N ap verifye pri ACCESS ou…"),
   getAssignedDevice: L("Checking your monitor…", "Revisando su monitor…", "N ap verifye aparèy ou…"),
   checkDeviceConnection: L("Checking the connection…", "Revisando la conexión…", "N ap verifye koneksyon an…"),
+  getLatestReading: L("Checking your latest reading…", "Revisando su última lectura…", "N ap verifye dènye lekti ou…"),
+  getReadingTrend: L("Checking your recent trend…", "Revisando su tendencia reciente…", "N ap verifye tandans ou…"),
+  getClinicalTarget: L("Checking your care-team target…", "Revisando el objetivo de su equipo…", "N ap verifye sib ekip swen ou…"),
+  getGoalProgress: L("Checking your goal progress…", "Revisando el progreso de su meta…", "N ap verifye pwogrè objektif ou…"),
   requestCallback: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…")
 })[name] || L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…");
@@ -895,6 +913,7 @@ function syncEmmiNavigationContext(override = {}) {
 }
 
 function assistantQuickQuestions(context) {
+  if (context.currentScreen === "MY_GOALS" && context.activeGoal?.latestReading) return [L("What does my latest blood pressure reading mean?", "¿Qué significa mi lectura más reciente de presión arterial?", "Kisa dènye lekti tansyon mwen vle di?"), L("How has my blood pressure been this week?", "¿Cómo ha estado mi presión esta semana?", "Kijan tansyon mwen te ye semèn sa a?"), L("What is my care-team target?", "¿Cuál es el objetivo definido por mi equipo?", "Ki sib ekip swen mwen fikse a?"), L("I’m having trouble with my goal", "Tengo dificultades con mi meta", "Mwen gen pwoblèm ak objektif mwen")];
   if (["GOALS", "MY_GOALS"].includes(context.currentScreen)) return [L("Why are you asking about my goals?", "¿Por qué preguntan por mis metas?", "Poukisa nou mande m sou objektif mwen?"), L("Can I change a goal later?", "¿Puedo cambiar una meta después?", "Èske mwen ka chanje yon objektif pita?"), L("Can you help me personalize my plan?", "¿Puede ayudarme a personalizar mi plan?", "Èske ou ka ede m pèsonalize plan mwen?"), L("I’m having trouble with my goal", "Tengo dificultades con mi meta", "Mwen gen pwoblèm ak objektif mwen")];
   if (context.currentScreen === "HEALTH_INFORMATION_REVIEW") return [L("What does high blood pressure mean?", "¿Qué significa presión arterial alta?", "Kisa tansyon wo vle di?"), L("Can EMMI confirm this information?", "¿Puede EMMI confirmar esta información?", "Èske EMMI ka konfime enfòmasyon sa a?"), L("I’m not sure this is correct", "No estoy seguro de que esto sea correcto", "Mwen pa sèten sa kòrèk"), L("How can my care team help?", "¿Cómo puede ayudar mi equipo?", "Kijan ekip swen mwen ka ede?")];
   if (context.currentScreen === "MEDICATIONS_REVIEW") return [L("What is Lisinopril?", "¿Qué es Lisinopril?", "Kisa Lisinopril ye?"), L("I don’t know my dose", "No sé cuál es mi dosis", "Mwen pa konnen dòz mwen"), L("I’m not sure if I take this", "No estoy seguro de tomar esto", "Mwen pa sèten si mwen pran sa"), L("Help me review my medications", "Ayúdeme a revisar mis medicamentos", "Ede m revize medikaman mwen yo")];
@@ -1986,54 +2005,123 @@ function myGoalsDashboard() {
   return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("The goals you’re working toward with support from your care team.", "Las metas en las que está trabajando con el apoyo de su equipo de atención.", "Objektif w ap travay sou yo avèk sipò ekip swen ou."), L("Your care", "Su cuidado", "Swen ou"))}${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}<div class="my-goals-list">${cards || `<div class="goals-empty">${icon("goals")}<strong>${L("Choose a goal that matters to you", "Elija una meta que le importe", "Chwazi yon objektif ki enpòtan pou ou")}</strong></div>`}</div><button type="button" class="link-card add-goal-card" data-action="add-another-goal">${icon("goals")}<span><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose something else you’d like to work toward", "Elija algo más que le gustaría lograr", "Chwazi yon lòt bagay ou ta renmen reyalize")}</small></span><b>›</b></button><div class="actions">${cta(L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen"), "back", true)}</div>`;
 }
 
+const goalHealthLocale = () => ({ en: "en-US", es: "es-US", ht: "ht-HT" }[state.language] || "en-US");
+
+function bloodPressureGoalRuntime(goal) {
+  const readings = (state.bpReadings || []).filter(item => Number.isFinite(Number(item.systolic)) && Number.isFinite(Number(item.diastolic))).map((item, index) => ({
+    id: item.observationId || item.readingId || `runtime-reading-${index}`,
+    metricType: "BLOOD_PRESSURE",
+    systolic: Number(item.systolic),
+    diastolic: Number(item.diastolic),
+    unit: "mmHg",
+    timestamp: item.timestamp || item.receivedAt,
+    source: item.source || "CONNECTED_DEVICE",
+    sourceVerified: Boolean(item.sourceVerified),
+    deviceId: item.deviceId || item.sourceDeviceId || "",
+    observationId: item.observationId || item.readingId || "",
+    classification: item.classification || ""
+  }));
+  return buildBloodPressureGoalRuntime({ readings, demoMode: goal.goalType === "BLOOD_PRESSURE_CONTROL" && readings.length === 0, monitoringRules: state.bpMonitoringRules || DEMO_BP_MONITORING_RULES, clinicalTarget: state.bpClinicalTarget || null });
+}
+
+const bpClassificationCopy = classification => ({
+  WITHIN_EXPECTED_RANGE: L("Within the expected range", "Dentro del rango esperado", "Nan limit ekip ou ap suiv la"),
+  ABOVE_EXPECTED_RANGE: L("This reading is higher than expected", "Esta lectura está más alta de lo esperado", "Lekti sa a pi wo pase sa yo te espere"),
+  NEEDS_REVIEW: L("Your care team is reviewing this reading", "Su equipo está revisando esta lectura", "Ekip swen ou ap revize lekti sa a"),
+  ACTION_NEEDED: L("Follow the next step from your care team", "Siga el próximo paso indicado por su equipo", "Swiv pwochen etap ekip swen ou bay la")
+})[classification] || L("Your care team is reviewing this reading", "Su equipo está revisando esta lectura", "Ekip swen ou ap revize lekti sa a");
+
+const bpTrendCopy = direction => ({
+  STABLE: L("Your readings have stayed fairly stable", "Sus lecturas se han mantenido bastante estables", "Lekti ou yo rete prèske estab"),
+  TRENDING_UP: L("Your recent readings have been trending higher", "Sus lecturas recientes muestran una tendencia más alta", "Lekti ki pi resan yo gen tandans monte"),
+  TRENDING_DOWN: L("Your recent readings have been trending lower", "Sus lecturas recientes muestran una tendencia más baja", "Lekti ki pi resan yo gen tandans desann"),
+  INSUFFICIENT_DATA: L("There are not enough readings to show a trend yet", "Aún no hay suficientes lecturas para mostrar una tendencia", "Poko gen ase lekti pou montre yon tandans")
+})[direction] || L("There are not enough readings to show a trend yet", "Aún no hay suficientes lecturas para mostrar una tendencia", "Poko gen ase lekti pou montre yon tandans");
+
+function goalTrendChart(trend) {
+  if (!trend?.readings?.length || trend.direction === "INSUFFICIENT_DATA") return `<div class="goal-trend-empty">${icon("trending")}<p>${L("With more readings, we can help you see how your blood pressure changes over time.", "Con más lecturas podremos ayudarle a ver cómo cambia su presión con el tiempo.", "Avèk plis lekti, n ap ka ede w wè kijan tansyon ou chanje avèk tan.")}</p></div>`;
+  const readings = trend.readings;
+  const x = index => readings.length === 1 ? 140 : 10 + index * (260 / (readings.length - 1));
+  const y = value => 86 - ((value - 60) / 80) * 70;
+  const systolic = readings.map((item, index) => `${x(index)},${y(item.systolic)}`).join(" ");
+  const diastolic = readings.map((item, index) => `${x(index)},${y(item.diastolic)}`).join(" ");
+  const label = L(`7-day average ${trend.averageSystolic} over ${trend.averageDiastolic}. ${bpTrendCopy(trend.direction)}.`, `Promedio de 7 días: ${trend.averageSystolic} sobre ${trend.averageDiastolic}. ${bpTrendCopy(trend.direction)}.`, `Mwayèn 7 jou: ${trend.averageSystolic} sou ${trend.averageDiastolic}. ${bpTrendCopy(trend.direction)}.`);
+  return `<svg class="goal-trend-chart" viewBox="0 0 280 100" role="img" aria-label="${escapeHtml(label)}"><path d="M10 94 H270" class="goal-chart-axis"/><polyline points="${systolic}" class="goal-chart-line systolic"/><polyline points="${diastolic}" class="goal-chart-line diastolic"/>${readings.map((item, index) => `<circle cx="${x(index)}" cy="${y(item.systolic)}" r="4" class="goal-chart-dot systolic"/><circle cx="${x(index)}" cy="${y(item.diastolic)}" r="4" class="goal-chart-dot diastolic"/>`).join("")}</svg>`;
+}
+
+function goalReadingHistory(goal, health) {
+  const rows = [...health.readings].reverse().map(reading => `<li class="goal-reading-history-item"><div><strong>${new Intl.DateTimeFormat(goalHealthLocale(), { month: "short", day: "numeric" }).format(new Date(reading.timestamp))}</strong><span>${new Intl.DateTimeFormat(goalHealthLocale(), { hour: "numeric", minute: "2-digit" }).format(new Date(reading.timestamp))}</span></div><p><strong>${reading.systolic} / ${reading.diastolic}</strong><span>mmHg</span></p><small>${icon(reading.classification === "WITHIN_EXPECTED_RANGE" ? "check" : "info")}${bpClassificationCopy(reading.classification)}</small></li>`).join("");
+  return `${titleBlock(L("My blood pressure readings", "Mis lecturas de presión arterial", "Lekti tansyon mwen"), L("A simple history of readings received for your care.", "Un historial sencillo de las lecturas recibidas para su cuidado.", "Yon istwa senp sou lekti nou resevwa pou swen ou."), L("My goal", "Mi meta", "Objektif mwen"))}<ul class="goal-reading-history">${rows}</ul><button type="button" class="goal-back-button" data-action="goal-detail-back">${icon("arrowLeft")}<span>${L("Back to my goal", "Volver a mi meta", "Retounen nan objektif mwen")}</span></button>`;
+}
+
+function goalActionRow(action, health, goal) {
+  const today = new Date().toISOString().slice(0, 10);
+  const verificationMethod = resolveGoalActionVerification(action);
+  const doneToday = (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED";
+  const frequency = action.frequency ? frequencyLabel(action.frequency) : "";
+  const actionTemplate = action.templateId ? suggestedActionsFor(goal.goalType).find(item => item.id === action.templateId) : null;
+  const actionTitle = actionTemplate ? localGoalText(actionTemplate.title, state.language) : action.title;
+  if (verificationMethod === "DEVICE") {
+    const receivedToday = health.latest && new Date(health.latest.timestamp).toISOString().slice(0, 10) === today;
+    return `<li class="goal-action goal-action-automatic ${receivedToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong><small class="goal-action-verification">${receivedToday ? `${icon("check")}${L("Reading received today", "Lectura recibida hoy", "Lekti resevwa jodi a")}` : L("Waiting for today’s monitor reading", "Esperando la lectura de hoy del monitor", "N ap tann lekti monitè jodi a")}</small></div><span class="goal-action-source">${L("Automatic", "Automático", "Otomatik")}</span></li>`;
+  }
+  if (verificationMethod === "EMMI_LESSON") {
+    const learned = (goal.educationHistory || []).some(item => item.topicId === "bp-numbers" && item.status === "COMPLETED");
+    return `<li class="goal-action ${learned ? "is-done" : ""}">${icon("book", "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong><small>${learned ? `${icon("check")}${L("Learned", "Aprendido", "Aprann")}` : L("Short lesson with EMMI", "Lección breve con EMMI", "Ti leson avèk EMMI")}</small></div>${learned ? "" : `<button type="button" class="goal-action-button" data-action="learn-goal-topic">${L("Learn with EMMI", "Aprender con EMMI", "Aprann avèk EMMI")} ${icon("arrowRight")}</button>`}</li>`;
+  }
+  const medication = action.templateId === "medications-as-directed";
+  const prompt = medication ? L("Did you take them today as directed?", "¿Los tomó hoy según las indicaciones?", "Èske ou te pran yo jodi a jan yo mande a?") : L("Did you do this today?", "¿Lo hizo hoy?", "Èske ou te fè sa jodi a?");
+  return `<li class="goal-action ${doneToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong>${frequency ? `<small>${frequency}</small>` : ""}<p>${doneToday ? `${icon("check")}${L("Reported today", "Registrado hoy", "Rapòte jodi a")}` : prompt}</p></div><div class="goal-action-buttons">${doneToday ? "" : `<button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}">${medication ? L("Yes", "Sí", "Wi") : L("Yes, I did", "Sí, lo hice", "Wi, mwen te fè sa")}</button>`}${medication ? `<button type="button" class="goal-action-button secondary" data-action="ask-emmi-medication">${L("I have a question", "Tengo una pregunta", "Mwen gen yon kesyon")}</button>` : ""}</div></li>`;
+}
+
 function goalDetail() {
   const goal = currentGoal();
   if (!goal) return myGoalsDashboard();
   const title = escapeHtml(goalDisplayName(goal, state.language));
+  const health = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+  if (state.goalDetailView === "READINGS" && health) return goalReadingHistory(goal, health);
   if (state.goalDetailView === "WHY_EDIT") return `${titleBlock(L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen"), title, L("My goal", "Mi meta", "Objektif mwen"))}<form id="goal-why-form"><label class="field"><textarea name="whyItMatters" rows="5" maxlength="300" placeholder="${L("Share what you want this goal to help you keep doing.", "Cuente qué desea que esta meta le ayude a seguir haciendo.", "Pataje sa ou vle objektif sa a ede w kontinye fè.")}">${escapeHtml(goal.whyItMatters || "")}</textarea></label></form><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-why")}</div>`;
-  if (state.goalDetailView === "CHECK_IN") return `${titleBlock(L("How is your goal going?", "¿Cómo va su meta?", "Kijan objektif ou ap mache?"), title, L("Goal check-in", "Seguimiento de meta", "Tcheke objektif"))}<div class="choice-list goal-checkin-options">${[["GOING_WELL", L("Going well", "Va bien", "Sa ap mache byen")], ["DIFFICULTY", L("I’m having some difficulty", "Estoy teniendo algunas dificultades", "Mwen gen kèk difikilte")], ["NOT_STARTED", L("I haven’t started yet", "Aún no he comenzado", "Mwen poko kòmanse")], ["CHANGE_GOAL", L("I want to change this goal", "Quiero cambiar esta meta", "Mwen vle chanje objektif sa a")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-checkin-response" data-response="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
-  if (state.goalDetailView === "BARRIERS") return `${titleBlock(L("What’s getting in the way?", "¿Qué se lo está dificultando?", "Kisa k ap anpeche w?"), L("Choose the answer that fits best.", "Elija la respuesta que mejor corresponda.", "Chwazi repons ki pi byen mache."), L("Barriers", "Dificultades", "Difikilte"))}<form id="goal-barrier-form"><div class="goal-barrier-options">${[["NOT_WELL",L("I don’t feel well", "No me siento bien", "Mwen pa santi m byen")],["FORGET",L("I forget", "Se me olvida", "Mwen bliye")],["NO_TIME",L("I don’t have time", "No tengo tiempo", "Mwen pa gen tan")],["SAFETY_WORRY",L("I’m worried about doing it safely", "Me preocupa hacerlo de forma segura", "Mwen enkyete pou m fè sa an sekirite")],["MEDICATION_TROUBLE",L("I’m having trouble with my medications", "Tengo dificultades con mis medicamentos", "Mwen gen pwoblèm ak medikaman mwen")],["NO_EQUIPMENT",L("I don’t have the equipment I need", "No tengo el equipo que necesito", "Mwen pa gen ekipman mwen bezwen")],["OTHER",L("Something else", "Algo más", "Yon lòt bagay")]].map(([value,label]) => `<label class="check-row"><input type="radio" name="barrierType" value="${value}"><span class="check-box">✓</span><span>${label}</span></label>`).join("")}</div><label class="field">${L("Tell us more (optional)", "Cuéntenos más (opcional)", "Di nou plis (opsyonèl)")}<textarea name="barrierNotes" rows="3" maxlength="300"></textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "save-goal-barrier")}</div>`;
-  if (state.goalDetailView === "SUPPORT") return `${titleBlock(L("How can we help?", "¿Cómo podemos ayudarle?", "Kijan nou ka ede w?"), title, L("Support I need", "Apoyo que necesito", "Sipò mwen bezwen"))}<div class="choice-list goal-support-options">${[["REMINDER",L("Remind me", "Recordármelo", "Fè m sonje")],["ADJUST_PLAN",L("Help me adjust my plan", "Ayudarme a ajustar mi plan", "Ede m ajiste plan mwen")],["EXPLAIN",L("Explain this to me", "Explicármelo", "Eksplike m sa")],["CARE_TEAM",L("Talk to my care team", "Hablar con mi equipo de atención", "Pale ak ekip swen mwen")],["UNSURE",L("I’m not sure", "No estoy seguro", "Mwen pa sèten")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-support-request" data-support="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "CHECK_IN") return `${titleBlock(L("How do you feel this goal is going?", "¿Cómo siente que va esta meta?", "Kijan ou santi objektif sa a ap mache?"), title, L("Goal check-in", "Seguimiento de meta", "Tcheke objektif"))}<div class="choice-list goal-checkin-options">${[["GOING_WELL", L("I’m making progress", "Estoy avanzando", "M ap fè pwogrè")], ["ABOUT_THE_SAME", L("About the same", "Más o menos igual", "Prèske menm jan")], ["DIFFICULTY", L("I’m having a hard time", "Me está costando", "Sa difisil pou mwen")], ["NOT_STARTED", L("I haven’t started yet", "Todavía no he empezado", "Mwen poko kòmanse")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-checkin-response" data-response="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "BARRIERS") return `${titleBlock(L("What’s getting in the way?", "¿Qué se lo está dificultando?", "Kisa k ap anpeche w?"), L("Choose the answer that fits best.", "Elija la respuesta que mejor corresponda.", "Chwazi repons ki pi byen mache."), L("Barriers", "Dificultades", "Difikilte"))}<form id="goal-barrier-form"><div class="goal-barrier-options">${[["NOT_WELL",L("I don’t feel well", "No me siento bien", "Mwen pa santi m byen")],["FORGET",L("I forget", "Se me olvida", "Mwen bliye")],["NO_TIME",L("I don’t have time", "No tengo tiempo", "Mwen pa gen tan")],["MEDICATION_TROUBLE",L("I have questions about my medications", "Tengo dudas sobre mis medicamentos", "Mwen gen kesyon sou medikaman mwen")],["MONITOR_HELP",L("I don’t know how to use my monitor", "No sé usar el monitor", "Mwen pa konnen kijan pou m sèvi ak monitè a")],["SAFETY_WORRY",L("I’m worried about doing it safely", "Me preocupa hacerlo de forma segura", "Mwen enkyete pou m fè sa an sekirite")],["OTHER",L("Something else", "Algo más", "Yon lòt bagay")]].map(([value,label]) => `<label class="check-row"><input type="radio" name="barrierType" value="${value}"><span class="check-box">✓</span><span>${label}</span></label>`).join("")}</div><label class="field">${L("Tell us more (optional)", "Cuéntenos más (opcional)", "Di nou plis (opsyonèl)")}<textarea name="barrierNotes" rows="3" maxlength="300"></textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "save-goal-barrier")}</div>`;
+  if (state.goalDetailView === "SUPPORT") return `${titleBlock(L("How can we help?", "¿Cómo podemos ayudarle?", "Kijan nou ka ede w?"), title, L("Support I need", "Apoyo que necesito", "Sipò mwen bezwen"))}<div class="choice-list goal-support-options">${[["REMINDER",L("Remind me", "Recordármelo", "Fè m sonje")],["EXPLAIN",L("Explain it to me", "Explicármelo", "Eksplike m sa")],["MONITOR_HELP",L("Help me with my monitor", "Ayudarme con el monitor", "Ede m ak monitè mwen")],["ADJUST_PLAN",L("Help me adjust my plan", "Ayudarme a ajustar mi plan", "Ede m ajiste plan mwen")],["CARE_TEAM",L("Talk to my care team", "Hablar con mi equipo de atención", "Pale ak ekip swen mwen")],["UNSURE",L("I’m not sure", "No estoy seguro", "Mwen pa sèten")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-support-request" data-support="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
   if (state.goalDetailView === "ACHIEVE_CONFIRM") return `${art("check", true)}${titleBlock(L("Are you ready to mark this goal as achieved?", "¿Está listo para marcar esta meta como lograda?", "Èske ou pare pou make objektif sa a kòm reyalize?"), title)}<p class="lead">${L("This only updates your personal goal. It does not change a clinical target or your care plan.", "Esto solo actualiza su meta personal. No cambia un objetivo clínico ni su plan de cuidado.", "Sa mete ajou objektif pèsonèl ou sèlman. Li pa chanje yon sib klinik ni plan swen ou.")}</p><div class="actions">${cta(L("Not yet", "Todavía no", "Poko"), "goal-detail-back", true)}${cta(L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize"), "confirm-goal-achieved")}</div>`;
-  const today = new Date().toISOString().slice(0, 10);
   const goalActions = goal.actions || [];
-  const doneCount = goalActions.filter(action => (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED").length;
-  // Each action is its own row: icon for meaning, frequency as secondary metadata, and one
-  // large button whose state says plainly whether it is done today.
-  const actionRows = goalActions.map(action => {
-    const doneToday = (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED";
-    return `<li class="goal-action ${doneToday ? "is-done" : ""}">
-      ${icon(goalActionIcon(action.sourceActionId || action.id), "goal-action-icon")}
-      <div class="goal-action-copy"><strong>${escapeHtml(action.title)}</strong>${action.frequency ? `<small>${icon("calendar")}${frequencyLabel(action.frequency)}</small>` : ""}</div>
-      <button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}" ${doneToday ? "disabled" : ""} aria-pressed="${doneToday}">${doneToday ? `${icon("check")}${L("Done today", "Hecho hoy", "Fè jodi a")}` : L("Mark done", "Marcar hecho", "Make fèt")}</button>
-    </li>`;
-  }).join("");
-  const clinicalTarget = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? `<aside class="goal-panel clinical-target-card">${icon("shield")}<div><span class="goal-panel-eyebrow">${L("Set by your care team", "Definido por su equipo de atención", "Ekip swen ou fikse li")}</span><strong>${L("Keep your blood pressure under control", "Controlar su presión arterial", "Kontwole tansyon ou")}</strong><p>${L("Your care team sets this clinical target. You can still adjust the actions in your plan.", "Su equipo de atención establece este objetivo clínico. Usted puede ajustar las acciones de su plan.", "Ekip swen ou fikse sib klinik sa a. Ou ka toujou ajiste aksyon nan plan ou.")}</p></div></aside>` : "";
-  const total = goalActions.length;
-  const percent = total ? Math.round((doneCount / total) * 100) : 0;
-  const progressBody = total === 0
-    ? `<p class="goal-progress-empty">${L("Personalize your plan to start tracking your progress.", "Personalice su plan para comenzar a seguir su progreso.", "Pèsonalize plan ou pou kòmanse swiv pwogrè ou.")}</p>`
-    : `<p class="goal-progress-count"><strong>${doneCount} ${L("of", "de", "sou")} ${total}</strong><span>${L("actions completed today", "acciones completadas hoy", "aksyon fèt jodi a")}</span></p>
-       <div class="goal-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${doneCount}" aria-label="${L("Goal progress", "Progreso de la meta", "Pwogrè objektif la")}"><span style="width:${percent}%"></span></div>
-       ${doneCount === 0 ? `<p class="goal-progress-empty">${L("This is a fresh start. Mark an action when you complete it.", "Esto está comenzando. Marque una acción cuando la complete.", "Sa ap kòmanse. Make yon aksyon lè ou fini l.")}</p>` : ""}`;
+  const actionRows = goalActions.map(action => goalActionRow(action, health || {}, goal)).join("");
+  const education = nextBestGoalEducation({ goalType: goal.goalType, completedTopicIds: (goal.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId) });
+  const localizedEducation = education ? { title: localGoalText(education.title, state.language), summary: localGoalText(education.summary, state.language) } : null;
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); weekStart.setHours(0,0,0,0);
+  const weeklyCompletions = templateId => goalActions.filter(item => item.templateId === templateId).flatMap(item => item.completionHistory || []).filter(item => new Date(`${item.date}T00:00:00`) >= weekStart).length;
+  const progressMetrics = [
+    health?.trend?.count ? ["chart", health.trend.count, L("readings received", "lecturas recibidas", "lekti resevwa")] : null,
+    goalActions.some(item => item.templateId === "medications-as-directed") ? ["pill", weeklyCompletions("medications-as-directed"), L("medication check-ins", "registros de medicamentos", "tcheke medikaman")] : null,
+    goalActions.some(item => item.templateId === "be-active") ? ["activity", weeklyCompletions("be-active"), L("active days", "días activos", "jou aktif")] : null,
+    goalActions.some(item => resolveGoalActionVerification(item) === "EMMI_LESSON") ? ["book", (goal.educationHistory || []).filter(item => item.status === "COMPLETED" && new Date(item.completedAt) >= weekStart).length, L("topics learned", "temas aprendidos", "sijè aprann")] : null
+  ].filter(Boolean);
+  const clinicalTarget = health?.clinicalTarget ? `<aside class="goal-panel clinical-target-card">${icon("shield")}<div><span class="goal-panel-eyebrow">${L("Goal set by your care team", "Objetivo definido por su equipo", "Sib ekip swen ou fikse")}</span><strong>${L("Less than", "Menos de", "Mwens pase")} ${health.clinicalTarget.systolicMaximum + 1}/${health.clinicalTarget.diastolicMaximum + 1} mmHg</strong><p>${L("Your care team sets this target. You can adjust the actions in your personal plan.", "Su equipo define este objetivo. Usted puede ajustar las acciones de su plan personal.", "Ekip swen ou fikse sib sa a. Ou ka ajiste aksyon nan plan pèsonèl ou.")}</p></div></aside>` : "";
   const statusLead = goal.status === "PAUSED"
     ? L("This goal is paused. You can return to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.")
     : goal.status === "ACHIEVED"
       ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.")
-      : L("Work on simple steps and keep track of your progress.", "Trabaje en pasos sencillos y lleve un registro de su progreso.", "Travay sou etap senp epi swiv pwogrè ou.");
+      : L("See how your blood pressure is doing, follow your steps, and learn what your results mean.", "Vea cómo va su presión, siga sus pasos y aprenda qué significan sus resultados.", "Gade kijan tansyon ou ye, swiv etap ou yo, epi aprann sa rezilta yo vle di.");
+  const latest = health?.latest;
+  const metric = health ? `<section class="goal-health-card" aria-label="${latest ? escapeHtml(L(`Blood pressure, ${latest.systolic} over ${latest.diastolic} millimeters of mercury. ${bpClassificationCopy(latest.classification)}.`, `Presión arterial, ${latest.systolic} sobre ${latest.diastolic} milímetros de mercurio. ${bpClassificationCopy(latest.classification)}.`, `Tansyon, ${latest.systolic} sou ${latest.diastolic} milimèt mèki. ${bpClassificationCopy(latest.classification)}.`)) : ""}"><div class="goal-health-eyebrow">${icon("heart")}<span>${L("My blood pressure today", "Mi presión hoy", "Tansyon mwen jodi a")}</span></div>${latest ? `<p class="goal-health-value"><strong>${latest.systolic} <i>/</i> ${latest.diastolic}</strong><span>mmHg</span></p><p class="goal-health-status ${latest.classification.toLowerCase()}">${icon(latest.classification === "WITHIN_EXPECTED_RANGE" ? "check" : "info")}${bpClassificationCopy(latest.classification)}</p><p class="goal-health-time">${L("Today", "Hoy", "Jodi a")} · ${new Intl.DateTimeFormat(goalHealthLocale(), { hour: "numeric", minute: "2-digit" }).format(new Date(latest.timestamp))}</p><p class="goal-health-source">${latest.source === "CONNECTED_DEVICE" && latest.sourceVerified ? L("Received automatically from your monitor", "Recibida automáticamente desde su monitor", "Resevwa otomatikman nan monitè ou") : L("Reported health reading", "Lectura de salud registrada", "Lekti sante rapòte")}</p><button type="button" class="goal-card-action" data-action="view-goal-readings">${L("View my readings", "Ver mis lecturas", "Gade lekti mwen")} ${icon("arrowRight")}</button><button type="button" class="goal-card-action secondary" data-action="explain-goal-reading">${L("What does this reading mean?", "¿Qué significa esta lectura?", "Kisa lekti sa a vle di?")} ${icon("arrowRight")}</button>` : `<div class="goal-health-empty">${icon("info")}<strong>${L("We have not received a reading today.", "Aún no hemos recibido una lectura hoy.", "Nou poko resevwa yon lekti jodi a.")}</strong><p>${L("When you use your connected monitor, the reading will appear here automatically.", "Cuando use su monitor conectado, la lectura aparecerá aquí automáticamente.", "Lè ou sèvi ak monitè konekte ou, lekti a ap parèt isit otomatikman.")}</p></div>`}</section>` : "";
+  const trend = health ? `<section class="goal-section goal-trend"><div class="goal-section-heading"><div><h2>${L("How my blood pressure has been", "Cómo ha estado mi presión", "Kijan tansyon mwen te ye")}</h2><p>${L("Last 7 days", "Últimos 7 días", "7 dènye jou yo")}</p></div></div>${goalTrendChart(health.trend)}${health.trend.averageSystolic ? `<div class="goal-trend-summary"><span>${L("Average", "Promedio", "Mwayèn")}</span><strong>${health.trend.averageSystolic} / ${health.trend.averageDiastolic}</strong><small>${icon(health.trend.direction === "STABLE" ? "check" : "trending")}${bpTrendCopy(health.trend.direction)}</small></div>` : ""}<button type="button" class="goal-secondary-button" data-action="explain-goal-trend">${icon("trending")}<span>${L("Ask EMMI to explain this trend", "Pedir a EMMI que explique esta tendencia", "Mande EMMI eksplike tandans sa a")}</span></button></section>` : "";
   return `${titleBlock(title, statusLead, L("My goal", "Mi meta", "Objektif mwen"))}
-    ${clinicalTarget}
-    <section class="goal-panel goal-why">${icon("heart")}<div><span class="goal-panel-eyebrow">${L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen")}</span>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p><button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Edit", "Editar", "Modifye")}</button>` : `<button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué es importante", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</div></section>
+    ${metric}${trend}
     <section class="goal-section">
       <h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>
-      ${actionRows ? `<p class="goal-section-support">${L("Mark what you have completed today.", "Marque lo que haya completado hoy.", "Make sa ou fini jodi a.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
+      ${actionRows ? `<p class="goal-section-support">${L("Some steps are recorded automatically. You only confirm the ones you do yourself.", "Algunos pasos se registran automáticamente. Usted solo confirma los que realiza personalmente.", "Gen kèk etap ki anrejistre otomatikman. Ou konfime sèlman sa ou fè tèt ou.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
       <button type="button" class="goal-secondary-button" data-action="plan-active-goal">${icon("sliders")}<span>${actionRows ? L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen") : goal.planPersonalizationStatus === "DEFERRED" || goal.planStatus === "DEFERRED" ? L("Continue personalizing my plan", "Continuar personalizando mi plan", "Kontinye pèsonalize plan mwen") : L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen")}</span></button>
     </section>
+    ${localizedEducation ? `<section class="goal-education-card"><img src="/assets/emmi-assistant.png" alt=""><div><span>${L("Learn with EMMI", "Aprenda con EMMI", "Aprann avèk EMMI")}</span><h2>${escapeHtml(localizedEducation.title)}</h2><p>${escapeHtml(localizedEducation.summary)}</p><button type="button" class="goal-card-action" data-action="learn-goal-topic">${L("Explain it to me", "Explícamelo", "Eksplike m sa")} ${icon("arrowRight")}</button></div></section>` : ""}
     <section class="goal-section goal-progress">
       <h2>${L("My progress", "Mi progreso", "Pwogrè mwen")}</h2>
-      ${progressBody}
+      <p class="goal-section-support">${L("This week", "Esta semana", "Semèn sa a")}</p>
+      ${progressMetrics.length ? `<ul class="goal-progress-metrics">${progressMetrics.map(([metricIcon, count, label]) => `<li>${icon(metricIcon)}<strong>${count}</strong><span>${label}</span></li>`).join("")}</ul>` : `<p class="goal-progress-empty">${L("Your progress will appear here as readings and check-ins are recorded.", "Su progreso aparecerá aquí a medida que se registren lecturas y seguimientos.", "Pwogrè ou ap parèt isit pandan lekti ak tcheke yo anrejistre.")}</p>`}
       <button type="button" class="goal-secondary-button" data-action="open-goal-checkin">${icon("trending")}<span>${L("How is this goal going?", "¿Cómo va esta meta?", "Kijan objektif sa a ap mache?")}</span></button>
     </section>
+    ${clinicalTarget}
+    <section class="goal-panel goal-why">${icon("heart")}<div><span class="goal-panel-eyebrow">${L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen")}</span>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p><button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Edit", "Editar", "Modifye")}</button>` : `<button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué es importante", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</div></section>
     <details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button></div></details>
     <button type="button" class="goal-back-button" data-action="goal-detail-to-list">${icon("arrowLeft")}<span>${L("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen")}</span></button>`;
 }
@@ -3560,8 +3648,8 @@ function bind() {
       const now = new Date().toISOString();
       const suggestions = suggestedActionsFor(goal.goalType);
       const targetFor = (template, frequency) => frequency === "daily" ? 7 : frequency === "few-days" || frequency === "choose-days" ? (template.defaultTarget || 3) : template.defaultTarget || null;
-      const suggested = suggestions.filter(item => state.goalPlanDraft.actionIds.includes(item.id)).map(item => ({ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: item.id, title: localGoalText(item.title, state.language), actionType: item.frequency ? "RECURRING" : "ONE_TIME", source: "CARE_PLAN", frequency: item.frequency ? state.goalPlanDraft.frequency : "", targetCount: item.frequency ? targetFor(item, state.goalPlanDraft.frequency) : null, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }));
-      const custom = state.goalPlanDraft.customAction ? [{ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: "", title: state.goalPlanDraft.customAction, actionType: "RECURRING", source: "PATIENT", frequency: state.goalPlanDraft.frequency, targetCount: state.goalPlanDraft.frequency === "daily" ? 7 : 3, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }] : [];
+      const suggested = suggestions.filter(item => state.goalPlanDraft.actionIds.includes(item.id)).map(item => ({ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: item.id, title: localGoalText(item.title, state.language), actionType: item.frequency ? "RECURRING" : "ONE_TIME", source: "CARE_PLAN", verificationMethod: resolveGoalActionVerification({ templateId: item.id }), frequency: item.frequency ? state.goalPlanDraft.frequency : "", targetCount: item.frequency ? targetFor(item, state.goalPlanDraft.frequency) : null, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }));
+      const custom = state.goalPlanDraft.customAction ? [{ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: "", title: state.goalPlanDraft.customAction, actionType: "RECURRING", source: "PATIENT", verificationMethod: "PATIENT_REPORT", frequency: state.goalPlanDraft.frequency, targetCount: state.goalPlanDraft.frequency === "daily" ? 7 : 3, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }] : [];
       goal.actions = [...suggested, ...custom]; goal.whyItMatters = state.goalPlanDraft.whyItMatters; goal.planStatus = "COMPLETED"; goal.planPersonalizationStatus = "COMPLETED"; goal.updatedAt = now;
       state.goalPlanStatus = "COMPLETED"; state.goalsStatus = "COMPLETED"; state.baselineResumeScreen = "ONBOARDING";
       goalHistoryEvent(goal.id, "PLAN_PERSONALIZATION_SAVED", { actionCount: goal.actions.length, remindersEnabled: state.goalPlanDraft.remindersEnabled, clinicalTargetChanged: false });
@@ -3581,11 +3669,32 @@ function bind() {
     }
     if (action === "complete-goal-action") {
       const goal = currentGoal(); const item = goal?.actions?.find(candidate => candidate.id === el.dataset.actionId); if (!item) return;
+      if (resolveGoalActionVerification(item) !== "PATIENT_REPORT") return;
       const today = new Date().toISOString().slice(0,10); item.completionHistory ||= [];
       if (!item.completionHistory.some(entry => entry.date === today)) item.completionHistory.push({ id: `completion_${Date.now().toString(36)}`, date: today, completedAt: new Date().toISOString(), source: "PATIENT_REPORTED" });
       if (item.actionType === "ONE_TIME") item.status = "COMPLETED";
-      item.updatedAt = goalHistoryEvent(goal.id, "ACTION_COMPLETED", { actionId: item.id, source: item.source });
+      item.updatedAt = goalHistoryEvent(goal.id, "ACTION_COMPLETED", { actionId: item.id, actionSource: item.source, completionSource: "PATIENT_REPORT", verificationMethod: item.verificationMethod });
       draftStore.save(state); render(); return;
+    }
+    if (action === "view-goal-readings") { state.goalDetailView = "READINGS"; render(); return; }
+    if (["explain-goal-reading", "explain-goal-trend", "learn-goal-topic", "ask-emmi-medication"].includes(action)) {
+      const goal = currentGoal(); if (!goal) return;
+      const health = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+      let question = "";
+      if (action === "explain-goal-reading" && health?.latest) question = L(`What does my latest blood pressure reading of ${health.latest.systolic}/${health.latest.diastolic} mean?`, `¿Qué significa mi lectura más reciente de presión arterial de ${health.latest.systolic}/${health.latest.diastolic}?`, `Kisa dènye lekti tansyon mwen ${health.latest.systolic}/${health.latest.diastolic} vle di?`);
+      if (action === "explain-goal-trend" && health?.trend) question = L("How has my blood pressure been this week?", "¿Cómo ha estado mi presión arterial esta semana?", "Kijan tansyon mwen te ye semèn sa a?");
+      if (action === "ask-emmi-medication") question = L("I have a question about taking my medications as directed.", "Tengo una pregunta sobre cómo tomar mis medicamentos según las indicaciones.", "Mwen gen yon kesyon sou pran medikaman mwen jan yo mande a.");
+      if (action === "learn-goal-topic") {
+        const completedAt = new Date().toISOString();
+        goal.educationHistory ||= [];
+        if (!goal.educationHistory.some(item => item.topicId === "bp-numbers" && item.status === "COMPLETED")) goal.educationHistory.push({ id: `education_${Date.now().toString(36)}`, topicId: "bp-numbers", status: "COMPLETED", completedAt, source: "EMMI_EDUCATION", version: "1.0" });
+        goalHistoryEvent(goal.id, "EDUCATION_COMPLETED", { topicId: "bp-numbers", completionSource: "EMMI_EDUCATION" });
+        draftStore.save(state);
+        question = health?.latest ? L(`Please explain what ${health.latest.systolic}/${health.latest.diastolic} means in simple language.`, `Explíqueme en palabras sencillas qué significa ${health.latest.systolic}/${health.latest.diastolic}.`, `Tanpri eksplike m nan mo senp sa ${health.latest.systolic}/${health.latest.diastolic} vle di.`) : L("What do blood pressure numbers mean?", "¿Qué significan los números de presión arterial?", "Kisa chif tansyon yo vle di?");
+      }
+      showHelp();
+      if (question) await askEmmi(question);
+      return;
     }
     if (action === "open-goal-checkin") { state.goalDetailView = "CHECK_IN"; render(); return; }
     if (action === "goal-checkin-response") {
@@ -4417,7 +4526,8 @@ async function boot() {
         clinicalTargetId: goal.clinicalTargetId || null,
         patientCanEditClinicalTarget: false,
         careTeamReviewStatus: goal.careTeamReviewStatus || (goal.goalType === "CUSTOM" ? "PENDING" : "NOT_REQUIRED"),
-        actions: Array.isArray(goal.actions) ? goal.actions : [],
+        actions: Array.isArray(goal.actions) ? goal.actions.map(action => ({ ...action, verificationMethod: resolveGoalActionVerification(action), completionHistory: Array.isArray(action.completionHistory) ? action.completionHistory : [] })) : [],
+        educationHistory: Array.isArray(goal.educationHistory) ? goal.educationHistory : [],
         progress: Array.isArray(goal.progress) ? goal.progress : [],
         barriers: Array.isArray(goal.barriers) ? goal.barriers : [],
         supportRequests: Array.isArray(goal.supportRequests) ? goal.supportRequests : [],
