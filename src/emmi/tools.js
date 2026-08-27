@@ -1,6 +1,8 @@
 import { EMMI_CONFIG, EMMI_SYSTEM_PROMPT_VERSION, emmiPrototypeIsSafe } from "./config.js";
 import { getEmmiVoiceIdentity } from "./voiceIdentity.js";
-import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS } from "../mock/emmiFixtures.js";
+import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "../mock/emmiFixtures.js";
+import { normalizeCoverage } from "../coverage.js";
+import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -43,7 +45,8 @@ export class EmmiAuditLog {
 
 export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getEnrollmentContext", description: "Get authoritative fictional prototype enrollment context.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
-  { name: "getExpectedAccessCost", description: "Get authoritative expected ACCESS cost. Always use for cost questions.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, accessTrack: { type: "STRING" } }, required: ["patientId", "accessTrack"] } },
+  { name: "getExpectedAccessCost", description: "Get the deterministic expected ACCESS patient payment for this patient from the financial responsibility engine. Always use for any question about what the patient pays, why it is that amount, or what it would be without supplemental coverage. Never calculate a patient's cost yourself and never treat having supplemental insurance as meaning the patient pays nothing: expectedPatientPayment of null means the amount is not known and must not be stated.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, accessTrack: { type: "STRING" } }, required: ["patientId", "accessTrack"] } },
+  { name: "getPatientCoverage", description: "Get this patient's verified coverage: whether they have Original Medicare or Medicare Advantage, Part A and Part B status, and any secondary payers including Medicare Supplement, Medicaid or QMB. Always use for 'do I have Medicare', 'do I have supplemental insurance', 'what is my secondary coverage' and similar patient-specific coverage questions. Only a payer typed MEDICARE_SUPPLEMENT may be described to the patient as supplemental or Medigap coverage.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getAssignedDevice", description: "Get the monitor assigned to the fictional demo patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getMedicationList", description: "Get the fictional medications currently on file for this patient. Use for patient-specific medication-list questions.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getPatientGoals", description: "Get the fictional personal goals currently saved for this patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
@@ -80,8 +83,17 @@ export class EmmiToolOrchestrator {
     let result;
     if (name === "getEnrollmentContext") result = clone(context);
     else if (name === "getExpectedAccessCost") {
+      // The engine decides the amount; the model only explains the result it is handed. Note the
+      // gross amount comes from the track configuration, never from a copy on the patient record.
       const patient = EMMI_DEMO_PATIENTS[patientId];
-      result = { track: patient.accessTrack, expectedMonthlyCost: patient.expectedMonthlyCost, secondaryCoverageStatus: patient.secondaryCoverageStatus || "NOT_VERIFIED", estimatedOutOfPocketCost: patient.secondaryCoverageStatus === "VERIFIED" ? 0 : null, currency: "USD" };
+      result = resolveExpectedPatientResponsibility({ track: patient.accessTrack, coverage: emmiDemoCoverage(patientId) || {} });
+    } else if (name === "getPatientCoverage") {
+      // Whether this patient has Medicare, and of which kind, is a runtime fact. It is never
+      // inferred from the fact that they are looking at an ACCESS screen.
+      const coverage = emmiDemoCoverage(patientId);
+      result = coverage
+        ? { found: true, ...normalizeCoverage(coverage) }
+        : { found: false, medicare: null, secondaryPayers: [], supplemental: null, verificationStatus: "UNKNOWN", note: "Coverage could not be verified from the information currently available." };
     } else if (name === "getAssignedDevice") {
       const patient = EMMI_DEMO_PATIENTS[patientId];
       const device = EMMI_DEMO_DEVICES.find(item => item.deviceId === patient.assignedDeviceId);

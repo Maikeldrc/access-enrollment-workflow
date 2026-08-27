@@ -22,7 +22,13 @@ describe("EMMI prototype tools", () => {
 
   it("uses authoritative fixture data for cost and connected-device answers", async () => {
     const { tools } = makeRuntime();
-    expect(await tools.execute("getExpectedAccessCost", { patientId: "DEMO-P001", accessTrack: "eCKM" })).toMatchObject({ expectedMonthlyCost: 6, currency: "USD" });
+    // The cost tool now returns the engine's structured result: a gross amount from the track
+    // configuration, and a $0 expected payment justified by verified supplemental coverage.
+    expect(await tools.execute("getExpectedAccessCost", { patientId: "DEMO-P001", accessTrack: "eCKM" })).toMatchObject({
+      grossBeneficiaryResponsibility: 6, expectedPatientPayment: 0, currency: "USD",
+      explanationCode: "SUPPLEMENTAL_COVERS_COST_SHARE", responsibilityType: "EXPECTED"
+    });
+    expect(await tools.execute("getPatientCoverage", { patientId: "DEMO-P001" })).toMatchObject({ found: true });
     expect(await tools.execute("getAssignedDevice", { patientId: "DEMO-P001" })).toMatchObject({ found: true, vendor: "TENOVI", integrationStatus: "CONNECTED" });
   });
 

@@ -37,7 +37,10 @@ export const TOOL_FIRST_INTENTS = Object.freeze({
   GOAL_STATUS: "getPatientGoals",
   CARE_TEAM_STATUS: "getCareTeam",
   NEXT_STEP: "getNextBestAction",
-  CLINICAL_SAFETY: "evaluateClinicalEscalation"
+  CLINICAL_SAFETY: "evaluateClinicalEscalation",
+  // "What is Medigap?" is knowledge. "Do I have Medigap?" is a fact about this patient and
+  // must come from verified coverage, never from a knowledge page.
+  COVERAGE: "getPatientCoverage"
 });
 
 const INTENT_RULES = [
@@ -73,9 +76,11 @@ export const classifyQuestion = (question, runtime = {}) => {
   const matched = INTENT_RULES.find(rule => rule.test.test(text));
   const intent = matched?.intent || "OTHER";
   const personalized = PERSONAL_MARKERS.test(text);
-  const requiredTool = TOOL_FIRST_INTENTS[intent] || null;
+  // A Medicare question asked about oneself is a coverage lookup, not a definition.
+  const resolvedIntent = intent === "MEDICARE" && personalized ? "COVERAGE" : intent;
+  const requiredTool = TOOL_FIRST_INTENTS[resolvedIntent] || null;
   return {
-    intent,
+    intent: resolvedIntent,
     // Personal phrasing raises the stakes: a generic explanation is no longer a safe answer.
     riskLevel: matched?.risk || "low",
     personalized,

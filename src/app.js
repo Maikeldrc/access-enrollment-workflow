@@ -711,7 +711,7 @@ function assistantContext() {
       locale: languageCode(),
       onEvent: (type, details) => {
         emmiAuditLog?.voiceEvent(type, details);
-        audit(state, type.toLowerCase(), type === "EMMI_UNEXPECTED_GREETING" ? "blocked" : "success", details);
+        audit(state, type.toLowerCase(), type === "EMMI_UNEXPECTED_GREETING" ? "blocked" : "success", privacySafeEmmiEventDetails(details));
         if (import.meta.env.DEV && type === "EMMI_UNEXPECTED_GREETING") console.warn("[EMMI continuity guard]", details);
       }
     });
@@ -764,6 +764,10 @@ function assistantContext() {
   };
 }
 
+// Free text is what a patient typed. It belongs in EMMI's own transcript, not in the analytics
+// events that travel with the enrollment record.
+const privacySafeEmmiEventDetails = ({ retrievalQuery, question, transcript, text, ...rest } = {}) => rest;
+
 const emmiToolStatusLabel = name => ({
   getEnrollmentContext: L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…"),
   getExpectedAccessCost: L("Checking your ACCESS cost…", "Revisando su costo de ACCESS…", "N ap verifye pri ACCESS ou…"),
@@ -797,7 +801,10 @@ function ensureEmmiRuntime() {
     onEvent: (type, details) => {
       emmiAuditLog?.voiceEvent(type, details);
       if (type === "EMMI_ANSWER_ROUTED") emmiAuditLog?.answerTurn({ ...details, promptVersion: "emmi-answer-first-v1" });
-      audit(state, type.toLowerCase(), /FAILED|EMPTY/.test(type) ? "failed" : "success", details);
+      // The enrollment audit trail records that a turn happened and how it was routed, never what
+      // the patient typed: the question can carry symptoms, readings or a family member's name.
+      // The EMMI audit log above is the deliberate transcript sink and keeps the full detail.
+      audit(state, type.toLowerCase(), /FAILED|EMPTY/.test(type) ? "failed" : "success", privacySafeEmmiEventDetails(details));
       if (import.meta.env.DEV && ["EMMI_RETRIEVAL_FAILED", "EMMI_TOOL_FAILED", "EMMI_INTENT_ROUTING_FAILED", "EMMI_EMPTY_GROUNDED_CONTEXT", "EMMI_RESPONSE_GENERATION_FAILED"].includes(type)) console.warn(`[${type}]`, details);
       if (import.meta.env.DEV && type === "EMMI_ANSWER_ROUTED") console.debug("[EMMI retrieval debug]", { intent: details.intent, retrievalQuery: details.retrievalQuery, knowledgeChunkIds: details.knowledgeChunkIds, toolCalls: details.toolCalls, runtimeFactsUsed: details.runtimeFactsUsed, responseMode: details.responseMode });
     }
@@ -1019,8 +1026,9 @@ async function legacyAssistantActionAnswer(question, context) {
       : { text: L("After your enrollment is complete, I can help you share public information about ACCESS without sharing your enrollment information.", "Cuando complete su inscripción, puedo ayudarle a compartir información pública sobre ACCESS sin compartir los datos de su inscripción.", "Apre enskripsyon ou fini, mwen ka ede w pataje enfòmasyon piblik sou ACCESS san pataje enfòmasyon enskripsyon ou.") };
   }
   if (/(cost|pay|how much|costo|pagar|cuánto|pri|peye|koute)/i.test(normalized)) {
+    // The engine decides the amount and the reason; this only puts the reason into words.
     const cost = await runtime.tools.execute("getExpectedAccessCost", { patientId: context.patientId, accessTrack: context.accessTrack });
-    return { text: cost.estimatedOutOfPocketCost === 0 ? L(`Your verified out-of-pocket ACCESS cost is $0. Medicare covers most of this care, and your verified supplemental coverage covers your monthly share.`, `Su costo de bolsillo verificado para ACCESS es $0. Medicare cubre la mayor parte y su cobertura suplementaria verificada cubre su parte mensual.`, `Depans ACCESS yo verifye ou peye nan pòch ou se $0. Medicare kouvri pifò swen an epi kouvèti siplemantè verifye ou kouvri pati pa mwa a.`) : L(`Your expected ACCESS cost is $${cost.expectedMonthlyCost} per month. Medicare covers most of the cost, and supplemental insurance may cover some or all of your $${cost.expectedMonthlyCost} share.`, `Su costo esperado de ACCESS es de $${cost.expectedMonthlyCost} al mes. Medicare cubre la mayor parte y un seguro suplementario puede cubrir parte o la totalidad de su parte de $${cost.expectedMonthlyCost}.`, `Pri ACCESS ou prevwa a se $${cost.expectedMonthlyCost} pa mwa. Medicare kouvri pifò depans lan, epi asirans siplemantè ka kouvri yon pati oswa tout pati $${cost.expectedMonthlyCost} ou a.`) };
+    return { text: emmiAccessCostAnswer(cost, state.language) };
   }
   const asksIfAnotherBpReadingIsNeeded = ((normalized.includes("blood pressure") || normalized.includes("pressure")) && (normalized.includes("again") || normalized.includes("now")))
     || (normalized.includes("presión") && (normalized.includes("otra vez") || normalized.includes("ahora")))
@@ -1088,6 +1096,46 @@ const assistantVoiceCopy = () => {
   };
   return stateCopy[state.assistantVoiceState] || stateCopy.DISCONNECTED;
 };
+// One cost sentence per engine explanation code. The assistant never picks the wording from an
+// amount it read: an unknown amount is answered as unknown rather than rounded to $0.
+const emmiAccessCostAnswer = (result, language) => {
+  const gross = `$${result.grossBeneficiaryResponsibility}`;
+  const copy = {
+    SUPPLEMENTAL_COVERS_COST_SHARE: L(
+      "Based on the coverage we verified, your expected payment for ACCESS is $0. Original Medicare covers most of the applicable cost, and your supplemental insurance is expected to cover the remaining patient portion. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.",
+      "Según la cobertura que verificamos, su pago esperado por ACCESS es $0. Medicare Original cubre la mayor parte del costo aplicable y se espera que su seguro suplementario cubra la parte que le corresponde. Ese $0 es su pago esperado por ACCESS; otros servicios de salud pueden tener sus propios costos.",
+      "Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se $0. Medicare Orijinal kouvri pifò nan depans ki aplikab la, epi nou prevwa asirans siplemantè ou ap kouvri rès pati pa ou a. $0 sa a se peman ACCESS ou prevwa a; lòt sèvis sante ka gen pwòp depans pa yo."),
+    NO_SUPPLEMENTAL_COVERAGE: L(
+      `Based on the coverage we verified, your expected payment for ACCESS is ${gross} per month for your current track. Medicare covers most of the applicable cost and this is the remaining patient portion.`,
+      `Según la cobertura que verificamos, su pago esperado por ACCESS es de ${gross} al mes para su vía actual. Medicare cubre la mayor parte del costo aplicable y esta es la parte que le corresponde.`,
+      `Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se ${gross} pa mwa pou wout ou kounye a. Medicare kouvri pifò nan depans ki aplikab la epi sa a se rès pati pa ou a.`),
+    SUPPLEMENTAL_COVERAGE_UNKNOWN: L(
+      `I could not confirm whether your supplemental coverage pays the ACCESS patient portion, so I do not have a final expected payment for you yet. Before that is confirmed, the patient portion for your current track is ${gross} per month. Your care team can check your coverage.`,
+      `No pude confirmar si su cobertura suplementaria paga la parte del paciente de ACCESS, así que todavía no tengo un pago esperado definitivo. Antes de confirmarlo, la parte del paciente para su vía actual es de ${gross} al mes. Su equipo de atención puede verificar su cobertura.`,
+      `Mwen pa t ka konfime si kouvèti siplemantè ou peye pati pasyan an pou ACCESS, kidonk mwen poko gen yon peman final. Anvan sa konfime, pati pasyan an pou wout ou kounye a se ${gross} pa mwa. Ekip swen ou ka verifye kouvèti ou.`),
+    COVERAGE_VERIFICATION_STALE: L(
+      "Your coverage was last verified a while ago, so I do not want to give you an amount that may be out of date. Your care team can re-check your coverage and then I can tell you your expected payment.",
+      "Su cobertura se verificó hace tiempo, así que prefiero no darle una cantidad que podría estar desactualizada. Su equipo de atención puede verificarla de nuevo y luego podré decirle su pago esperado.",
+      "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk mwen pa vle ba w yon montan ki ka pa ajou. Ekip swen ou ka reverifye kouvèti a epi apre sa mwen ka di w peman ou prevwa a."),
+    COVERAGE_NOT_VERIFIED: L(
+      "I could not verify your coverage from the information currently available, so I do not have an expected payment to give you yet. Your care team can check this with you.",
+      "No pude verificar su cobertura con la información disponible, así que todavía no tengo un pago esperado para darle. Su equipo de atención puede revisarlo con usted.",
+      "Mwen pa t ka verifye kouvèti ou ak enfòmasyon ki disponib kounye a, kidonk mwen poko gen yon peman pou m ba w. Ekip swen ou ka tcheke sa avèk ou."),
+    QMB_COST_SHARE_RULES: L(
+      "Your coverage includes a Qualified Medicare Beneficiary designation, which has its own cost-sharing rules. I do not want to state an amount for you without your care team confirming how those rules apply.",
+      "Su cobertura incluye la designación de Beneficiario Calificado de Medicare, que tiene sus propias reglas de costos. Prefiero no indicarle una cantidad sin que su equipo confirme cómo se aplican esas reglas.",
+      "Kouvèti ou gen yon deziyasyon Benefisyè Medicare Kalifye, ki gen pwòp règ pa l sou depans. Mwen pa vle bay yon montan san ekip swen ou konfime kijan règ sa yo aplike."),
+    MEDICARE_ADVANTAGE_NOT_ELIGIBLE: L(
+      "Your coverage shows a Medicare Advantage plan rather than Original Medicare. That affects whether ACCESS is available to you, not just the amount, so your care team needs to review your eligibility before I can talk about a payment.",
+      "Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original. Eso afecta si ACCESS está disponible para usted, no solo la cantidad, así que su equipo debe revisar su elegibilidad antes de que pueda hablar de un pago.",
+      "Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal. Sa afekte si ACCESS disponib pou ou, se pa sèlman montan an, kidonk ekip swen ou dwe revize kalifikasyon ou anvan mwen ka pale sou yon peman.")
+  }[result.explanationCode];
+  return copy || L(
+    "I do not have a confirmed expected payment for you right now. Your care team can check your coverage.",
+    "Ahora mismo no tengo un pago esperado confirmado. Su equipo de atención puede verificar su cobertura.",
+    "Mwen pa gen yon peman konfime kounye a. Ekip swen ou ka verifye kouvèti ou.");
+};
+
 const assistantVoiceErrorCopyFor = code => ({
   microphone_denied: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
   rate_limited: L("EMMI voice is temporarily busy. You can continue by typing.", "La voz de EMMI está ocupada temporalmente. Puede continuar escribiendo.", "Vwa EMMI okipe pou kounye a. Ou ka kontinye ekri."),
@@ -3683,6 +3731,9 @@ function closeAssistant({ fromHistory = false } = {}) {
   setPatientExperienceInert(false);
   stopAssistantKeyboardWatch();
   audit(state, "emmi_expanded_closed", "success", { screen: state.screen, source: emmiExpandedSource });
+  // The audit trail is part of the enrollment record, so the EMMI session the patient just had is
+  // persisted with everything else. The store ignores this until identity is verified.
+  draftStore.save(state);
   // Voice guidance is global state, so an open panel is not what keeps a session alive. Only a
   // session the patient never turned on is torn down with the panel that started it.
   if (!state.emmiVoiceGuidance) {

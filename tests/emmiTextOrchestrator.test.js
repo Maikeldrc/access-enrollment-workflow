@@ -13,7 +13,7 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
       const programs = ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"].filter(item => new RegExp(item, "i").test(args.query));
       return { intent: "PROGRAM_EXPLANATION", passages: knowledgePassages || (programs.length ? programs : [program]).map(item => passage(item)) };
     }
-    if (name === "getExpectedAccessCost") return { expectedMonthlyCost: 6, estimatedOutOfPocketCost: null };
+    if (name === "getExpectedAccessCost") return { grossBeneficiaryResponsibility: 6, expectedPatientPayment: 0, currency: "USD", responsibilityType: "EXPECTED", explanationCode: "SUPPLEMENTAL_COVERS_COST_SHARE" };
     if (name === "getEnrollmentContext") return { eligibilityStatus: "ELIGIBLE" };
     if (name === "getAssignedDevice") return { found: true, displayName: "Tenovi Connected Blood Pressure Monitor", deviceId: "TEN-8842", integrationStatus: "CONNECTED" };
     if (name === "getMedicationList") return { medications: [{ name: "Lisinopril", details: "10 mg", active: true }] };
@@ -68,7 +68,7 @@ describe("Ask EMMI answer-first orchestration", () => {
   });
 
   it.each([
-    ["¿Cuánto voy a pagar?", "getExpectedAccessCost", /\$6/],
+    ["¿Cuánto voy a pagar?", "getExpectedAccessCost", /\$0/],
     ["¿Soy elegible?", "getEnrollmentContext", /puede continuar/],
     ["¿Qué monitor tengo?", "getAssignedDevice", /Tenovi/],
     ["¿Está conectado mi monitor?", "getAssignedDevice", /conectado/],

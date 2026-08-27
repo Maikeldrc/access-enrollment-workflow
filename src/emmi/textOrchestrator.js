@@ -121,18 +121,74 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
   return unavailable(locale);
 };
 
+// Every cost sentence is chosen by the engine's explanation code, never by the assistant reading
+// an amount and drawing its own conclusion. An unknown amount is answered as unknown.
+const accessCostAnswer = (result, locale) => {
+  const gross = `$${result.grossBeneficiaryResponsibility}`;
+  const byCode = {
+    SUPPLEMENTAL_COVERS_COST_SHARE: {
+      EN: `Based on the coverage we verified, your expected payment for ACCESS is $0. Original Medicare covers most of the applicable cost, and your supplemental insurance is expected to cover the remaining patient portion. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.`,
+      ES: `Según la cobertura que verificamos, su pago esperado por ACCESS es $0. Medicare Original cubre la mayor parte del costo aplicable y se espera que su seguro suplementario cubra la parte que le corresponde. Ese $0 es su pago esperado por ACCESS; otros servicios de salud pueden tener sus propios costos.`,
+      KR: `Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se $0. Medicare Orijinal kouvri pifò nan depans ki aplikab la, epi nou prevwa asirans siplemantè ou ap kouvri rès pati pa ou a. $0 sa a se peman ACCESS ou prevwa a; lòt sèvis sante ka gen pwòp depans pa yo.`
+    },
+    NO_SUPPLEMENTAL_COVERAGE: {
+      EN: `Based on the coverage we verified, your expected payment for ACCESS is ${gross} per month for your current track. Medicare covers most of the applicable cost and this is the remaining patient portion.`,
+      ES: `Según la cobertura que verificamos, su pago esperado por ACCESS es de ${gross} al mes para su vía actual. Medicare cubre la mayor parte del costo aplicable y esta es la parte que le corresponde.`,
+      KR: `Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se ${gross} pa mwa pou wout ou kounye a. Medicare kouvri pifò nan depans ki aplikab la epi sa a se rès pati pa ou a.`
+    },
+    SUPPLEMENTAL_COVERAGE_UNKNOWN: {
+      EN: `I could not confirm whether your supplemental coverage pays the ACCESS patient portion, so I do not have a final expected payment for you yet. Before that is confirmed, the patient portion for your current track is ${gross} per month. Your care team can check your coverage.`,
+      ES: `No pude confirmar si su cobertura suplementaria paga la parte del paciente de ACCESS, así que todavía no tengo un pago esperado definitivo. Antes de confirmarlo, la parte del paciente para su vía actual es de ${gross} al mes. Su equipo de atención puede verificar su cobertura.`,
+      KR: `Mwen pa t ka konfime si kouvèti siplemantè ou peye pati pasyan an pou ACCESS, kidonk mwen poko gen yon peman final ou prevwa. Anvan sa konfime, pati pasyan an pou wout ou kounye a se ${gross} pa mwa. Ekip swen ou ka verifye kouvèti ou.`
+    },
+    COVERAGE_VERIFICATION_STALE: {
+      EN: `Your coverage was last verified a while ago, so I do not want to give you an amount that may be out of date. Your care team can re-check your coverage and then I can tell you your expected payment.`,
+      ES: `Su cobertura se verificó hace tiempo, así que prefiero no darle una cantidad que podría estar desactualizada. Su equipo de atención puede verificarla de nuevo y luego podré decirle su pago esperado.`,
+      KR: `Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk mwen pa vle ba w yon montan ki ka pa ajou. Ekip swen ou ka reverifye kouvèti a epi apre sa mwen ka di w peman ou prevwa a.`
+    },
+    COVERAGE_NOT_VERIFIED: {
+      EN: `I could not verify your coverage from the information currently available, so I do not have an expected payment to give you yet. Your care team can check this with you.`,
+      ES: `No pude verificar su cobertura con la información disponible, así que todavía no tengo un pago esperado para darle. Su equipo de atención puede revisarlo con usted.`,
+      KR: `Mwen pa t ka verifye kouvèti ou ak enfòmasyon ki disponib kounye a, kidonk mwen poko gen yon peman ou prevwa pou m ba w. Ekip swen ou ka tcheke sa avèk ou.`
+    },
+    QMB_COST_SHARE_RULES: {
+      EN: `Your coverage includes a Qualified Medicare Beneficiary designation, which has its own cost-sharing rules. I do not want to state an amount for you without your care team confirming how those rules apply.`,
+      ES: `Su cobertura incluye la designación de Beneficiario Calificado de Medicare, que tiene sus propias reglas de costos. Prefiero no indicarle una cantidad sin que su equipo confirme cómo se aplican esas reglas.`,
+      KR: `Kouvèti ou gen yon deziyasyon Benefisyè Medicare Kalifye, ki gen pwòp règ pa l sou depans. Mwen pa vle bay yon montan san ekip swen ou konfime kijan règ sa yo aplike.`
+    },
+    MEDICARE_ADVANTAGE_NOT_ELIGIBLE: {
+      EN: `Your coverage shows a Medicare Advantage plan rather than Original Medicare. That affects whether ACCESS is available to you, not just the amount, so your care team needs to review your eligibility before I can talk about a payment.`,
+      ES: `Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original. Eso afecta si ACCESS está disponible para usted, no solo la cantidad, así que su equipo debe revisar su elegibilidad antes de que pueda hablar de un pago.`,
+      KR: `Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal. Sa afekte si ACCESS disponib pou ou, se pa sèlman montan an, kidonk ekip swen ou dwe revize kalifikasyon ou anvan mwen ka pale sou yon peman.`
+    }
+  }[result.explanationCode];
+  return byCode ? pick(locale, byCode) : pick(locale, byCode || {
+    EN: "I do not have a confirmed expected payment for you right now. Your care team can check your coverage.",
+    ES: "Ahora mismo no tengo un pago esperado confirmado. Su equipo de atención puede verificar su cobertura.",
+    KR: "Mwen pa gen yon peman konfime ou prevwa kounye a. Ekip swen ou ka verifye kouvèti ou."
+  });
+};
+
 const runtimeAnswer = ({ tool, result, locale, context }) => {
-  if (tool === "getExpectedAccessCost") {
-    if (result.estimatedOutOfPocketCost === 0) return pick(locale, {
-      EN: "Your verified expected out-of-pocket ACCESS cost is $0 because your supplemental coverage is verified to cover the monthly share.",
-      ES: "Su costo de bolsillo esperado y verificado para ACCESS es $0 porque su cobertura suplementaria está verificada para cubrir la parte mensual.",
-      KR: "Depans ACCESS ou prevwa peye nan pòch ou verifye kòm $0 paske kouvèti siplemantè ou verifye pou kouvri pati pa mwa a."
+  if (tool === "getExpectedAccessCost") return accessCostAnswer(result, locale);
+  if (tool === "getPatientCoverage") {
+    if (!result.found) return pick(locale, {
+      EN: "I could not verify supplemental coverage from the information currently available. Your care team can check this with you.",
+      ES: "No pude verificar cobertura suplementaria con la información disponible. Su equipo de atención puede revisarlo con usted.",
+      KR: "Mwen pa t ka verifye kouvèti siplemantè ak enfòmasyon ki disponib kounye a. Ekip swen ou ka tcheke sa avèk ou."
     });
-    return pick(locale, {
-      EN: `Your expected ACCESS beneficiary payment is $${result.expectedMonthlyCost} per month. Medicare covers most of the cost, and supplemental insurance may cover some or all of that monthly share.`,
-      ES: `El pago esperado del beneficiario para ACCESS es de $${result.expectedMonthlyCost} al mes. Medicare cubre la mayor parte y un seguro suplementario puede cubrir parte o la totalidad de esa cantidad mensual.`,
-      KR: `Peman ACCESS yo prevwa pou ou se $${result.expectedMonthlyCost} pa mwa. Medicare kouvri pifò depans lan, epi asirans siplemantè ka kouvri yon pati oswa tout kantite sa a.`
-    });
+    const medicare = result.medicare?.isOriginalMedicare
+      ? pick(locale, { EN: "Your coverage shows active Original Medicare, including Part A and Part B.", ES: "Su cobertura muestra Medicare Original activo, con Parte A y Parte B.", KR: "Kouvèti ou montre Medicare Orijinal aktif, ak Pati A ak Pati B." })
+      : result.medicare?.isMedicareAdvantage
+        ? pick(locale, { EN: "Your coverage shows a Medicare Advantage plan rather than Original Medicare.", ES: "Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original.", KR: "Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal." })
+        : pick(locale, { EN: "I could not confirm which kind of Medicare coverage you have.", ES: "No pude confirmar qué tipo de cobertura de Medicare tiene.", KR: "Mwen pa t ka konfime ki kalite kouvèti Medicare ou genyen." });
+    // Only a payer actually classified as a Medicare Supplement is described as supplemental.
+    const supplement = result.supplemental
+      ? (result.supplemental.carrierName
+        ? pick(locale, { EN: ` We also verified active supplemental coverage: ${result.supplemental.carrierName}.`, ES: ` También verificamos cobertura suplementaria activa: ${result.supplemental.carrierName}.`, KR: ` Nou verifye tou yon kouvèti siplemantè aktif: ${result.supplemental.carrierName}.` })
+        : pick(locale, { EN: " We also verified active supplemental coverage, but I do not have the plan name available.", ES: " También verificamos cobertura suplementaria activa, pero no tengo el nombre del plan disponible.", KR: " Nou verifye tou yon kouvèti siplemantè aktif, men mwen pa gen non plan an." }))
+      : pick(locale, { EN: " I could not verify supplemental coverage from the information currently available.", ES: " No pude verificar cobertura suplementaria con la información disponible.", KR: " Mwen pa t ka verifye kouvèti siplemantè ak enfòmasyon ki disponib kounye a." });
+    return `${medicare}${supplement}`;
   }
   if (tool === "getEnrollmentContext") {
     const eligible = result.eligibilityStatus === "ELIGIBLE";
