@@ -73,7 +73,7 @@ let state = {
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
   assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
 let emmiAuditLog = null;
 let emmiTools = null;
@@ -1092,6 +1092,7 @@ const assistantVoiceErrorCopyFor = code => ({
   microphone_denied: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
   rate_limited: L("EMMI voice is temporarily busy. You can continue by typing.", "La voz de EMMI está ocupada temporalmente. Puede continuar escribiendo.", "Vwa EMMI okipe pou kounye a. Ou ka kontinye ekri."),
   gemini_not_configured: L("Voice is not configured for this prototype. You can continue by typing.", "La voz no está configurada para este prototipo. Puede continuar escribiendo.", "Vwa pa konfigire pou pwototip sa a. Ou ka kontinye ekri."),
+  VOICE_UNAVAILABLE_ON_DEVICE: L("Voice isn’t available on this device right now. You can continue by typing.", "La voz no está disponible en este dispositivo por ahora. Puede continuar escribiendo.", "Vwa a pa disponib sou aparèy sa a kounye a. Ou ka kontinye ekri."),
   voice_disabled: L("Voice assistance is turned off. You can continue by typing.", "La asistencia por voz está desactivada. Puede continuar escribiendo.", "Asistans vwa etenn. Ou ka kontinye ekri."),
   voice_locale_fallback: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa poko disponib nan lang sa a. Ou ka toujou pale ak EMMI alekri an Kreyòl."),
   VOICE_UNAVAILABLE_FOR_LOCALE: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj."),
@@ -1338,13 +1339,19 @@ const floatingEmmiBlockedBy = box => [...document.querySelectorAll(FLOATING_EMMI
 // stand does it hand the corner back to the screen entirely.
 function placeFloatingEmmi(floating) {
   floating.style.transform = "";
-  const resting = floating.getBoundingClientRect();
-  const blocked = floatingEmmiBlockedBy(resting);
-  if (!blocked.length) return true;
-  const lift = Math.round(resting.bottom - Math.min(...blocked.map(rect => rect.top)) + 12);
-  floating.style.transform = `translateY(${-lift}px)`;
-  const lifted = floating.getBoundingClientRect();
-  if (lifted.top >= 12 && !floatingEmmiBlockedBy(lifted).length) return true;
+  let box = floating.getBoundingClientRect();
+  let lift = 0;
+  // A step at a time, above whatever it is standing on. EMMI belongs in the lower part of the
+  // screen where a thumb reaches her, so a pill that would have to climb past that is no longer
+  // floating in a useful place and stands down instead.
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const blocked = floatingEmmiBlockedBy(box);
+    if (!blocked.length) return true;
+    lift += Math.round(box.bottom - Math.min(...blocked.map(rect => rect.top)) + 12);
+    floating.style.transform = `translateY(${-lift}px)`;
+    box = floating.getBoundingClientRect();
+    if (box.top < Math.max(12, innerHeight * 0.3)) break;
+  }
   floating.style.transform = "";
   return false;
 }
@@ -1356,9 +1363,14 @@ function syncEmmiPresentation() {
   const shell = document.querySelector(".shell");
   const floating = document.querySelector(".emmi-assistant");
   const publish = resolved => shell?.setAttribute("data-emmi-presentation", resolved);
-  if (mode === EMMI_PRESENTATION.HOME_INTRO && !emmiIntroReported) {
-    emmiIntroReported = true;
-    audit(state, "emmi_intro_visible", "success", { screen: state.screen });
+  if (mode === EMMI_PRESENTATION.HOME_INTRO) {
+    // The introduction card says "Hi, I am EMMI" on the patient's behalf. Once they have seen it,
+    // the expanded panel continues that conversation instead of introducing her a second time.
+    state.emmiIntroSeen = true;
+    if (!emmiIntroReported) {
+      emmiIntroReported = true;
+      audit(state, "emmi_intro_visible", "success", { screen: state.screen });
+    }
   }
   if (mode !== EMMI_PRESENTATION.FLOATING) {
     floating?.classList.add("emmi-assistant-suppressed");
@@ -1596,7 +1608,7 @@ function assistantLayer() {
     : [L("Is participation voluntary?", "¿La participación es voluntaria?", "Èske patisipasyon volontè?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")];
   // EMMI has already introduced herself on Home. Reopening her later continues that conversation,
   // so the hero asks what the patient needs instead of saying hello a second time.
-  const assistantTitle = emmiConversationManager?.contextForModel().hasGreeted || state.emmiWelcomeAcknowledged
+  const assistantTitle = emmiConversationManager?.contextForModel().hasGreeted || state.emmiWelcomeAcknowledged || state.emmiIntroSeen
     ? L("How can I help?", "¿Cómo puedo ayudarle?", "Kijan mwen ka ede w?")
     : L("Hi, I’m EMMI. How can I help?", "Hola, soy EMMI. ¿Cómo puedo ayudar?", "Bonjou, mwen se EMMI. Kijan mwen ka ede?");
   return `<aside class="assistant-layer" role="dialog" aria-modal="true" aria-label="${L("EMMI – Your ITERA Care Assistant", "EMMI – Su Asistente de cuidado de ITERA", "EMMI – Asistan swen ITERA ou")}">
@@ -3686,8 +3698,10 @@ function closeAssistant({ fromHistory = false } = {}) {
     // Focus goes back to what opened EMMI. If that control has since stood down — the pill hands
     // over to the compact card as the patient returns to the top — the surviving EMMI takes it.
     requestAnimationFrame(() => {
-      const candidates = [trigger, document.querySelector(".emmi-assistant:not(.emmi-assistant-suppressed)"), document.querySelector('.emmi-guide [data-action="help"]')];
-      candidates.find(node => node?.isConnected && node.offsetParent !== null)?.focus({ preventScroll: true });
+      // A fixed-position pill has no offsetParent, so visibility is measured by whether the
+      // element actually paints a box.
+      const candidates = [trigger, document.querySelector(".emmi-assistant"), document.querySelector('.emmi-guide [data-action="help"]'), document.querySelector('.emmi-welcome [data-action="help"]')];
+      candidates.find(node => node?.isConnected && node.getClientRects().length)?.focus({ preventScroll: true });
     });
   });
 }

@@ -11,7 +11,7 @@ const bytesToBase64 = bytes => {
   return btoa(binary);
 };
 const base64ToBytes = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
-const resample = (input, fromRate, toRate) => {
+export const resample = (input, fromRate, toRate) => {
   if (fromRate === toRate) return input;
   const ratio = fromRate / toRate;
   const output = new Float32Array(Math.round(input.length / ratio));
@@ -24,7 +24,19 @@ const resample = (input, fromRate, toRate) => {
   }
   return output;
 };
-const pcm16 = floats => {
+// The provider contract this pipeline has to keep: 16 kHz mono PCM16, little endian, base64.
+export const EMMI_PROVIDER_SAMPLE_RATE = 16000;
+// One captured frame at the device rate. At a typical 48 kHz that is ~85 ms of audio, which is
+// the packet cadence the previous pipeline produced.
+export const EMMI_MIC_FRAME_SIZE = 4096;
+export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v2";
+const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=2";
+// Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
+// the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
+export const supportsAudioWorklet = (context, scope = globalThis) =>
+  typeof scope.AudioWorkletNode === "function" && typeof context?.audioWorklet?.addModule === "function";
+
+export const pcm16 = floats => {
   const bytes = new Uint8Array(floats.length * 2);
   const view = new DataView(bytes.buffer);
   floats.forEach((sample, index) => view.setInt16(index * 2, Math.max(-1, Math.min(1, sample)) * 0x7fff, true));
@@ -37,7 +49,8 @@ export const normalizeEmmiVoiceError = code => ({
   token_generation_failed: "VOICE_PROVIDER_ERROR",
   gemini_not_configured: "VOICE_PROVIDER_ERROR",
   connection_failed: "VOICE_SESSION_FAILED",
-  connection_lost: "VOICE_SESSION_FAILED"
+  connection_lost: "VOICE_SESSION_FAILED",
+  audio_worklet_unavailable: "VOICE_UNAVAILABLE_ON_DEVICE"
 })[code] || code;
 
 export class EmmiLiveClient {
@@ -59,7 +72,7 @@ export class EmmiLiveClient {
     this.stream = null;
     this.inputContext = null;
     this.outputContext = null;
-    this.processor = null;
+    this.micNode = null;
     this.inputSource = null;
     this.sources = new Map();
     this.nextPlaybackAt = 0;
@@ -178,9 +191,13 @@ export class EmmiLiveClient {
         callbacks: {
           onopen: () => {
             this.intentionalClose = false;
-            this.startAudioCapture();
-            this.setState("LISTENING");
-            this.startTimers();
+            this.startAudioCapture().then(() => {
+              this.setState("LISTENING");
+              this.startTimers();
+            }).catch(() => {
+              this.emitVoiceTelemetry("EMMI_AUDIO_PIPELINE_ERROR", { pipelineVersion: EMMI_AUDIO_PIPELINE_VERSION, reason: "worklet_unavailable" });
+              this.disconnect("audio_worklet_unavailable");
+            });
           },
           onmessage: message => this.handleMessage(message),
           onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "VOICE_PROVIDER_ERROR"),
@@ -209,22 +226,65 @@ export class EmmiLiveClient {
     this.warningTimer = setTimeout(() => this.onState?.(this.state, "session_ending_soon"), Math.max(1, minutes - 2) * 60 * 1000);
     this.endTimer = setTimeout(() => this.disconnect("session_timeout"), minutes * 60 * 1000);
   }
-  startAudioCapture() {
+  // Capture runs on an AudioWorklet: the deprecated ScriptProcessorNode ran its callback on the
+  // main thread, so a slow render there could drop microphone frames mid-sentence.
+  async startAudioCapture() {
     this.inputContext = new AudioContext();
+    if (this.inputContext.state === "suspended") await this.inputContext.resume().catch(() => {});
+    if (!supportsAudioWorklet(this.inputContext)) throw this.fail("VOICE_UNAVAILABLE_ON_DEVICE");
+    try {
+      await this.inputContext.audioWorklet.addModule(EMMI_MIC_WORKLET_URL);
+    } catch {
+      throw this.fail("VOICE_UNAVAILABLE_ON_DEVICE");
+    }
     this.inputSource = this.inputContext.createMediaStreamSource(this.stream);
-    this.processor = this.inputContext.createScriptProcessor(4096, 1, 1);
-    this.processor.onaudioprocess = event => {
-      if (this.muted || !this.session) return;
-      const samples = event.inputBuffer.getChannelData(0);
-      const rms = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
-      let peak = 0;
-      for (const value of samples) peak = Math.max(peak, Math.abs(value));
-      this.bargeIn.observeFrame({ rms, peak, outputActive: this.isOutputActive() });
-      const data = pcm16(resample(samples, this.inputContext.sampleRate, 16000));
-      this.session.sendRealtimeInput({ audio: { data: bytesToBase64(data), mimeType: "audio/pcm;rate=16000" } });
-    };
-    this.inputSource.connect(this.processor);
-    this.processor.connect(this.inputContext.destination);
+    // No outputs: unlike a ScriptProcessorNode this does not need a connection to the
+    // destination to run, so the microphone is never routed back at the speakers.
+    this.micNode = new AudioWorkletNode(this.inputContext, "emmi-mic-processor", {
+      numberOfInputs: 1,
+      numberOfOutputs: 0,
+      channelCount: 1,
+      channelCountMode: "explicit",
+      channelInterpretation: "speakers",
+      processorOptions: { frameSize: EMMI_MIC_FRAME_SIZE }
+    });
+    this.micNode.port.onmessage = event => this.handleMicFrame(new Float32Array(event.data));
+    this.inputSource.connect(this.micNode);
+    this.emitVoiceTelemetry("EMMI_AUDIO_PIPELINE_STARTED", {
+      pipelineVersion: EMMI_AUDIO_PIPELINE_VERSION,
+      inputSampleRate: this.inputContext.sampleRate,
+      providerSampleRate: EMMI_PROVIDER_SAMPLE_RATE,
+      frameSize: EMMI_MIC_FRAME_SIZE,
+      channels: 1
+    });
+  }
+
+  // One captured frame: level metering for barge-in, then resample, encode and send. Identical
+  // arithmetic to the pipeline this replaced, so interruption behaviour is unchanged.
+  handleMicFrame(samples) {
+    if (this.muted || !this.session || !samples.length) return;
+    let sumOfSquares = 0;
+    let peak = 0;
+    for (const value of samples) {
+      sumOfSquares += value * value;
+      peak = Math.max(peak, Math.abs(value));
+    }
+    this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: this.isOutputActive() });
+    const data = pcm16(resample(samples, this.inputContext.sampleRate, EMMI_PROVIDER_SAMPLE_RATE));
+    this.session.sendRealtimeInput({ audio: { data: bytesToBase64(data), mimeType: `audio/pcm;rate=${EMMI_PROVIDER_SAMPLE_RATE}` } });
+  }
+
+  // Every path that tears down capture goes through this, so a reconnect or a device switch can
+  // never leave a second worklet feeding the same session.
+  stopAudioCapture() {
+    if (this.micNode) {
+      this.micNode.port.onmessage = null;
+      this.micNode.port.close?.();
+      this.micNode.disconnect();
+      this.micNode = null;
+    }
+    this.inputSource?.disconnect();
+    this.inputSource = null;
   }
   async handleAudioDeviceChange() {
     if (!this.isActive() || this.muted) return;
@@ -235,15 +295,12 @@ export class EmmiLiveClient {
     }
     try {
       const replacement = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      this.processor?.disconnect();
-      this.inputSource?.disconnect();
+      this.stopAudioCapture();
       await this.inputContext?.close();
       this.stream?.getTracks().forEach(track => track.stop());
       this.stream = replacement;
-      this.processor = null;
-      this.inputSource = null;
       this.inputContext = null;
-      this.startAudioCapture();
+      await this.startAudioCapture();
       this.emitVoiceTelemetry("EMMI_AUDIO_ROUTE_RESTORED", { sameLiveSession: true });
     } catch {
       this.emitVoiceTelemetry("EMMI_AUDIO_ROUTE_FAILED", { sameLiveSession: true });
@@ -517,7 +574,7 @@ export class EmmiLiveClient {
     this.intentionalClose = true;
     clearTimeout(this.warningTimer); clearTimeout(this.endTimer); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
-    this.session = null; this.processor?.disconnect(); this.processor = null; this.inputSource?.disconnect(); this.inputSource = null;
+    this.session = null; this.stopAudioCapture();
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;
     globalThis.navigator?.mediaDevices?.removeEventListener?.("devicechange", this.audioDeviceChangeHandler);
     this.inputContext?.close(); this.outputContext?.close(); this.inputContext = null; this.outputContext = null; this.outputGain = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
