@@ -179,7 +179,29 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       preferredContactTime: state.preferredContactTime,
       goalsStatus: state.goalsStatus,
       careGoals: [...(state.careGoals || [])],
-      careGoalsNote: state.careGoalsNote
+      careGoalsNote: state.careGoalsNote,
+      goalFlowStep: state.goalFlowStep,
+      goalFlowOrigin: state.goalFlowOrigin,
+      patientGoals: (state.patientGoals || []).map(goal => ({
+        id: goal.id, patientId: goal.patientId, goalType: goal.goalType, title: goal.title, customTitle: goal.customTitle || "", status: goal.status, priority: goal.priority, whyItMatters: goal.whyItMatters || "", planStatus: goal.planStatus,
+        actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
+        progress: (goal.progress || []).map(item => ({ id: item.id, goalId: item.goalId, actionId: item.actionId || null, progressType: item.progressType, value: item.value ?? null, patientReportedStatus: item.patientReportedStatus || "", timestamp: item.timestamp })),
+        barriers: (goal.barriers || []).map(item => ({ id: item.id, goalId: item.goalId, barrierType: item.barrierType, notes: item.notes || "", status: item.status, createdAt: item.createdAt })),
+        supportRequests: (goal.supportRequests || []).map(item => ({ id: item.id, goalId: item.goalId, supportType: item.supportType, careTeamTaskId: item.careTeamTaskId || null, status: item.status, createdAt: item.createdAt })),
+        reviews: (goal.reviews || []).map(item => ({ id: item.id, goalId: item.goalId, reviewedAt: item.reviewedAt, patientStatus: item.patientStatus, changesMade: Boolean(item.changesMade) })),
+        createdBy: goal.createdBy, createdAt: goal.createdAt, updatedAt: goal.updatedAt
+      })),
+      goalPrimaryId: state.goalPrimaryId,
+      goalSecondaryId: state.goalSecondaryId,
+      goalPlanningGoalId: state.goalPlanningGoalId,
+      goalPlanStatus: state.goalPlanStatus,
+      goalPlanDraft: state.goalPlanDraft ? { actionIds: [...(state.goalPlanDraft.actionIds || [])], customAction: state.goalPlanDraft.customAction || "", frequency: state.goalPlanDraft.frequency || "few-days", remindersEnabled: Boolean(state.goalPlanDraft.remindersEnabled), whyItMatters: state.goalPlanDraft.whyItMatters || "" } : null,
+      activeGoalId: state.activeGoalId,
+      goalDetailView: state.goalDetailView,
+      goalBarrierDraft: state.goalBarrierDraft,
+      goalSupportDraft: state.goalSupportDraft,
+      goalNotice: state.goalNotice,
+      goalHistory: (state.goalHistory || []).map(item => ({ id: item.id, goalId: item.goalId, type: item.type, details: item.details || {}, occurredAt: item.occurredAt, actor: item.actor }))
     });
     Object.assign(safe, {
       supportRole: state.supportRole,

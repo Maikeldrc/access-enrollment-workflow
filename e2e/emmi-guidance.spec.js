@@ -15,7 +15,7 @@ test("introduces EMMI compactly with voice off by default and preserves opt-out"
   await expect(page.getByText(/guide you through each step and answer questions/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Guide me with voice/i })).toBeVisible();
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Repeat welcome/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Repeat$/i })).toHaveCount(0);
 
   await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
   await page.reload();
@@ -37,10 +37,10 @@ test("Guide me with voice starts the welcome session without a second click", as
   });
   await page.getByRole("button", { name: /Guide me with voice/i }).click();
   await expect.poll(() => tokenRequests).toBe(1);
-  await expect(page.getByRole("button", { name: /Repeat welcome/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Repeat$/i })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("itera.emmi.preferences.v1"))?.emmiVoiceGuidance)).toBe(true);
   // A connect that failed must never report itself as active, or the patient waits for audio
-  // that is not coming and assumes "Repeat welcome" is what starts it.
+  // that is not coming and assumes "Repeat" is what starts it.
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
   await expect(page.locator(".emmi-welcome-choice")).toContainText("Voice guidance is unavailable");
   await page.getByRole("button", { name: /Turn voice off/i }).click();
@@ -88,7 +88,7 @@ test("voice activation and its controls stay in the language the patient selecte
   await expect(card).toContainText("La guía por voz no está disponible");
   await expect(card).toContainText("Tengo problemas para conectarme.");
   await expect(card).not.toContainText("Voice guidance");
-  await expect(page.getByRole("button", { name: "Repetir bienvenida" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Repetir" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Desactivar voz" })).toBeVisible();
 
   // Kreyòl has no live voice, so EMMI says so in Kreyòl instead of switching to English.

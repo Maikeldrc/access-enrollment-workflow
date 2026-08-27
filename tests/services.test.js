@@ -2,6 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 import { AUTHORITY_VERIFICATION_METHODS, DraftStore, MockEnrollmentService } from "../src/services.js";
 
 describe("safe draft persistence", () => {
+  it("persists longitudinal patient goals and their history", () => {
+    let serialized = "";
+    vi.stubGlobal("localStorage", { setItem: vi.fn((_, value) => { serialized = value; }), getItem: vi.fn(() => serialized), removeItem: vi.fn() });
+    const store = new DraftStore();
+    store.save({ scenarioId: "ccm-happy", screen: "MY_GOALS", role: "patient", completionRole: "patient", language: "en", identityVerified: true, onboarding: {}, audit: [], careGoals: ["stay-active"], patientGoals: [{ id: "goal-1", patientId: "patient-1", goalType: "STAY_ACTIVE", title: "Stay active", customTitle: "", status: "ACTIVE", priority: "PRIMARY", whyItMatters: "Stay active with family", planStatus: "COMPLETED", actions: [{ id: "action-1", goalId: "goal-1", templateId: "short-walk", title: "Take a short walk", actionType: "RECURRING", source: "EMMI_SUGGESTED", frequency: "few-days", targetCount: 3, remindersEnabled: true, status: "ACTIVE", completionHistory: [{ id: "done-1", date: "2026-08-27", completedAt: "2026-08-27T10:00:00.000Z", source: "PATIENT_REPORTED" }] }], progress: [], barriers: [], supportRequests: [], reviews: [], createdBy: "PATIENT", createdAt: "2026-08-27T09:00:00.000Z", updatedAt: "2026-08-27T10:00:00.000Z" }], goalPrimaryId: "goal-1", goalSecondaryId: "", goalPlanningGoalId: "goal-1", goalPlanStatus: "COMPLETED", goalPlanDraft: { actionIds: ["short-walk"], customAction: "", frequency: "few-days", remindersEnabled: true, whyItMatters: "Stay active with family" }, activeGoalId: "goal-1", goalDetailView: "SUMMARY", goalHistory: [{ id: "event-1", goalId: "goal-1", type: "PLAN_SAVED", details: { actionCount: 1 }, occurredAt: "2026-08-27T10:00:00.000Z", actor: "PATIENT" }] });
+    const saved = store.load();
+    expect(saved.patientGoals[0].actions[0].completionHistory).toHaveLength(1);
+    expect(saved.goalHistory[0].type).toBe("PLAN_SAVED");
+    expect(saved).not.toHaveProperty("clinicalTarget");
+  });
+
   it("does not persist identity inputs, Medicare IDs, tokens, or clinical readings", () => {
     const setItem = vi.fn();
     vi.stubGlobal("localStorage", { setItem, getItem: vi.fn(), removeItem: vi.fn() });

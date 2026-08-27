@@ -12,7 +12,8 @@ import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
 import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
-import { buildHomeNarration, buildNarration } from "./emmi/narrative.js";
+import { buildHomeNarration, buildNarration, buildTransitionNarration } from "./emmi/narrative.js";
+import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transitionManager.js";
 import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -20,6 +21,7 @@ import { resolveNextBestAction } from "./nextBestAction.js";
 import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
+import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalDisplayName, localGoalText, suggestedActionsFor } from "./goals.js";
 
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
@@ -57,18 +59,20 @@ let state = {
   ],
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
-  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "",
+  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { barrierType: "", notes: "" }, goalSupportDraft: "", goalNotice: "", goalHistory: [],
   supportRole: "NONE", careCircleStatus: "NONE", careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
   assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false,
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiContextualNudgeVisible: false
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
 let emmiAuditLog = null;
 let emmiTools = null;
 let emmiLive = null;
+let emmiTransitionManager = null;
+let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiGuidanceVisibilityObserver = null;
 let emmiHesitationTimer = null;
@@ -133,16 +137,23 @@ function syncEmmiLanguage() {
   state.emmiLastGuidanceScreen = "";
   state.emmiGuidanceTranscript = "";
   if (!emmiLive?.isActive()) { refreshVoiceGuidanceControls(); return; }
-  emmiLive.stopPlayback();
   if (!emmiVoiceIsSupported(languageCode())) {
+    emmiTransitionManager?.cancel("locale_voice_unavailable", { immediate: true });
     emmiLive.disconnect("locale_changed");
     state.assistantVoiceError = "voice_locale_fallback";
     refreshVoiceGuidanceControls();
     if (state.assistantOpen) refreshAssistantLayer();
     return;
   }
-  const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
-  emmiLive.restartForLocale(emmiGuidancePrompt(message)).catch(() => { /* The live client publishes a localized error state. */ });
+  if (!state.emmiVoiceGuidance || !emmiTransitionManager) {
+    emmiLive.restartForLocale("").catch(() => { /* The live client publishes a localized safe fallback. */ });
+    audit(state, "emmi_language_changed", "success", { locale: languageCode() });
+    return;
+  }
+  // A locale change is a context transition. The transition manager lets the nearest safe
+  // clause finish, discards the rest, and reconnects only after that boundary so languages
+  // are never mixed inside one explanation.
+  syncEmmiNavigationContext({ localeChanged: true, navigationDirection: "LOCALE" });
   audit(state, "emmi_language_changed", "success", { locale: languageCode() });
 };
 const progressStageLabel = stage => ({
@@ -253,6 +264,7 @@ const ASSURANCE_BY_SCREEN = {
   MEDICATIONS_REVIEW: "HEALTH_DATA_SECURITY",
   CARE_PREFERENCES: "HEALTH_DATA_SECURITY",
   GOALS: "HEALTH_DATA_SECURITY",
+  MY_GOALS: "HEALTH_DATA_SECURITY",
   ACCESS_BASELINE: "HEALTH_DATA_SECURITY",
   ACCESS_MEASURE: "HEALTH_DATA_SECURITY",
   ACCESS_BP_DEVICE_VERIFICATION: "DEVICE_SUPPORT",
@@ -360,7 +372,7 @@ function emmiWelcomeVoiceControls() {
   if (!state.emmiVoiceGuidance) return `<div class="emmi-welcome-actions"><button type="button" class="button secondary" data-action="enable-emmi-guidance">${icon("mic")} ${L("Guide me with voice", "Guíeme con voz", "Gide m ak vwa")}</button></div>`;
   const busy = emmiGuidanceIsBusy();
   const unavailable = state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError);
-  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat welcome", "Repetir bienvenida", "Repete mesaj akey la")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
+  return `<div class="emmi-welcome-choice" data-voice-state="${state.assistantVoiceState}"><p role="status" aria-live="polite"><strong>${emmiHomeVoiceStatus()}</strong>${unavailable ? `<small class="emmi-welcome-error">${assistantVoiceErrorCopy()}</small>` : ""}</p><div class="emmi-welcome-active-actions"><button type="button" data-action="repeat-emmi-guidance" ${busy ? "disabled aria-disabled=\"true\"" : ""}>${icon("mic")} ${L("Repeat", "Repetir", "Repete")}</button><button type="button" data-action="disable-emmi-guidance">${L("Turn voice off", "Desactivar voz", "Etenn vwa")}</button></div></div>`;
 }
 
 function emmiWelcome(providerReferral, physicianName) {
@@ -651,7 +663,10 @@ function assistantContext() {
     supportRole: state.supportRole,
     supportPersonName: state.supportPersonName || null,
     supportInviteStatus: state.supportInviteStatus,
-    deviceScenario
+    deviceScenario,
+    goalFlowStep: state.goalFlowStep,
+    patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
+    activeGoal: currentGoal() ? { id: currentGoal().id, title: goalDisplayName(currentGoal(), state.language), status: currentGoal().status, priority: currentGoal().priority } : null
   };
 }
 
@@ -666,7 +681,7 @@ const emmiToolStatusLabel = name => ({
 
 function ensureEmmiRuntime() {
   const context = assistantContext();
-  if (emmiAuditLog?.entry.demoPatientId !== context.patientId) { emmiAuditLog?.end(); emmiAuditLog = null; emmiTools = null; emmiLive?.disconnect("context_changed"); emmiLive = null; }
+  if (emmiAuditLog?.entry.demoPatientId !== context.patientId) { emmiAuditLog?.end(); emmiAuditLog = null; emmiTools = null; emmiTransitionManager?.cancel("patient_context_changed", { immediate: true }); emmiTransitionManager = null; emmiLive?.disconnect("context_changed"); emmiLive = null; }
   emmiAuditLog ||= new EmmiAuditLog({ sessionId: context.sessionId, demoPatientId: context.patientId, locale: context.locale, currentScreen: context.currentScreen });
   emmiAuditLog.updateContext(context);
   emmiTools ||= new EmmiToolOrchestrator({
@@ -687,12 +702,104 @@ function ensureEmmiRuntime() {
       else state.assistantMessages.push({ role, text: cleaned, voice: true });
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
+    onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
     onError: code => { state.assistantVoiceError = code; state.assistantVoiceState = "ERROR"; if (state.assistantOpen) refreshAssistantLayer(); refreshVoiceGuidanceControls(); }
   });
   return { context, tools: emmiTools, live: emmiLive, audit: emmiAuditLog };
 }
 
+function emmiScreenContext() {
+  const progress = state.offer ? progressFor(state) : { stage: state.screen === "INVITATION" ? "INVITATION" : "YOUR_CARE" };
+  return {
+    screenId: state.screen,
+    stageId: progress.stage,
+    locale: languageCode(),
+    screenPurpose: buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() })?.narrationPurpose || state.screen
+  };
+}
+
+function ensureEmmiTransitionManager() {
+  if (emmiTransitionManager) return emmiTransitionManager;
+  const live = ensureEmmiRuntime().live;
+  emmiTransitionManager = new EmmiTransitionManager({
+    transport: {
+      setActiveContextVersion: version => live.setActiveContextVersion(version),
+      currentTurnMeta: () => live.currentTurnMeta(),
+      beginGracefulHandoff: options => live.beginGracefulHandoff(options),
+      stopPlayback: options => live.stopPlayback(options),
+      sendText: (prompt, metadata) => live.sendText(prompt, metadata),
+      connect: (prompt, metadata) => {
+        state.assistantVoiceError = "";
+        live.connect(prompt, metadata).catch(() => { /* The live client publishes a localized safe fallback. */ });
+        return true;
+      },
+      restartAtBoundary: () => { if (live.isActive()) live.disconnect("locale_changed"); }
+    },
+    getScreenNarration: context => {
+      const text = context?.screenId === "INVITATION" ? emmiSpokenWelcome() : emmiGuidanceForScreen(context?.screenId);
+      const structured = context?.screenId === "INVITATION"
+        ? buildHomeNarration({ locale: context.locale, ...emmiNarrativeRuntime() })
+        : buildNarration({ screen: context?.screenId, locale: context?.locale, runtime: emmiNarrativeRuntime() });
+      return structured || (text ? { narrationText: text, segments: semanticSpeechSegments(text) } : null);
+    },
+    getTransitionNarration: ({ previous, current, navigationDirection }) => buildTransitionNarration({
+      previousScreen: previous?.screenId,
+      currentScreen: current?.screenId,
+      locale: current?.locale,
+      navigationDirection,
+      runtime: { ...emmiNarrativeRuntime(), eligibilityStatus: state.accessOutcome === "eligible" ? "ELIGIBLE" : state.accessOutcome }
+    }),
+    formatPrompt: emmiGuidancePrompt,
+    onVisualContext: (narration, context) => {
+      state.emmiGuidanceTranscript = narration?.narrationText || "";
+      state.emmiLastGuidanceScreen = context.screenId;
+      refreshVoiceGuidanceControls();
+    },
+    onStatus: status => {
+      state.emmiTransitionStatus = status;
+      refreshVoiceGuidanceControls();
+    },
+    onTrace: detail => {
+      if (import.meta.env.DEV) console.debug("[EMMI graceful handoff]", detail);
+    }
+  });
+  return emmiTransitionManager;
+}
+
+function inferEmmiNavigationDirection(previousScreen, currentScreen, explicit = "") {
+  if (explicit) return explicit;
+  if (!state.offer) return "FORWARD";
+  const journey = journeyFor(state);
+  const previousIndex = journey.indexOf(previousScreen);
+  const currentIndex = journey.indexOf(currentScreen);
+  return previousIndex >= 0 && currentIndex >= 0 && currentIndex < previousIndex ? "BACK" : "FORWARD";
+}
+
+function syncEmmiNavigationContext(override = {}) {
+  if (!state.emmiVoiceGuidance) return false;
+  const manager = ensureEmmiTransitionManager();
+  manager.setEnabled(true);
+  manager.setPaused(state.emmiVoiceGuidancePaused);
+  const previousScreen = manager.snapshot().context?.screenId || "";
+  const next = emmiScreenContext();
+  const previousContext = manager.snapshot().context;
+  const changed = !previousContext || previousContext.screenId !== next.screenId || previousContext.stageId !== next.stageId || previousContext.locale !== next.locale;
+  if (!changed) return false;
+  const intent = { ...(emmiNavigationIntent || {}), ...override };
+  const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
+  emmiNavigationIntent = null;
+  manager.updateContext(next, {
+    ...intent,
+    navigationDirection: inferEmmiNavigationDirection(previousScreen, next.screenId, intent.navigationDirection),
+    previousOutcome: intent.previousOutcome || state.accessOutcome,
+    currentRuntimeContext: assistantContext(),
+    shortReorientation: sideFlows.includes(previousScreen) && !sideFlows.includes(next.screenId)
+  });
+  return Boolean(previousScreen);
+}
+
 function assistantQuickQuestions(context) {
+  if (["GOALS", "MY_GOALS"].includes(context.currentScreen)) return [L("Why are you asking about my goals?", "¿Por qué preguntan por mis metas?", "Poukisa nou mande m sou objektif mwen?"), L("Can I change a goal later?", "¿Puedo cambiar una meta después?", "Èske mwen ka chanje yon objektif pita?"), L("Can you help me make a plan?", "¿Puede ayudarme a crear un plan?", "Èske ou ka ede m fè yon plan?"), L("I’m having trouble with my goal", "Tengo dificultades con mi meta", "Mwen gen pwoblèm ak objektif mwen")];
   if (context.currentScreen === "HEALTH_INFORMATION_REVIEW") return [L("What does high blood pressure mean?", "¿Qué significa presión arterial alta?", "Kisa tansyon wo vle di?"), L("Can EMMI confirm this information?", "¿Puede EMMI confirmar esta información?", "Èske EMMI ka konfime enfòmasyon sa a?"), L("I’m not sure this is correct", "No estoy seguro de que esto sea correcto", "Mwen pa sèten sa kòrèk"), L("How can my care team help?", "¿Cómo puede ayudar mi equipo?", "Kijan ekip swen mwen ka ede?")];
   if (context.currentScreen === "MEDICATIONS_REVIEW") return [L("What is Lisinopril?", "¿Qué es Lisinopril?", "Kisa Lisinopril ye?"), L("I don’t know my dose", "No sé cuál es mi dosis", "Mwen pa konnen dòz mwen"), L("I’m not sure if I take this", "No estoy seguro de tomar esto", "Mwen pa sèten si mwen pran sa"), L("Help me review my medications", "Ayúdeme a revisar mis medicamentos", "Ede m revize medikaman mwen yo")];
   if (["CARE_CIRCLE_INVITE", "MY_CARE_CIRCLE", "CARE_CIRCLE_PERMISSIONS"].includes(context.currentScreen)) return [L("How does the invitation work?", "¿Cómo funciona la invitación?", "Kijan envitasyon an mache?"), L("Can they make decisions for me?", "¿Puede tomar decisiones por mí?", "Èske moun nan ka pran desizyon pou mwen?"), L("Can I remove them later?", "¿Puedo eliminarlo después?", "Èske mwen ka retire moun nan apre?")];
@@ -728,7 +835,9 @@ function assistantScreenExplanation(screen) {
     DISCLOSURE: L("This screen explains important details you should review before deciding whether to enroll.", "Esta pantalla explica detalles importantes que debe revisar antes de decidir si se inscribe.", "Ekran sa a eksplike detay enpòtan ou ta dwe revize anvan ou deside si ou ta dwe enskri."),
     CONSENT_REVIEW: L("This screen summarizes what you are agreeing to. Participation is voluntary, and you can ask questions first.", "Esta pantalla resume lo que está aceptando. La participación es voluntaria y puede preguntar antes.", "Ekran sa a rezime sa w ap dakò a. Patisipasyon an volontè, epi ou ka poze kesyon an premye."),
     HEALTH_INFORMATION_REVIEW: L("This screen shows health information already on file. You can confirm it, report an update without changing the clinical record automatically, or ask for help reviewing it.", "Esta pantalla muestra información médica registrada. Puede confirmarla, informar una actualización sin cambiar automáticamente el registro clínico o pedir ayuda para revisarla.", "Ekran sa a montre enfòmasyon sante ki nan dosye a. Ou ka konfime li, rapòte yon mizajou san chanje dosye klinik la otomatikman, oswa mande èd pou revize li."),
-    MEDICATIONS_REVIEW: L("Review each medication on file, tell us whether it is still correct or something changed, and then tell us whether anything is missing. Your answers do not change a prescription automatically.", "Revise cada medicamento registrado, indique si sigue correcto o si algo cambió y luego díganos si falta alguno. Sus respuestas no cambian automáticamente una receta.", "Revize chak medikaman nan dosye a, di nou si li toujou kòrèk oswa si gen yon chanjman, epi di nou si gen youn ki manke. Repons ou yo pa chanje yon preskripsyon otomatikman.")
+    MEDICATIONS_REVIEW: L("Review each medication on file, tell us whether it is still correct or something changed, and then tell us whether anything is missing. Your answers do not change a prescription automatically.", "Revise cada medicamento registrado, indique si sigue correcto o si algo cambió y luego díganos si falta alguno. Sus respuestas no cambian automáticamente una receta.", "Revize chak medikaman nan dosye a, di nou si li toujou kòrèk oswa si gen yon chanjman, epi di nou si gen youn ki manke. Repons ou yo pa chanje yon preskripsyon otomatikman."),
+    GOALS: L("This step helps you choose personal goals that matter to you. You stay in control, can change them later, and may make a simple plan now or with your care team later.", "Este paso le ayuda a elegir metas personales que le importan. Usted mantiene el control, puede cambiarlas después y puede crear un plan sencillo ahora o con su equipo más adelante.", "Etap sa a ede w chwazi objektif pèsonèl ki enpòtan pou ou. Se ou ki gen kontwòl, ou ka chanje yo pita, epi ou ka fè yon plan senp kounye a oswa ak ekip swen ou pita."),
+    MY_GOALS: L("My Goals keeps the goals you chose, your plan, progress, and support requests in one place. These personal goals do not change clinical targets or medical orders.", "Mis metas reúne las metas que eligió, su plan, progreso y solicitudes de apoyo. Estas metas personales no cambian objetivos clínicos ni indicaciones médicas.", "Objektif mwen mete objektif ou chwazi yo, plan ou, pwogrè ou ak demann sipò yo nan yon sèl kote. Objektif pèsonèl sa yo pa chanje sib klinik ni lòd medikal.")
   };
   return explanations[screen] || L("This screen shows your current enrollment task and what you need to do next.", "Esta pantalla muestra su tarea actual y lo que debe hacer después.", "Ekran sa a montre travay enskripsyon aktyèl ou ak sa ou bezwen fè pwochen.");
 }
@@ -743,6 +852,10 @@ async function assistantAnswer(question, context) {
     if (result.instruction === "CALL_911") return { emergency: true, text: L("This may require urgent medical attention. Please call 911 or seek emergency care now.", "Esto puede requerir atención médica urgente. Llame al 911 o busque atención de emergencia ahora.", "Sa ka mande swen medikal ijan. Tanpri rele 911 oswa chèche swen ijans kounye a.") };
     if (result.instruction === "CREATE_HIGH_PRIORITY_TASK") return { text: L("This reading needs care-team review. Would you like me to create a high-priority task for your care team?", "Esta medición necesita revisión del equipo de atención. ¿Desea que cree una tarea de alta prioridad para su equipo?", "Mezi sa a bezwen ekip swen an revize li. Èske ou vle m kreye yon travay priyorite wo pou ekip ou a?"), pendingAction: "clinical-task" };
   }
+  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(why.*goal|por qué.*meta|poukisa.*objektif)/i.test(normalized)) return { text: L("Your goals help your care team understand what matters to you and how you would like support. They are your personal goals, not medical orders or clinical targets.", "Sus metas ayudan a su equipo a comprender qué le importa y cómo desea recibir apoyo. Son metas personales, no indicaciones médicas ni objetivos clínicos.", "Objektif ou ede ekip swen ou konprann sa ki enpòtan pou ou ak fason ou ta renmen jwenn sipò. Se objektif pèsonèl ou, yo pa lòd medikal ni sib klinik.") };
+  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(change.*goal|cambiar.*meta|chanje.*objektif)/i.test(normalized)) return { text: L("Yes. You can adjust, pause, restart, or mark a personal goal achieved later from My Goals.", "Sí. Puede ajustar, pausar, reanudar o marcar una meta personal como lograda más adelante desde Mis metas.", "Wi. Ou ka ajiste, mete an poz, rekòmanse, oswa make yon objektif pèsonèl kòm reyalize pita nan Objektif mwen.") };
+  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(make.*plan|crear.*plan|fè.*plan)/i.test(normalized)) return { text: L("I can suggest small optional steps, but you choose what feels realistic. Suggestions are not medical orders, and your care team can review the plan with you.", "Puedo sugerir pasos pequeños y opcionales, pero usted elige lo que le parezca realista. Las sugerencias no son indicaciones médicas y su equipo puede revisar el plan con usted.", "Mwen ka sijere ti etap opsyonèl, men se ou ki chwazi sa ki reyalis. Sijesyon yo pa lòd medikal, epi ekip swen ou ka revize plan an avè w.") };
+  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(trouble|difficult|problema|dificultad|pwoblèm|difisil)/i.test(normalized)) return { text: L("That’s okay. Open the goal check-in and choose that you’re having difficulty. We’ll help you name the barrier and, if you choose, send a support request to your care team.", "Está bien. Abra el seguimiento de la meta e indique que tiene dificultades. Le ayudaremos a identificar la barrera y, si lo desea, enviar una solicitud de apoyo a su equipo.", "Sa pa yon pwoblèm. Louvri tcheke objektif la epi chwazi ou gen difikilte. N ap ede w idantifye baryè a epi, si ou vle, voye yon demann sipò bay ekip swen ou.") };
   const affirmative = /^(yes|yes please|please do|sí|si|wi|dakò)$/i.test(normalized.trim());
   if (affirmative && state.assistantPendingAction === "callback") {
     const result = await runtime.tools.execute("requestCallback", { patientId: context.patientId, reason: "Patient requested help in EMMI", preferredLanguage: context.locale, confirmed: true });
@@ -843,7 +956,7 @@ const assistantVoiceErrorCopy = () => ({
 })[state.assistantVoiceError] || L("I’m having trouble connecting right now. You can keep using enrollment or continue by typing.", "Tengo problemas para conectarme. Puede seguir con la inscripción o continuar escribiendo.", "Mwen gen pwoblèm pou konekte. Ou ka kontinye enskripsyon an oswa ekri.");
 
 // Resolved from the central EMMI message config at call time, so the welcome always follows
-// the language the patient has selected right now — including on "Repeat welcome".
+// the language the patient has selected right now — including on "Repeat".
 function emmiSpokenWelcome() {
   // Home carries the fullest narration of the journey: it introduces the actual program the
   // patient was invited to, why it exists and how it can help, not a generic greeting.
@@ -853,6 +966,13 @@ function emmiSpokenWelcome() {
 function emmiGuidanceForScreen(screen = state.screen) {
   // EMMI explains the screen's purpose, not its labels. Everything comes from the shared
   // narrative engine so voice and text say the same thing, in the patient's active language.
+  if (screen === "GOALS") {
+    const goal = patientGoalById(state.goalPlanningGoalId || state.goalPrimaryId);
+    const goalName = goal ? goalDisplayName(goal, state.language) : "";
+    if (state.goalFlowStep === "PRIORITY") return L("You chose more than one goal. Pick the one that matters most right now, and a second one only if that feels helpful. You can change these priorities later.", "Eligió más de una meta. Seleccione la que más le importa ahora y una segunda solo si le resulta útil. Puede cambiar estas prioridades después.", "Ou chwazi plis pase yon objektif. Chwazi sa ki pi enpòtan kounye a, epi yon dezyèm sèlman si sa itil. Ou ka chanje priyorite sa yo pita.");
+    if (state.goalFlowStep === "PLAN_OFFER") return L(`You chose ${goalName}. A short plan can help turn that goal into small steps. You may make one now or wait and do it with your care team.`, `Eligió ${goalName}. Un plan breve puede convertir esa meta en pasos pequeños. Puede crearlo ahora o hacerlo después con su equipo.`, `Ou chwazi ${goalName}. Yon ti plan ka ede fè objektif la tounen ti etap. Ou ka fè youn kounye a oswa tann pou fè li ak ekip swen ou.`);
+    if (["PLAN_ACTIONS", "PLAN_REVIEW"].includes(state.goalFlowStep)) return L("Choose only the steps that feel realistic for you. These are optional suggestions, not medical orders. Review the plan before saving it.", "Elija solo los pasos que le parezcan realistas. Son sugerencias opcionales, no indicaciones médicas. Revise el plan antes de guardarlo.", "Chwazi sèlman etap ki reyalis pou ou. Se sijesyon opsyonèl, yo pa lòd medikal. Revize plan an anvan ou sove li.");
+  }
   const narration = buildNarration({ screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
   return narration?.narrationText || "";
 }
@@ -868,6 +988,9 @@ function emmiNarrativeRuntime() {
     physicianDisplayName: state.offer?.physician?.displayName || state.offer?.referringProvider?.name || "",
     medicationCount: Array.isArray(state.careMedications) ? state.careMedications.filter(item => item.active).length : null,
     deviceVendor: state.deviceVerificationStatus === "VERIFIED" || state.patientDeviceConfirmed ? state.deviceVendor || null : null,
+    deviceConfirmed: Boolean(state.patientDeviceConfirmed || state.deviceVerificationStatus === "SOURCE_VERIFIED"),
+    enrollmentStatus: state.enrollmentStatus,
+    completionRole: state.completionRole,
     nextStepLabel: action ? localized(action.label) : null
   };
 }
@@ -887,6 +1010,7 @@ const emmiGuidancePrompt = message => L(
 function emmiGuideState() {
   if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return "ERROR";
   if (state.emmiVoiceGuidancePaused) return "PAUSED";
+  if (state.emmiTransitionStatus === "UPDATING") return "UPDATING";
   if (state.assistantVoiceState === "EMMI_SPEAKING") return "SPEAKING";
   if (state.assistantVoiceState === "USER_SPEAKING") return "LISTENING";
   if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return "THINKING";
@@ -897,6 +1021,7 @@ const emmiGuideStatusLabel = guideState => ({
   SPEAKING: L("EMMI is explaining this step…", "EMMI está explicando este paso…", "EMMI ap eksplike etap sa a…"),
   LISTENING: L("Listening…", "Le escucho…", "M ap koute w…"),
   THINKING: L("EMMI is preparing an answer…", "EMMI está preparando una respuesta…", "EMMI ap prepare yon repons…"),
+  UPDATING: L("Updating guidance…", "Actualizando la orientación…", "N ap mete gid la ajou…"),
   PAUSED: L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz"),
   ERROR: L("Voice guidance is temporarily unavailable", "La guía por voz no está disponible por ahora", "Gid vwa a pa disponib pou kounye a")
 })[guideState] || L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
@@ -912,7 +1037,7 @@ function voiceGuidancePanel() {
   const narration = buildNarration({ screen: state.screen, locale: languageCode(), runtime: emmiNarrativeRuntime() });
   const summary = narration?.shortSummary || L("EMMI is here if you need help.", "EMMI está aquí si necesita ayuda.", "EMMI la si ou bezwen èd.");
   const transcript = state.emmiGuidanceTranscript || narration?.narrationText || "";
-  const busy = guideState === "SPEAKING" || guideState === "THINKING";
+  const busy = guideState === "SPEAKING" || guideState === "THINKING" || guideState === "UPDATING";
   const primary = guideState === "PAUSED"
     ? `<button type="button" data-action="toggle-emmi-guidance-pause">${L("Resume", "Reanudar", "Rekòmanse")}</button>`
     : `<button type="button" data-action="toggle-emmi-guidance-pause">${L("Pause", "Pausar", "Poze")}</button>`;
@@ -986,15 +1111,12 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   if (!message || !state.emmiVoiceGuidance || state.emmiVoiceGuidancePaused) return;
   state.emmiGuidanceTranscript = message;
   refreshVoiceGuidanceControls();
-  const runtime = ensureEmmiRuntime();
-  if (connect) {
-    state.assistantVoiceError = "";
-    runtime.live.connect(emmiGuidancePrompt(message)).catch(() => { /* The live client publishes a localized safe fallback. */ });
-  } else if (["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) {
-    return;
-  } else if (["LISTENING"].includes(state.assistantVoiceState)) {
-    runtime.live.sendText(emmiGuidancePrompt(message));
-  } else return;
+  const manager = ensureEmmiTransitionManager();
+  manager.setEnabled(true);
+  manager.setPaused(false);
+  if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
+  if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
+  manager.speak({ narrationText: message, segments: semanticSpeechSegments(message) }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
 }
@@ -1011,6 +1133,8 @@ function scheduleEmmiGuidance() {
       if (retries < 15) emmiGuidanceTimer = setTimeout(() => attempt(retries + 1), 1000);
       return;
     }
+    const manager = ensureEmmiTransitionManager();
+    if (["PLAYING", "TRANSITIONING", "GENERATING", "STALE"].includes(manager.snapshot().narration?.status)) return;
     deliverEmmiGuidance(message, state.screen);
   };
   emmiGuidanceTimer = setTimeout(() => attempt(0), 700);
@@ -1350,6 +1474,7 @@ function myCareScreen() {
   const actionLabel = started ? L("Continue where you left off", "Continuar donde lo dejó", "Kontinye kote ou te rete a") : L("Continue setting up your care", "Continuar configurando su cuidado", "Kontinye mete swen ou an plas");
   return `<div class="my-care-screen">${titleBlock(L("My Care", "Mi cuidado", "Swen mwen"), L("Your enrollment is complete. Continue when you’re ready.", "Su inscripción está completa. Continúe cuando esté listo.", "Enskripsyon ou fini. Kontinye lè ou pare."))}
     <section class="my-care-resume-card"><div>${icon("check")}<span><strong>${L("Getting Started", "Primeros pasos", "Premye etap yo")}</strong><small>${started ? L("In progress", "En curso", "An pwogrè") : L("Not finished yet", "Aún no terminado", "Poko fini")}</small></span></div>${transition.estimatedDuration ? `<p>${icon("clock")} ${localized(transition.estimatedDuration)}</p>` : ""}${cta(actionLabel, "resume-next-flow")}</section>
+    <button type="button" class="link-card my-goals-link" data-action="open-my-goals">${icon("goals")}<span><strong>${L("My Goals", "Mis metas", "Objektif mwen")}</strong><small>${activePatientGoals().length ? L("View the goals you’re working toward", "Vea las metas en las que está trabajando", "Gade objektif w ap travay sou yo") : L("Choose what matters to you", "Elija lo que le importa", "Chwazi sa ki enpòtan pou ou")}</small></span><b aria-hidden="true">›</b></button>
     <button type="button" class="link-card my-care-circle-link" data-action="open-my-care-circle">${icon("people")}<span><strong>${L("My Care Circle", "Mi Círculo de cuidado", "Sèk swen mwen")}</strong><small>${L("Invite or manage someone you trust", "Invite o administre a alguien de confianza", "Envite oswa jere yon moun ou fè konfyans")}</small></span><b aria-hidden="true">›</b></button>
   </div>`;
 }
@@ -1571,17 +1696,134 @@ function carePreferences() {
   return `${titleBlock(L("Care preferences", "Preferencias de cuidado", "Preferans swen"), L("Choose how and when you prefer ITERA to contact you.", "Elija cómo y cuándo prefiere que ITERA le contacte.", "Chwazi kijan ak kilè ou prefere ITERA kontakte ou."), L("Care setup", "Configuración", "Konfigirasyon swen"))}<form id="care-preferences-form" class="care-preferences-form"><fieldset><legend>${L("Preferred contact method", "Método de contacto preferido", "Fason ou prefere nou kontakte ou")}</legend><div class="choice-list">${preferenceChoice("preferredContactMethod", "phone", "phone", L("Phone call", "Llamada telefónica", "Apèl telefòn"), state.preferredContactMethod === "phone")}${preferenceChoice("preferredContactMethod", "text", "document", L("Text message", "Mensaje de texto", "Mesaj tèks"), state.preferredContactMethod === "text")}${preferenceChoice("preferredContactMethod", "either", "check", L("Either is fine", "Cualquiera está bien", "Nenpòt ladan yo bon"), state.preferredContactMethod === "either")}</div></fieldset><label class="field">${L("Preferred language", "Idioma preferido", "Lang ou prefere")}<select name="preferredCareLanguage"><option value="en" ${selectedLanguage === "en" ? "selected" : ""}>English</option><option value="es" ${selectedLanguage === "es" ? "selected" : ""}>Español</option><option value="ht" ${selectedLanguage === "ht" ? "selected" : ""}>Kreyòl</option></select></label><fieldset><legend>${L("Preferred time of day", "Horario preferido", "Lè ou prefere nan jounen an")}</legend><div class="preference-time-grid">${[["morning", L("Morning", "Mañana", "Maten")], ["afternoon", L("Afternoon", "Tarde", "Apremidi")], ["evening", L("Evening", "Noche", "Aswè")], ["none", L("No preference", "Sin preferencia", "Pa gen preferans")]].map(([value, label]) => `<label><input type="radio" name="preferredContactTime" value="${value}" ${state.preferredContactTime === value ? "checked" : ""}><span>${label}</span></label>`).join("")}</div></fieldset></form><p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Save preferences", "Guardar preferencias", "Sove preferans"))}`;
 }
 
+const goalOptions = () => Object.entries(LEGACY_GOAL_TYPES).map(([value, type]) => [value, type === "CUSTOM" ? L("Other", "Otro", "Lòt") : goalDisplayName({ goalType: type }, state.language)]);
+const activePatientGoals = () => (state.patientGoals || []).filter(goal => goal.status !== "REMOVED");
+const patientGoalById = id => activePatientGoals().find(goal => goal.id === id);
+const currentGoal = () => patientGoalById(state.activeGoalId || state.goalPlanningGoalId) || activePatientGoals()[0];
+const goalHistoryEvent = (goalId, type, details = {}) => {
+  const occurredAt = new Date().toISOString();
+  state.goalHistory = [...(state.goalHistory || []), { id: `goal_event_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, goalId, type, details, occurredAt, actor: "PATIENT" }];
+  return occurredAt;
+};
+const ensureGoalCareTeamTask = (type, goal, details = {}) => {
+  const tasks = [...(state.careTeamTasks || [])];
+  const existing = tasks.find(task => task.type === type && task.goalId === goal.id && task.status === "OPEN");
+  if (existing) return existing;
+  const task = { id: `goal_task_${Date.now().toString(36)}`, type, goalId: goal.id, goalTitle: goalDisplayName(goal, state.language), status: "OPEN", createdAt: new Date().toISOString(), ...details };
+  state.careTeamTasks = [...tasks, task];
+  return task;
+};
+const frequencyLabel = value => ({
+  daily: L("Every day", "Todos los días", "Chak jou"),
+  "few-days": L("A few days each week", "Algunos días por semana", "Kèk jou chak semèn"),
+  "choose-days": L("Choose days", "Elegir días", "Chwazi jou"),
+  "care-team-plan": L("Follow my care team’s plan", "Seguir el plan de mi equipo", "Swiv plan ekip swen mwen")
+})[value] || L("As needed", "Según sea necesario", "Lè sa nesesè");
+
+function syncPatientGoalsFromDiscovery(selectedLegacy, customTitle = "") {
+  const now = new Date().toISOString();
+  const selectedTypes = selectedLegacy.map(value => LEGACY_GOAL_TYPES[value]).filter(Boolean);
+  const existing = state.patientGoals || [];
+  const next = selectedTypes.map(type => {
+    const matched = existing.find(goal => goal.goalType === type && (type !== "CUSTOM" || goal.customTitle === customTitle.trim()));
+    if (matched) return { ...matched, status: matched.status === "REMOVED" ? "ACTIVE" : matched.status, customTitle: type === "CUSTOM" ? customTitle.trim() : matched.customTitle, updatedAt: now };
+    return createPatientGoal({ type, customTitle, patientId: state.offer?.patient?.id || "", now });
+  });
+  const selectedIds = new Set(next.map(goal => goal.id));
+  const removed = existing.filter(goal => !selectedIds.has(goal.id)).map(goal => goal.status === "REMOVED" ? goal : ({ ...goal, status: "REMOVED", updatedAt: now }));
+  state.patientGoals = [...next, ...removed];
+  next.forEach(goal => {
+    const previous = existing.find(item => item.id === goal.id);
+    if (!previous) goalHistoryEvent(goal.id, "GOAL_CREATED", { goalType: goal.goalType, source: "PATIENT" });
+    else if (previous.status === "REMOVED") goalHistoryEvent(goal.id, "GOAL_REACTIVATED");
+  });
+  removed.filter(goal => existing.find(item => item.id === goal.id)?.status !== "REMOVED").forEach(goal => goalHistoryEvent(goal.id, "GOAL_REMOVED"));
+  state.careGoals = [...selectedLegacy];
+  return next;
+}
+
+function goalDiscovery() {
+  const selectedCount = state.careGoals.length;
+  const ctaLabel = selectedCount > 1 ? L("Choose my priorities", "Elegir mis prioridades", "Chwazi priyorite mwen") : L("Continue", "Continuar", "Kontinye");
+  const customGoal = activePatientGoals().find(goal => goal.goalType === "CUSTOM")?.customTitle || "";
+  return `${art("goals")}${titleBlock(L("What matters most to you?", "¿Qué es lo más importante para usted?", "Ki sa ki pi enpòtan pou ou?"), L("Choose one or more goals. You can change these later.", "Elija uno o más objetivos. Puede cambiarlos después.", "Chwazi youn oswa plis objektif. Ou ka chanje sa yo pita."), L("Care setup", "Configuración", "Konfigirasyon swen"))}<form id="care-goals-form"><div class="goal-list">${goalOptions().map(([value, label]) => check("careGoal", label, state.careGoals.includes(value), value)).join("")}</div>${state.careGoals.includes("other") ? `<label class="field custom-goal-field">${L("What would you like to work toward?", "¿Qué le gustaría lograr?", "Ki sa ou ta renmen travay pou reyalize?")}<textarea name="customGoalTitle" rows="3" maxlength="180" placeholder="${L("Example: I want to attend my granddaughter’s graduation.", "Ejemplo: Quiero asistir a la graduación de mi nieta.", "Egzanp: Mwen vle ale nan gradyasyon pitit pitit fi mwen.")}">${escapeHtml(customGoal)}</textarea></label>` : ""}<label class="field goals-note-field">${L("Anything else you’d like your care team to know?", "¿Hay algo más que quiera que sepa su equipo de atención?", "Èske gen lòt bagay ou ta renmen ekip swen ou konnen?")}<textarea name="careGoalsNote" rows="3" maxlength="300" placeholder="${L("Optional", "Opcional", "Opsyonèl")}">${escapeHtml(state.careGoalsNote || "")}</textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "back", true)}${cta(ctaLabel, "goals-discovery-continue", false, !selectedCount)}</div>`;
+}
+
+function goalPriorities() {
+  const goals = activePatientGoals();
+  const primaryId = state.goalPrimaryId || goals[0]?.id || "";
+  return `${titleBlock(L("Which of these matters most to you right now?", "¿Cuál de estas metas le importa más en este momento?", "Kilès nan objektif sa yo ki pi enpòtan pou ou kounye a?"), L("Choose one or two goals you’d like to focus on first.", "Elija una o dos metas en las que le gustaría enfocarse primero.", "Chwazi youn oswa de objektif ou ta renmen konsantre sou an premye."), L("My priorities", "Mis prioridades", "Priyorite mwen"))}<form id="goal-priority-form" class="goal-priority-form"><fieldset><legend>${L("Primary priority", "Prioridad principal", "Premye priyorite")}</legend><div class="choice-list">${goals.map(goal => `<label class="choice-card compact-choice"><input type="radio" name="primaryGoal" value="${goal.id}" ${goal.id === primaryId ? "checked" : ""}><span class="choice-dot"></span>${icon("goals")}<span><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></span></label>`).join("")}</div></fieldset><fieldset><legend>${L("Secondary priority (optional)", "Prioridad secundaria (opcional)", "Dezyèm priyorite (opsyonèl)")}</legend><div class="choice-list"><label class="choice-card compact-choice"><input type="radio" name="secondaryGoal" value="" ${!state.goalSecondaryId ? "checked" : ""}><span class="choice-dot"></span>${icon("check")}<span><strong>${L("No second priority", "Sin segunda prioridad", "Pa gen dezyèm priyorite")}</strong></span></label>${goals.map(goal => `<label class="choice-card compact-choice"><input type="radio" name="secondaryGoal" value="${goal.id}" ${goal.id === state.goalSecondaryId ? "checked" : ""}><span class="choice-dot"></span>${icon("goals")}<span><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></span></label>`).join("")}</div></fieldset></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goals-flow-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "goals-priority-continue")}</div>`;
+}
+
+function goalPlanOffer() {
+  const goal = patientGoalById(state.goalPlanningGoalId || state.goalPrimaryId);
+  if (!goal) { state.goalFlowStep = "DISCOVERY"; return goalDiscovery(); }
+  return `${art("goals")}${titleBlock(L("Let’s make a plan for this goal", "Hagamos un plan para esta meta", "Ann fè yon plan pou objektif sa a"), escapeHtml(goalDisplayName(goal, state.language)), L("My plan", "Mi plan", "Plan mwen"))}<aside class="note goal-plan-note">${icon("goals")}<p>${L("A simple plan can make it easier to work toward what matters to you.", "Un plan sencillo puede facilitar el avance hacia lo que le importa.", "Yon plan senp ka fè li pi fasil pou travay sou sa ki enpòtan pou ou.")}</p></aside><div class="stacked-actions goal-plan-choice">${cta(L("Make a plan now", "Crear un plan ahora", "Fè yon plan kounye a"), "goal-plan-now")}${cta(L("I’ll do this with my care team later", "Lo haré después con mi equipo de atención", "M ap fè sa pita ak ekip swen mwen"), "goal-plan-later", true)}</div>`;
+}
+
+function goalPlanBuilder() {
+  const goal = patientGoalById(state.goalPlanningGoalId);
+  const suggestions = suggestedActionsFor(goal?.goalType);
+  const draft = state.goalPlanDraft || { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" };
+  return `${titleBlock(L("Let’s make a plan that works for you", "Hagamos un plan que funcione para usted", "Ann fè yon plan ki mache pou ou"), escapeHtml(goalDisplayName(goal, state.language)), L("My plan", "Mi plan", "Plan mwen"))}<form id="goal-plan-form" class="goal-plan-form"><fieldset><legend>${L("What would you like to work on?", "¿En qué le gustaría trabajar?", "Sou ki sa ou ta renmen travay?")}</legend><div class="goal-action-options">${suggestions.map(action => check("goalAction", localGoalText(action.title, state.language), draft.actionIds.includes(action.id), action.id)).join("")}</div></fieldset><label class="field">${L("Add my own step", "Agregar mi propio paso", "Ajoute pwòp etap pa mwen")}<input name="customAction" maxlength="160" value="${escapeHtml(draft.customAction || "")}" placeholder="${L("Example: Walk with my daughter after dinner.", "Ejemplo: Caminar con mi hija después de cenar.", "Egzanp: Mache ak pitit fi mwen apre dine.")}"></label><label class="field">${L("Why this matters to me (optional)", "Por qué esto es importante para mí (opcional)", "Poukisa sa enpòtan pou mwen (opsyonèl)")}<textarea name="whyItMatters" rows="3" maxlength="300">${escapeHtml(draft.whyItMatters || goal?.whyItMatters || "")}</textarea></label><fieldset><legend>${L("How often would feel realistic?", "¿Con qué frecuencia sería realista?", "Konbyen fwa ki ta reyalis?")}</legend><div class="preference-time-grid">${["daily", "few-days", "choose-days", "care-team-plan"].map(value => `<label><input type="radio" name="goalFrequency" value="${value}" ${draft.frequency === value ? "checked" : ""}><span>${frequencyLabel(value)}</span></label>`).join("")}</div></fieldset>${check("goalReminders", L("Reminders would help me", "Los recordatorios me ayudarían", "Rapèl ta ede mwen"), draft.remindersEnabled)}</form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goals-flow-back", true)}${cta(L("Review my plan", "Revisar mi plan", "Revize plan mwen"), "goal-plan-review")}</div>`;
+}
+
+function goalPlanReview() {
+  const goal = patientGoalById(state.goalPlanningGoalId);
+  const draft = state.goalPlanDraft;
+  const suggestions = suggestedActionsFor(goal?.goalType);
+  const selected = suggestions.filter(action => draft.actionIds.includes(action.id));
+  const items = [...selected.map(action => localGoalText(action.title, state.language)), ...(draft.customAction ? [draft.customAction] : [])];
+  return `${titleBlock(L("Here’s the plan you created", "Este es el plan que creó", "Men plan ou te kreye a"), L("Review it before you save it.", "Revíselo antes de guardarlo.", "Revize li anvan ou sove li."), L("My plan", "Mi plan", "Plan mwen"))}<section class="goal-plan-summary"><div><small>${L("Goal", "Meta", "Objektif")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div>${draft.whyItMatters ? `<div><small>${L("Why it matters", "Por qué importa", "Poukisa li enpòtan")}</small><p>${escapeHtml(draft.whyItMatters)}</p></div>` : ""}<div><small>${L("Actions", "Acciones", "Aksyon")}</small><ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div><small>${L("Frequency", "Frecuencia", "Frekans")}</small><p>${frequencyLabel(draft.frequency)}</p></div><div><small>${L("Reminders", "Recordatorios", "Rapèl")}</small><p>${draft.remindersEnabled ? L("On", "Activados", "Limen") : L("Off", "Desactivados", "Etenn")}</p></div></section><div class="actions">${cta(L("Change something", "Cambiar algo", "Chanje yon bagay"), "goal-plan-change", true)}${cta(L("Save my plan", "Guardar mi plan", "Sove plan mwen"), "goal-plan-save")}</div>`;
+}
+
 function goals() {
-  const options = [
-    ["blood-pressure", L("Keep my blood pressure under control", "Mantener mi presión arterial bajo control", "Kenbe tansyon mwen anba kontwòl")],
-    ["independent", L("Stay independent", "Mantener mi independencia", "Rete endepandan")],
-    ["avoid-hospital", L("Avoid hospital visits", "Evitar visitas al hospital", "Evite vizit lopital")],
-    ["understand-medications", L("Better understand my medications", "Comprender mejor mis medicamentos", "Konprann medikaman mwen yo pi byen")],
-    ["feel-better", L("Feel better day to day", "Sentirme mejor cada día", "Santi m pi byen chak jou")],
-    ["stay-active", L("Stay active", "Mantenerme activo", "Rete aktif")],
-    ["other", L("Other", "Otro", "Lòt")]
-  ];
-  return `${art("goals")}${titleBlock(L("What matters most to you?", "¿Qué es lo más importante para usted?", "Ki sa ki pi enpòtan pou ou?"), L("Choose one or more goals. You can change these later.", "Elija uno o más objetivos. Puede cambiarlos después.", "Chwazi youn oswa plis objektif. Ou ka chanje sa yo pita."), L("Care setup", "Configuración", "Konfigirasyon swen"))}<form id="care-goals-form"><div class="goal-list">${options.map(([value, label]) => check("careGoal", label, state.careGoals.includes(value), value)).join("")}</div><label class="field goals-note-field">${L("Anything else you’d like your care team to know?", "¿Hay algo más que quiera que sepa su equipo de atención?", "Èske gen lòt bagay ou ta renmen ekip swen ou konnen?")}<textarea name="careGoalsNote" rows="3" maxlength="300" placeholder="${L("Optional", "Opcional", "Opsyonèl")}">${escapeHtml(state.careGoalsNote || "")}</textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Save goals", "Guardar objetivos", "Sove objektif"))}`;
+  if (state.goalFlowStep === "PRIORITY") return goalPriorities();
+  if (state.goalFlowStep === "PLAN_OFFER") return goalPlanOffer();
+  if (state.goalFlowStep === "PLAN_ACTIONS") return goalPlanBuilder();
+  if (state.goalFlowStep === "PLAN_REVIEW") return goalPlanReview();
+  return goalDiscovery();
+}
+
+const goalProgressCopy = goal => {
+  const actions = goal.actions || [];
+  const periodic = actions.find(action => action.targetCount);
+  if (periodic) {
+    const today = new Date();
+    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
+    const completed = (periodic.completionHistory || []).filter(entry => new Date(`${entry.date}T00:00:00`) >= weekStart).length;
+    return L(`${completed} of ${periodic.targetCount} planned actions this week`, `${completed} de ${periodic.targetCount} acciones planificadas esta semana`, `${completed} sou ${periodic.targetCount} aksyon planifye semèn sa a`);
+  }
+  const milestone = actions.find(action => action.actionType === "ONE_TIME" && action.status === "COMPLETED");
+  if (milestone) return L("A planned step is complete", "Un paso del plan está completado", "Yon etap nan plan an fini");
+  const latest = (goal.progress || []).at(-1);
+  return latest?.patientReportedStatus ? ({ GOING_WELL: L("Going well", "Va bien", "Sa ap mache byen"), DIFFICULTY: L("Having some difficulty", "Con algunas dificultades", "Gen kèk difikilte"), NOT_STARTED: L("Not started yet", "Aún no comenzada", "Poko kòmanse") }[latest.patientReportedStatus] || "") : L("Ready when you are", "Listo cuando usted quiera", "Pare lè ou pare");
+};
+
+function myGoalsDashboard() {
+  const goals = activePatientGoals();
+  const cards = goals.map(goal => { const nextAction = (goal.actions || []).find(action => action.status === "ACTIVE" && !(action.completionHistory || []).some(entry => entry.date === new Date().toISOString().slice(0,10))); return `<article class="my-goal-card ${goal.priority === "PRIMARY" ? "primary-goal" : ""}" data-goal-status="${goal.status}">${goal.priority === "PRIMARY" ? `<span class="goal-priority-label">${L("My priority", "Mi prioridad", "Priyorite mwen")}</span>` : ""}<h2>${escapeHtml(goalDisplayName(goal, state.language))}</h2>${goal.whyItMatters ? `<div class="goal-why-preview"><small>${L("Why this matters to me", "Por qué esto me importa", "Poukisa sa enpòtan pou mwen")}</small><p>${escapeHtml(goal.whyItMatters)}</p></div>` : ""}<div class="goal-progress-preview"><small>${L("Progress", "Progreso", "Pwogrè")}</small><strong>${goalProgressCopy(goal)}</strong></div>${nextAction ? `<div class="goal-next-step"><small>${L("Next step", "Próximo paso", "Pwochen etap")}</small><p>${escapeHtml(nextAction.title)}</p></div>` : ""}<button type="button" class="text-button" data-action="view-goal" data-goal-id="${goal.id}">${goal.planStatus === "COMPLETED" ? L("View plan", "Ver plan", "Gade plan") : L("Create a plan", "Crear un plan", "Kreye yon plan")} ${icon("arrowRight")}</button></article>`; }).join("");
+  return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("The goals you’re working toward with support from your care team.", "Las metas en las que está trabajando con el apoyo de su equipo de atención.", "Objektif w ap travay sou yo avèk sipò ekip swen ou."), L("Your care", "Su cuidado", "Swen ou"))}${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}<div class="my-goals-list">${cards || `<div class="goals-empty">${icon("goals")}<strong>${L("Choose a goal that matters to you", "Elija una meta que le importe", "Chwazi yon objektif ki enpòtan pou ou")}</strong></div>`}</div><button type="button" class="link-card add-goal-card" data-action="add-another-goal">${icon("goals")}<span><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose something else you’d like to work toward", "Elija algo más que le gustaría lograr", "Chwazi yon lòt bagay ou ta renmen reyalize")}</small></span><b>›</b></button><div class="actions">${cta(L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen"), "back", true)}</div>`;
+}
+
+function goalDetail() {
+  const goal = currentGoal();
+  if (!goal) return myGoalsDashboard();
+  const title = escapeHtml(goalDisplayName(goal, state.language));
+  if (state.goalDetailView === "WHY_EDIT") return `${titleBlock(L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen"), title, L("My goal", "Mi meta", "Objektif mwen"))}<form id="goal-why-form"><label class="field"><textarea name="whyItMatters" rows="5" maxlength="300" placeholder="${L("Share what you want this goal to help you keep doing.", "Cuente qué desea que esta meta le ayude a seguir haciendo.", "Pataje sa ou vle objektif sa a ede w kontinye fè.")}">${escapeHtml(goal.whyItMatters || "")}</textarea></label></form><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-why")}</div>`;
+  if (state.goalDetailView === "CHECK_IN") return `${titleBlock(L("How is your goal going?", "¿Cómo va su meta?", "Kijan objektif ou ap mache?"), title, L("Goal check-in", "Seguimiento de meta", "Tcheke objektif"))}<div class="choice-list goal-checkin-options">${[["GOING_WELL", L("Going well", "Va bien", "Sa ap mache byen")], ["DIFFICULTY", L("I’m having some difficulty", "Estoy teniendo algunas dificultades", "Mwen gen kèk difikilte")], ["NOT_STARTED", L("I haven’t started yet", "Aún no he comenzado", "Mwen poko kòmanse")], ["CHANGE_GOAL", L("I want to change this goal", "Quiero cambiar esta meta", "Mwen vle chanje objektif sa a")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-checkin-response" data-response="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "BARRIERS") return `${titleBlock(L("What’s getting in the way?", "¿Qué se lo está dificultando?", "Kisa k ap anpeche w?"), L("Choose the answer that fits best.", "Elija la respuesta que mejor corresponda.", "Chwazi repons ki pi byen mache."), L("Barriers", "Dificultades", "Difikilte"))}<form id="goal-barrier-form"><div class="goal-barrier-options">${[["NOT_WELL",L("I don’t feel well", "No me siento bien", "Mwen pa santi m byen")],["FORGET",L("I forget", "Se me olvida", "Mwen bliye")],["NO_TIME",L("I don’t have time", "No tengo tiempo", "Mwen pa gen tan")],["SAFETY_WORRY",L("I’m worried about doing it safely", "Me preocupa hacerlo de forma segura", "Mwen enkyete pou m fè sa an sekirite")],["MEDICATION_TROUBLE",L("I’m having trouble with my medications", "Tengo dificultades con mis medicamentos", "Mwen gen pwoblèm ak medikaman mwen")],["NO_EQUIPMENT",L("I don’t have the equipment I need", "No tengo el equipo que necesito", "Mwen pa gen ekipman mwen bezwen")],["OTHER",L("Something else", "Algo más", "Yon lòt bagay")]].map(([value,label]) => `<label class="check-row"><input type="radio" name="barrierType" value="${value}"><span class="check-box">✓</span><span>${label}</span></label>`).join("")}</div><label class="field">${L("Tell us more (optional)", "Cuéntenos más (opcional)", "Di nou plis (opsyonèl)")}<textarea name="barrierNotes" rows="3" maxlength="300"></textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "save-goal-barrier")}</div>`;
+  if (state.goalDetailView === "SUPPORT") return `${titleBlock(L("How can we help?", "¿Cómo podemos ayudarle?", "Kijan nou ka ede w?"), title, L("Support I need", "Apoyo que necesito", "Sipò mwen bezwen"))}<div class="choice-list goal-support-options">${[["REMINDER",L("Remind me", "Recordármelo", "Fè m sonje")],["ADJUST_PLAN",L("Help me adjust my plan", "Ayudarme a ajustar mi plan", "Ede m ajiste plan mwen")],["EXPLAIN",L("Explain this to me", "Explicármelo", "Eksplike m sa")],["CARE_TEAM",L("Talk to my care team", "Hablar con mi equipo de atención", "Pale ak ekip swen mwen")],["UNSURE",L("I’m not sure", "No estoy seguro", "Mwen pa sèten")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-support-request" data-support="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "ACHIEVE_CONFIRM") return `${art("check", true)}${titleBlock(L("Are you ready to mark this goal as achieved?", "¿Está listo para marcar esta meta como lograda?", "Èske ou pare pou make objektif sa a kòm reyalize?"), title)}<p class="lead">${L("This only updates your personal goal. It does not change a clinical target or your care plan.", "Esto solo actualiza su meta personal. No cambia un objetivo clínico ni su plan de cuidado.", "Sa mete ajou objektif pèsonèl ou sèlman. Li pa chanje yon sib klinik ni plan swen ou.")}</p><div class="actions">${cta(L("Not yet", "Todavía no", "Poko"), "goal-detail-back", true)}${cta(L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize"), "confirm-goal-achieved")}</div>`;
+  const actionRows = (goal.actions || []).map(action => { const doneToday = (action.completionHistory || []).some(item => item.date === new Date().toISOString().slice(0,10)); return `<article class="goal-action-row"><div><strong>${escapeHtml(action.title)}</strong><small>${action.frequency ? frequencyLabel(action.frequency) : L("One-time step", "Paso único", "Etap yon sèl fwa")}</small></div><button type="button" data-action="complete-goal-action" data-action-id="${action.id}" ${doneToday || action.status === "COMPLETED" ? "disabled" : ""}>${doneToday || action.status === "COMPLETED" ? `✓ ${L("Done", "Hecho", "Fini")}` : L("Done today", "Hecho hoy", "Fè jodi a")}</button></article>`; }).join("");
+  const actionsList = actionRows ? `${actionRows}<button type="button" class="text-button" data-action="plan-active-goal">${L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen")} ${icon("arrowRight")}</button>` : "";
+  const clinicalTarget = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? `<aside class="clinical-target-card">${icon("shield")}<div><small>${L("Clinical target", "Objetivo clínico", "Sib klinik")}</small><strong>${L("Blood pressure target", "Objetivo de presión arterial", "Sib tansyon")}</strong><p>${L("Set by your care team. You cannot edit it here.", "Definido por su equipo de atención. No puede editarlo aquí.", "Ekip swen ou fikse li. Ou pa ka modifye li isit la.")}</p></div></aside>` : "";
+  return `${titleBlock(title, goal.status === "PAUSED" ? L("This goal is paused. You can return to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.") : goal.status === "ACHIEVED" ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.") : L("A goal you chose for yourself.", "Una meta que usted eligió.", "Yon objektif ou te chwazi pou tèt ou."), L("My goal", "Mi meta", "Objektif mwen"))}${clinicalTarget}<section class="goal-detail-section"><h2>${L("Why this matters to me", "Por qué esto me importa", "Poukisa sa enpòtan pou mwen")}</h2>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p>` : `<button type="button" class="text-button" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué importa", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</section><section class="goal-detail-section"><h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>${actionsList || `<button type="button" class="text-button" data-action="plan-active-goal">${L("Create a plan", "Crear un plan", "Kreye yon plan")} ${icon("arrowRight")}</button>`}</section><section class="goal-detail-section"><h2>${L("My progress", "Mi progreso", "Pwogrè mwen")}</h2><strong>${goalProgressCopy(goal)}</strong><button type="button" class="text-button" data-action="open-goal-checkin">${L("How is this goal going?", "¿Cómo va esta meta?", "Kijan objektif sa a ap mache?")} ${icon("arrowRight")}</button></section><details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button></div></details><div class="actions">${cta(L("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen"), "goal-detail-to-list", true)}</div>`;
+}
+
+function myGoals() {
+  const notice = state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : "";
+  return state.activeGoalId ? `${notice}${goalDetail()}` : myGoalsDashboard();
 }
 
 function accessBaseline() {
@@ -1863,6 +2105,7 @@ function prototypeSetup() {
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
+renderers.MY_GOALS = myGoals;
 renderers.MY_CARE_CIRCLE = myCareCircleScreen;
 renderers.CARE_CIRCLE_REMOVE_CONFIRMATION = careCircleRemoveConfirmation;
 
@@ -1883,11 +2126,12 @@ function render() {
   if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; return; }
   if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
-  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : "";
+  const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : state.screen === "ACCESS_MEASURE" && isBloodPressureAccessBaseline() ? "BP_HEALTH_DATA_SECURITY" : "";
   app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
-  scheduleEmmiGuidance();
+  const emmiTransitioned = syncEmmiNavigationContext();
+  if (!emmiTransitioned) scheduleEmmiGuidance();
   scheduleEmmiHesitationSupport();
   requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -1956,6 +2200,7 @@ async function launchPrototype() {
   service = new MockEnrollmentService("prototype", prototypeConfig);
     state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
+  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { barrierType: "", notes: "" }, goalSupportDraft: "", goalNotice: "", goalHistory: [] });
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
@@ -2587,18 +2832,8 @@ async function advance() {
     state.screen = "ONBOARDING";
     draftStore.save(state); render(); return;
   }
-  if (state.screen === "GOALS") {
-    const form = document.querySelector("#care-goals-form");
-    const selectedGoals = [...new FormData(form).getAll("careGoal")];
-    if (!selectedGoals.length) { state.error = L("Choose at least one goal.", "Elija al menos un objetivo.", "Chwazi omwen yon objektif."); render(); return; }
-    state.careGoals = selectedGoals;
-    state.careGoalsNote = String(new FormData(form).get("careGoalsNote") || "").trim().slice(0, 300);
-    state.goalsStatus = "COMPLETED";
-    state.baselineResumeScreen = "ONBOARDING";
-    audit(state, "care_goals_completed", "success", { goals: selectedGoals, hasAdditionalNote: Boolean(state.careGoalsNote) });
-    state.screen = "ONBOARDING";
-    draftStore.save(state); render(); return;
-  }
+  // GOALS uses its own multi-step actions so discovery, priority and planning remain auditable.
+  if (state.screen === "GOALS") return;
   if (state.screen === "RPM_DEVICE_PATH") { state.devicePath = new FormData(document.querySelector("form")).get("choice"); if (state.devicePath === "help" || !state.devicePath) { showHelp(); return; } }
   if (state.screen === "RPM_ADDRESS_CONFIRMATION") state.addressConfirmed = true;
   if (state.screen === "RPM_DEVICE_SETUP") state.setupComplete = true;
@@ -2697,7 +2932,15 @@ async function askEmmi(question) {
   const runtime = ensureEmmiRuntime();
   state.assistantMessages.push({ role: "user", text: cleaned });
   runtime.audit.transcript("user", cleaned);
-  if (!["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) && runtime.live.sendText(cleaned)) { refreshAssistantLayer(); return; }
+  const criticalSafety = /(call 911|emergency|chest pain|can'?t breathe|cannot breathe|dolor.*pecho|no puedo respirar|rele 911|ijans|pa ka respire)/i.test(cleaned);
+  const contextIndependent = !/(this|that|button|screen|here|esto|eso|botón|pantalla|aquí|sa a|bouton|ekran|isit)/i.test(cleaned);
+  if (!["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) && runtime.live.sendText(cleaned, {
+    id: `patient_${Date.now().toString(36)}`,
+    contextVersion: emmiTransitionManager?.contextVersion || 0,
+    screenId: state.screen,
+    priority: criticalSafety ? "CRITICAL_SAFETY" : "PATIENT_RESPONSE",
+    contextIndependent
+  })) { refreshAssistantLayer(); return; }
   state.assistantBusy = true; refreshAssistantLayer();
   try {
     const response = await assistantAnswer(cleaned, assistantContext());
@@ -2765,7 +3008,7 @@ function bindAssistantLayer() {
       const initialGuidance = state.emmiVoiceGuidance && state.emmiGuidanceTranscript ? emmiGuidancePrompt(state.emmiGuidanceTranscript) : "";
       ensureEmmiRuntime().live.connect(initialGuidance).catch(() => { /* The live client publishes a safe, localized error state. */ });
     }
-    if (action === "end-voice") { ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
+    if (action === "end-voice") { emmiTransitionManager?.cancel("explicit_end", { immediate: true }); ensureEmmiRuntime().live.disconnect("ended"); state.assistantVoiceError = ""; refreshAssistantLayer(); }
     if (action === "mute") { state.assistantVoiceMuted = !state.assistantVoiceMuted; ensureEmmiRuntime().live.setMuted(state.assistantVoiceMuted); refreshAssistantLayer(); }
     if (action === "language") {
       state.assistantVoiceError = "";
@@ -2880,6 +3123,12 @@ let bindActions = () => {};
 function bind() {
   bindActions = root => root.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", async event => {
     event.preventDefault(); const action = el.dataset.action;
+    const selectedChoice = document.querySelector('form input[name="choice"]:checked')?.value || el.dataset.section || el.dataset.support || "";
+    emmiNavigationIntent = {
+      selectedAction: selectedChoice || action,
+      navigationDirection: action === "back" || /back|return|cancel/.test(action) ? "BACK" : "FORWARD",
+      action
+    };
     const preserveArmForm = () => {
       const form = document.querySelector("#bp-device-info-form");
       if (!form) return;
@@ -2987,6 +3236,170 @@ function bind() {
       render();
       return;
     }
+    if (action === "open-my-goals") { state.screen = "MY_GOALS"; state.activeGoalId = ""; state.goalNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "add-another-goal") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = "DISCOVERY"; state.screen = "GOALS"; state.error = ""; draftStore.save(state); render(); return; }
+    if (action === "view-goal") {
+      const goal = patientGoalById(el.dataset.goalId);
+      if (!goal) return;
+      state.activeGoalId = goal.id;
+      state.goalNotice = "";
+      if (goal.planStatus !== "COMPLETED") { state.goalFlowOrigin = "MY_GOALS"; state.goalPlanningGoalId = goal.id; state.goalFlowStep = "PLAN_OFFER"; state.screen = "GOALS"; }
+      else { state.goalDetailView = "SUMMARY"; state.screen = "MY_GOALS"; }
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goals-discovery-continue") {
+      const form = document.querySelector("#care-goals-form");
+      const data = new FormData(form);
+      const selected = [...data.getAll("careGoal")];
+      const customTitle = String(data.get("customGoalTitle") || "").trim().slice(0, 180);
+      if (!selected.length) { state.error = L("Choose at least one goal.", "Elija al menos una meta.", "Chwazi omwen yon objektif."); render(); return; }
+      if (selected.includes("other") && !customTitle) { state.error = L("Tell us what you would like to work toward.", "Indique qué le gustaría lograr.", "Di nou sa ou ta renmen travay pou reyalize."); render(); return; }
+      state.careGoalsNote = String(data.get("careGoalsNote") || "").trim().slice(0, 300);
+      const goals = syncPatientGoalsFromDiscovery(selected, customTitle);
+      state.error = "";
+      if (goals.length > 1) state.goalFlowStep = "PRIORITY";
+      else {
+        const goal = goals[0];
+        goal.priority = "PRIMARY";
+        state.goalPrimaryId = goal.id;
+        state.goalSecondaryId = "";
+        state.goalPlanningGoalId = goal.id;
+        state.goalFlowStep = "PLAN_OFFER";
+        goalHistoryEvent(goal.id, "PRIORITY_SET", { priority: "PRIMARY" });
+      }
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goals-priority-continue") {
+      const data = new FormData(document.querySelector("#goal-priority-form"));
+      const primaryId = String(data.get("primaryGoal") || "");
+      const secondaryId = String(data.get("secondaryGoal") || "");
+      if (!primaryId) { state.error = L("Choose your primary priority.", "Elija su prioridad principal.", "Chwazi premye priyorite ou."); render(); return; }
+      if (secondaryId && secondaryId === primaryId) { state.error = L("Choose a different goal as your second priority.", "Elija una meta diferente como segunda prioridad.", "Chwazi yon lòt objektif kòm dezyèm priyorite."); render(); return; }
+      const now = new Date().toISOString();
+      state.patientGoals = activePatientGoals().map(goal => ({ ...goal, priority: goal.id === primaryId ? "PRIMARY" : goal.id === secondaryId ? "SECONDARY" : "NONE", updatedAt: now }));
+      state.goalPrimaryId = primaryId;
+      state.goalSecondaryId = secondaryId;
+      state.goalPlanningGoalId = primaryId;
+      state.goalFlowStep = "PLAN_OFFER";
+      state.error = "";
+      goalHistoryEvent(primaryId, "PRIORITY_SET", { priority: "PRIMARY", secondaryGoalId: secondaryId || null });
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goals-flow-back") {
+      state.goalFlowStep = ({ PRIORITY: "DISCOVERY", PLAN_OFFER: activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY", PLAN_ACTIONS: "PLAN_OFFER", PLAN_REVIEW: "PLAN_ACTIONS" })[state.goalFlowStep] || "DISCOVERY";
+      state.error = ""; render(); return;
+    }
+    if (action === "goal-plan-now" || action === "plan-active-goal") {
+      const goal = action === "plan-active-goal" ? currentGoal() : patientGoalById(state.goalPlanningGoalId);
+      if (!goal) return;
+      state.goalFlowOrigin = action === "plan-active-goal" ? "MY_GOALS" : state.goalFlowOrigin;
+      state.goalPlanningGoalId = goal.id;
+      state.goalPlanDraft = { actionIds: (goal.actions || []).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: (goal.actions || []).find(item => item.source === "PATIENT")?.title || "", frequency: (goal.actions || [])[0]?.frequency || "few-days", remindersEnabled: (goal.actions || []).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
+      state.goalFlowStep = "PLAN_ACTIONS";
+      state.screen = "GOALS";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goal-plan-later") {
+      const goal = patientGoalById(state.goalPlanningGoalId);
+      if (!goal) return;
+      goal.planStatus = "DEFERRED"; goal.updatedAt = new Date().toISOString();
+      state.goalPlanStatus = "DEFERRED"; state.goalsStatus = "COMPLETED"; state.baselineResumeScreen = "ONBOARDING";
+      goalHistoryEvent(goal.id, "PLAN_DEFERRED");
+      audit(state, "patient_goal_plan_deferred", "success", { goalId: goal.id, goalType: goal.goalType });
+      state.goalFlowStep = "DISCOVERY";
+      state.screen = state.goalFlowOrigin === "MY_GOALS" ? "MY_GOALS" : "ONBOARDING";
+      state.activeGoalId = state.goalFlowOrigin === "MY_GOALS" ? goal.id : "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goal-plan-review") {
+      const data = new FormData(document.querySelector("#goal-plan-form"));
+      const actionIds = [...data.getAll("goalAction")];
+      const customAction = String(data.get("customAction") || "").trim().slice(0, 160);
+      if (!actionIds.length && !customAction) { state.error = L("Choose a suggested step or add your own.", "Elija un paso sugerido o agregue el suyo.", "Chwazi yon etap yo sijere oswa ajoute pa ou."); render(); return; }
+      state.goalPlanDraft = { actionIds, customAction, frequency: String(data.get("goalFrequency") || "few-days"), remindersEnabled: data.get("goalReminders") === "on", whyItMatters: String(data.get("whyItMatters") || "").trim().slice(0, 300) };
+      state.goalFlowStep = "PLAN_REVIEW"; state.error = ""; draftStore.save(state); render(); return;
+    }
+    if (action === "goal-plan-change") { state.goalFlowStep = "PLAN_ACTIONS"; render(); return; }
+    if (action === "goal-plan-save") {
+      const goal = patientGoalById(state.goalPlanningGoalId);
+      if (!goal) return;
+      const now = new Date().toISOString();
+      const suggestions = suggestedActionsFor(goal.goalType);
+      const targetFor = (template, frequency) => frequency === "daily" ? 7 : frequency === "few-days" || frequency === "choose-days" ? (template.defaultTarget || 3) : template.defaultTarget || null;
+      const suggested = suggestions.filter(item => state.goalPlanDraft.actionIds.includes(item.id)).map(item => ({ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: item.id, title: localGoalText(item.title, state.language), actionType: item.frequency ? "RECURRING" : "ONE_TIME", source: "EMMI_SUGGESTED", frequency: item.frequency ? state.goalPlanDraft.frequency : "", targetCount: item.frequency ? targetFor(item, state.goalPlanDraft.frequency) : null, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }));
+      const custom = state.goalPlanDraft.customAction ? [{ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: "", title: state.goalPlanDraft.customAction, actionType: "RECURRING", source: "PATIENT", frequency: state.goalPlanDraft.frequency, targetCount: state.goalPlanDraft.frequency === "daily" ? 7 : 3, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }] : [];
+      goal.actions = [...suggested, ...custom]; goal.whyItMatters = state.goalPlanDraft.whyItMatters; goal.planStatus = "COMPLETED"; goal.updatedAt = now;
+      state.goalPlanStatus = "COMPLETED"; state.goalsStatus = "COMPLETED"; state.baselineResumeScreen = "ONBOARDING";
+      goalHistoryEvent(goal.id, "PLAN_SAVED", { actionCount: goal.actions.length, remindersEnabled: state.goalPlanDraft.remindersEnabled });
+      audit(state, "patient_goal_plan_saved", "success", { goalId: goal.id, actionCount: goal.actions.length, clinicalTargetChanged: false, monitoringRuleChanged: false });
+      state.goalFlowStep = "DISCOVERY";
+      state.screen = state.goalFlowOrigin === "MY_GOALS" ? "MY_GOALS" : "ONBOARDING";
+      state.activeGoalId = state.goalFlowOrigin === "MY_GOALS" ? goal.id : "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goal-detail-to-list") { state.activeGoalId = ""; state.goalDetailView = "SUMMARY"; state.goalNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "goal-detail-back") { state.goalDetailView = "SUMMARY"; state.error = ""; render(); return; }
+    if (action === "edit-goal-why") { state.goalDetailView = "WHY_EDIT"; render(); return; }
+    if (action === "save-goal-why") {
+      const goal = currentGoal(); if (!goal) return;
+      goal.whyItMatters = String(new FormData(document.querySelector("#goal-why-form")).get("whyItMatters") || "").trim().slice(0,300); goal.updatedAt = goalHistoryEvent(goal.id, "WHY_UPDATED", { hasWhy: Boolean(goal.whyItMatters) });
+      state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
+    }
+    if (action === "complete-goal-action") {
+      const goal = currentGoal(); const item = goal?.actions?.find(candidate => candidate.id === el.dataset.actionId); if (!item) return;
+      const today = new Date().toISOString().slice(0,10); item.completionHistory ||= [];
+      if (!item.completionHistory.some(entry => entry.date === today)) item.completionHistory.push({ id: `completion_${Date.now().toString(36)}`, date: today, completedAt: new Date().toISOString(), source: "PATIENT_REPORTED" });
+      if (item.actionType === "ONE_TIME") item.status = "COMPLETED";
+      item.updatedAt = goalHistoryEvent(goal.id, "ACTION_COMPLETED", { actionId: item.id, source: item.source });
+      draftStore.save(state); render(); return;
+    }
+    if (action === "open-goal-checkin") { state.goalDetailView = "CHECK_IN"; render(); return; }
+    if (action === "goal-checkin-response") {
+      const goal = currentGoal(); if (!goal) return;
+      const response = el.dataset.response; const timestamp = new Date().toISOString();
+      goal.progress = [...(goal.progress || []), { id: `goal_progress_${Date.now().toString(36)}`, goalId: goal.id, progressType: GOAL_CONFIG[goal.goalType]?.progressType || "PATIENT_REPORTED", patientReportedStatus: response, timestamp }];
+      goal.reviews = [...(goal.reviews || []), { id: `goal_review_${Date.now().toString(36)}`, goalId: goal.id, reviewedAt: timestamp, patientStatus: response, changesMade: false }];
+      goalHistoryEvent(goal.id, "CHECK_IN_RECORDED", { response });
+      if (response === "DIFFICULTY") state.goalDetailView = "BARRIERS";
+      else if (response === "CHANGE_GOAL") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; }
+      else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
+      draftStore.save(state); render(); return;
+    }
+    if (action === "save-goal-barrier") {
+      const goal = currentGoal(); const data = new FormData(document.querySelector("#goal-barrier-form")); const barrierType = String(data.get("barrierType") || ""); const notes = String(data.get("barrierNotes") || "").trim().slice(0,300);
+      if (!barrierType) { state.error = L("Choose what is getting in the way.", "Elija qué se lo está dificultando.", "Chwazi sa k ap anpeche w."); render(); return; }
+      const createdAt = new Date().toISOString(); const barrier = { id: `goal_barrier_${Date.now().toString(36)}`, goalId: goal.id, barrierType, notes, status: "OPEN", createdAt };
+      goal.barriers = [...(goal.barriers || []), barrier]; goalHistoryEvent(goal.id, "BARRIER_REPORTED", { barrierType });
+      const urgent = /(severe chest pain|chest pain|can'?t breathe|cannot breathe|dolor fuerte en el pecho|dolor en el pecho|no puedo respirar|gwo doulè nan pwatrin|pa ka respire)/i.test(notes);
+      if (urgent) {
+        ensureGoalCareTeamTask("CLINICAL_SAFETY_ESCALATION", goal, { barrierId: barrier.id, priority: "URGENT_REVIEW", reason: "POTENTIAL_URGENT_SYMPTOM" });
+        state.goalNotice = L("Your message may describe an urgent symptom. Call 911 now if you have severe chest pain or trouble breathing. Your care team was also notified.", "Su mensaje puede describir un síntoma urgente. Llame al 911 ahora si tiene dolor intenso en el pecho o dificultad para respirar. También avisamos a su equipo.", "Mesaj ou ka dekri yon sentòm ijan. Rele 911 kounye a si ou gen gwo doulè nan pwatrin oswa pwoblèm pou respire. Nou avèti ekip swen ou tou.");
+        state.goalDetailView = "SUMMARY";
+      } else state.goalDetailView = "SUPPORT";
+      state.error = ""; draftStore.save(state); render(); return;
+    }
+    if (action === "goal-support-request") {
+      const goal = currentGoal(); if (!goal) return;
+      const supportType = el.dataset.support; const createdAt = new Date().toISOString();
+      const taskType = supportType === "ADJUST_PLAN" ? "GOAL_PLAN_REVIEW" : supportType === "CARE_TEAM" || supportType === "UNSURE" ? "GOAL_SUPPORT" : supportType === "EXPLAIN" ? "PATIENT_BARRIER_REVIEW" : "";
+      const task = taskType ? ensureGoalCareTeamTask(taskType, goal, { supportType, priority: "ROUTINE" }) : null;
+      goal.supportRequests = [...(goal.supportRequests || []), { id: `goal_support_${Date.now().toString(36)}`, goalId: goal.id, supportType, careTeamTaskId: task?.id || null, status: task ? "REQUESTED" : "ACTIVE", createdAt }];
+      goalHistoryEvent(goal.id, "SUPPORT_REQUESTED", { supportType, careTeamTaskId: task?.id || null });
+      state.goalNotice = supportType === "REMINDER" ? L("We’ll use your reminder preference for this goal.", "Usaremos su preferencia de recordatorios para esta meta.", "N ap itilize preferans rapèl ou pou objektif sa a.") : L("Your request was shared with your care team.", "Su solicitud fue compartida con su equipo de atención.", "Nou pataje demann ou ak ekip swen ou.");
+      state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
+    }
+    if (action === "pause-goal" || action === "reactivate-goal") {
+      const goal = currentGoal(); if (!goal) return;
+      goal.status = action === "pause-goal" ? "PAUSED" : "ACTIVE"; goal.updatedAt = goalHistoryEvent(goal.id, action === "pause-goal" ? "GOAL_PAUSED" : "GOAL_REACTIVATED");
+      state.goalNotice = action === "pause-goal" ? L("This goal is paused. You can come back to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.") : L("This goal is active again.", "Esta meta está activa nuevamente.", "Objektif sa a aktif ankò.");
+      draftStore.save(state); render(); return;
+    }
+    if (action === "goal-mark-achieved") { state.goalDetailView = "ACHIEVE_CONFIRM"; render(); return; }
+    if (action === "confirm-goal-achieved") {
+      const goal = currentGoal(); if (!goal) return;
+      goal.status = "ACHIEVED"; goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_ACHIEVED", { clinicalOutcomeChanged: false, cmsOutcomeChanged: false }); state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
+    }
+    if (action === "change-goal-priority") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; render(); return; }
     if (action === "open-my-care-circle") { state.screen = "MY_CARE_CIRCLE"; state.careCircleNotice = ""; render(); return; }
     if (action === "invite-another-care-circle") { Object.assign(state, { growthReturnScreen: "MY_CARE_CIRCLE", careCircleContext: "ONGOING_CARE", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", careCircleContactNumbers: [], careCircleNotice: "", screen: "CARE_CIRCLE_INVITE" }); render(); return; }
     if (action === "resend-care-circle") { const result = growthStore.resendSupportInvite(el.dataset.inviteId); state.careCircleNotice = result.status === "COOLDOWN" ? L(`Please wait ${result.retryAfterSeconds} seconds before sending again.`, `Espere ${result.retryAfterSeconds} segundos antes de volver a enviar.`, `Tanpri tann ${result.retryAfterSeconds} segonn anvan ou voye ankò.`) : result.inviteId ? L("Invitation sent again.", "Invitación reenviada.", "Envitasyon an voye ankò.") : L("This invitation could not be resent.", "No se pudo reenviar esta invitación.", "Nou pa t kapab voye envitasyon sa a ankò."); audit(state, "invite_resent", result.inviteId ? "success" : result.status, { inviteId: el.dataset.inviteId }); render(); return; }
@@ -3052,6 +3465,7 @@ function bind() {
       state.emmiVoiceGuidancePaused = false;
       state.emmiWelcomeAcknowledged = true;
       state.emmiGuidanceTranscript = "";
+      emmiTransitionManager?.setEnabled(false);
       if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) emmiLive.disconnect("guidance_disabled");
       persistEmmiPreferences();
       render();
@@ -3060,6 +3474,7 @@ function bind() {
     if (action === "toggle-emmi-transcript") { state.emmiTranscriptOpen = !state.emmiTranscriptOpen; render(); return; }
     if (action === "toggle-emmi-guidance-pause") {
       state.emmiVoiceGuidancePaused = !state.emmiVoiceGuidancePaused;
+      emmiTransitionManager?.setPaused(state.emmiVoiceGuidancePaused);
       if (emmiLive && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) {
         emmiLive.stopPlayback();
         emmiLive.setMuted(state.emmiVoiceGuidancePaused);
@@ -3074,7 +3489,7 @@ function bind() {
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || state.emmiGuidanceTranscript);
       if (!state.emmiVoiceGuidance) { state.emmiVoiceGuidance = true; state.emmiWelcomeAcknowledged = true; persistEmmiPreferences(); }
       state.emmiVoiceGuidancePaused = false;
-      emmiLive?.stopPlayback(); // Never let a repeat overlap audio that is still playing.
+      emmiTransitionManager?.cancel("explicit_repeat", { immediate: true });
       ensureEmmiRuntime().live.prepareAudioPlayback();
       deliverEmmiGuidance(message, state.screen, { connect: !emmiLive || ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) });
       return;
@@ -3135,6 +3550,12 @@ function bind() {
       if (state.screen === "FLOW_DEFERRED") {
         state.screen = "ENROLLMENT_CONFIRMED";
         render();
+      } else if (state.screen === "MY_GOALS") {
+        if (state.activeGoalId) { state.activeGoalId = ""; state.goalDetailView = "SUMMARY"; }
+        else state.screen = "MY_CARE";
+        draftStore.save(state); render();
+      } else if (state.screen === "GOALS" && state.goalFlowOrigin === "MY_GOALS" && state.goalFlowStep === "DISCOVERY") {
+        state.screen = "MY_GOALS"; state.activeGoalId = ""; draftStore.save(state); render();
       } else if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
         state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
         render();
@@ -3483,13 +3904,29 @@ function bind() {
       else showHelp();
     }
     if (action === "finish") {
-      if (state.offer?.pathway === "ACCESS" && (state.bpBaselineStatus === "PENDING_DEVICE" || state.bpEscalationState?.status === "ACTIVE")) draftStore.save(state);
-      else draftStore.clear();
-      el.textContent = L("Done", "Listo", "Fini"); el.disabled = true;
+      // My Care is the persistent home after setup; do not erase longitudinal goals.
+      state.screen = "MY_CARE";
+      draftStore.save(state);
+      render();
+      return;
     }
     if (action === "dev") { state.devOpen = !state.devOpen; render(); }
     if (action === "clear") { draftStore.clear(); location.reload(); }
   }));
+  const goalDiscoveryForm = document.querySelector("#care-goals-form");
+  goalDiscoveryForm?.addEventListener("change", event => {
+    if (event.target.name !== "careGoal") return;
+    const data = new FormData(goalDiscoveryForm);
+    const nextSelection = [...data.getAll("careGoal")];
+    state.careGoalsNote = String(data.get("careGoalsNote") || state.careGoalsNote || "").slice(0,300);
+    const otherChanged = nextSelection.includes("other") !== state.careGoals.includes("other");
+    state.careGoals = nextSelection;
+    if (otherChanged) render();
+    else {
+      const button = document.querySelector('[data-action="goals-discovery-continue"]');
+      if (button) { button.disabled = !nextSelection.length; button.childNodes[0].textContent = `${nextSelection.length > 1 ? L("Choose my priorities", "Elegir mis prioridades", "Chwazi priyorite mwen") : L("Continue", "Continuar", "Kontinye")} `; }
+    }
+  });
   bindActions(document);
   document.querySelector("#scenario-select")?.addEventListener("change", e => { location.search = `?scenario=${encodeURIComponent(e.target.value)}`; });
   document.querySelector("#screen-select")?.addEventListener("change", e => { state.screen = e.target.value; state.identityVerified = true; if (state.screen === "ACCESS_ELIGIBILITY_RESULT") state.accessOutcome = state.offer.fixture.accessOutcome || "eligible"; render(); });
@@ -3700,6 +4137,28 @@ async function boot() {
       if (!Array.isArray(saved.additionalMedications)) state.additionalMedications = [];
       if (!["UNREVIEWED", "NONE", "ADDED", "UNSURE"].includes(saved.additionalMedicationsStatus)) state.additionalMedicationsStatus = "UNREVIEWED";
       if (!Array.isArray(saved.careGoals)) state.careGoals = [];
+      if (!Array.isArray(saved.patientGoals)) {
+        state.patientGoals = [];
+        if (state.careGoals.length) syncPatientGoalsFromDiscovery(state.careGoals, "");
+      }
+      state.patientGoals = (state.patientGoals || []).map(goal => ({
+        ...goal,
+        status: goal.status || "ACTIVE",
+        priority: goal.priority || "NONE",
+        planStatus: goal.planStatus || "NOT_STARTED",
+        actions: Array.isArray(goal.actions) ? goal.actions : [],
+        progress: Array.isArray(goal.progress) ? goal.progress : [],
+        barriers: Array.isArray(goal.barriers) ? goal.barriers : [],
+        supportRequests: Array.isArray(goal.supportRequests) ? goal.supportRequests : [],
+        reviews: Array.isArray(goal.reviews) ? goal.reviews : []
+      }));
+      state.goalFlowStep ||= "DISCOVERY";
+      state.goalFlowOrigin ||= "ONBOARDING";
+      state.goalPlanDraft = state.goalPlanDraft && typeof state.goalPlanDraft === "object" ? { actionIds: Array.isArray(state.goalPlanDraft.actionIds) ? state.goalPlanDraft.actionIds : [], customAction: state.goalPlanDraft.customAction || "", frequency: state.goalPlanDraft.frequency || "few-days", remindersEnabled: Boolean(state.goalPlanDraft.remindersEnabled), whyItMatters: state.goalPlanDraft.whyItMatters || "" } : { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" };
+      state.goalDetailView ||= "SUMMARY";
+      if (!Array.isArray(saved.goalHistory)) state.goalHistory = [];
+      if (!state.goalPrimaryId) state.goalPrimaryId = state.patientGoals.find(goal => goal.priority === "PRIMARY")?.id || state.patientGoals[0]?.id || "";
+      if (!state.goalSecondaryId) state.goalSecondaryId = state.patientGoals.find(goal => goal.priority === "SECONDARY")?.id || "";
       state.preferredCareLanguage ||= state.language;
       state.preferredContactTime ||= "none";
       if (!saved.deviceVerificationStatus) state.deviceVerificationStatus = saved.bpDeviceVerificationStatus === "VERIFIED_COMPATIBLE" ? "ASSIGNED" : saved.bpDeviceVerificationStatus === "VERIFIED_INCOMPATIBLE" ? "UNSUPPORTED" : saved.bpDeviceVerificationStatus === "ASSISTANCE_REQUESTED" ? "NEEDS_REVIEW" : state.deviceVerificationStatus;

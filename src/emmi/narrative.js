@@ -1,3 +1,5 @@
+import { semanticSpeechSegments } from "./transitionManager.js";
+
 // EMMI Narrative Engine.
 //
 // EMMI does not read the screen — it gives meaning to the screen. Every narration is built
@@ -406,6 +408,15 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     )
   }),
 
+  MY_GOALS: objective({
+    summary: T("Your goals and progress are here in one place.", "Sus metas y su progreso están aquí en un solo lugar.", "Objektif ou ak pwogrè ou la nan yon sèl kote."),
+    tone: "encouraging",
+    purpose: T("This area helps you keep working toward the personal goals you chose.", "Esta sección le ayuda a seguir avanzando hacia las metas personales que eligió.", "Zòn sa a ede w kontinye travay sou objektif pèsonèl ou chwazi yo."),
+    benefit: T("You can review your plan, record progress, and ask your care team for support when something gets in the way.", "Puede revisar su plan, registrar su progreso y pedir apoyo a su equipo cuando algo se lo dificulte.", "Ou ka revize plan ou, anrejistre pwogrè ou, epi mande ekip swen ou sipò lè yon bagay anpeche w."),
+    reassurance: T("These are your personal goals. They do not change clinical targets or medical orders, and you can adjust them later.", "Estas son sus metas personales. No cambian objetivos clínicos ni indicaciones médicas y puede ajustarlas después.", "Sa yo se objektif pèsonèl ou. Yo pa chanje sib klinik ni lòd medikal, epi ou ka ajiste yo pita."),
+    action: T("Choose a goal to view it or add another goal when you are ready.", "Elija una meta para verla o agregue otra cuando esté listo.", "Chwazi yon objektif pou gade li oswa ajoute yon lòt lè ou pare.")
+  }),
+
   ACCESS_BASELINE: objective({
     summary: T(
       "This helps your care team understand your starting point.",
@@ -675,13 +686,16 @@ const pick = (entry, locale) => {
 };
 
 const sentences = parts => parts.filter(Boolean).map(part => part.trim()).filter(Boolean).join(" ");
+const spokenSegments = parts => parts.filter(Boolean).flatMap(part => semanticSpeechSegments(part));
 
 export function buildHomeNarration({ locale = "EN", program, programDisplayName = "", providerReferral = false, physicianDisplayName = "" } = {}) {
   const introduction = PROGRAM_INTRODUCTION[program] || PROGRAM_INTRODUCTION_FALLBACK(programDisplayName || program || "this care");
   // A physician is only mentioned when the referral source and a real name both support it.
   const referral = providerReferral && physicianDisplayName ? pick(HOME_PHYSICIAN(physicianDisplayName), locale) : "";
+  const segments = spokenSegments([pick(HOME_OPENING, locale), referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]);
   return {
-    narrationText: sentences([pick(HOME_OPENING, locale), referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]),
+    narrationText: sentences(segments),
+    segments,
     narrationPurpose: "PROGRAM_INTRODUCTION",
     estimatedSeconds: NARRATION_SECONDS.PROGRAM_INTRODUCTION
   };
@@ -728,15 +742,17 @@ export function buildNarration({ screen, locale = "EN", runtime = {} } = {}) {
   const spec = NARRATIVE_OBJECTIVES[screen];
   if (!spec) return null;
   // ORIENT -> EXPLAIN/BENEFIT -> REASSURE -> ACTION, then any runtime detail worth saying.
-  const narrationText = sentences([
+  const segments = spokenSegments([
     pick(spec.purpose, locale),
     pick(spec.benefit, locale),
     pick(spec.reassurance, locale),
     pick(spec.action, locale),
     ...dynamicSentences(spec.dynamic, runtime, locale)
   ]);
+  const narrationText = sentences(segments);
   return {
     narrationText,
+    segments,
     // One short line for the UI. The full narration stays audio, reachable via "Read message".
     shortSummary: pick(spec.summary, locale),
     narrationPurpose: screen,
@@ -746,6 +762,98 @@ export function buildNarration({ screen, locale = "EN", runtime = {} } = {}) {
     // Development-only trace of what the narration was trying to achieve (§55).
     objective: { purpose: pick(spec.purpose, locale), benefit: pick(spec.benefit, locale), reassurance: pick(spec.reassurance, locale), action: pick(spec.action, locale), dynamicUsed: spec.dynamic.filter(field => runtime[field] != null) }
   };
+}
+
+const TRANSITIONS = Object.freeze({
+  "DECISION_MAKER>PERSONAL_REPRESENTATIVE_DETAILS": T(
+    "Understood. Since you are completing this as a personal representative, we first need a few details about you before confirming the patient's identity.",
+    "Entendido. Como está completando este proceso como representante personal, primero necesitamos algunos datos sobre usted antes de confirmar la identidad del paciente.",
+    "Nou konprann. Paske w ap ranpli sa kòm reprezantan pèsonèl, nou bezwen kèk detay sou ou anvan nou konfime idantite pasyan an."
+  ),
+  "DECISION_MAKER>IDENTITY_VERIFICATION": T(
+    "Perfect. Now we will confirm the patient's identity. This only takes a moment and helps protect their information.",
+    "Perfecto. Ahora vamos a confirmar la identidad del paciente. Esto solo toma un momento y ayuda a proteger su información.",
+    "Trè byen. Kounye a nou pral konfime idantite pasyan an. Sa pran yon ti moman epi li ede pwoteje enfòmasyon li."
+  ),
+  "IDENTITY_VERIFICATION>CARE_RECOMMENDATION": T(
+    "All set. Now we will show you the support available between doctor visits and how it may help.",
+    "Listo. Ahora vamos a mostrarle el apoyo disponible entre visitas médicas y cómo puede ayudarle.",
+    "Nou fini. Kounye a nou pral montre w sipò ki disponib ant vizit kay doktè ak kijan li ka ede w."
+  ),
+  "ACCESS_ELIGIBILITY_PROCESSING>ACCESS_ELIGIBILITY_RESULT": T(
+    "The eligibility check is complete. Let us review the confirmed result together.",
+    "La verificación de elegibilidad terminó. Revisemos juntos el resultado confirmado.",
+    "Verifikasyon kalifikasyon an fini. Ann revize rezilta ki konfime a ansanm."
+  ),
+  "DISCLOSURE>CONSENT_REVIEW": T(
+    "You have reviewed the main points. Now you can see everything together, including any expected cost, before deciding whether to enroll.",
+    "Ya revisó los puntos principales. Ahora puede ver todo junto, incluido cualquier costo esperado, antes de decidir si desea inscribirse.",
+    "Ou revize pwen prensipal yo. Kounye a ou ka wè tout bagay ansanm, ansanm ak nenpòt depans yo prevwa, anvan ou deside si w vle enskri."
+  ),
+  "ENROLLMENT_PROCESSING>ENROLLMENT_CONFIRMED": T(
+    "Your enrollment is complete. You now have access to support from your ITERA care team, and you may start the next step now or later.",
+    "Listo, su inscripción está completa. Ahora tiene acceso al apoyo de su equipo de ITERA y puede comenzar el siguiente paso ahora o más tarde.",
+    "Enskripsyon ou fini. Kounye a ou gen sipò ekip swen ITERA ou, epi ou ka kòmanse pwochen etap la kounye a oswa pita."
+  ),
+  "ENROLLMENT_CONFIRMED>ONBOARDING": T(
+    "Perfect. Your enrollment is already complete. Now we will learn a little more about your health so your care can be personalized.",
+    "Perfecto. Su inscripción ya está completa. Ahora vamos a conocer un poco más sobre su salud para personalizar su cuidado.",
+    "Trè byen. Enskripsyon ou deja fini. Kounye a nou pral aprann yon ti kras plis sou sante ou pou pèsonalize swen ou."
+  ),
+  "ENROLLMENT_CONFIRMED>FLOW_DEFERRED": T(
+    "No problem. Your enrollment is complete, and you can continue setting up your care whenever you are ready.",
+    "No hay problema. Su inscripción está completa y podrá continuar con la configuración de su cuidado cuando esté listo.",
+    "Pa gen pwoblèm. Enskripsyon ou fini, epi ou ka kontinye mete swen ou an plas lè ou pare."
+  ),
+  "MEDICATIONS_REVIEW>ONBOARDING": T(
+    "Thank you. Your medication review is saved, and you are back at your care setup.",
+    "Gracias. La revisión de sus medicamentos quedó guardada y ha vuelto a la configuración de su cuidado.",
+    "Mèsi. Revizyon medikaman ou anrejistre, epi ou retounen nan konfigirasyon swen ou."
+  ),
+  "ACCESS_BP_DEVICE_RESULT>ACCESS_BP_GUIDED_SETUP": T(
+    "Your monitor is confirmed. Next, we will prepare it for your first measurement.",
+    "Su monitor está confirmado. Ahora vamos a prepararlo para su primera medición.",
+    "Nou konfime monitè ou. Kounye a nou pral prepare l pou premye mezi ou."
+  ),
+  "ACCESS_BP_GUIDED_SETUP>ACCESS_BP_MEASUREMENT": T(
+    "Your monitor is ready. Now we will take the first measurement and confirm that the information reaches ITERA correctly.",
+    "Su monitor está listo. Ahora haremos la primera medición y confirmaremos que la información llegue correctamente a ITERA.",
+    "Monitè ou pare. Kounye a nou pral pran premye mezi a epi konfime enfòmasyon an rive jwenn ITERA kòrèkteman."
+  )
+});
+
+const BACK_BRIDGE = T(
+  "Of course. We went back so you can review or change this step.",
+  "Claro. Volvimos para que pueda revisar o cambiar este paso.",
+  "Dakò. Nou retounen pou w ka revize oswa chanje etap sa a."
+);
+
+export function buildTransitionNarration({ previousScreen, currentScreen, locale = "EN", navigationDirection = "FORWARD", runtime = {} } = {}) {
+  if (!previousScreen || !currentScreen || previousScreen === currentScreen) return null;
+  let entry = navigationDirection === "BACK" ? BACK_BRIDGE : TRANSITIONS[`${previousScreen}>${currentScreen}`];
+  if (previousScreen === "DECISION_MAKER" && currentScreen === "IDENTITY_VERIFICATION" && runtime.completionRole === "patient") {
+    entry = T(
+      "Perfect. Now we will confirm your identity. This only takes a moment and helps protect your information.",
+      "Perfecto. Ahora vamos a confirmar su identidad. Esto solo toma un momento y nos ayuda a proteger su información.",
+      "Trè byen. Kounye a nou pral konfime idantite ou. Sa pran yon ti moman epi li ede pwoteje enfòmasyon ou."
+    );
+  }
+  if (previousScreen === "ENROLLMENT_PROCESSING" && currentScreen === "ENROLLMENT_CONFIRMED" && runtime.enrollmentStatus !== "COMPLETED") entry = null;
+  if (previousScreen === "ACCESS_BP_DEVICE_RESULT" && currentScreen === "ACCESS_BP_GUIDED_SETUP" && !runtime.deviceConfirmed) entry = null;
+  if (previousScreen === "ACCESS_ELIGIBILITY_PROCESSING" && currentScreen === "ACCESS_ELIGIBILITY_RESULT" && runtime.eligibilityStatus === "ELIGIBLE") {
+    entry = T(
+      "Good news, you can continue. This does not complete your enrollment. Next, you will review the important information before deciding whether to take part.",
+      "Buenas noticias, puede continuar. Esto todavía no completa su inscripción. Ahora revisará la información importante antes de decidir si desea participar.",
+      "Bon nouvèl, ou ka kontinye. Sa poko fini enskripsyon ou. Kounye a ou pral revize enfòmasyon enpòtan yo anvan ou deside si w vle patisipe."
+    );
+  }
+  if (!entry) {
+    const destination = NARRATIVE_OBJECTIVES[currentScreen];
+    entry = destination?.purpose || null;
+  }
+  if (!entry) return null;
+  const narrationText = pick(entry, locale);
+  return { narrationText, segments: spokenSegments([narrationText]), narrationPurpose: "TRANSITION" };
 }
 
 export const narratedScreens = () => Object.keys(NARRATIVE_OBJECTIVES);

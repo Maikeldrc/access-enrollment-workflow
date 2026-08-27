@@ -30,11 +30,12 @@ const pcm16 = floats => {
 };
 
 export class EmmiLiveClient {
-  constructor({ getContext, executeTool, onState, onTranscript, onError }) {
+  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError }) {
     this.getContext = getContext;
     this.executeTool = executeTool;
     this.onState = onState;
     this.onTranscript = onTranscript;
+    this.onTurnComplete = onTurnComplete;
     this.onError = onError;
     this.state = "DISCONNECTED";
     this.muted = false;
@@ -43,8 +44,13 @@ export class EmmiLiveClient {
     this.inputContext = null;
     this.outputContext = null;
     this.processor = null;
-    this.sources = new Set();
+    this.sources = new Map();
     this.nextPlaybackAt = 0;
+    this.outputGain = null;
+    this.activeContextVersion = 0;
+    this.activeTurn = null;
+    this.allowedGracefulTurnId = "";
+    this.gracefulHandoff = null;
     this.warningTimer = null;
     this.endTimer = null;
   }
@@ -56,6 +62,10 @@ export class EmmiLiveClient {
   prepareAudioPlayback() {
     try {
       this.outputContext ||= new AudioContext({ sampleRate: 24000 });
+      if (!this.outputGain) {
+        this.outputGain = this.outputContext.createGain();
+        this.outputGain.connect(this.outputContext.destination);
+      }
       if (this.outputContext.state === "suspended") this.outputContext.resume();
     } catch { /* Playback falls back to the lazy path in playAudio. */ }
   }
@@ -68,7 +78,7 @@ export class EmmiLiveClient {
     await this.connect(initialText);
     return true;
   }
-  async connect(initialText = "") {
+  async connect(initialText = "", metadata = {}) {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
     // Kreyòl has no supported live voice, so it stays a text experience rather than a silent
     // switch to English. Never treat KR as Korean.
@@ -115,7 +125,7 @@ export class EmmiLiveClient {
       // connect() resolves once the server has acknowledged setup. Sending the welcome from
       // onopen instead sends it before the handshake finishes and the turn is dropped, which is
       // why the first tap connected but stayed silent.
-      if (initialText) this.sendText(initialText);
+      if (initialText) this.sendText(initialText, metadata);
       return true;
     } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : "connection_failed"); }
   }
@@ -143,12 +153,24 @@ export class EmmiLiveClient {
   async handleMessage(message) {
     const server = message.serverContent;
     if (server?.inputTranscription?.text) this.onTranscript?.("user", server.inputTranscription.text, true);
-    if (server?.outputTranscription?.text) this.onTranscript?.("assistant", server.outputTranscription.text, true);
-    if (server?.interrupted) { this.stopPlayback(); this.setState("LISTENING"); }
+    if (server?.outputTranscription?.text) {
+      if (/(call 911|llame al 911|rele 911)/i.test(server.outputTranscription.text) && this.activeTurn) {
+        this.activeTurn.priority = "CRITICAL_SAFETY";
+        if (this.gracefulHandoff?.timer) { clearTimeout(this.gracefulHandoff.timer); this.gracefulHandoff.timer = null; }
+      }
+      this.onTranscript?.("assistant", server.outputTranscription.text, true);
+    }
+    if (server?.interrupted) { this.stopPlayback({ fadeMs: 80 }); this.finishGracefulHandoff("interrupted"); this.setState("LISTENING"); }
     const parts = server?.modelTurn?.parts || [];
-    for (const part of parts) if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith("audio/pcm")) this.playAudio(part.inlineData.data);
+    for (const part of parts) if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith("audio/pcm")) this.playAudio(part.inlineData.data, this.activeTurn);
     if (parts.some(part => part.inlineData?.data)) this.setState("EMMI_SPEAKING");
-    if (server?.turnComplete) this.setState("LISTENING");
+    if (server?.turnComplete) {
+      const completed = this.activeTurn;
+      this.activeTurn = null;
+      this.setState("LISTENING");
+      this.finishGracefulHandoff("semantic_boundary");
+      this.onTurnComplete?.(completed || {});
+    }
     const calls = message.toolCall?.functionCalls || [];
     if (calls.length) {
       this.setState("TOOL_RUNNING", calls[0].name);
@@ -161,7 +183,8 @@ export class EmmiLiveClient {
       this.setState("EMMI_THINKING");
     }
   }
-  playAudio(encoded) {
+  playAudio(encoded, metadata = this.activeTurn) {
+    if (metadata?.contextVersion !== undefined && metadata.contextVersion !== this.activeContextVersion && metadata.id !== this.allowedGracefulTurnId) return false;
     this.prepareAudioPlayback();
     if (!this.outputContext) return;
     const bytes = base64ToBytes(encoded);
@@ -170,22 +193,87 @@ export class EmmiLiveClient {
     const channel = buffer.getChannelData(0);
     for (let i = 0; i < channel.length; i += 1) channel[i] = view.getInt16(i * 2, true) / 0x8000;
     const source = this.outputContext.createBufferSource();
-    source.buffer = buffer; source.connect(this.outputContext.destination);
+    source.buffer = buffer; source.connect(this.outputGain || this.outputContext.destination);
     const startAt = Math.max(this.outputContext.currentTime, this.nextPlaybackAt);
-    source.start(startAt); this.nextPlaybackAt = startAt + buffer.duration; this.sources.add(source);
+    source.start(startAt); this.nextPlaybackAt = startAt + buffer.duration; this.sources.set(source, { startAt, endAt: this.nextPlaybackAt, metadata });
     source.onended = () => this.sources.delete(source);
+    return true;
   }
-  stopPlayback() { this.sources.forEach(source => { try { source.stop(); } catch { /* Already stopped. */ } }); this.sources.clear(); this.nextPlaybackAt = 0; }
+  stopPlayback({ fadeMs = 0 } = {}) {
+    const targetSources = [...this.sources.keys()];
+    const targetGain = this.outputGain;
+    const targetContext = this.outputContext;
+    const stopSources = () => {
+      targetSources.forEach(source => { try { source.stop(); } catch { /* Already stopped. */ } this.sources.delete(source); });
+      if (!this.sources.size) this.nextPlaybackAt = 0;
+      if (this.outputGain === targetGain && this.outputContext === targetContext && targetGain && targetContext) targetGain.gain.setValueAtTime(1, targetContext.currentTime);
+    };
+    if (fadeMs > 0 && targetGain && targetContext && targetSources.length) {
+      const now = targetContext.currentTime;
+      targetGain.gain.cancelScheduledValues(now);
+      targetGain.gain.setValueAtTime(targetGain.gain.value, now);
+      targetGain.gain.linearRampToValueAtTime(0, now + fadeMs / 1000);
+      setTimeout(stopSources, fadeMs);
+    } else stopSources();
+  }
+  setActiveContextVersion(version) { this.activeContextVersion = Number(version) || 0; }
+  currentTurnMeta() { return this.activeTurn ? { ...this.activeTurn } : null; }
+  beginGracefulHandoff({ nextContextVersion, allowedTurnId = "", preserve = false, maxGracefulHandoffMs = 2500 } = {}) {
+    this.setActiveContextVersion(nextContextVersion);
+    if (this.gracefulHandoff) this.finishGracefulHandoff("superseded");
+    if (!this.activeTurn || !["EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING"].includes(this.state)) {
+      this.allowedGracefulTurnId = "";
+      return Promise.resolve({ reason: "idle", durationMs: 0 });
+    }
+    this.allowedGracefulTurnId = allowedTurnId || this.activeTurn.id;
+    const startedAt = Date.now();
+    return new Promise(resolve => {
+      const handoff = { resolve, startedAt, timer: null };
+      this.gracefulHandoff = handoff;
+      if (!preserve && Number.isFinite(maxGracefulHandoffMs)) {
+        handoff.timer = setTimeout(() => {
+          if (this.gracefulHandoff !== handoff) return;
+          handoff.forcing = true;
+          this.stopPlayback({ fadeMs: 80 });
+          // A semantic segment should normally complete first. If it does not, reset only this
+          // exceptional turn so late PCM chunks cannot be mistaken for the new screen.
+          setTimeout(() => {
+            if (this.gracefulHandoff !== handoff) return;
+            this.disconnect("context_handoff_timeout");
+            this.gracefulHandoff = null;
+            this.allowedGracefulTurnId = "";
+            resolve({ reason: "max_grace", durationMs: Date.now() - startedAt, forcedReconnect: true });
+          }, 80);
+        }, maxGracefulHandoffMs);
+      }
+    });
+  }
+  finishGracefulHandoff(reason) {
+    const handoff = this.gracefulHandoff;
+    if (!handoff || handoff.forcing) return;
+    clearTimeout(handoff.timer);
+    this.gracefulHandoff = null;
+    this.allowedGracefulTurnId = "";
+    handoff.resolve({ reason, durationMs: Date.now() - handoff.startedAt, forcedReconnect: false });
+  }
   // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
   // text turn sent that way is accepted silently and never produces a spoken reply.
-  sendText(text) { if (!this.session) return false; this.setState("EMMI_THINKING"); this.session.sendClientContent({ turns: text, turnComplete: true }); return true; }
+  sendText(text, metadata = {}) {
+    if (!this.session) return false;
+    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata };
+    if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;
+    this.activeTurn = turn;
+    this.setState("EMMI_THINKING");
+    this.session.sendClientContent({ turns: text, turnComplete: true });
+    return true;
+  }
   setMuted(value) { this.muted = value; this.onState?.(this.state, value ? "muted" : "unmuted"); }
   disconnect(reason = "ended") {
     clearTimeout(this.warningTimer); clearTimeout(this.endTimer); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
     this.session = null; this.processor?.disconnect(); this.processor = null;
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;
-    this.inputContext?.close(); this.outputContext?.close(); this.inputContext = null; this.outputContext = null;
+    this.inputContext?.close(); this.outputContext?.close(); this.inputContext = null; this.outputContext = null; this.outputGain = null; this.activeTurn = null;
     this.setState("DISCONNECTED", reason);
   }
   fail(code) { this.onError?.(code); this.disconnect(code); const error = new Error(code); error.code = code; return error; }
