@@ -20,6 +20,11 @@ const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+// Running out is its own intent, not a barrier and not a medication-list question. It is matched
+// before the difficulty gate so "I keep running out of my pill" reaches the refill engine.
+const REFILL_NEED = /refill|run(ning)? (out|low)|almost out|need more|out of my (medication|medicine|pill)|resurtir|surtir|receta|se me (acaba|acabó|está acabando)|necesito m[aá]s|me qued[eé] sin|ranplisaj|m ap fini|mwen bezwen plis|pa gen ank[oò]/i;
+const REFILL_STATUS_QUESTION = /(what|where|how).*(refill|prescription)|refill.*(status|happening|going)|status of my (refill|prescription)|qu[eé] pas[oó] con (mi )?(receta|surtida)|d[oó]nde est[aá] mi (receta|surtida)|estado de mi (receta|surtida)|ki kote ranplisaj|estati ranplisaj/i;
+
 // "Something is getting in my way" rather than "tell me about X". Without this a question about
 // medications would be filed as a difficulty with medications.
 const DIFFICULTY = /\b(i (can'?t|cannot|don'?t|do not|keep|always|never|forget|struggle)|it'?s (hard|difficult)|hard (to|for me)|having (a hard time|trouble)|trouble|difficult|no puedo|no entiendo|no s[eé] c[oó]mo|se me olvida|me cuesta|se me hace dif[ií]cil|dif[ií]cil|problema|mwen pa ka|mwen pa konprann|mwen bliye|difisil|pwobl[eè]m)\b/i;
@@ -46,6 +51,42 @@ const BARRIER_ACKNOWLEDGEMENT = {
   APPOINTMENT_NEED: { EN: "I can’t book appointments yet, so I’m passing your request to your care team with what you told me. They will arrange it with you.", ES: "Todavía no puedo agendar citas, así que envío su solicitud a su equipo con lo que me contó. Ellos lo coordinarán con usted.", KR: "Mwen poko ka pran randevou, kidonk m ap voye demann ou bay ekip swen ou ak sa ou di m. Y ap fè aranjman avèk ou." },
   CLINICAL_SYMPTOM: { EN: "Thank you for telling me. How you are feeling comes first, so I’m letting your care team know.", ES: "Gracias por contármelo. Cómo se siente es lo primero, así que avisaré a su equipo de atención.", KR: "Mèsi paske ou di m sa. Kijan ou santi w se premye bagay, kidonk m ap fè ekip swen ou konnen." },
   OTHER: { EN: "Thank you for telling me. I’ve noted it, and we can work on it together.", ES: "Gracias por contármelo. Lo anoté y podemos trabajarlo juntos.", KR: "Mèsi paske ou di m sa. Mwen note l epi nou ka travay sou li ansanm." }
+};
+
+// Refill answers. Each one says exactly what happened and what is waiting, and never that
+// something was approved, sent or renewed unless a source said so.
+const refillReviewAnswer = (locale, medication) => pick(locale, {
+  EN: `I opened your ${medication} refill. Let’s check a couple of things first, then I can send the request.`,
+  ES: `Abrí la surtida de ${medication}. Revisemos un par de cosas y luego puedo enviar la solicitud.`,
+  KR: `Mwen louvri ranplisaj ${medication} ou. Ann tcheke de bagay anvan, epi m ka voye demann nan.`
+});
+
+const refillAlreadyRequestedAnswer = (locale, medication, status) => pick(locale, {
+  EN: `You already have a refill request for ${medication}. Right now it is: ${status}.`,
+  ES: `Ya tiene una solicitud de surtida para ${medication}. Ahora mismo está: ${status}.`,
+  KR: `Ou deja gen yon demann ranplisaj pou ${medication}. Kounye a li: ${status}.`
+});
+
+const refillSelectionAnswer = (locale, medications) => {
+  const names = medications.slice(0, 4).map(medication => medication.name).join(", ");
+  return pick(locale, {
+    EN: `Which medication do you need? I have ${names} on file.`,
+    ES: `¿Qué medicamento necesita? Tengo ${names} registrados.`,
+    KR: `Ki medikaman ou bezwen? Mwen gen ${names} nan dosye a.`
+  });
+};
+
+const refillStatusAnswer = (locale, refills) => {
+  if (!refills.length) return pick(locale, {
+    EN: "You don’t have a refill request in progress right now.",
+    ES: "Ahora mismo no tiene ninguna solicitud de surtida en curso.",
+    KR: "Ou pa gen okenn demann ranplisaj ki ap mache kounye a."
+  });
+  return refills.map(refill => pick(locale, {
+    EN: `${refill.medication}: ${refill.patientStatus}.`,
+    ES: `${refill.medication}: ${refill.patientStatus}.`,
+    KR: `${refill.medication}: ${refill.patientStatus}.`
+  })).join(" ");
 };
 
 const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
@@ -307,6 +348,43 @@ export class EmmiTextOrchestrator {
     if (HUMAN_SUPPORT.test(question)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
       return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+    }
+    // Where a refill stands is a runtime fact, never a guess: EMMI reads the episodes and says what
+    // each one is actually waiting on.
+    if (REFILL_STATUS_QUESTION.test(question)) {
+      trace.intent = "REFILL_STATUS"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getActiveRefills");
+      try {
+        const active = await this.executeTool("getActiveRefills", { patientId: context.patientId });
+        trace.runtimeFactsUsed.push("getActiveRefills"); emit("EMMI_ANSWER_ROUTED");
+        return { text: refillStatusAnswer(locale, active?.refills || []), trace };
+      } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getActiveRefills", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
+    }
+    // Running out of a medication opens the review that confirms it, rather than an answer about
+    // medications in general.
+    if (REFILL_NEED.test(question) && !MEDICATION_SAFETY.test(question)) {
+      trace.intent = "MEDICATION_REFILL"; trace.responseMode = "REFILL_ENGINE"; trace.toolCalls.push("getMedicationSupply");
+      try {
+        const supply = await this.executeTool("getMedicationSupply", { patientId: context.patientId });
+        const medications = supply?.medications || [];
+        const named = medications.filter(medication => new RegExp(medication.name.split(" ")[0], "i").test(question));
+        const lowFirst = [...medications].sort((a, b) => (a.estimatedDaysRemaining ?? 999) - (b.estimatedDaysRemaining ?? 999));
+        const candidates = named.length ? named : lowFirst.filter(medication => medication.canEstimate && medication.estimatedDaysRemaining !== null && medication.estimatedDaysRemaining <= 14);
+        // Ambiguity is answered with a question, never with a guess about which medication.
+        if (candidates.length !== 1) {
+          emit("EMMI_ANSWER_ROUTED", { medicationCandidates: candidates.length });
+          return { text: refillSelectionAnswer(locale, medications), quickAction: "medication-refill", trace };
+        }
+        const opened = await this.executeTool("startRefillReview", { patientId: context.patientId, medicationId: candidates[0].medicationId });
+        trace.toolCalls.push("startRefillReview"); emit("EMMI_ANSWER_ROUTED");
+        if (opened?.alreadyRequested) return { text: refillAlreadyRequestedAnswer(locale, candidates[0].name, opened.patientStatus), quickAction: "medication-refill", medicationId: candidates[0].medicationId, trace };
+        if (opened?.success) return { text: refillReviewAnswer(locale, candidates[0].name), quickAction: "medication-refill", medicationId: candidates[0].medicationId, trace };
+      } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "startRefillReview", error: error?.message || "unknown" }); }
+      // Nothing was opened, so nothing is promised.
+      return { text: pick(locale, {
+        EN: "I couldn’t open your refill just now. You can open My Medications, or I can help you reach your care team.",
+        ES: "No pude abrir su surtida ahora. Puede abrir Mis medicamentos o puedo ayudarle a comunicarse con su equipo.",
+        KR: "Mwen pa t ka louvri ranplisaj ou kounye a. Ou ka louvri Medikaman mwen yo oswa mwen ka ede w jwenn ekip swen ou."
+      }), trace };
     }
     // A patient describing something that is getting in their way is not asking a question. It is
     // told after the safety and medication checks above, so a symptom is never filed as a

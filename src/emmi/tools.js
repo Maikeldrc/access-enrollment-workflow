@@ -68,11 +68,14 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getGoalBarriers", description: "Get the difficulties already identified for this patient's active goal, what was tried and how it went. Use before offering help so EMMI does not repeat something that did not work or ask about something already being handled.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "recordGoalBarrier", description: "Record a difficulty the patient described in conversation, using the shared barrier taxonomy. Use when the patient says something is making a goal, an action, a routine, a device, a medication or getting care hard. Never record a clinical symptom this way: symptoms go to evaluateClinicalEscalation first.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, category: { type: "STRING" }, patientDescription: { type: "STRING" } }, required: ["patientId", "category"] } },
   { name: "createGoalReminder", description: "Save a reminder on the patient's goal plan after they explicitly chose a time. Reminders appear inside ITERA; this does not send phone notifications. Never call this without the patient choosing.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, slot: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "slot", "confirmed"] } },
+  { name: "getMedicationSupply", description: "Get this patient's medications with the deterministic supply estimate for each one: whether it can be estimated at all, roughly how many days remain, and how much the engine trusts that. Never calculate a supply yourself, never state a pill count, and never present an estimate as a fact. An estimate is a reason to ask the patient, not a reason to act.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getActiveRefills", description: "Get refill requests already in progress for this patient and what each one is waiting on. Always use before offering to request a refill, so an existing request is reported rather than duplicated, and use it to answer any question about where a refill stands.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "startRefillReview", description: "Open the refill review for one medication so the patient can confirm they still take it and whether they are running low. Use when the patient says they are running out or asks for a refill. This starts a review; it never requests, approves or renews anything.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, medicationId: { type: "STRING" } }, required: ["patientId", "medicationId"] } },
   { name: "searchKnowledge", description: "Look up ITERA's approved explanations of programs, Medicare, enrollment, devices, care and safety topics. Use for conceptual questions such as 'What is CCM?' or 'What is a Care Circle?'. This returns general education only and is never a source for what is true for this patient: for eligibility, cost, devices, medications, enrollment status or next step, call the matching patient tool instead.", parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] } }
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, auditLog }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
@@ -82,6 +85,11 @@ export class EmmiToolOrchestrator {
     // than keeping a second copy of the truth inside EMMI.
     this.onBarrier = onBarrier;
     this.onReminder = onReminder;
+    // Medication supply and refills are patient state too: the tool asks the application rather
+    // than keeping a second copy of what is true.
+    this.onMedicationSupply = onMedicationSupply;
+    this.onActiveRefills = onActiveRefills;
+    this.onRefillReview = onRefillReview;
     this.auditLog = auditLog;
   }
   async execute(name, args = {}) {
@@ -126,6 +134,13 @@ export class EmmiToolOrchestrator {
     } else if (name === "createCareTeamTask") {
       if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
       else { result = { success: true, taskId: id("TASK-DEMO"), status: "CREATED", category: args.category, priority: args.priority }; this.onTask(result); }
+    } else if (name === "getMedicationSupply") {
+      result = { medications: clone(this.onMedicationSupply() || []) };
+    } else if (name === "getActiveRefills") {
+      result = { refills: clone(this.onActiveRefills() || []) };
+    } else if (name === "startRefillReview") {
+      const opened = this.onRefillReview({ medicationId: String(args.medicationId || "") });
+      result = opened ? { success: true, ...opened } : { success: false, status: "MEDICATION_NOT_FOUND" };
     } else if (name === "getGoalBarriers") {
       result = { goalId: context.activeGoal?.id || null, barriers: clone(context.activeGoal?.barriers || []) };
     } else if (name === "recordGoalBarrier") {

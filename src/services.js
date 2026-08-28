@@ -169,7 +169,19 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       healthInformationUpdateDraft: state.healthInformationUpdateDraft ? { id: state.healthInformationUpdateDraft.id || "", updateType: state.healthInformationUpdateDraft.updateType || "", relatedConditionIds: [...(state.healthInformationUpdateDraft.relatedConditionIds || [])], patientReportedText: state.healthInformationUpdateDraft.patientReportedText || "" } : null,
       patientReportedHealthUpdates: (state.patientReportedHealthUpdates || []).map(({ id, patientId, relatedConditionIds, updateType, patientReportedText, patientReportedStatus, source, createdAt, updatedAt, status, careTeamTaskId }) => ({ id, patientId, relatedConditionIds: [...(relatedConditionIds || [])], updateType, patientReportedText, patientReportedStatus, source, createdAt, updatedAt, status, careTeamTaskId })),
       medicationsReviewStatus: state.medicationsReviewStatus,
-      careMedications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
+      // Medications persist with the supply, prescriber and pharmacy facts the refill engine reads,
+      // and with the provenance of the last fill. Dropping them would make a restored session
+      // estimate supply from nothing and ask the patient questions it already had answers to.
+      careMedications: (state.careMedications || []).map(medication => ({
+        id: medication.id, name: medication.name, strength: medication.strength || "", details: medication.details, sig: medication.sig || "", active: Boolean(medication.active),
+        medicationRequestId: medication.medicationRequestId || null, prn: Boolean(medication.prn), variableDosing: Boolean(medication.variableDosing),
+        prescriber: medication.prescriber || null, pharmacy: medication.pharmacy || null,
+        refillsRemaining: medication.refillsRemaining ?? null, prescriptionExpiresOn: medication.prescriptionExpiresOn || null,
+        lastDispense: medication.lastDispense || null, refillWorkflow: medication.refillWorkflow || {},
+        recentCareTransition: Boolean(medication.recentCareTransition), reconciliationStatus: medication.reconciliationStatus || ""
+      })),
+      medicationSupplySignals: (state.medicationSupplySignals || []).map(signal => ({ ...signal })),
+      medicationRefills: (state.medicationRefills || []).map(refill => ({ ...refill, events: (refill.events || []).map(event => ({ ...event })) })),
       medicationReviews: Object.fromEntries(Object.entries(state.medicationReviews || {}).map(([id, review]) => [id, { medicationId: review.medicationId, sourceMedicationSnapshot: review.sourceMedicationSnapshot, reviewStatus: review.reviewStatus, patientReportedDose: review.patientReportedDose || "", patientReportedFrequency: review.patientReportedFrequency || "", patientNotes: review.patientNotes || "", reviewedAt: review.reviewedAt, source: review.source, actorContext: review.actorContext }])),
       additionalMedications: (state.additionalMedications || []).map(({ id, medicationName, dose, frequency, frequencyLabel, source, createdAt }) => ({ id, medicationName, dose, frequency, frequencyLabel, source, createdAt })),
       additionalMedicationsStatus: state.additionalMedicationsStatus,
