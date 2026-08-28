@@ -64,6 +64,7 @@ describe("EMMI audio pipeline", () => {
     // ~85 ms per packet, matching the cadence of the pipeline this replaced.
     expect((resampled.length / EMMI_PROVIDER_SAMPLE_RATE) * 1000).toBeCloseTo(42.7, 1);
   });
+  it("attenuates frequencies above destination Nyquist", () => { const rate = 48000; const tone = Float32Array.from({ length: 4800 }, (_, index) => Math.sin(2 * Math.PI * 12000 * index / rate)); const output = resample(tone, rate, 16000); const rms = Math.sqrt(output.reduce((sum, value) => sum + value * value, 0) / output.length); expect(rms).toBeLessThan(0.08); });
 
   it("interpolates rather than dropping samples, and passes matching rates straight through", () => {
     const ramp = Float32Array.from({ length: 8 }, (_, index) => index / 7);

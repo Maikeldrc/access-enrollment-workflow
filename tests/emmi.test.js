@@ -65,12 +65,13 @@ describe("EMMI prototype tools", () => {
     expect(names).not.toMatch(/consent|enrollPatient|attest|changeEligibility/i);
   });
 
-  it("audit logs transcripts and tool results but never audio, tokens, or API keys", async () => {
+  it("audit logs safe metadata but never transcript text, audio, tokens, or API keys", async () => {
     const { tools, audit } = makeRuntime();
     audit.transcript("user", "What will ACCESS cost?");
     await tools.execute("getExpectedAccessCost", { patientId: "DEMO-P001", accessTrack: "eCKM" });
     const serialized = JSON.stringify(EmmiAuditLog.all());
     expect(serialized).toContain("getExpectedAccessCost");
+    expect(serialized).not.toContain("What will ACCESS cost?");
     expect(serialized).not.toMatch(/audioData|apiKey|ephemeralToken|GEMINI_API_KEY/i);
   });
 

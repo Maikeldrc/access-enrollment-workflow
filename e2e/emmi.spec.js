@@ -30,7 +30,7 @@ test("EMMI contextual mock tools, guardrails, confirmation, and audit work toget
 
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /Would you like me to ask/i })).toBeVisible();
-  let logs = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.emmi.prototype.audit.v1")));
+  let logs = await page.evaluate(() => JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1")));
   expect(logs.at(-1).callbackRequested).toBe(false);
   await ask(dialog, "Yes");
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /sent a callback request/i })).toBeVisible();
@@ -38,7 +38,10 @@ test("EMMI contextual mock tools, guardrails, confirmation, and audit work toget
   await ask(dialog, "My blood pressure is 181/121");
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /urgent medical attention/i })).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Call 911" })).toBeVisible();
-  logs = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.emmi.prototype.audit.v1")));
+  await ask(dialog, "What is my next step?");
+  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /urgent symptoms still come first/i })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Call 911" }).last()).toBeVisible();
+  logs = await page.evaluate(() => JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1")));
   const last = logs.at(-1);
   expect(last.callbackRequested).toBe(true);
   expect(last.clinicalEscalationTriggered).toBe(true);
