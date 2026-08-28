@@ -5,12 +5,16 @@ import { normalizeCoverage } from "../coverage.js";
 import { DEMO_BP_MONITORING_RULES } from "../goalHealth.js";
 import { BP_CLINICAL_STATE, EMERGENCY_SYMPTOM_PATTERN, classifyObservation } from "../clinicalMonitoring.js";
 import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
+import { conversationPolicyResponse } from "./conversationPolicy.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const clone = value => JSON.parse(JSON.stringify(value));
-const readLogs = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch { return []; } };
-const writeLogs = logs => { try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(-25))); } catch { /* Prototype logging is best effort. */ } };
+let memoryLogs = []; const store = () => globalThis.sessionStorage;
+const readLogs = () => { try { return store() ? JSON.parse(store().getItem(LOG_KEY) || "[]") : memoryLogs; } catch { return memoryLogs; } };
+const writeLogs = logs => { memoryLogs = logs.slice(-25); try { store()?.setItem(LOG_KEY, JSON.stringify(memoryLogs)); } catch {} };
+const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey/i;
+const safe = value => Array.isArray(value) ? value.map(safe) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([key]) => !sensitive.test(key)).map(([key,item]) => [key,safe(item)])) : value;
 
 export const selectDemoPatientId = ({ language = "en", completionRole = "patient", eligibilityStatus = "", deviceScenario = null } = {}) => {
   if (deviceScenario?.patientOwnsMonitor && deviceScenario.integrationStatus === "UNSUPPORTED") return "DEMO-P006";
@@ -29,12 +33,12 @@ export class EmmiAuditLog {
   }
   updateContext({ locale, currentScreen }) { const voice = getEmmiVoiceIdentity(locale); this.entry.locale = locale; this.entry.currentScreen = currentScreen; this.entry.voiceId = voice.voiceId; this.entry.voiceVersion = voice.voiceVersion; this.entry.voiceProvider = voice.provider; this.persist(); }
   voiceEvent(type, details = {}) { this.entry.voiceEvents.push({ timestamp: new Date().toISOString(), type, ...clone(details) }); this.persist(); }
-  transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), text }); this.persist(); }
+  transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), characters: String(text || "").length, retained: false }); this.persist(); }
   answerTurn(metadata = {}) { this.entry.answerTurns ||= []; this.entry.answerTurns.push({ timestamp: new Date().toISOString(), ...clone(metadata) }); this.entry.answerTurns = this.entry.answerTurns.slice(-50); this.persist(); }
   tool(name, args, result) {
     const timestamp = new Date().toISOString();
-    this.entry.toolsCalled.push({ timestamp, tool: name, arguments: clone(args) });
-    this.entry.toolResults.push({ timestamp, tool: name, result: clone(result) });
+    this.entry.toolsCalled.push({ timestamp, tool: name, arguments: safe(clone(args)) });
+    this.entry.toolResults.push({ timestamp, tool: name, result: safe(clone(result)) });
     if (name === "requestCallback" && result.success) this.entry.callbackRequested = true;
     if (name === "createCareTeamTask" && result.success) this.entry.careTeamTaskCreated = true;
     if (name === "evaluateClinicalEscalation" && result.severity !== "NORMAL") this.entry.clinicalEscalationTriggered = true;
@@ -46,6 +50,7 @@ export class EmmiAuditLog {
 }
 
 export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
+  { name: "applyConversationPolicy", description: "Return approved deterministic consent or representative-authority wording. Always call before answering these topics.", parameters: { type: "OBJECT", properties: { question: { type: "STRING" }, locale: { type: "STRING" } }, required: ["question"] } },
   { name: "getEnrollmentContext", description: "Get authoritative fictional prototype enrollment context.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getExpectedAccessCost", description: "Get the deterministic expected ACCESS patient payment for this patient from the financial responsibility engine. Always use for any question about what the patient pays, why it is that amount, or what it would be without supplemental coverage. Never calculate a patient's cost yourself and never treat having supplemental insurance as meaning the patient pays nothing: expectedPatientPayment of null means the amount is not known and must not be stated.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, accessTrack: { type: "STRING" } }, required: ["patientId", "accessTrack"] } },
   { name: "getPatientCoverage", description: "Get this patient's verified coverage: whether they have Original Medicare or Medicare Advantage, Part A and Part B status, and any secondary payers including Medicare Supplement, Medicaid or QMB. Always use for 'do I have Medicare', 'do I have supplemental insurance', 'what is my secondary coverage' and similar patient-specific coverage questions. Only a payer typed MEDICARE_SUPPLEMENT may be described to the patient as supplemental or Medigap coverage.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
@@ -124,7 +129,8 @@ export class EmmiToolOrchestrator {
     const patientId = context.patientId;
     if (args.patientId && args.patientId !== patientId) throw new Error("prototype_patient_mismatch");
     let result;
-    if (name === "getEnrollmentContext") result = clone(context);
+    if (name === "applyConversationPolicy") result = conversationPolicyResponse(args.question, args.locale || context.locale) || { intent: "NO_POLICY_MATCH", text: "", deterministic: true };
+    else if (name === "getEnrollmentContext") result = clone(context);
     else if (name === "getExpectedAccessCost") {
       // The engine decides the amount; the model only explains the result it is handed. Note the
       // gross amount comes from the track configuration, never from a copy on the patient record.

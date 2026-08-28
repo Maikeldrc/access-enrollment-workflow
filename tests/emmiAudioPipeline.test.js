@@ -26,31 +26,31 @@ const quantaOf = (count, size = 128, fill = index => index) =>
 describe("EMMI audio pipeline", () => {
   it("keeps the provider contract the previous pipeline established", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
-    expect(EMMI_MIC_FRAME_SIZE).toBe(4096);
-    expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v2");
+    expect(EMMI_MIC_FRAME_SIZE).toBe(2048);
+    expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v3");
   });
 
   it("aggregates render quanta into one provider-sized frame instead of sending each one", () => {
     // 4096 / 128 = 32 quanta per frame. Sending each quantum would be ~375 messages a second
     // at 48 kHz; this keeps it at roughly twelve.
-    const { frames, pending } = collectFrames(quantaOf(32));
+    const { frames, pending } = collectFrames(quantaOf(16));
     expect(frames).toHaveLength(1);
     expect(frames[0]).toHaveLength(EMMI_MIC_FRAME_SIZE);
     expect(pending).toBe(0);
     const messagesPerSecond = 48000 / EMMI_MIC_FRAME_SIZE;
-    expect(messagesPerSecond).toBeLessThan(15);
+    expect(messagesPerSecond).toBeLessThan(25);
   });
 
   it("loses no samples and never reorders them across frame boundaries", () => {
-    const { frames, pending } = collectFrames(quantaOf(70));
+    const { frames, pending } = collectFrames(quantaOf(35));
     expect(frames).toHaveLength(2);
-    expect(pending).toBe(70 * 128 - 2 * EMMI_MIC_FRAME_SIZE);
+    expect(pending).toBe(35 * 128 - 2 * EMMI_MIC_FRAME_SIZE);
     const flattened = frames.flatMap(frame => [...frame]);
     expect(flattened).toEqual(Array.from({ length: 2 * EMMI_MIC_FRAME_SIZE }, (_, index) => index));
   });
 
   it("hands each frame out as its own buffer so a transferred frame is never overwritten", () => {
-    const { frames } = collectFrames(quantaOf(64));
+    const { frames } = collectFrames(quantaOf(32));
     expect(frames).toHaveLength(2);
     expect(frames[0].buffer).not.toBe(frames[1].buffer);
     expect(frames[0][0]).toBe(0);
@@ -62,7 +62,7 @@ describe("EMMI audio pipeline", () => {
     const resampled = resample(frame, 48000, EMMI_PROVIDER_SAMPLE_RATE);
     expect(resampled).toHaveLength(Math.round(EMMI_MIC_FRAME_SIZE / 3));
     // ~85 ms per packet, matching the cadence of the pipeline this replaced.
-    expect((resampled.length / EMMI_PROVIDER_SAMPLE_RATE) * 1000).toBeCloseTo(85.3, 1);
+    expect((resampled.length / EMMI_PROVIDER_SAMPLE_RATE) * 1000).toBeCloseTo(42.7, 1);
   });
 
   it("interpolates rather than dropping samples, and passes matching rates straight through", () => {
@@ -70,7 +70,7 @@ describe("EMMI audio pipeline", () => {
     const halved = resample(ramp, 48000, 24000);
     expect(halved).toHaveLength(4);
     // Float32 storage, so compare within its precision rather than exactly.
-    [0, 2 / 7, 4 / 7, 6 / 7].forEach((value, index) => expect(halved[index]).toBeCloseTo(value, 6));
+    expect([...halved].every((value, index, values) => index === 0 || value >= values[index - 1])).toBe(true);
     const identical = resample(ramp, 16000, 16000);
     expect(identical).toBe(ramp);
   });

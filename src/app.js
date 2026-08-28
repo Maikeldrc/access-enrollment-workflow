@@ -1083,6 +1083,7 @@ function ensureEmmiRuntime() {
     getConversation: () => emmiConversationManager?.contextForModel() || {},
     executeTool: (name, args) => emmiTools.execute(name, args),
     screenExplanation: assistantScreenExplanation,
+    onSafetyEpisode: episode => emmiConversationManager?.activateSafetyEpisode(episode),
     onEvent: (type, details) => {
       emmiAuditLog?.voiceEvent(type, details);
       if (type === "EMMI_ANSWER_ROUTED") emmiAuditLog?.answerTurn({ ...details, promptVersion: "emmi-answer-first-v1" });
@@ -2162,6 +2163,8 @@ function shareAccessPrompt(moment) {
 // can never name a different "next step".
 function currentNextBestAction() {
   return resolveNextBestAction({
+    currentScreen: state.screen,
+    nextRoute: nextScreen(state),
     pathway: state.offer?.pathway,
     devicePath: state.devicePath,
     rpmDeviceFixture: state.offer?.fixture?.rpmDevice,

@@ -13,7 +13,7 @@ class EmmiMicProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
     const requested = Number(options?.processorOptions?.frameSize);
-    this.frameSize = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 4096;
+    this.frameSize = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 2048;
     this.frame = new Float32Array(this.frameSize);
     this.offset = 0;
   }

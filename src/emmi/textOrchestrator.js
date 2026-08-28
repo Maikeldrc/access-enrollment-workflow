@@ -1,5 +1,7 @@
 import { classifyBarrierText } from "../goalBarriers.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
+import { createSafetyEpisode, detectEmergencyLanguage, safetyResponseFor } from "./safetyPolicy.js";
+import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
@@ -15,7 +17,7 @@ const SCREEN_HELP = /what (do i|should i) do|what is this screen|which (one|opti
 // The words that make an appointment the subject of a conversation, in all three languages.
 const APPOINTMENT_MENTION = /\bappointment|\bvisit\b|\bcita\b|\bconsulta\b|\bvisita\b|randevou|vizit/i;
 const foldApostrophes = value => String(value || "").replace(/[‘’ʼ]/g, "'");
-const SAFETY = /chest pain|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(en el )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
+const SAFETY = { test: detectEmergencyLanguage };
 const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
 // Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
@@ -456,13 +458,14 @@ const runtimeAnswer = ({ tool, result, locale, context }) => {
 };
 
 export class EmmiTextOrchestrator {
-  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {} }) {
+  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {} }) {
     this.getContext = getContext;
     this.getConversation = getConversation;
     this.executeTool = executeTool;
     this.screenExplanation = screenExplanation;
     this.fetch = fetchImpl;
     this.onEvent = onEvent;
+    this.onSafetyEpisode = onSafetyEpisode;
   }
 
   async answer(question, { questionId = "" } = {}) {
@@ -474,13 +477,15 @@ export class EmmiTextOrchestrator {
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
+    if (conversation.activeSafetyEpisode?.active && !SAFETY.test(asked)) { trace.intent = "CLINICAL_SAFETY_FOLLOW_UP"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED"); return { ...safetyResponseFor({ locale, episode: conversation.activeSafetyEpisode, question }), trace }; }
+    const policy = conversationPolicyResponse(question, locale); if (policy) { trace.intent = policy.intent; trace.responseMode = policy.responseMode; emit("EMMI_ANSWER_ROUTED"); return { text: policy.text, deterministic: true, trace }; }
     const bp = asked.match(BP_READING);
     if (SAFETY.test(asked) || bp) {
       trace.intent = "CLINICAL_SAFETY"; trace.toolCalls.push("evaluateClinicalEscalation");
       try {
         const result = await this.executeTool("evaluateClinicalEscalation", { systolic: Number(bp?.[1] || 0), diastolic: Number(bp?.[2] || 0), symptoms: question });
         trace.responseMode = "SAFETY_ENGINE"; trace.runtimeFactsUsed.push("clinicalEscalation.instruction"); emit("EMMI_ANSWER_ROUTED");
-        if (result.instruction === "CALL_911") return { text: pick(locale, { EN: "This may require urgent medical attention. Please call 911 or seek emergency care now.", ES: "Esto puede requerir atención médica urgente. Llame al 911 o busque atención de emergencia ahora.", KR: "Sa ka mande swen medikal ijan. Tanpri rele 911 oswa chèche swen ijans kounye a." }), emergency: true, trace };
+        if (result.instruction === "CALL_911") { const episode = createSafetyEpisode({ source: "text" }); this.onSafetyEpisode(episode); return { ...safetyResponseFor({ locale, episode, question }), trace }; }
         if (result.instruction === "CREATE_HIGH_PRIORITY_TASK") return { text: pick(locale, { EN: "This needs review by your care team. Would you like me to create a high-priority care-team task?", ES: "Esto necesita revisión de su equipo de atención. ¿Desea que cree una tarea de alta prioridad para el equipo?", KR: "Ekip swen ou bezwen revize sa. Èske ou vle m kreye yon travay priyorite wo pou ekip la?" }), pendingAction: "clinical-task", trace };
         // The gate matched on how the patient said they feel. Even when the engine returns
         // CONTINUE, this turn is answered as a health turn and offered a person — it must never
@@ -490,7 +495,7 @@ export class EmmiTextOrchestrator {
     }
     if (MEDICATION_SAFETY.test(asked)) {
       trace.intent = "MEDICATION_SAFETY"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED");
-      return { text: pick(locale, { EN: "I can’t recommend starting, stopping, or changing a medication or dose. Please contact your clinician or care team for treatment advice.", ES: "No puedo recomendar iniciar, suspender ni cambiar un medicamento o una dosis. Consulte a su profesional clínico o equipo de atención.", KR: "Mwen pa ka rekòmande kòmanse, sispann oswa chanje yon medikaman oswa dòz. Tanpri kontakte klinisyen oswa ekip swen ou." }), trace };
+      return { ...safetyResponseFor({ locale, medication: true }), trace };
     }
     // What EMMI cannot do about authority, prescriptions and the clinical record is answered from
     // approved copy, ahead of retrieval and generation, so a limit is never paraphrased into a
