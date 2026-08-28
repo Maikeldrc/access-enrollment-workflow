@@ -1805,3 +1805,13 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
   .screen:has(.invitation-stage) .emmi-welcome-identity { grid-template-columns:50px minmax(0,1fr); }
   .screen:has(.invitation-stage) .emmi-welcome-identity img { width:50px;height:50px; }
 }
+/* Scroll policy offsets. Revealing a target uses block:"nearest", which respects scroll-margin, so
+   this is the one place that knows what covers the edges of the viewport: the sticky Continue bar
+   on the review screens and the floating EMMI pill above it. Without the bottom margin, "nearest"
+   would tuck an error or a newly added form neatly underneath them. */
+[data-scroll-anchor],
+.form-error,
+[role="alert"],
+[aria-invalid="true"],
+.field.invalid,
+.medication-add-form { scroll-margin-top:16px; scroll-margin-bottom:132px; }

@@ -27,10 +27,17 @@ import { resolveNextBestAction } from "./nextBestAction.js";
 import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
+import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 
 const app = document.querySelector("#app");
+// What the patient is actually looking at right now. render() runs after the handlers have
+// already moved state.screen forward, so the scroll policy needs the screen it is leaving and
+// the error it was already showing to tell a new screen from an in-place update.
+let paintedScreen = null;
+let paintedError = "";
+claimHistoryScrollRestoration();
 const params = new URLSearchParams(location.search);
 const prototypeMode = params.get("prototype") === "1";
 const patientShareSource = params.get("source") === "patient-share";
@@ -210,7 +217,7 @@ const progressStageLabel = stage => ({
   ENROLLMENT_COMPLETE: L("Enrollment complete", "Inscripción completa", "Enskripsyon fini"),
   GETTING_STARTED: L("Getting started", "Primeros pasos", "Kòmanse")
 })[stage] || L("Your care", "Su cuidado", "Swen ou");
-const cta = (label, action = "next", secondary = false, disabled = false) => `<button class="button ${secondary ? "secondary" : "primary"}" data-action="${action}" ${disabled ? "disabled" : ""}>${label}${secondary ? "" : icon("arrowRight", "button-icon")}</button>`;
+const cta = (label, action = "next", secondary = false, disabled = false) => `<button type="button" class="button ${secondary ? "secondary" : "primary"}" data-action="${action}" ${disabled ? "disabled" : ""}>${label}${secondary ? "" : icon("arrowRight", "button-icon")}</button>`;
 const rows = items => `<div class="card-list">${items.map(([i, title, body]) => `<article class="info-row">${icon(i)}<div><strong>${title}</strong>${body ? `<p>${body}</p>` : ""}</div></article>`).join("")}</div>`;
 const choice = (value, i, title, body, checked = false) => `<label class="choice-card"><input type="radio" name="choice" value="${value}" ${checked ? "checked" : ""}><span class="choice-dot"></span>${icon(i)}<span><strong>${title}</strong><small>${body}</small></span></label>`;
 const check = (name, label, checked = false, value = "on") => `<label class="check-row"><input type="checkbox" name="${name}" value="${value}" ${checked ? "checked" : ""}><span class="check-box">✓</span><span>${label}</span></label>`;
@@ -336,7 +343,7 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
 // every screen — the patient never lands on an intermediate menu about EMMI instead of EMMI.
 const emmiAssistant = () => {
   const guideState = emmiGuideState();
-  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
+  return `${state.emmiContextualNudgeVisible ? `<button type="button" class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button type="button" class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 };
 
 function header() {
@@ -346,7 +353,7 @@ function header() {
   const stageLabel = progressStageLabel(progress.stage);
   const progressLabel = L("Journey progress", "Progreso del proceso", "Pwogrè nan pwosesis la");
   return `<header class="app-header">
-    <div class="brand-row"><button class="icon-button back-button" data-action="back" aria-label="${t().back}" ${["INVITATION", "MY_CARE"].includes(state.screen) ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a><button class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
+    <div class="brand-row"><button type="button" class="icon-button back-button" data-action="back" aria-label="${t().back}" ${["INVITATION", "MY_CARE"].includes(state.screen) ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a><button type="button" class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
     <div class="progress-meta"><span title="${stageLabel}">${stageLabel}</span></div>
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.percent)}" aria-valuetext="${stageLabel}" aria-label="${progressLabel}"><span style="width:${Math.min(100, progress.percent)}%"></span></div>
   </header>`;
@@ -2197,7 +2204,7 @@ function medicationsReview() {
   const medicationCards = medications.map(medication => {
     const review = reviews[medication.id] || { reviewStatus: "UNREVIEWED" };
     const reviewed = review.reviewStatus !== "UNREVIEWED";
-    return `<article class="medication-card medication-review-card ${reviewed ? "reviewed" : "unreviewed"}" data-medication-id="${medication.id}"><div class="medication-card-heading">${icon("pill")}<span><strong>${escapeHtml(medication.name)}</strong><small>${escapeHtml(medication.details || L("Dose not listed", "Dosis no indicada", "Dòz la pa nan lis la"))}</small><em>${L("On file", "Registrado", "Nan dosye")}</em></span></div>${reviewed ? `<div class="medication-reviewed-state">${icon(review.reviewStatus === "CONFIRMED_CURRENT" ? "check" : "info")}<span><strong>${statusCopy(review)}</strong>${review.reviewStatus === "CONFIRMED_CURRENT" ? "" : `<small>${review.reviewStatus === "NEEDS_REVIEW" ? L("That’s okay. Your care team can review this with you.", "Está bien. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Ekip swen ou ka revize sa avèk ou.") : L("Thanks — we’ll let your care team know.", "Gracias. Informaremos a su equipo de atención.", "Mèsi — n ap fè ekip swen ou konnen.")}</small>`}</span></div><button type="button" class="medication-change-answer" data-action="change-medication-answer" data-medication-id="${medication.id}">${L("Change answer", "Cambiar respuesta", "Chanje repons")}</button>` : `<p class="medication-question">${L("Do you still take this medication?", "¿Todavía toma este medicamento?", "Èske ou toujou pran medikaman sa a?")}</p><div class="medication-review-actions"><button type="button" class="medication-confirm-button" data-action="confirm-medication-current" data-medication-id="${medication.id}">${icon("check")} ${L("Yes, I still take it", "Sí, todavía lo tomo", "Wi, mwen toujou pran li")}</button><button type="button" class="medication-changed-button" data-action="open-medication-change" data-medication-id="${medication.id}">${L("Something changed", "Algo cambió", "Gen yon bagay ki chanje")}</button></div>${changePanel(medication)}`}</article>`;
+    return `<article class="medication-card medication-review-card ${reviewed ? "reviewed" : "unreviewed"}" data-medication-id="${medication.id}" data-scroll-anchor="medication-${medication.id}"><div class="medication-card-heading">${icon("pill")}<span><strong>${escapeHtml(medication.name)}</strong><small>${escapeHtml(medication.details || L("Dose not listed", "Dosis no indicada", "Dòz la pa nan lis la"))}</small><em>${L("On file", "Registrado", "Nan dosye")}</em></span></div>${reviewed ? `<div class="medication-reviewed-state">${icon(review.reviewStatus === "CONFIRMED_CURRENT" ? "check" : "info")}<span><strong>${statusCopy(review)}</strong>${review.reviewStatus === "CONFIRMED_CURRENT" ? "" : `<small>${review.reviewStatus === "NEEDS_REVIEW" ? L("That’s okay. Your care team can review this with you.", "Está bien. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Ekip swen ou ka revize sa avèk ou.") : L("Thanks — we’ll let your care team know.", "Gracias. Informaremos a su equipo de atención.", "Mèsi — n ap fè ekip swen ou konnen.")}</small>`}</span></div><button type="button" class="medication-change-answer" data-action="change-medication-answer" data-medication-id="${medication.id}">${L("Change answer", "Cambiar respuesta", "Chanje repons")}</button>` : `<p class="medication-question">${L("Do you still take this medication?", "¿Todavía toma este medicamento?", "Èske ou toujou pran medikaman sa a?")}</p><div class="medication-review-actions"><button type="button" class="medication-confirm-button" data-action="confirm-medication-current" data-medication-id="${medication.id}">${icon("check")} ${L("Yes, I still take it", "Sí, todavía lo tomo", "Wi, mwen toujou pran li")}</button><button type="button" class="medication-changed-button" data-action="open-medication-change" data-medication-id="${medication.id}">${L("Something changed", "Algo cambió", "Gen yon bagay ki chanje")}</button></div>${changePanel(medication)}`}</article>`;
   }).join("");
   const added = (state.additionalMedications || []).map(item => `<article class="medication-added-card"><div>${icon("pill")}<span><strong>${escapeHtml(item.medicationName)}</strong><small>${escapeHtml([item.dose, item.frequencyLabel].filter(Boolean).join(" · ") || L("Details not provided", "Detalles no proporcionados", "Pa gen detay"))}</small><em>${L("Added by you", "Agregado por usted", "Ou ajoute li")}</em></span></div><div><button type="button" data-action="edit-added-medication" data-medication-id="${item.id}">${L("Edit", "Editar", "Modifye")}</button><button type="button" data-action="remove-added-medication" data-medication-id="${item.id}">${L("Remove", "Eliminar", "Retire")}</button></div></article>`).join("");
   const additionalAnswered = ["NONE", "ADDED", "UNSURE"].includes(state.additionalMedicationsStatus);
@@ -2241,7 +2248,7 @@ function carePreferences() {
 }
 
 const goalOptions = () => Object.entries(LEGACY_GOAL_TYPES).map(([value, type]) => [value, type === "CUSTOM" ? L("Other", "Otro", "Lòt") : goalDisplayName({ goalType: type }, state.language), type]);
-const goalCheck = (value, label, checked, goalType) => `<label class="check-row goal-check-row"><input type="checkbox" name="careGoal" value="${value}" ${checked ? "checked" : ""}><span class="check-box">✓</span>${goalIcon({ goalType })}<span>${label}</span></label>`;
+const goalCheck = (value, label, checked, goalType) => `<label class="check-row goal-check-row" data-scroll-anchor="goal-option-${value}"><input type="checkbox" name="careGoal" value="${value}" ${checked ? "checked" : ""}><span class="check-box">✓</span>${goalIcon({ goalType })}<span>${label}</span></label>`;
 // Every goal surface renders its icon through this, so the same goal looks the same in Goal
 // Discovery, Priorities, the Care Plan, My Goals and Goal Detail. The icon is decorative: the
 // goal's name already carries the meaning, so it is hidden from screen readers.
@@ -2433,7 +2440,7 @@ const goalCardCta = goal => (goalIsReadyToPersonalize(goal)
 function primaryGoalCard(goal) {
   const nextStep = goalNextStep(goal);
   const ctaAction = goalCardCta(goal);
-  return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" aria-labelledby="goal-title-${goal.id}">
+  return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     ${goalProgressMarkup(goal)}
     ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
@@ -2444,7 +2451,7 @@ function primaryGoalCard(goal) {
 function secondaryGoalCard(goal) {
   const ctaAction = goalCardCta(goal);
   const ready = goalIsReadyToPersonalize(goal);
-  return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" aria-labelledby="goal-title-${goal.id}">
+  return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     <p class="goal-card-status">${icon(goalStatusIcon(goal))}<span>${goalStatusCopy(goal)}</span></p>
     <p class="goal-card-support">${ready
@@ -2902,7 +2909,18 @@ function devPanel() {
   return `<aside class="dev-panel ${state.devOpen ? "open" : ""}"><button class="dev-toggle" data-action="dev">Demo</button><div><label>Scenario<select id="scenario-select">${Object.entries(SCENARIOS).map(([id, x]) => `<option value="${id}" ${id === state.scenarioId ? "selected" : ""}>${x.label}</option>`).join("")}</select></label><label>Jump to<select id="screen-select">${journeyFor(state).map(x => `<option value="${x}" ${x === state.screen ? "selected" : ""}>${x}</option>`).join("")}</select></label><section class="emmi-voice-debug" aria-label="EMMI Voice Debug"><strong>EMMI Voice Debug</strong><span>Internal locale: ${voice.locale}</span><span>Resolved language: ${voice.resolvedLanguage}</span><span>Speech locale: ${voice.resolvedSpeechLocale}</span><span>Voice: ${voice.voiceId || "TEXT_ONLY"}</span><span>Voice version: ${voice.voiceVersion}</span><span>Provider: ${voice.provider}</span><span>Model: ${EMMI_CONFIG.model}</span><span>Status: ${state.assistantVoiceState}</span><span>Capability: ${voice.capability}</span><span>Error: ${state.assistantVoiceError || "NONE"}</span><span>Session: ${voice.sessionId || state.sessionId}</span></section><button class="small-action" data-action="clear">Clear saved demo</button></div></aside>`;
 }
 
+const scrollViewKey = () => `${state.screen}${state.screen === "MY_GOALS" && state.activeGoalId ? "#detail" : ""}`;
+
+function finishRender(scrollSnapshot, errorAppeared) {
+  afterRenderScroll(scrollSnapshot, scrollViewKey(), { errorAppeared });
+  paintedScreen = scrollViewKey();
+  paintedError = state.error || "";
+}
+
 function render() {
+  const scrollSnapshot = beforeRenderScroll(paintedScreen);
+  const newScreen = paintedScreen !== scrollViewKey();
+  const errorAppeared = Boolean(state.error) && state.error !== paintedError;
   clearTimeout(emmiGuidanceTimer);
   clearTimeout(emmiHesitationTimer);
   emmiHesitationCleanup?.();
@@ -2912,9 +2930,9 @@ function render() {
   document.body.classList.remove("emmi-sheet-open");
   state.assistantOpen = false;
   document.body.classList.remove("assistant-open");
-  if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); return; }
-  if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; return; }
-  if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; return; }
+  if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); finishRender(scrollSnapshot, errorAppeared); return; }
+  if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; finishRender(scrollSnapshot, errorAppeared); return; }
+  if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; finishRender(scrollSnapshot, errorAppeared); return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
   const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : state.screen === "ACCESS_MEASURE" && isBloodPressureAccessBaseline() ? "BP_HEALTH_DATA_SECURITY" : "";
@@ -2923,8 +2941,10 @@ function render() {
   const emmiTransitioned = syncEmmiNavigationContext();
   if (!emmiTransitioned) scheduleEmmiGuidance();
   scheduleEmmiHesitationSupport();
-  requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
-  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  // Only a genuinely new screen hands focus to its heading. Re-focusing the h1 after an in-place
+  // update drags a screen reader back to the title the patient already heard.
+  if (newScreen) requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
+  finishRender(scrollSnapshot, errorAppeared);
 }
 
 function bindPrototypeSetup() {
@@ -3796,10 +3816,10 @@ function closeAssistant({ fromHistory = false } = {}) {
     emmiLive = null;
   }
   if (!fromHistory && emmiOverlayHistoryEntry) { emmiOverlayHistoryEntry = false; history.back(); }
-  if (languageChanged) { render(); return; }
+  if (languageChanged) { requestScroll({ navigationType: NAVIGATION.OVERLAY_CLOSE, restoreTop: scrollY }); render(); return; }
   refreshVoiceGuidanceControls();
   requestAnimationFrame(() => {
-    window.scrollTo({ top: scrollY, behavior: "auto" });
+    restoreOverlayPosition();
     scheduleEmmiPresentationSync();
     // Focus goes back to what opened EMMI. If that control has since stood down — the pill hands
     // over to the compact card as the patient returns to the top — the surviving EMMI takes it.
@@ -3931,7 +3951,7 @@ function showHelp(trigger = null) {
   emmiExpandedSource = emmiExpandedReturnFocus?.dataset.emmiSource || "screen-action";
   state.assistantOpen = true;
   state.assistantOriginScreen = state.screen;
-  state.assistantScrollY = window.scrollY;
+  state.assistantScrollY = captureOverlayPosition();
   state.assistantLanguageChanged = false;
   state.assistantVoiceOptionsOpen = false;
   state.emmiVoiceOptionsOpen = false;
@@ -4046,6 +4066,9 @@ function bind() {
       navigationDirection: action === "back" || /back|return|cancel/.test(action) ? "BACK" : "FORWARD",
       action
     };
+    // Back owes the patient the place they left. Only the two actions that actually walk backwards
+    // claim it: a "cancel" that closes an inline editor stays where it is like any in-place change.
+    if (action === "back" || action === "return") requestScroll({ navigationType: NAVIGATION.BACK });
     const preserveArmForm = () => {
       const form = document.querySelector("#bp-device-info-form");
       if (!form) return;
@@ -4677,7 +4700,7 @@ function bind() {
       Object.assign(state, { medicationChangeId: "", medicationChangeType: "", error: "" }); draftStore.save(state); render();
     }
     if (action === "change-medication-answer") { const reviews = { ...(state.medicationReviews || {}) }; delete reviews[el.dataset.medicationId]; state.medicationReviews = reviews; state.medicationsReviewStatus = "IN_PROGRESS"; state.medicationChangeId = ""; state.medicationChangeType = ""; audit(state, "patient_medication_review_changed", "success", { medicationId: el.dataset.medicationId }); draftStore.save(state); render(); }
-    if (action === "open-add-medication") { state.medicationAddOpen = true; state.medicationEditId = ""; state.error = ""; render(); }
+    if (action === "open-add-medication") { state.medicationAddOpen = true; state.medicationEditId = ""; state.error = ""; requestScroll({ explicit: SCROLL.REVEAL_TARGET, targetSelector: "#add-medication-form" }); render(); }
     if (action === "cancel-add-medication") { state.medicationAddOpen = false; state.medicationEditId = ""; state.error = ""; render(); }
     if (action === "no-additional-medications") { state.additionalMedicationsStatus = "NONE"; state.medicationsReviewStatus = "IN_PROGRESS"; audit(state, "additional_medications_reviewed", "success", { status: "NONE" }); draftStore.save(state); render(); }
     if (action === "unsure-additional-medications") { state.additionalMedicationsStatus = "UNSURE"; state.medicationsReviewStatus = "IN_PROGRESS"; if (!(state.careTeamTasks || []).some(task => task.type === "MEDICATION_RECONCILIATION_REVIEW" && task.reason === "ADDITIONAL_MEDICATIONS_UNSURE" && task.status === "OPEN")) state.careTeamTasks.push({ id: `med_unsure_${Date.now().toString(36)}`, type: "MEDICATION_RECONCILIATION_REVIEW", reason: "ADDITIONAL_MEDICATIONS_UNSURE", status: "OPEN", createdAt: new Date().toISOString() }); audit(state, "additional_medications_reviewed", "success", { status: "UNSURE" }); draftStore.save(state); render(); }
