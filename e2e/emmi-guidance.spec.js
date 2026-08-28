@@ -350,10 +350,11 @@ test("EMMI hands off between the compact card and the floating pill without ever
   await expect(floating).toBeHidden();
 
   // Scrolled past the compact card, with the screen's own actions still below the fold, EMMI
-  // reappears as a named pill rather than a bare avatar.
+  // reappears as the avatar alone: no label beside it, but still named for a screen reader.
   const pill = await revealFloatingEmmi(page);
   expect(pill).not.toBeNull();
-  await expect(floating.locator(".emmi-assistant-label")).toContainText("EMMI");
+  await expect(floating).toHaveAttribute("aria-label", "Open EMMI");
+  await expect(floating.locator("img")).toBeVisible();
   await expect(compact).not.toBeInViewport();
 
   // Tapping it expands EMMI in place: the conversation itself, not a menu about EMMI. Nothing
@@ -485,4 +486,102 @@ test("idle EMMI does not animate and reduced motion silences the speaking cue", 
     return name;
   });
   expect(reduced).toBe("none");
+});
+
+// Floating EMMI is an element of the patient experience, not of the browser window. These read
+// the real geometry rather than the stylesheet, because the failure they guard against — the
+// avatar drifting out onto the desktop background beside the phone — was invisible in the CSS.
+const floatingGeometry = page => page.evaluate(() => {
+  const pill = document.querySelector(".emmi-assistant");
+  const shell = document.querySelector(".patient-app-shell");
+  if (!pill || !shell) return null;
+  const style = getComputedStyle(pill);
+  if (style.display === "none" || pill.classList.contains("emmi-assistant-suppressed")) return { suppressed: true };
+  const box = pill.getBoundingClientRect();
+  const bounds = shell.getBoundingClientRect();
+  return {
+    suppressed: false,
+    insideLeft: box.left >= bounds.left,
+    insideRight: box.right <= bounds.right,
+    rightGap: Math.round(bounds.right - box.right),
+    width: Math.round(box.width),
+    height: Math.round(box.height),
+    background: style.backgroundColor,
+    borderWidth: style.borderTopWidth,
+    text: pill.textContent.trim(),
+    accessibleName: pill.getAttribute("aria-label"),
+    hasImage: Boolean(pill.querySelector("img"))
+  };
+});
+
+async function showFloatingEmmi(page) {
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+test("floating EMMI is the avatar alone, with no label and no chrome", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await page.goto("/?scenario=access-happy");
+  await showFloatingEmmi(page);
+  const geometry = await floatingGeometry(page);
+  expect(geometry.suppressed).toBe(false);
+  // No visible word beside the logo, but the accessible name survives.
+  expect(geometry.text).toBe("");
+  expect(geometry.accessibleName).toBe("Open EMMI");
+  expect(geometry.hasImage).toBe(true);
+  // Transparent, no pill, no border: the avatar is the whole control.
+  expect(geometry.background).toBe("rgba(0, 0, 0, 0)");
+  expect(geometry.borderWidth).toBe("0px");
+  // The tap target stays comfortably large even though only the logo shows.
+  expect(geometry.width).toBeGreaterThanOrEqual(48);
+  expect(geometry.height).toBeGreaterThanOrEqual(48);
+});
+
+test("floating EMMI stays inside the patient shell on a desktop preview", async ({ page }) => {
+  // The regression this exists for: at 1440px the shell is a ~384px column in the middle of the
+  // window, and a viewport-anchored pill lands on the page background hundreds of pixels away.
+  for (const width of [1024, 1280, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=access-happy");
+    await showFloatingEmmi(page);
+    const geometry = await floatingGeometry(page);
+    if (geometry.suppressed) continue;
+    expect(geometry.insideLeft, `${width}px left edge`).toBe(true);
+    expect(geometry.insideRight, `${width}px right edge`).toBe(true);
+    // Bound to the shell's own edge, not the window's, and not pressed against it.
+    expect(geometry.rightGap, `${width}px inset`).toBeGreaterThanOrEqual(10);
+    expect(geometry.rightGap, `${width}px inset`).toBeLessThanOrEqual(20);
+  }
+});
+
+test("floating EMMI stays inside the shell at every supported mobile width", async ({ page }) => {
+  for (const width of [360, 375, 384, 390, 393, 412, 430]) {
+    await page.setViewportSize({ width, height: 824 });
+    await page.goto("/?scenario=access-happy");
+    await showFloatingEmmi(page);
+    const geometry = await floatingGeometry(page);
+    if (geometry.suppressed) continue;
+    expect(geometry.insideLeft, `${width}px left edge`).toBe(true);
+    expect(geometry.insideRight, `${width}px right edge`).toBe(true);
+    expect(geometry.rightGap, `${width}px inset`).toBeGreaterThanOrEqual(10);
+  }
+});
+
+test("floating EMMI follows the shell when the window is resized", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/?scenario=access-happy");
+  await showFloatingEmmi(page);
+  const wide = await floatingGeometry(page);
+
+  // Resizing must re-measure rather than leave the pill at a stale coordinate.
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const narrow = await floatingGeometry(page);
+
+  for (const [label, geometry] of [["1440", wide], ["1024", narrow]]) {
+    if (geometry.suppressed) continue;
+    expect(geometry.insideRight, `${label} stays inside after resize`).toBe(true);
+    expect(geometry.rightGap, `${label} keeps its inset after resize`).toBeLessThanOrEqual(20);
+  }
 });

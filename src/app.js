@@ -335,9 +335,8 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
 // shows what she is doing, and opens the expanded panel in place. One tap, one destination, on
 // every screen — the patient never lands on an intermediate menu about EMMI instead of EMMI.
 const emmiAssistant = () => {
-  const status = state.screen === "INVITATION" ? "" : emmiFloatingStatus();
   const guideState = emmiGuideState();
-  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Ask Emmi, Care Assistant", "Preguntar a Emmi, asistente de cuidado", "Mande Emmi, asistan swen")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span><span class="emmi-assistant-label"><b>EMMI</b>${status ? `<i>${status}</i>` : ""}</span>${guideState === "SPEAKING" ? `<i class="emmi-audio-activity" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}</button>`;
+  return `${state.emmiContextualNudgeVisible ? `<button class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 };
 
 function header() {
@@ -1382,6 +1381,21 @@ const floatingEmmiBlockedBy = box => [...document.querySelectorAll(FLOATING_EMMI
   .map(node => node.getBoundingClientRect())
   .filter(rect => rect.width && rect.height && box.right > rect.left && box.left < rect.right && box.bottom > rect.top && box.top < rect.bottom);
 
+// The button is fixed so it does not scroll away with the content, which means the browser
+// positions it against the viewport rather than the patient shell. On a desktop preview that put
+// the avatar out on the page background beside the phone. Measuring the shell and handing CSS its
+// real edges binds it to the patient UI at any shell width, centred or not, without assuming 384px.
+function syncEmmiShellBounds() {
+  const shell = document.querySelector(".patient-app-shell");
+  if (!shell) return;
+  const rect = shell.getBoundingClientRect();
+  // Set on the document root, not the shell: a render replaces the shell element and would take
+  // any inline property with it, dropping the avatar back onto the page background.
+  const root = document.documentElement.style;
+  root.setProperty("--emmi-shell-right-inset", `${Math.max(0, Math.round(innerWidth - rect.right))}px`);
+  root.setProperty("--emmi-shell-bottom-inset", `${Math.max(0, Math.round(innerHeight - rect.bottom))}px`);
+}
+
 // Given the choice, EMMI moves rather than disappears: landing on the support phone number or the
 // page's own CTA, the pill steps up above it and checks again. Only when there is nowhere left to
 // stand does it hand the corner back to the screen entirely.
@@ -1410,6 +1424,8 @@ function placeFloatingEmmi(floating) {
 let emmiIntroReported = false;
 let emmiFloatingReported = false;
 function syncEmmiPresentation() {
+  // Re-measure before placing: a resize or a re-render can have moved the shell's edges.
+  syncEmmiShellBounds();
   const mode = emmiPresentationMode();
   const shell = document.querySelector(".shell");
   const floating = document.querySelector(".emmi-assistant");
@@ -1450,6 +1466,18 @@ function scheduleEmmiPresentationSync() {
   requestAnimationFrame(() => { emmiPresentationSyncQueued = false; syncEmmiPresentation(); });
 }
 
+// A preview pane resizing, a devtools viewport switch or content reflow all move the edges the
+// avatar is measured against without firing a window resize.
+let emmiShellResizeObserver = null;
+function observeEmmiShellBounds() {
+  if (typeof ResizeObserver === "undefined") return;
+  const shell = document.querySelector(".patient-app-shell");
+  emmiShellResizeObserver?.disconnect();
+  if (!shell) { emmiShellResizeObserver = null; return; }
+  emmiShellResizeObserver = new ResizeObserver(() => scheduleEmmiPresentationSync());
+  emmiShellResizeObserver.observe(shell);
+}
+
 let emmiAnchorObserver = null;
 function observeEmmiAnchor() {
   if (typeof IntersectionObserver === "undefined") return;
@@ -1462,6 +1490,7 @@ function observeEmmiAnchor() {
 if (typeof window !== "undefined") {
   addEventListener("scroll", scheduleEmmiPresentationSync, { passive: true });
   addEventListener("resize", scheduleEmmiPresentationSync);
+  addEventListener("orientationchange", scheduleEmmiPresentationSync);
   // Escape closes whichever EMMI is open, wherever focus happens to be: the patient may have
   // opened it from the pill and never moved focus inside it.
   addEventListener("keydown", event => {
@@ -1527,6 +1556,7 @@ function refreshVoiceGuidanceControls() {
     }
     document.body.classList.toggle("emmi-sheet-open", Boolean(state.emmiVoiceOptionsOpen));
     observeEmmiAnchor();
+  observeEmmiShellBounds();
     scheduleEmmiPresentationSync();
   }
   const welcome = document.querySelector(".emmi-welcome-choice");
@@ -4977,6 +5007,7 @@ function bind() {
     if (optionalSupport) optionalSupport.hidden = !completionRoleAcceptsCareCircle();
   });
   observeEmmiAnchor();
+  observeEmmiShellBounds();
   syncEmmiPresentation();
   bindEmmiDrag();
 }

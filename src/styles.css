@@ -762,18 +762,19 @@ p { margin:0; }
 .shell:has(.error-card) .floating-help,
 .shell:has(.faq) .floating-help,
 .shell:has(.text-button) .floating-help { display:none; }
-.emmi-assistant { position:fixed;z-index:10;right:max(10px,calc((100vw - var(--patient-shell-width))/2 + 10px));bottom:calc(76px + env(safe-area-inset-bottom));display:inline-flex;align-items:center;gap:4px;min-height:52px;padding:4px 14px 4px 4px;border:1px solid var(--primary-300);border-radius:99px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 8px 22px rgba(0,78,137,.16);font:inherit;cursor:grab;touch-action:none;user-select:none; }
-.emmi-assistant-label { display:grid;gap:1px;text-align:left; }
-.emmi-assistant-label b { color:var(--text-primary);font-size:1rem;font-weight:700;line-height:1.2; }
-.emmi-assistant-label i { color:var(--text-secondary);font-size:.86rem;font-style:normal;line-height:1.2; }
+/* Floating EMMI: the avatar alone, on nothing. Its edges are measured from the patient shell
+   rather than computed from 100vw, so on a desktop preview it stays inside the phone instead of
+   drifting onto the page background, and nothing here assumes the shell is 384px wide. */
+.emmi-assistant { position:fixed;z-index:10;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(76px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));display:grid;place-items:center;min-width:52px;min-height:52px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;box-shadow:none;font:inherit;cursor:grab;touch-action:none;user-select:none; }
 .emmi-assistant:hover { transform:translateY(-1px); }
+.emmi-assistant:focus-visible { outline:3px solid var(--focus-ring);outline-offset:3px;border-radius:50%; }
 .emmi-assistant.dragging { cursor:grabbing;transform:none;box-shadow:none; }
 .emmi-assistant:focus-visible { outline:3px solid var(--primary-600);outline-offset:3px; }
 .emmi-assistant:disabled { cursor:default;opacity:1; }
 .emmi-avatar { display:grid;place-items:center;width:44px;height:44px;overflow:visible;border-radius:0;background:transparent;flex:0 0 44px; }
-.emmi-avatar img { display:block;width:44px;height:44px;object-fit:contain;object-position:center; }
+.emmi-avatar img { display:block;width:44px;height:44px;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
 .emmi-assistant img { pointer-events:none;user-select:none; }
-.emmi-contextual-nudge { position:fixed;z-index:9;right:max(10px,calc((100vw - var(--patient-shell-width))/2 + 10px));bottom:calc(136px + env(safe-area-inset-bottom));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
+.emmi-contextual-nudge { position:fixed;z-index:9;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(136px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
 .emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 @keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
 .assistant-open { overflow:hidden; }
@@ -1524,7 +1525,7 @@ p { margin:0; }
 :focus-visible { outline:3px solid var(--primary-600); outline-offset:3px; }
 @keyframes spin { to { transform:rotate(360deg); } }
 @media (min-width:600px) { body { padding:28px 0; }.shell { width:var(--patient-shell-width);max-width:100%;min-height:max(844px,calc(100dvh - 56px));border:1px solid rgba(225,225,237,.9);border-radius:24px;box-shadow:0 0 30px rgba(0,78,137,.08); }.floating-help { bottom:112px; } }
-@media (min-width:600px) { .emmi-assistant { right:calc((100vw - var(--patient-shell-width))/2 + 10px);bottom:24px; }.contextual-assurance { width:calc(100% - 72px); } }
+@media (min-width:600px) { .emmi-assistant { bottom:calc(24px + var(--emmi-shell-bottom-inset,0px)); }.contextual-assurance { width:calc(100% - 72px); } }
 @media (min-width:600px) { .prototype-console { min-height:calc(100dvh - 56px);margin:0 auto; } }
 @media (max-width:480px) { .assistant-content { padding-left:18px;padding-right:18px; }.assistant-intro { grid-template-columns:50px 1fr; }.assistant-intro img { width:50px;height:50px; }.assistant-intro h1 { font-size:1.5rem; } }
 @media (max-width:860px) {
@@ -1558,7 +1559,7 @@ p { margin:0; }
   .access-not-eligible-screen .actions { grid-template-columns:1fr; }
   .access-not-eligible-screen .actions>.primary { grid-row:1; }
   .access-not-eligible-screen .actions>.secondary { grid-row:2; }
-  .emmi-assistant { right:var(--patient-page-gutter);bottom:calc(var(--patient-emmi-overlay-offset) + env(safe-area-inset-bottom)); }
+  .emmi-assistant { right:calc(var(--emmi-shell-right-inset,0px) + var(--patient-page-gutter));bottom:calc(var(--patient-emmi-overlay-offset) + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
   .emmi-avatar,.emmi-avatar img { width:40px;height:40px; }
 }
 @media (max-width:374px) { body { font-size:17px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.stage-brand-row{padding-right:7px} }
