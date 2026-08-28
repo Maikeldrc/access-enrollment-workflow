@@ -1034,9 +1034,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
 
   const continueButton = page.getByRole("button", { name: "Agree and continue" });
   await expect(continueButton).toBeDisabled();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await expect(continueButton).toBeDisabled();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(continueButton).toBeEnabled();
   await expect(page.locator('.contextual-assurance[data-assurance-type="ENROLLMENT_CHOICE"]')).toContainText("You choose whether to enroll");
 
@@ -1054,8 +1052,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(fullDisclosure.locator('a[href="tel:+13053948070"]')).toHaveText(/\(305\) 394-8070/);
   await expect(fullDisclosure).not.toContainText("Additional information includes beneficiary cost-sharing");
   await expect(page.getByText("Disclosure version: 2.1", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("I have reviewed this important information.")).toBeChecked();
-  await expect(page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.")).toBeChecked();
+  await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeChecked();
   const disclosureView = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(disclosureView.accessDisclosureView).toMatchObject({ disclosureVersion: "2.1", locale: "en", sessionId: disclosureView.sessionId, enrollmentId: null });
   expect(disclosureView.accessDisclosureView.viewedAt).toBeTruthy();
@@ -1138,9 +1135,7 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
 
   const cta = page.getByRole("button", { name: "Agree and continue" });
   await expect(cta).toBeDisabled();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await expect(cta).toBeDisabled();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(cta).toBeEnabled();
   await expect(page.locator('.contextual-assurance[data-assurance-type="ENROLLMENT_CHOICE"]')).toContainText("You choose whether to enroll");
 
@@ -1184,8 +1179,7 @@ test("ACCESS patient completes the simplified journey without redundant educatio
   await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await page.getByRole("button", { name: "Agree and continue" }).click();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible({ timeout: 5000 });
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
@@ -1195,14 +1189,14 @@ test("ACCESS patient completes the simplified journey without redundant educatio
 test("ACCESS personal representative must complete the authority attestation", async ({ page }) => {
   await page.goto("/?scenario=access-representative");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Personal representative");
   const authority = page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.");
-  const reviewed = page.getByLabel("I have reviewed this important information.");
-  const agreement = page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
+  const agreement = page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
   const cta = page.getByRole("button", { name: "Agree and continue" });
-  await reviewed.check();
   await agreement.check();
+  // A representative still attests their authority separately: that is a different statement
+  // about a different person, not a second confirmation of the same one.
   await expect(cta).toBeDisabled();
   await authority.check();
   await expect(cta).toBeEnabled();
@@ -1327,13 +1321,23 @@ test("role selection branches only personal representatives into representative 
   expect(representativeDraft.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["completion_role_selected", "representative_details_confirmed", "representative_phone_otp_sent", "representative_phone_otp_verified", "representative_authority_attested"]));
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.").check();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
   await page.getByRole("button", { name: "Agree and continue" }).click();
   await expect(page.getByRole("heading", { name: "Completing your enrollment with Medicare" })).toBeVisible();
   const consentDraft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(consentDraft).toMatchObject({ consentRole: "PERSONAL_REPRESENTATIVE", consentVersion: "2.1" });
   expect(consentDraft.consentTimestamp).toBeTruthy();
+  // One checkbox on screen, but the evidence behind it is unchanged in substance and richer in
+  // detail: what was shown, when, in which language, at what cost, against which verification.
+  expect(consentDraft.consentAcknowledgement).toMatchObject({
+    consentShape: "SINGLE_AFFIRMATIVE",
+    signerRole: "PERSONAL_REPRESENTATIVE",
+    consentVersion: "2.1",
+    locale: "en"
+  });
+  expect(consentDraft.consentAcknowledgement.disclosureVersion).toBeTruthy();
+  expect(consentDraft.consentAcknowledgement.acceptedAt).toBeTruthy();
+  expect(consentDraft.consentAcknowledgement.displayedExpectedPatientPayment).toBeTruthy();
   expect(consentDraft.audit.map(event => event.eventType)).toContain("consent_saved");
   await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
   await expect(page.getByText("Please enter the patient’s date of birth and ZIP code.")).toBeVisible();
@@ -1349,7 +1353,7 @@ test("role selection branches only personal representatives into representative 
   await expect(page.getByLabel("Your mobile number")).toHaveValue("(305) 555-0123");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await expect(page.locator(".signer-role")).toContainText("Signing as: Personal representative");
-  await expect(page.getByText("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
 
   await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
   await page.goto("/?scenario=access-happy");
@@ -1514,7 +1518,7 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
-  await expect(page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
+  await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
   await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
   await expect(page.getByText("You continue working with Dr. Humberto Machado Jr.", { exact: true })).toBeVisible();
 });

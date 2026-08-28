@@ -68,7 +68,7 @@ let state = {
   scenarioId, screen: params.has("scenario") || prototypeMode ? "OFFER_LOADING" : "PROTOTYPE_SETUP", offer: null, language: "en", role: "patient", completionRole: "patient",
   representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0,
   phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false,
-  accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, sessionMetadata: { platform: navigator.userAgentData?.platform || navigator.platform || "unknown" }, ipMetadata: null, identityVerified: false,
+  accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", consentAcknowledgement: null, sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, sessionMetadata: { platform: navigator.userAgentData?.platform || navigator.platform || "unknown" }, ipMetadata: null, identityVerified: false,
   identityAttempts: 0, consentSaved: false, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
@@ -1954,13 +1954,13 @@ function consent() {
     if (config.showTempoDisclosure) summaryRows.push(["device", L("Connected device information", "Información del dispositivo conectado", "Enfòmasyon sou aparèy ki konekte"), config.tempoDisclosureText ? offerText(config.tempoDisclosureText) : L("A connected device may be used to support your ACCESS care. Your care team will explain what is required.", "Puede utilizarse un dispositivo conectado para apoyar su cuidado ACCESS. Su equipo le explicará lo necesario.", "Yo ka itilize yon aparèy konekte pou sipòte swen ACCESS ou. Ekip swen ou pral eksplike sa ki nesesè.")]);
     const authorityAttestation = representative ? check("authority", L("I confirm that I’m authorized to make healthcare decisions for the patient.", "Confirmo que estoy autorizado para tomar decisiones médicas por el paciente.", "Mwen konfime ke mwen otorize pou pran desizyon swen sante pou pasyan an.")) : "";
     const agreement = representative
-      ? L("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", "Acepto, en nombre del paciente, inscribir al paciente en ACCESS con ITERA HEALTH.", "Mwen dakò, nan non pasyan an, pou enskri pasyan an nan ACCESS avèk ITERA HEALTH.")
-      : L("I agree to enroll in ACCESS with ITERA HEALTH.", "Acepto inscribirme en ACCESS con ITERA HEALTH.", "Mwen dakò pou enskri nan ACCESS avèk ITERA HEALTH.");
+      ? L("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto, en nombre del paciente, inscribir al paciente en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò, nan non pasyan an, pou enskri pasyan an nan ACCESS avèk ITERA HEALTH.")
+      : L("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto inscribirme en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò pou enskri nan ACCESS avèk ITERA HEALTH.");
     return `${titleBlock(L("Review and agree", "Revise y acepte", "Revize epi dakò"), intro)}
       <section class="consent-summary access-consent-summary">${summaryRows.map(([rowIcon, headline, copy, rowType]) => `<div class="consent-disclosure-row ${rowType === "cost" ? "access-cost-row" : ""}">${icon(rowIcon)}<div><strong>${headline}</strong><p>${copy}</p></div></div>`).join("")}</section>
       <details class="full-terms access-consent-terms"><summary>${L("View full ACCESS information", "Ver información completa de ACCESS", "Gade tout enfòmasyon ACCESS yo")} ${icon("externalLink")}</summary><div class="access-full-content">${accessFullDisclosure(cost, config)}</div></details>
       <p class="signer-role"><strong>${L("Signing as", "Firmando como", "Siyen kòm")}:</strong> ${role}</p>
-      <form id="consent-form">${authorityAttestation}${check("consent", L("I have reviewed this important information.", "He revisado esta información importante.", "Mwen te revize enfòmasyon enpòtan sa a."))}${check("enroll", agreement)}</form>
+      <form id="consent-form" data-consent-shape="single">${authorityAttestation}${check("consent", agreement)}</form>
       <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Agree and continue", "Aceptar y continuar", "Dakò epi kontinye"), true, "", true)}`;
   }
   const traditionalRepresentative = representativeRole;
@@ -4326,7 +4326,8 @@ async function advance() {
   if (state.screen === "CONSENT_REVIEW") {
     const f = document.querySelector("#consent-form");
     const authorityMissing = state.role === "representative" && !f.authority?.checked;
-    if (authorityMissing || !f.consent.checked || !f.enroll.checked) { state.error = L("Please complete each required confirmation to continue.", "Complete cada confirmación requerida para continuar.", "Tanpri ranpli tout konfimasyon ki nesesè pou kontinye."); render(); return; }
+    const enrollMissing = Boolean(f.enroll) && !f.enroll.checked;
+    if (authorityMissing || !f.consent.checked || enrollMissing) { state.error = L("Please complete each required confirmation to continue.", "Complete cada confirmación requerida para continuar.", "Tanpri ranpli tout konfimasyon ki nesesè pou kontinye."); render(); return; }
     state.busy = true; render();
     if (state.offer.pathway === "ACCESS" && !state.disclosureAcknowledgedAt) {
       await service.saveAcknowledgement();
@@ -4338,7 +4339,26 @@ async function advance() {
     state.consentRole = isPersonalRepresentative() ? "PERSONAL_REPRESENTATIVE" : "PATIENT";
     state.consentVersion = state.offer.consent.version;
     state.consentTimestamp = new Date().toISOString();
-    audit(state, "consent_saved", "success", { consentRole: state.consentRole, consentVersion: state.consentVersion });
+    // The screen now asks for one tick where it used to ask for two, so the record has to carry
+    // what the patient was actually shown at the moment they agreed. A single affirmative act is
+    // only defensible if the evidence behind it stays complete: what was displayed, when, in which
+    // language, at what expected cost and against which coverage verification.
+    const displayedCost = accessCostSummary(state.offer.accessCost || state.offer.disclosures?.accessConfig?.accessCost);
+    state.consentAcknowledgement = {
+      consentShape: state.offer.pathway === "ACCESS" ? "SINGLE_AFFIRMATIVE" : "SEPARATE_CONFIRMATIONS",
+      disclosureVersion: state.disclosureVersion || state.offer.disclosures.version,
+      consentVersion: state.consentVersion,
+      signerRole: state.consentRole,
+      locale: state.language,
+      // When the disclosure was put in front of them, distinct from when they accepted it.
+      displayedAt: state.accessDisclosureView?.viewedAt || state.disclosureAcknowledgedAt || null,
+      acceptedAt: state.consentTimestamp,
+      displayedExpectedPatientPayment: displayedCost?.amountLabel || null,
+      coverageVerificationStatus: (state.offer.accessCost || {}).secondaryCoverageStatus || null,
+      sessionId: state.sessionId,
+      enrollmentId: state.enrollmentId || null
+    };
+    audit(state, "consent_saved", "success", { ...state.consentAcknowledgement });
   }
   if (state.screen === "ENROLLMENT_CONFIRMED") {
     state.enrollmentConfirmed = true;
