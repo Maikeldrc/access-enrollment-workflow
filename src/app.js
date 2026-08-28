@@ -1218,7 +1218,7 @@ function syncEmmiNavigationContext(override = {}) {
   const changed = !previousContext || previousContext.screenId !== next.screenId || previousContext.stageId !== next.stageId || previousContext.locale !== next.locale;
   if (!changed) return false;
   const intent = { ...(emmiNavigationIntent || {}), ...override };
-  const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
+  const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "MY_CARE_TEAM", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
   emmiNavigationIntent = null;
   const navigationDirection = inferEmmiNavigationDirection(previousScreen, next.screenId, intent.navigationDirection);
   emmiConversationManager?.transition({ ...assistantContext(), ...next }, { ...intent, navigationDirection });
@@ -1258,7 +1258,8 @@ function assistantScreenExplanation(screen) {
     HEALTH_INFORMATION_REVIEW: L("This screen shows health information already on file. You can confirm it, report an update without changing the clinical record automatically, or ask for help reviewing it.", "Esta pantalla muestra información médica registrada. Puede confirmarla, informar una actualización sin cambiar automáticamente el registro clínico o pedir ayuda para revisarla.", "Ekran sa a montre enfòmasyon sante ki nan dosye a. Ou ka konfime li, rapòte yon mizajou san chanje dosye klinik la otomatikman, oswa mande èd pou revize li."),
     MEDICATIONS_REVIEW: L("Review each medication on file, tell us whether it is still correct or something changed, and then tell us whether anything is missing. Your answers do not change a prescription automatically.", "Revise cada medicamento registrado, indique si sigue correcto o si algo cambió y luego díganos si falta alguno. Sus respuestas no cambian automáticamente una receta.", "Revize chak medikaman nan dosye a, di nou si li toujou kòrèk oswa si gen yon chanjman, epi di nou si gen youn ki manke. Repons ou yo pa chanje yon preskripsyon otomatikman."),
     GOALS: L("This step shows goals available for your care so you can choose what matters most and personalize practical steps. Your care team remains responsible for clinical decisions.", "Este paso muestra metas disponibles para su cuidado para que elija lo que más le importa y personalice pasos prácticos. Su equipo de atención sigue siendo responsable de las decisiones clínicas.", "Etap sa a montre objektif ki disponib pou swen ou pou ou chwazi sa ki pi enpòtan epi pèsonalize etap pratik. Ekip swen ou rete responsab desizyon klinik yo."),
-    MY_GOALS: L("My Goals keeps the goals you chose, your plan, progress, and support requests in one place. These personal goals do not change clinical targets or medical orders.", "Mis metas reúne las metas que eligió, su plan, progreso y solicitudes de apoyo. Estas metas personales no cambian objetivos clínicos ni indicaciones médicas.", "Objektif mwen mete objektif ou chwazi yo, plan ou, pwogrè ou ak demann sipò yo nan yon sèl kote. Objektif pèsonèl sa yo pa chanje sib klinik ni lòd medikal.")
+    MY_GOALS: L("My Goals keeps the goals you chose, your plan, progress, and support requests in one place. These personal goals do not change clinical targets or medical orders.", "Mis metas reúne las metas que eligió, su plan, progreso y solicitudes de apoyo. Estas metas personales no cambian objetivos clínicos ni indicaciones médicas.", "Objektif mwen mete objektif ou chwazi yo, plan ou, pwogrè ou ak demann sipò yo nan yon sèl kote. Objektif pèsonèl sa yo pa chanje sib klinik ni lòd medikal."),
+    MY_CARE_TEAM: L("This screen shows the care professionals and organizations ITERA currently has on file as part of your care team.", "Esta pantalla muestra los profesionales y las organizaciones que ITERA tiene registrados como parte de su equipo de cuidado.", "Ekran sa a montre pwofesyonèl ak òganizasyon ITERA genyen nan dosye kòm pati ekip swen ou.")
   };
   return explanations[screen] || L("This screen shows your current enrollment task and what you need to do next.", "Esta pantalla muestra su tarea actual y lo que debe hacer después.", "Ekran sa a montre travay enskripsyon aktyèl ou ak sa ou bezwen fè pwochen.");
 }
@@ -2466,9 +2467,52 @@ function myCareScreen() {
     <section class="my-care-resume-card"><div>${icon("check")}<span><strong>${L("Getting Started", "Primeros pasos", "Premye etap yo")}</strong><small>${started ? L("In progress", "En curso", "An pwogrè") : L("Not finished yet", "Aún no terminado", "Poko fini")}</small></span></div>${transition.estimatedDuration ? `<p>${icon("clock")} ${localized(transition.estimatedDuration)}</p>` : ""}${cta(actionLabel, "resume-next-flow")}</section>
     ${upcomingCareSection(appointmentViewProps({ appointments: appointmentRecords() }))}
     ${needAnAppointmentCard({ locale: state.language, icon })}
+    <button type="button" class="link-card my-care-team-link" data-action="open-my-care-team">${icon("physician")}<span><strong>${L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen")}</strong><small>${L("See who is supporting your care", "Vea quién está apoyando su cuidado", "Gade kiyès k ap sipòte swen ou")}</small></span><b aria-hidden="true">›</b></button>
     <button type="button" class="link-card my-goals-link" data-action="open-my-goals">${icon("goals")}<span><strong>${L("My Goals", "Mis metas", "Objektif mwen")}</strong><small>${activePatientGoals().length ? L("View the goals you’re working toward", "Vea las metas en las que está trabajando", "Gade objektif w ap travay sou yo") : L("Choose what matters to you", "Elija lo que le importa", "Chwazi sa ki enpòtan pou ou")}</small></span><b aria-hidden="true">›</b></button>
     <button type="button" class="link-card my-medications-link" data-action="open-my-medications">${icon("pill")}<span><strong>${L("My Medications", "Mis medicamentos", "Medikaman mwen yo")}</strong><small>${medicationAttentionLine()}</small></span><b>›</b></button>
     <button type="button" class="link-card my-care-circle-link" data-action="open-my-care-circle">${icon("people")}<span><strong>${L("My Care Circle", "Mi Círculo de cuidado", "Sèk swen mwen")}</strong><small>${L("Invite or manage someone you trust", "Invite o administre a alguien de confianza", "Envite oswa jere yon moun ou fè konfyans")}</small></span><b aria-hidden="true">›</b></button>
+  </div>`;
+}
+
+const careTeamRoleLabel = member => ({
+  [PROFESSIONAL_TYPES.PRIMARY_CARE]: L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal"),
+  [PROFESSIONAL_TYPES.SPECIALIST]: L("Specialist", "Especialista", "Espesyalis"),
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("ITERA care team", "Equipo de cuidado de ITERA", "Ekip swen ITERA"),
+  [PROFESSIONAL_TYPES.PHARMACIST]: L("Pharmacy", "Farmacia", "Famasi"),
+  [PROFESSIONAL_TYPES.NURSE]: L("Nurse", "Enfermero o enfermera", "Enfimyè"),
+  [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: L("Device support", "Soporte de dispositivos", "Sipò aparèy"),
+  [PROFESSIONAL_TYPES.UNKNOWN]: L("Care professional", "Profesional de cuidado", "Pwofesyonèl swen")
+}[member?.professionalType] || L("Care professional", "Profesional de cuidado", "Pwofesyonèl swen"));
+
+const careTeamMemberIcon = member => ({
+  [PROFESSIONAL_TYPES.PHARMACIST]: "pill",
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: "people",
+  [PROFESSIONAL_TYPES.NURSE]: "people",
+  [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: "device"
+}[member?.professionalType] || "physician");
+
+function myCareTeamScreen() {
+  const team = patientCareTeam();
+  const participantId = state.offer?.participantProvider?.id;
+  const supportPhone = state.offer?.participantProvider?.supportPhone || "";
+  const supportPhoneDigits = supportPhone.replace(/\D/g, "");
+  const supportPhoneHref = supportPhoneDigits ? `tel:+${supportPhoneDigits.length === 10 ? `1${supportPhoneDigits}` : supportPhoneDigits}` : "";
+  const verifiedLabel = L("Verified", "Verificado", "Verifye");
+  const members = team.length ? team.map(member => {
+    const detail = [careTeamRoleLabel(member), member.practiceName].filter(Boolean).join(" · ");
+    const physicianPhoto = member.displayName === state.offer?.referringProvider?.name ? state.offer.referringProvider.verifiedPhotoUrl || "" : "";
+    const phone = supportPhone && member.id === participantId
+      ? `<a class="care-team-member-phone" href="${supportPhoneHref}">${icon("phone")}<span>${L("Call", "Llamar", "Rele")} ${escapeHtml(supportPhone)}</span></a>`
+      : "";
+    return `<article class="care-team-member-card">
+      ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : `<span class="care-team-member-icon" aria-hidden="true">${icon(careTeamMemberIcon(member))}</span>`}
+      <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p>${phone}</div>
+    </article>`;
+  }).join("") : `<div class="care-team-empty">${icon("people")}<strong>${L("Your care team details are not available yet", "Los detalles de su equipo de cuidado aún no están disponibles", "Detay ekip swen ou poko disponib")}</strong><p>${L("ITERA can help you review who supports your care.", "ITERA puede ayudarle a revisar quién apoya su cuidado.", "ITERA ka ede w revize kiyès k ap sipòte swen ou.")}</p></div>`;
+  return `<div class="my-care-team-screen">${titleBlock(L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen"), L("See the people and organizations ITERA currently has on file for your care.", "Vea las personas y organizaciones que ITERA tiene actualmente registradas para su cuidado.", "Gade moun ak òganizasyon ITERA genyen nan dosye li kounye a pou swen ou."), L("Your care", "Su cuidado", "Swen ou"))}
+    <section class="care-team-members" aria-label="${L("Your care team", "Su equipo de cuidado", "Ekip swen ou")}">${members}</section>
+    <aside class="care-team-boundary-note">${icon("info")}<p>${L("Only information available to ITERA is shown here. Your care team may include other professionals.", "Aquí solo se muestra la información disponible para ITERA. Su equipo de cuidado puede incluir otros profesionales.", "Se sèlman enfòmasyon ITERA genyen ki parèt isit la. Ekip swen ou ka gen lòt pwofesyonèl ladan l.")}</p></aside>
+    <div class="actions">${cta(t().back, "back", true)}</div>
   </div>`;
 }
 
@@ -4784,6 +4828,7 @@ function prototypeSetup() {
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
+renderers.MY_CARE_TEAM = myCareTeamScreen;
 renderers.MY_MEDICATIONS = myMedicationsScreen;
 renderers.MY_GOALS = myGoals;
 renderers.MY_CARE_CIRCLE = myCareCircleScreen;
@@ -6875,6 +6920,7 @@ function bind() {
       goal.status = "ACHIEVED"; goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_ACHIEVED", { clinicalOutcomeChanged: false, cmsOutcomeChanged: false }); state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
     }
     if (action === "change-goal-priority") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; render(); return; }
+    if (action === "open-my-care-team") { state.screen = "MY_CARE_TEAM"; draftStore.save(state); render(); return; }
     if (action === "open-my-care-circle") { state.screen = "MY_CARE_CIRCLE"; state.careCircleNotice = ""; render(); return; }
     if (action === "invite-another-care-circle") { Object.assign(state, { growthReturnScreen: "MY_CARE_CIRCLE", careCircleContext: "ONGOING_CARE", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", careCircleContactNumbers: [], careCircleNotice: "", screen: "CARE_CIRCLE_INVITE" }); render(); return; }
     if (action === "resend-care-circle") { const result = growthStore.resendSupportInvite(el.dataset.inviteId); state.careCircleNotice = result.status === "COOLDOWN" ? L(`Please wait ${result.retryAfterSeconds} seconds before sending again.`, `Espere ${result.retryAfterSeconds} segundos antes de volver a enviar.`, `Tanpri tann ${result.retryAfterSeconds} segonn anvan ou voye ankò.`) : result.inviteId ? L("Invitation sent again.", "Invitación reenviada.", "Envitasyon an voye ankò.") : L("This invitation could not be resent.", "No se pudo reenviar esta invitación.", "Nou pa t kapab voye envitasyon sa a ankò."); audit(state, "invite_resent", result.inviteId ? "success" : result.status, { inviteId: el.dataset.inviteId }); render(); return; }
@@ -7064,7 +7110,7 @@ function bind() {
       } else if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
         state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
         render();
-      } else if (state.screen === "MY_CARE_CIRCLE") {
+      } else if (["MY_CARE_CIRCLE", "MY_CARE_TEAM"].includes(state.screen)) {
         state.screen = "MY_CARE"; render();
       } else if (state.screen === "CARE_CIRCLE_REMOVE_CONFIRMATION") {
         state.screen = "MY_CARE_CIRCLE"; render();

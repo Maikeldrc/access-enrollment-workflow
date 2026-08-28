@@ -1371,7 +1371,29 @@ p { margin:0; }
 .care-circle-invite-screen { padding-bottom:108px; }
 .care-circle-sticky-actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:14px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
 .shell:has(.care-circle-invite-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
-.my-care-circle-link { width:100%;margin-top:18px; }
+.my-care-team-link,.my-care-circle-link { width:100%;margin-top:18px; }
+.my-care-team-screen { width:100%;min-width:0; }
+.care-team-members { display:grid;gap:12px;margin-top:20px; }
+.care-team-member-card { display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);box-shadow:0 6px 18px rgba(0,78,137,.04); }
+.care-team-member-icon { display:grid;place-items:center;width:48px;height:48px;border-radius:14px;color:var(--primary-600);background:var(--primary-50); }
+.care-team-member-icon>.icon { width:26px;height:26px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-photo { display:block;width:48px;height:48px;border:2px solid var(--surface-primary);border-radius:50%;object-fit:cover;object-position:50% 24%;box-shadow:0 0 0 1px var(--border-default); }
+.care-team-member-copy { min-width:0; }
+.care-team-member-name { display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;min-width:0; }
+.care-team-member-name>strong { min-width:0;color:var(--text-primary);font-size:1.0625rem;line-height:1.35;overflow-wrap:anywhere; }
+.care-team-verified { display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;color:var(--success-700,#24733b);background:var(--success-bg,#eaf8ef);font-size:.78rem;font-weight:800;line-height:1.25; }
+.care-team-verified>.icon { width:15px;height:15px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-copy>p { margin:4px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.48; }
+.care-team-member-phone { display:inline-flex;align-items:center;gap:7px;min-height:44px;margin-top:7px;color:var(--primary-700);font-size:1rem;font-weight:700;text-decoration:none; }
+.care-team-member-phone>.icon { width:21px;height:21px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-phone:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:8px; }
+.care-team-boundary-note { display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:start;margin-top:16px;padding:13px;border:1px solid var(--primary-100);border-radius:14px;color:var(--text-secondary);background:var(--primary-50); }
+.care-team-boundary-note>.icon { width:36px;height:36px; }
+.care-team-boundary-note p { margin:0;font-size:1rem;line-height:1.5; }
+.care-team-empty { display:grid;justify-items:center;gap:8px;padding:24px 16px;border:1px dashed var(--border-default);border-radius:16px;background:var(--surface-primary);text-align:center; }
+.care-team-empty>.icon { width:38px;height:38px; }
+.care-team-empty p { margin:0;color:var(--text-muted);font-size:1rem;line-height:1.5; }
+@media (max-width:360px) { .care-team-member-card { grid-template-columns:44px minmax(0,1fr);gap:10px;padding:14px; }.care-team-member-icon,.care-team-member-photo { width:44px;height:44px; }.care-team-verified { font-size:.74rem; } }
 .care-circle-members { display:grid;gap:12px;margin-top:20px; }
 .care-circle-member-card { padding:14px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
 .care-circle-member-heading { display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px; }
