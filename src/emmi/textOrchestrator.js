@@ -17,7 +17,9 @@ const APPOINTMENT_MENTION = /\bappointment|\bvisit\b|\bcita\b|\bconsulta\b|\bvis
 const foldApostrophes = value => String(value || "").replace(/[‘’ʼ]/g, "'");
 const SAFETY = /chest pain|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(en el )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
 const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
-const COST = /how much|cost|pay|owe|charge|copay|coinsurance|deductible|cu[aá]nto|costo|pagar|copago|coseguro|deducible|konbyen|pri|peye/i;
+// Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
+// "private", so asking what a medication is came back as an answer about the ACCESS cost.
+const COST = /\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|soy elegible|califico|mi elegibilidad|mwen kalifye|kalifikasyon mwen/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)/i;
