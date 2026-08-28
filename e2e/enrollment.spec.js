@@ -2253,7 +2253,10 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
   await expect(acknowledgement).toBeChecked();
   await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", progressBefore);
-  await expect(page.getByRole("button", { name: "Open EMMI" })).toBeVisible();
+  // EMMI is one assistant in several presentations. Closing the panel has to leave her reachable,
+  // which is not the same as leaving the floating pill on screen: the pill stands down while the
+  // compact card is in view, so demanding it here asserted a layout choice rather than the promise.
+  await expect(page.locator('.emmi-guide [data-action="help"], .emmi-welcome [data-action="help"], .emmi-assistant').first()).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });

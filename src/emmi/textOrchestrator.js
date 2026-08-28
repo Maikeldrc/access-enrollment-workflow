@@ -1,6 +1,8 @@
 import { classifyBarrierText } from "../goalBarriers.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
+import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
+import { resolveRequestedProfessional } from "../careTeamDirectory.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
@@ -499,6 +501,27 @@ export class EmmiTextOrchestrator {
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
       return { text: this.screenExplanation(context.currentScreen), trace };
+    }
+    // Wanting to reach the clinical team is an action, not a question. Tapping the quick question
+    // already goes to the support options; this is the same request typed or spoken. It is checked
+    // before human support, which would otherwise swallow "someone from my care team call me", and
+    // long before retrieval, which would explain what a care team is to someone asking for one.
+    const careTeamRequest = detectCareTeamContact({ question: asked, questionId });
+    if (careTeamRequest) {
+      trace.intent = CARE_TEAM_CONTACT_INTENT; trace.toolCalls.push("getCareTeam");
+      try {
+        const careTeam = await this.executeTool("getCareTeam", { patientId: context.patientId });
+        const members = careTeam?.members || [];
+        const resolution = resolveRequestedProfessional(members, { text: asked, professionalType: careTeamRequest.professionalType, locale: String(locale).toLowerCase() });
+        trace.responseMode = "OPERATIONAL_CARE_TEAM_CONTACT"; trace.runtimeFactsUsed.push("getCareTeam"); emit("EMMI_ANSWER_ROUTED");
+        return { text: careTeamContactPrompt({ resolution, locale, careTeamSize: members.length }), pendingAction: "callback", trace };
+      } catch (error) {
+        // A failed operational intent fails operationally. Sending the phrase to retrieval here is
+        // the defect this route exists to prevent.
+        emit("EMMI_TOOL_FAILED", { tool: "getCareTeam", error: error?.message || "unknown" });
+        trace.responseMode = "OPERATIONAL_CARE_TEAM_CONTACT";
+        return { text: careTeamContactPrompt({ resolution: null, locale, careTeamSize: 0 }), pendingAction: "callback", trace };
+      }
     }
     if (HUMAN_SUPPORT.test(asked)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");

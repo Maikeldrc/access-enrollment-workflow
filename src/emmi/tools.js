@@ -148,7 +148,9 @@ export class EmmiToolOrchestrator {
     else if (name === "getClinicalTarget") result = { metricType: args.metricType, target: clone(context.activeGoal?.clinicalTarget || null), source: context.activeGoal?.clinicalTarget ? "CARE_TEAM_CONFIGURATION" : "UNAVAILABLE" };
     else if (name === "getGoalProgress") result = { goalId: args.goalId, progress: clone(context.activeGoal?.progress || null), actions: clone(context.activeGoal?.actions || []), source: "PATIENT_RUNTIME" };
     else if (name === "getEducationRecommendation") result = { goalId: args.goalId, topic: clone(context.activeGoal?.nextBestEducation || null), source: context.activeGoal?.nextBestEducation ? "APPROVED_TOPIC_CATALOG" : "UNAVAILABLE" };
-    else if (name === "getCareTeam") result = { physicianDisplayName: context.physicianDisplayName || null, enrollmentSource: context.enrollmentSource || null };
+    // The care team the patient actually has, built by careTeamDirectory from their own record,
+    // rather than a single display name. EMMI can only name someone this list contains.
+    else if (name === "getCareTeam") result = { physicianDisplayName: context.physicianDisplayName || null, enrollmentSource: context.enrollmentSource || null, members: clone(context.careTeam || []) };
     else if (name === "getNextBestAction") result = clone(context.nextBestAction || { label: "", route: context.currentScreen, actionType: "NONE" });
     else if (name === "checkDeviceConnection") {
       const device = EMMI_DEMO_DEVICES.find(item => item.deviceId === args.deviceId);

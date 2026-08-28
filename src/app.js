@@ -800,6 +800,7 @@ function assistantContext() {
     // A patient and a representative are agreeing to different things on the consent screen, so the
     // guardrail that explains what is being signed needs to know which one is asking.
     completedByRepresentative: isPersonalRepresentative(),
+    careTeam: patientCareTeam(),
     supportPersonName: state.supportPersonName || null,
     supportInviteStatus: state.supportInviteStatus,
     deviceScenario,
