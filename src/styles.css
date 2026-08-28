@@ -76,6 +76,9 @@
      This sizes the desktop patient preview only; on a real phone the shell is 100% width and
      the layout stays fluid from roughly 360px to 430px. */
   --patient-shell-width:384px;
+  /* EMMI's brandmark where she is a control rather than a greeting: the compact card and the
+     floating avatar. The Home introduction and the expanded panel size their own hero. */
+  --emmi-avatar-compact:38px;
   --patient-page-gutter:clamp(12px,4vw,16px);
   --patient-card-radius:14px;
   --patient-card-padding:16px;
@@ -237,14 +240,14 @@ p { margin:0; }
 .verified-phone-status span { display:grid;gap:2px; }
 .verified-phone-status strong { color:var(--text-primary);font-size:1rem;line-height:1.35; }
 .verified-phone-status small { color:var(--text-secondary);font-size:.95rem;line-height:1.4; }
-.shell:has(.representative-details-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.representative-details-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .recommendation-screen { padding-bottom:calc(var(--patient-bottom-safe-gap) + env(safe-area-inset-bottom)); }
 .recommendation-screen .lead { margin-bottom:24px;font-size:1.0625rem;line-height:1.52; }
 .recommendation-screen .info-row { min-height:78px;padding-top:13px;padding-bottom:13px; }
 .recommendation-screen .info-row strong { font-size:1.02rem;line-height:1.35; }
 .recommendation-screen .info-row p { margin-top:4px;font-size:1rem;line-height:1.48; }
 .recommendation-screen .note { margin-top:17px;font-size:1rem;line-height:1.5; }
-.shell:has(.recommendation-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.recommendation-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .care-works-screen { padding-bottom:calc(var(--patient-bottom-safe-gap) + env(safe-area-inset-bottom)); }
 .care-works-screen .lead { font-size:1.0625rem;line-height:1.52; }
 .care-works-screen .provider-card { margin-bottom:12px; }
@@ -252,7 +255,7 @@ p { margin:0; }
 .care-works-screen .info-row strong { font-size:1.02rem;line-height:1.35; }
 .care-works-screen .info-row p { margin-top:4px;font-size:1rem;line-height:1.48; }
 .care-works-screen .trust-note { font-size:1rem;line-height:1.5; }
-.shell:has(.care-works-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.care-works-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .access-notice-screen { padding-bottom:calc(var(--patient-bottom-safe-gap) + env(safe-area-inset-bottom)); }
 .access-notice-screen .lead { font-size:1.0625rem;line-height:1.52; }
 .access-precheck-list { padding:4px 16px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);box-shadow:var(--card-shadow); }
@@ -263,9 +266,9 @@ p { margin:0; }
 .access-precheck-row strong { display:block;font-size:1.0625rem;line-height:1.38; }
 .access-precheck-row p { margin:4px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.5; }
 .access-notice-screen .check-row { min-height:48px;align-items:center;font-size:1rem;line-height:1.45; }
-.shell:has(.access-notice-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.access-notice-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .access-not-eligible-screen { display:flex;flex:1;flex-direction:column;padding-bottom:calc(var(--patient-bottom-safe-gap) + env(safe-area-inset-bottom)); }
-.shell:has(.access-not-eligible-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.access-not-eligible-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .check-row { position:relative; display:flex; gap:11px; align-items:flex-start; margin:14px 0; cursor:pointer; font-size:.9rem; line-height:1.45; }
 .check-row input { position:absolute; opacity:0; }
 .check-box { display:grid; place-items:center; flex:0 0 22px; width:22px; height:22px; color:transparent; background:var(--surface-primary); border:1.5px solid var(--border-strong); border-radius:5px; }
@@ -346,7 +349,7 @@ p { margin:0; }
 .medication-reassurance { padding:12px!important;color:var(--text-secondary)!important; }
 .medication-review-summary { display:grid;gap:5px;margin-top:18px;padding:13px;color:var(--text-secondary);font-size:16px;line-height:1.45; }.medication-review-summary strong { color:var(--text-primary);font-size:17px; }
 .medication-review-screen>.actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:16px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
-.shell:has(.medication-review-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom)); }
+.shell:has(.medication-review-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 @media (max-width:360px) { .medication-review-card { padding:14px; }.medication-card-heading { grid-template-columns:40px minmax(0,1fr); }.medication-review-screen>.actions,.inline-actions { grid-template-columns:minmax(84px,.7fr) minmax(0,1.3fr); } }
 .empty-state { margin:0; padding:16px; color:var(--text-muted); border:1px dashed var(--border-default); border-radius:12px; }
 .care-preferences-form { display:grid; gap:22px; margin-top:18px; }
@@ -646,7 +649,7 @@ p { margin:0; }
   .goal-action-row button { justify-self:start; }
 }
 
-.shell:has(.access-consent-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom)); }
+.shell:has(.access-consent-screen) .emmi-assistant { bottom:calc(18px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .process-list { display:grid; gap:0; padding:0; margin:22px 0; list-style:none; }
 .process-list li { position:relative; display:flex; gap:13px; align-items:center; min-height:64px; color:#7d839a; font-size:.88rem; line-height:1.4; }
 .process-list li:not(:last-child)::after { content:""; position:absolute; left:19px; top:43px; width:2px; height:28px; background:#dddfea; }
@@ -684,7 +687,7 @@ p { margin:0; }
 .health-help-actions { margin-top:14px; }.health-help-actions button { display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:11px; }
 .health-saved-actions { display:flex;flex-wrap:wrap;gap:8px;margin-top:12px; }.health-saved-actions button { min-height:44px;padding:8px 10px;border:1px solid var(--border-default);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:16px;font-weight:700; }
 .health-information-review-screen>.actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:16px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
-.shell:has(.health-information-review-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom)); }
+.shell:has(.health-information-review-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 @media (max-width:360px) { .health-information-card,.health-review-panel,.health-update-form,.health-update-review,.health-review-result { padding:14px; }.health-information-review-screen>.actions { grid-template-columns:minmax(84px,.7fr) minmax(0,1.3fr); }.health-saved-actions { display:grid;grid-template-columns:1fr; } }
 .goal-list { display:grid; gap:8px; }.goal-list .check-row { min-height:48px; margin:0; padding:12px; border-bottom:1px solid var(--line); }
 .address-card { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; font-style:normal; font-size:.86rem; background:#faf9ff; }
@@ -771,8 +774,8 @@ p { margin:0; }
 .emmi-assistant.dragging { cursor:grabbing;transform:none;box-shadow:none; }
 .emmi-assistant:focus-visible { outline:3px solid var(--primary-600);outline-offset:3px; }
 .emmi-assistant:disabled { cursor:default;opacity:1; }
-.emmi-avatar { display:grid;place-items:center;width:44px;height:44px;overflow:visible;border-radius:0;background:transparent;flex:0 0 44px; }
-.emmi-avatar img { display:block;width:44px;height:44px;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
+.emmi-avatar { display:grid;place-items:center;width:var(--emmi-avatar-compact);height:var(--emmi-avatar-compact);overflow:visible;border-radius:0;background:transparent;flex:0 0 var(--emmi-avatar-compact); }
+.emmi-avatar img { display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
 .emmi-assistant img { pointer-events:none;user-select:none; }
 .emmi-contextual-nudge { position:fixed;z-index:9;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(136px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
 .emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
@@ -790,13 +793,17 @@ p { margin:0; }
 /* EMMI contextual guide: compact by default, expanding only when the patient asks for the
    full message or a conversation. The screen's own task stays the visual priority. */
 .emmi-guide { display:grid;gap:6px;width:100%;margin:0 0 var(--patient-space-md,16px);padding:8px 11px;border:1px solid var(--primary-100);border-radius:14px;background:color-mix(in srgb,var(--primary-50) 72%,var(--surface-primary)); }
-.emmi-guide-row { display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:center; }
-.emmi-guide-avatar { width:32px;height:32px;object-fit:contain; }
-.emmi-guide-copy { min-width:0; }
-.emmi-guide-copy strong,.emmi-guide-copy span { display:block; }
-.emmi-guide-copy strong { color:var(--text-primary);font-size:1rem;line-height:1.2; }
-.emmi-guide-copy span { color:var(--text-secondary);font-size:1rem;line-height:1.3; }
-.emmi-guide-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:7px; }
+/* The header is one line: brandmark, name, state. Stacking the name above the state made the
+   card tall for no gain -- the two belong together, told apart by weight and colour. */
+.emmi-guide-row { display:flex;gap:10px;align-items:center; }
+.emmi-guide-avatar { width:var(--emmi-avatar-compact);height:var(--emmi-avatar-compact);flex:0 0 var(--emmi-avatar-compact);object-fit:contain; }
+.emmi-guide-copy { display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;min-width:0; }
+.emmi-guide-copy strong { color:var(--text-primary);font-size:1.0625rem;font-weight:700;line-height:1.25; }
+.emmi-guide-copy span { color:var(--text-secondary);font-size:1rem;font-weight:600;line-height:1.3; }
+/* Ask EMMI is the shorter label, so an even split starves the voice CTA and breaks it over two
+   lines. The columns follow the labels instead. */
+.emmi-guide-actions { display:grid;grid-template-columns:minmax(0,41fr) minmax(0,59fr);gap:7px; }
+.emmi-guide-actions:has(button:only-child) { grid-template-columns:minmax(0,1fr); }
 .emmi-guide-actions button { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:46px;padding:7px 10px;border:1px solid var(--border-default);border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:700;line-height:1.25;cursor:pointer; }
 .emmi-guide-actions .emmi-guide-primary { color:var(--primary-700);border-color:var(--primary-600);background:var(--primary-50); }
 .emmi-guide-actions .emmi-guide-voice-options { color:var(--text-primary);border-color:var(--border-default); }
@@ -806,11 +813,12 @@ p { margin:0; }
 .emmi-guide-actions button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:1px; }
 .emmi-guide-transcript { margin:0;padding:9px 10px;border-radius:10px;color:var(--text-primary);background:var(--surface-primary);font-size:.94rem;line-height:1.5; }
 .emmi-guide-off { gap:6px;padding:8px 12px; }
-.emmi-guide-off .emmi-guide-avatar { width:30px;height:30px; }
-.emmi-guide-off-copy { color:var(--text-primary);font-size:1rem;font-weight:700; }
+/* Only the name is the title; the state is supporting text. */
+.emmi-guide-off-copy { color:var(--text-secondary);font-size:1rem;font-weight:600; }
 /* Two columns when both labels fit, stacking to full width when they do not. The minimum
    keeps long Spanish labels ("Preguntar a EMMI", "Guía por voz") on one line at 384px. */
-.emmi-guide-off-actions { display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px; }
+.emmi-guide-off-actions { display:grid;grid-template-columns:minmax(0,41fr) minmax(0,59fr);gap:8px; }
+.emmi-guide-off-actions:has(button:only-child) { grid-template-columns:minmax(0,1fr); }
 .emmi-guide-voice-unavailable { margin:0;padding:10px 11px;border-radius:10px;color:var(--text-secondary);background:var(--surface-primary);font-size:1rem;line-height:1.5; }
 .emmi-guide-button { display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:46px;padding:8px 12px;border:1px solid var(--primary-600);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:600;line-height:1.25;text-align:center;cursor:pointer; }
 .emmi-guide-button-lead { border-width:2px;font-weight:700; }
@@ -818,8 +826,12 @@ p { margin:0; }
 .emmi-guide-button:active { transform:translateY(1px); }
 .emmi-guide-button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
 .emmi-guide-button:disabled { opacity:.55;cursor:not-allowed; }
-.emmi-guide-button-icon { width:20px;height:20px;flex:0 0 20px;border-radius:0;color:inherit;background:transparent; }
-.emmi-guide-button-icon svg { width:19px;height:19px; }
+/* The mic belongs to the label, not beside it: a tinted plate reads as a second control the
+   patient has to work out. Scoped to the button so it outranks the shared .icon chrome. */
+.emmi-guide-button .emmi-guide-button-icon,
+.emmi-guide-actions .emmi-guide-control-icon { width:21px;height:21px;flex:0 0 21px;padding:0;border:0;border-radius:0;color:inherit;background:none; }
+.emmi-guide-button-icon { width:21px;height:21px;flex:0 0 21px;border-radius:0;color:inherit;background:none; }
+.emmi-guide-button-icon svg { width:20px;height:20px; }
 .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar { animation:emmi-guide-pulse 1.6s ease-in-out infinite; }
 .emmi-audio-activity { display:inline-flex;align-items:center;gap:2px;height:14px;margin-left:7px;vertical-align:-2px; }
 .emmi-audio-activity b { display:block;width:3px;height:7px;border-radius:3px;background:var(--primary-600);animation:emmi-audio-wave .8s ease-in-out infinite alternate; }
@@ -1356,7 +1368,7 @@ p { margin:0; }
 .contact-number-choices span { display:grid;gap:2px; }.contact-number-choices small { color:var(--text-muted);font-size:.9375rem; }
 .care-circle-invite-screen { padding-bottom:108px; }
 .care-circle-sticky-actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:14px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
-.shell:has(.care-circle-invite-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom)); }
+.shell:has(.care-circle-invite-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 .my-care-circle-link { width:100%;margin-top:18px; }
 .care-circle-members { display:grid;gap:12px;margin-top:20px; }
 .care-circle-member-card { padding:14px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
@@ -1580,7 +1592,6 @@ p { margin:0; }
   .access-not-eligible-screen .actions>.primary { grid-row:1; }
   .access-not-eligible-screen .actions>.secondary { grid-row:2; }
   .emmi-assistant { right:calc(var(--emmi-shell-right-inset,0px) + var(--patient-page-gutter));bottom:calc(var(--patient-emmi-overlay-offset) + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
-  .emmi-avatar,.emmi-avatar img { width:40px;height:40px; }
 }
 @media (max-width:374px) { body { font-size:17px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.stage-brand-row{padding-right:7px} }
 @media (max-width:599px) {
@@ -1803,7 +1814,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .care-circle-early:focus-visible { outline:3px solid var(--primary-600);outline-offset:3px; }
 .screen:has(.invitation-stage) .actions .button.primary { font-size:var(--font-button); }
 .screen:has(.invitation-stage) .contact-line { padding-right:0; }
-.shell:has(.recommendation-screen) .emmi-assistant { bottom:env(safe-area-inset-bottom); }
+.shell:has(.recommendation-screen) .emmi-assistant { bottom:calc(env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 
 @media (max-width:374px) {
   .screen:has(.invitation-stage) .emmi-welcome { padding:12px; }
