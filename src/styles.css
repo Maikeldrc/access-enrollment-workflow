@@ -1060,9 +1060,24 @@ p { margin:0; }
 .assistant-question-form button { display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:10px;color:var(--surface-primary);background:var(--primary-600);cursor:pointer; }
 .assistant-question-form button .icon { color:inherit;background:transparent; }
 .assistant-conversation { display:grid;gap:10px;margin-top:16px; }
-.assistant-message { max-width:92%;padding:13px 15px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);font-size:1.0625rem;line-height:1.5; }
-.assistant-message.user { justify-self:end;color:var(--text-primary);background:var(--primary-50);border-color:var(--primary-100); }
+/* Every turn is an avatar plus a bubble, so the patient can tell at a glance who is speaking.
+   EMMI sits on the left behind her brandmark; the patient sits on the right behind their own mark. */
+.assistant-message { display:flex;gap:9px;align-items:flex-start;max-width:96%; }
 .assistant-message.assistant { justify-self:start; }
+.assistant-message.user { flex-direction:row-reverse;justify-self:end; }
+.assistant-message.continues { margin-top:-5px; }
+.assistant-message-avatar,.assistant-message-avatar-spacer { flex:0 0 34px;width:34px;height:34px;margin-top:2px; }
+.assistant-message-avatar { display:grid;place-items:center;overflow:hidden;border-radius:50%; }
+.assistant-message-avatar img { display:block;width:100%;height:100%;object-fit:cover; }
+.assistant-message-avatar.emmi { overflow:visible;border-radius:0;background:transparent; }
+.assistant-message-avatar.emmi img { object-fit:contain;filter:drop-shadow(0 3px 5px rgba(0,78,137,.18)); }
+.assistant-message-avatar.patient { border:1px solid var(--primary-100);background:var(--primary-50);color:var(--primary-700); }
+.assistant-message-avatar.initials { font-size:.8rem;font-weight:750;letter-spacing:.01em; }
+.assistant-message-avatar.anonymous .icon { width:20px;height:20px;border-radius:0;color:inherit;background:transparent; }
+.assistant-message-bubble { min-width:0;padding:13px 15px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);font-size:1.0625rem;line-height:1.5; }
+.assistant-message.user .assistant-message-bubble { color:var(--text-primary);background:var(--primary-50);border-color:var(--primary-100); }
+.assistant-message.assistant:not(.continues) .assistant-message-bubble { border-top-left-radius:5px; }
+.assistant-message.user:not(.continues) .assistant-message-bubble { border-top-right-radius:5px; }
 .assistant-message strong { display:block;margin-bottom:3px;font-size:.82rem; }
 .assistant-message p { margin:0; }
 .assistant-message-action { min-height:46px;margin-top:10px;padding:9px 12px;border:1px solid var(--primary-300);border-radius:10px;color:var(--primary-700);background:var(--primary-50);font:inherit;font-size:.95rem;font-weight:750;cursor:pointer; }
@@ -1718,7 +1733,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .assistant-layer .assistant-intro p,
 .assistant-layer .assistant-voice-state-row>div>small,
 .assistant-layer .assistant-voice-error,
-.assistant-layer .assistant-message,
+.assistant-layer .assistant-message-bubble,
 .assistant-layer .assistant-support-action small,
 .assistant-layer .emmi-disclaimer { font-size:var(--emmi-panel-body);line-height:1.5; }
 .assistant-layer .assistant-talk-button strong,

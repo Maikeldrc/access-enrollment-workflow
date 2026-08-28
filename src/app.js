@@ -1677,13 +1677,35 @@ function assistantVoiceEntry(guideState) {
     </section>`;
 }
 
+// Chat avatars. EMMI wears her brandmark, the same one the floating pill and the guide row use, so
+// the patient recognises her wherever she appears. Enrollment never asks a patient for a picture, so
+// the patient side shows the record photo when one exists and falls back to initials.
+const patientChatInitials = () => {
+  const parts = String(state.offer?.patient?.displayName || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  return (parts.length > 1 ? `${parts[0][0]}${parts.at(-1)[0]}` : parts[0].slice(0, 2)).toUpperCase();
+};
+
+const assistantMessageAvatar = role => {
+  if (role !== "user") return `<span class="assistant-message-avatar emmi" aria-hidden="true"><img src="/assets/emmi-assistant.png" alt=""></span>`;
+  const photo = state.offer?.patient?.photoUrl;
+  if (photo) return `<span class="assistant-message-avatar patient" aria-hidden="true"><img src="${escapeHtml(photo)}" alt=""></span>`;
+  const initials = patientChatInitials();
+  return `<span class="assistant-message-avatar patient ${initials ? "initials" : "anonymous"}" aria-hidden="true">${initials ? escapeHtml(initials) : icon("person")}</span>`;
+};
+
+// Consecutive turns from the same speaker share one avatar and show the name once, so a voice
+// transcript arriving in fragments reads as one person talking rather than a stack of repeated
+// badges. The name stays in the DOM for screen readers, which have no avatar to go by.
+const assistantMessageRow = (role, body, { startsGroup = true, extraClass = "", attrs = "" } = {}) => `<div class="assistant-message ${role}${startsGroup ? "" : " continues"}${extraClass ? ` ${extraClass}` : ""}"${attrs}>${startsGroup ? assistantMessageAvatar(role) : `<span class="assistant-message-avatar-spacer" aria-hidden="true"></span>`}<div class="assistant-message-bubble"><strong${startsGroup ? "" : ` class="sr-only"`}>${role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong>${body}</div></div>`;
+
 function assistantLayer() {
   const context = assistantContext();
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map(message => `<div class="assistant-message ${message.role}"><strong>${message.role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong><p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}</div>`).join("")
-    + (state.assistantBusy ? `<div class="assistant-message assistant assistant-thinking" role="status"><strong>EMMI</strong><p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p></div>` : "");
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+    + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
     : [L("Is participation voluntary?", "¿La participación es voluntaria?", "Èske patisipasyon volontè?"), L("Will I keep my doctor?", "¿Conservaré a mi médico?", "Èske mwen pral kenbe doktè mwen an?"), L("Will this affect my Medicare?", "¿Esto afectará mi Medicare?", "Èske sa ap afekte Medicare mwen an?")];
