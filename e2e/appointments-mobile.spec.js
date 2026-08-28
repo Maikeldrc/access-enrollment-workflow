@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { scaleTextAndSettle } from "./layout.js";
 import {
   DIRECT_BOOKING_PROVIDER,
   STRUCTURED_REQUEST_PROVIDER,
@@ -335,10 +336,10 @@ const openSurface = async (page, name) => {
 
 /* --------------------------------------------------------------------------- measuring --- */
 
-const setScale = async (page, scale) => {
-  await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
-  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
-};
+// One frame is not enough: the style change schedules a layout and the app re-renders on the frame
+// after that, so a single wait can measure the pre-render geometry. Two frames is the wait the EMMI
+// surface helper already uses for the same reason.
+const setScale = async (page, scale) => scaleTextAndSettle(page, scale);
 
 const resetScale = page => page.evaluate(() => { document.documentElement.style.fontSize = ""; });
 

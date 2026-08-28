@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { settleLayout } from "./layout.js";
 import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
 test.beforeEach(async ({ page }) => {
@@ -162,6 +163,8 @@ test("compact EMMI controls stay aligned and senior-friendly across journey mobi
     await page.reload();
     await page.getByRole("button", { name: /See how it works/i }).click();
     const bar = page.locator(".emmi-guide");
+    // The bar re-renders on its own frame after the resize; measure the settled one.
+    await settleLayout(page);
     const metrics = await bar.evaluate(node => {
       const parentStyle = getComputedStyle(node.parentElement);
       return {
