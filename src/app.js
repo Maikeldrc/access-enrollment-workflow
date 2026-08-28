@@ -17,7 +17,7 @@ import {
 } from "lucide";
 import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentStatusTone, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
-import { PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
+import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
@@ -114,6 +114,7 @@ let state = {
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
+  patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "",
   supportRole: "NONE", careCircleStatus: "NONE", careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
@@ -2476,8 +2477,8 @@ function myCareScreen() {
 
 const careTeamRoleLabel = member => ({
   [PROFESSIONAL_TYPES.PRIMARY_CARE]: L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal"),
-  [PROFESSIONAL_TYPES.SPECIALIST]: L("Specialist", "Especialista", "Espesyalis"),
-  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("ITERA care team", "Equipo de cuidado de ITERA", "Ekip swen ITERA"),
+  [PROFESSIONAL_TYPES.SPECIALIST]: member?.specialty === "Cardiology" ? L("Cardiologist", "Cardiólogo", "Kadyològ") : L("Specialist", "Especialista", "Espesyalis"),
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("Care coordination", "Coordinación de cuidado", "Kowòdinasyon swen"),
   [PROFESSIONAL_TYPES.PHARMACIST]: L("Pharmacy", "Farmacia", "Famasi"),
   [PROFESSIONAL_TYPES.NURSE]: L("Nurse", "Enfermero o enfermera", "Enfimyè"),
   [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: L("Device support", "Soporte de dispositivos", "Sipò aparèy"),
@@ -2491,27 +2492,51 @@ const careTeamMemberIcon = member => ({
   [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: "device"
 }[member?.professionalType] || "physician");
 
+const visibleCareTeam = () => patientCareTeam()
+  .sort((a, b) => ({ [PROFESSIONAL_TYPES.PRIMARY_CARE]: 0, [PROFESSIONAL_TYPES.SPECIALIST]: 1, [PROFESSIONAL_TYPES.CARE_MANAGER]: 2 }[a.professionalType] ?? 3)
+    - ({ [PROFESSIONAL_TYPES.PRIMARY_CARE]: 0, [PROFESSIONAL_TYPES.SPECIALIST]: 1, [PROFESSIONAL_TYPES.CARE_MANAGER]: 2 }[b.professionalType] ?? 3));
+
+const careTeamRoleOptions = () => [
+  ["PRIMARY_CARE", L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal")],
+  ["CARDIOLOGIST", L("Cardiologist", "Cardiólogo", "Kadyològ")],
+  ["SPECIALIST", L("Other specialist", "Otro especialista", "Lòt espesyalis")],
+  ["CARE_MANAGER", L("Care Manager", "Coordinador de cuidado", "Jesyonè swen")],
+  ["NURSE", L("Nurse", "Enfermero o enfermera", "Enfimyè")],
+  ["OTHER", L("Other care professional", "Otro profesional de cuidado", "Lòt pwofesyonèl swen")]
+];
+
+function careTeamAddForm() {
+  const draft = state.careTeamMemberDraft || {};
+  const specialist = draft.role === "SPECIALIST";
+  return `<section class="care-team-add-panel" aria-labelledby="care-team-add-title">
+    <div class="care-team-add-heading"><span aria-hidden="true">${icon("userPlus")}</span><div><h2 id="care-team-add-title">${L("Add a care team member", "Agregar un miembro del equipo", "Ajoute yon manm ekip swen")}</h2><p>${L("Add a professional who is part of your care.", "Agregue un profesional que forma parte de su cuidado.", "Ajoute yon pwofesyonèl ki fè pati swen ou.")}</p></div></div>
+    <form id="care-team-member-form" novalidate>
+      <label><span>${L("Professional’s name", "Nombre del profesional", "Non pwofesyonèl la")}</span><input name="careTeamDisplayName" value="${escapeHtml(draft.displayName || "")}" maxlength="80" autocomplete="name" required></label>
+      <label><span>${L("Role", "Función", "Wòl")}</span><select name="careTeamRole" required><option value="">${L("Select a role", "Seleccione una función", "Chwazi yon wòl")}</option>${careTeamRoleOptions().map(([value, label]) => `<option value="${value}" ${draft.role === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+      ${specialist ? `<label><span>${L("Specialty", "Especialidad", "Espesyalite")}</span><input name="careTeamSpecialty" value="${escapeHtml(draft.specialty || "")}" maxlength="60" required></label>` : ""}
+      <label><span>${L("Practice or clinic", "Consultorio o clínica", "Klinik oswa kabinè")}</span><small>${L("Optional", "Opcional", "Opsyonèl")}</small><input name="careTeamPracticeName" value="${escapeHtml(draft.practiceName || "")}" maxlength="80"></label>
+      <p class="care-team-form-error" role="alert">${state.careTeamNotice || ""}</p>
+      <div class="care-team-add-actions"><button type="button" class="button secondary" data-action="cancel-care-team-member">${L("Cancel", "Cancelar", "Anile")}</button><button type="button" class="button primary" data-action="save-care-team-member" disabled>${L("Add to my care team", "Agregar a mi equipo", "Ajoute nan ekip mwen")}</button></div>
+    </form>
+  </section>`;
+}
+
 function myCareTeamScreen() {
-  const team = patientCareTeam();
-  const participantId = state.offer?.participantProvider?.id;
-  const supportPhone = state.offer?.participantProvider?.supportPhone || "";
-  const supportPhoneDigits = supportPhone.replace(/\D/g, "");
-  const supportPhoneHref = supportPhoneDigits ? `tel:+${supportPhoneDigits.length === 10 ? `1${supportPhoneDigits}` : supportPhoneDigits}` : "";
+  const team = visibleCareTeam();
   const verifiedLabel = L("Verified", "Verificado", "Verifye");
   const members = team.length ? team.map(member => {
     const detail = [careTeamRoleLabel(member), member.practiceName].filter(Boolean).join(" · ");
     const physicianPhoto = member.displayName === state.offer?.referringProvider?.name ? state.offer.referringProvider.verifiedPhotoUrl || "" : "";
-    const phone = supportPhone && member.id === participantId
-      ? `<a class="care-team-member-phone" href="${supportPhoneHref}">${icon("phone")}<span>${L("Call", "Llamar", "Rele")} ${escapeHtml(supportPhone)}</span></a>`
-      : "";
     return `<article class="care-team-member-card">
       ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : `<span class="care-team-member-icon" aria-hidden="true">${icon(careTeamMemberIcon(member))}</span>`}
-      <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p>${phone}</div>
+      <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p></div>
     </article>`;
   }).join("") : `<div class="care-team-empty">${icon("people")}<strong>${L("Your care team details are not available yet", "Los detalles de su equipo de cuidado aún no están disponibles", "Detay ekip swen ou poko disponib")}</strong><p>${L("ITERA can help you review who supports your care.", "ITERA puede ayudarle a revisar quién apoya su cuidado.", "ITERA ka ede w revize kiyès k ap sipòte swen ou.")}</p></div>`;
-  return `<div class="my-care-team-screen">${titleBlock(L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen"), L("See the people and organizations ITERA currently has on file for your care.", "Vea las personas y organizaciones que ITERA tiene actualmente registradas para su cuidado.", "Gade moun ak òganizasyon ITERA genyen nan dosye li kounye a pou swen ou."), L("Your care", "Su cuidado", "Swen ou"))}
+  return `<div class="my-care-team-screen">${titleBlock(L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen"), L("See the healthcare professionals who support your care.", "Vea los profesionales de salud que apoyan su cuidado.", "Gade pwofesyonèl sante ki sipòte swen ou."), L("Your care", "Su cuidado", "Swen ou"))}
     <section class="care-team-members" aria-label="${L("Your care team", "Su equipo de cuidado", "Ekip swen ou")}">${members}</section>
-    <aside class="care-team-boundary-note">${icon("info")}<p>${L("Only information available to ITERA is shown here. Your care team may include other professionals.", "Aquí solo se muestra la información disponible para ITERA. Su equipo de cuidado puede incluir otros profesionales.", "Se sèlman enfòmasyon ITERA genyen ki parèt isit la. Ekip swen ou ka gen lòt pwofesyonèl ladan l.")}</p></aside>
+    ${state.careTeamAddOpen ? careTeamAddForm() : `<button type="button" class="care-team-add-button" data-action="open-care-team-member">${icon("userPlus")}<span>${L("Add a care team member", "Agregar un miembro del equipo", "Ajoute yon manm ekip swen")}</span>${icon("arrowRight")}</button>`}
+    <p class="care-team-success" role="status" aria-live="polite">${state.careTeamAddOpen ? "" : state.careTeamNotice}</p>
+    <aside class="care-team-boundary-note">${icon("info")}<p>${L("This list can include information from your care record and professionals you add.", "Esta lista puede incluir información de su registro de cuidado y profesionales que usted agregue.", "Lis sa a ka gen enfòmasyon nan dosye swen ou ak pwofesyonèl ou ajoute.")}</p></aside>
     <div class="actions">${cta(t().back, "back", true)}</div>
   </div>`;
 }
@@ -3339,7 +3364,34 @@ const auditAppointment = (event, record, extra = {}) => {
 // Who this product knows can help. There is no provider directory behind this: everything comes
 // from the offer and the medication list, and anything the source did not actually state about a
 // professional is left blank rather than borrowed from another record.
-const patientCareTeam = () => buildCareTeam({ offer: state.offer, medications: activeMedications(), locale: state.language });
+const defaultCardiologist = () => ({
+  id: "dr-martinez-cardiology",
+  displayName: "Dr. Pedro Martinez",
+  professionalType: PROFESSIONAL_TYPES.SPECIALIST,
+  specialty: "Cardiology",
+  practiceName: "Coral Gables Cardiology",
+  source: CARE_TEAM_SOURCES.CARE_RECORD,
+  verified: false
+});
+
+const patientCareTeam = () => {
+  const recordedMembers = buildCareTeam({ offer: state.offer, medications: activeMedications(), locale: state.language })
+    .filter(member => member.professionalType !== PROFESSIONAL_TYPES.PHARMACIST)
+    .map(member => member.professionalType === PROFESSIONAL_TYPES.CARE_MANAGER && member.source === CARE_TEAM_SOURCES.PROGRAM
+      ? { ...member, displayName: L("Care Manager", "Coordinador de cuidado", "Jesyonè swen"), verified: false }
+      : member);
+  const members = [
+    ...recordedMembers,
+    defaultCardiologist(),
+    ...(state.patientAddedCareTeamMembers || [])
+  ];
+  const seen = new Set();
+  return members.filter(member => {
+    if (!member?.id || !member.displayName || seen.has(member.id)) return false;
+    seen.add(member.id);
+    return true;
+  });
+};
 
 const appointmentActor = ({ viaEmmi = false } = {}) =>
   resolveAppointmentActor({ completionRole: state.completionRole, role: state.role, viaEmmi });
@@ -4973,6 +5025,7 @@ async function launchPrototype() {
     state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
+  Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [] });
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
@@ -6920,7 +6973,51 @@ function bind() {
       goal.status = "ACHIEVED"; goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_ACHIEVED", { clinicalOutcomeChanged: false, cmsOutcomeChanged: false }); state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
     }
     if (action === "change-goal-priority") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; render(); return; }
-    if (action === "open-my-care-team") { state.screen = "MY_CARE_TEAM"; draftStore.save(state); render(); return; }
+    if (action === "open-my-care-team") { state.screen = "MY_CARE_TEAM"; state.careTeamAddOpen = false; state.careTeamNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "open-care-team-member") {
+      state.careTeamAddOpen = true;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = "";
+      render(); return;
+    }
+    if (action === "cancel-care-team-member") {
+      state.careTeamAddOpen = false;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = "";
+      render(); return;
+    }
+    if (action === "save-care-team-member") {
+      const form = document.querySelector("#care-team-member-form");
+      if (!form) return;
+      const data = new FormData(form);
+      const displayName = String(data.get("careTeamDisplayName") || "").trim().slice(0, 80);
+      const role = String(data.get("careTeamRole") || "");
+      const specialtyInput = String(data.get("careTeamSpecialty") || "").trim().slice(0, 60);
+      const practiceName = String(data.get("careTeamPracticeName") || "").trim().slice(0, 80);
+      const type = role === "CARDIOLOGIST" || role === "SPECIALIST" ? PROFESSIONAL_TYPES.SPECIALIST
+        : PROFESSIONAL_TYPES[role] || (role === "OTHER" ? PROFESSIONAL_TYPES.UNKNOWN : "");
+      const specialty = role === "CARDIOLOGIST" ? "Cardiology" : specialtyInput;
+      if (!displayName || !type || (role === "SPECIALIST" && !specialty)) {
+        state.careTeamNotice = L("Please complete the required information.", "Complete la información requerida.", "Tanpri ranpli enfòmasyon obligatwa yo.");
+        render(); return;
+      }
+      const member = {
+        id: `patient-care-team-${Date.now().toString(36)}`,
+        displayName,
+        professionalType: type,
+        specialty,
+        practiceName,
+        source: CARE_TEAM_SOURCES.PATIENT_REPORTED,
+        verified: false,
+        createdAt: new Date().toISOString()
+      };
+      state.patientAddedCareTeamMembers = [...(state.patientAddedCareTeamMembers || []), member];
+      state.careTeamAddOpen = false;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = L("Care team member added.", "Miembro agregado al equipo de cuidado.", "Manm ekip swen an ajoute.");
+      audit(state, "patient_care_team_member_added", "success", { memberId: member.id, professionalType: member.professionalType, source: member.source });
+      draftStore.save(state); render(); return;
+    }
     if (action === "open-my-care-circle") { state.screen = "MY_CARE_CIRCLE"; state.careCircleNotice = ""; render(); return; }
     if (action === "invite-another-care-circle") { Object.assign(state, { growthReturnScreen: "MY_CARE_CIRCLE", careCircleContext: "ONGOING_CARE", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", careCircleContactNumbers: [], careCircleNotice: "", screen: "CARE_CIRCLE_INVITE" }); render(); return; }
     if (action === "resend-care-circle") { const result = growthStore.resendSupportInvite(el.dataset.inviteId); state.careCircleNotice = result.status === "COOLDOWN" ? L(`Please wait ${result.retryAfterSeconds} seconds before sending again.`, `Espere ${result.retryAfterSeconds} segundos antes de volver a enviar.`, `Tanpri tann ${result.retryAfterSeconds} segonn anvan ou voye ankò.`) : result.inviteId ? L("Invitation sent again.", "Invitación reenviada.", "Envitasyon an voye ankò.") : L("This invitation could not be resent.", "No se pudo reenviar esta invitación.", "Nou pa t kapab voye envitasyon sa a ankò."); audit(state, "invite_resent", result.inviteId ? "success" : result.status, { inviteId: el.dataset.inviteId }); render(); return; }
@@ -7110,6 +7207,8 @@ function bind() {
       } else if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
         state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
         render();
+      } else if (state.screen === "MY_CARE_TEAM" && state.careTeamAddOpen) {
+        state.careTeamAddOpen = false; state.careTeamNotice = ""; render();
       } else if (["MY_CARE_CIRCLE", "MY_CARE_TEAM"].includes(state.screen)) {
         state.screen = "MY_CARE"; render();
       } else if (state.screen === "CARE_CIRCLE_REMOVE_CONFIRMATION") {
@@ -7483,6 +7582,31 @@ function bind() {
     }
   });
   bindActions(document);
+  const careTeamMemberForm = document.querySelector("#care-team-member-form");
+  const readCareTeamMemberDraft = () => {
+    if (!careTeamMemberForm) return state.careTeamMemberDraft;
+    const data = new FormData(careTeamMemberForm);
+    return {
+      displayName: String(data.get("careTeamDisplayName") || ""),
+      role: String(data.get("careTeamRole") || ""),
+      specialty: String(data.get("careTeamSpecialty") || ""),
+      practiceName: String(data.get("careTeamPracticeName") || "")
+    };
+  };
+  const updateCareTeamMemberCta = () => {
+    if (!careTeamMemberForm) return;
+    const draft = readCareTeamMemberDraft();
+    state.careTeamMemberDraft = draft;
+    const button = careTeamMemberForm.querySelector('[data-action="save-care-team-member"]');
+    if (button) button.disabled = !(draft.displayName.trim() && draft.role && (draft.role !== "SPECIALIST" || draft.specialty.trim()));
+  };
+  careTeamMemberForm?.addEventListener("input", updateCareTeamMemberCta);
+  careTeamMemberForm?.addEventListener("change", event => {
+    state.careTeamMemberDraft = readCareTeamMemberDraft();
+    if (event.target.name === "careTeamRole") render();
+    else updateCareTeamMemberCta();
+  });
+  updateCareTeamMemberCta();
   document.querySelector("#scenario-select")?.addEventListener("change", e => { location.search = `?scenario=${encodeURIComponent(e.target.value)}`; });
   document.querySelector("#screen-select")?.addEventListener("change", e => { state.screen = e.target.value; state.identityVerified = true; if (state.screen === "ACCESS_ELIGIBILITY_RESULT") state.accessOutcome = state.offer.fixture.accessOutcome || "eligible"; render(); });
   const dobInput = document.querySelector(".date-text");

@@ -27,7 +27,9 @@ export const CARE_TEAM_SOURCES = Object.freeze({
   OFFER_PHYSICIAN: "OFFER_PHYSICIAN",
   MEDICATION_PRESCRIBER: "MEDICATION_PRESCRIBER",
   MEDICATION_PHARMACY: "MEDICATION_PHARMACY",
-  PROGRAM: "PROGRAM"
+  PROGRAM: "PROGRAM",
+  PATIENT_REPORTED: "PATIENT_REPORTED",
+  CARE_RECORD: "CARE_RECORD"
 });
 
 // The fixture identity in src/config.js:57. src/config.js:288 spreads that literal and replaces

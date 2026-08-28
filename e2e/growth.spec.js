@@ -170,9 +170,14 @@ test("My Care Circle shows and manages longitudinal invitation status", async ({
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("My Care Team is visible from My Care and shows only runtime-backed members", async ({ page }) => {
+test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or pharmacy cards", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
   await seedDraft(page, "MY_CARE");
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.careMedications = [{ id: "med-demo", name: "Demo", active: true, pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy" } }];
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
   await page.reload();
 
   const link = page.getByRole("button", { name: /My Care Team/i });
@@ -180,15 +185,41 @@ test("My Care Team is visible from My Care and shows only runtime-backed members
   await link.click();
 
   await expect(page.getByRole("heading", { name: "My Care Team" })).toBeVisible();
-  await expect(page.locator(".care-team-member-card")).toHaveCount(2);
+  await expect(page.locator(".care-team-member-card")).toHaveCount(3);
   await expect(page.getByText("Dr. Fresner", { exact: true })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Call \(305\) 394-8070/i })).toHaveAttribute("href", "tel:+13053948070");
-  await expect(page.getByText(/Only information available to ITERA/i)).toBeVisible();
+  await expect(page.getByText("Dr. Pedro Martinez", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cardiologist", { exact: false })).toBeVisible();
+  await expect(page.getByText("Care Manager", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA HEALTH", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await page.locator('.my-care-team-screen .actions [data-action="back"]').click();
   await expect(page.getByRole("heading", { name: "My Care", exact: true })).toBeVisible();
+});
+
+test("patient can add a care professional and the member survives refresh", async ({ page }) => {
+  await seedDraft(page, "MY_CARE");
+  await page.reload();
+  await page.getByRole("button", { name: /My Care Team/i }).click();
+  await page.getByRole("button", { name: /Add a care team member/i }).click();
+
+  await page.getByLabel("Professional’s name").fill("Dr. Elena Ruiz");
+  await page.getByLabel("Role").selectOption("SPECIALIST");
+  await page.getByLabel("Specialty").fill("Endocrinology");
+  await page.getByLabel("Practice or clinic").fill("South Florida Endocrinology");
+  const save = page.getByRole("button", { name: "Add to my care team" });
+  await expect(save).toBeEnabled();
+  await save.click();
+
+  await expect(page.getByText("Care team member added.")).toBeVisible();
+  await expect(page.getByText("Dr. Elena Ruiz", { exact: true })).toBeVisible();
+  await expect(page.locator(".care-team-member-card")).toHaveCount(4);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "My Care Team" })).toBeVisible();
+  await expect(page.getByText("Dr. Elena Ruiz", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")).patientAddedCareTeamMembers[0].source)).toBe("PATIENT_REPORTED");
 });
 
 test("My Care Team keeps patient-facing copy localized in Spanish and Kreyòl", async ({ page }) => {
@@ -198,9 +229,12 @@ test("My Care Team keeps patient-facing copy localized in Spanish and Kreyòl", 
   await page.getByRole("button", { name: /Mi equipo de cuidado/i }).click();
   await expect(page.getByRole("heading", { name: "Mi equipo de cuidado" })).toBeVisible();
   await expect(page.getByText("Médico de atención primaria", { exact: false })).toBeVisible();
+  await expect(page.getByText("Cardiólogo", { exact: false })).toBeVisible();
+  await expect(page.getByText("Coordinador de cuidado", { exact: true })).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Ekip swen mwen" })).toBeVisible();
   await expect(page.getByText("Doktè prensipal", { exact: false })).toBeVisible();
+  await expect(page.getByText("Kadyològ", { exact: false })).toBeVisible();
 });
 
 for (const width of [320, 375, 384, 430]) test(`My Care Team remains readable and contained at ${width}px`, async ({ page }) => {
@@ -211,17 +245,17 @@ for (const width of [320, 375, 384, 430]) test(`My Care Team remains readable an
 
   const result = await page.evaluate(() => {
     const cards = [...document.querySelectorAll(".care-team-member-card")].map((card) => card.getBoundingClientRect());
-    const phone = document.querySelector(".care-team-member-phone")?.getBoundingClientRect();
+    const addButton = document.querySelector(".care-team-add-button")?.getBoundingClientRect();
     return {
       overflow: document.documentElement.scrollWidth > window.innerWidth,
       cardsInsideViewport: cards.every((card) => card.left >= 0 && card.right <= window.innerWidth),
-      phoneHeight: phone?.height || 0
+      addButtonHeight: addButton?.height || 0
     };
   });
 
   expect(result.overflow).toBe(false);
   expect(result.cardsInsideViewport).toBe(true);
-  expect(result.phoneHeight).toBeGreaterThanOrEqual(44);
+  expect(result.addButtonHeight).toBeGreaterThanOrEqual(44);
 });
 
 for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${width}px without EMMI overlap`, async ({ page }) => {

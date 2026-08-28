@@ -238,6 +238,18 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       activeAppointmentId: state.activeAppointmentId || ""
     });
     Object.assign(safe, {
+      patientAddedCareTeamMembers: (state.patientAddedCareTeamMembers || []).map(member => ({
+        id: member.id,
+        displayName: member.displayName,
+        professionalType: member.professionalType,
+        specialty: member.specialty || "",
+        practiceName: member.practiceName || "",
+        source: member.source,
+        verified: false,
+        createdAt: member.createdAt
+      }))
+    });
+    Object.assign(safe, {
       supportRole: state.supportRole,
       careCircleStatus: state.careCircleStatus,
       careCircleContext: state.careCircleContext,

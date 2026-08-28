@@ -231,11 +231,13 @@ test("choosing who to see offers only the care team the runtime actually knows",
   await expect(page.locator('.appointment-preference-screen[data-step="PROVIDER"]')).toBeVisible();
 
   const options = await page.locator('[data-action="appointment-preference-answer"][data-field="requestedProfessionalId"]').allInnerTexts();
-  // Every option is either a care-team member the runtime built or the patient's way out. No
-  // cardiologist, no dermatologist, nobody conjured to match what a patient might ask for.
-  expect(options.join(" | ")).not.toMatch(/cardiolog|dermatolog|nephrolog|endocrinolog/i);
+  // Every option is either a care-team member the runtime knows or the patient's way out. The
+  // recorded cardiologist is available; unrelated specialties are never conjured.
+  expect(options.join(" | ")).toMatch(/Dr\. Pedro Martinez.*Cardiology/i);
+  expect(options.join(" | ")).toMatch(/Care Manager/i);
+  expect(options.join(" | ")).not.toMatch(/ITERA HEALTH|CVS Pharmacy|dermatolog|nephrolog|endocrinolog/i);
   expect(options.some(option => /Someone else/i.test(option))).toBe(true);
-  expect(await screenText(page)).not.toMatch(/Dr\.\s(?!Fresner)[A-Z]/);
+  expect(await screenText(page)).toMatch(/Dr\. Pedro Martinez/);
 });
 
 test("a substituted physician name never borrows the fixture's specialty or practice", async ({ page }) => {

@@ -1387,13 +1387,23 @@ p { margin:0; }
 .care-team-member-phone { display:inline-flex;align-items:center;gap:7px;min-height:44px;margin-top:7px;color:var(--primary-700);font-size:1rem;font-weight:700;text-decoration:none; }
 .care-team-member-phone>.icon { width:21px;height:21px;border-radius:0;color:inherit;background:transparent; }
 .care-team-member-phone:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:8px; }
+.care-team-add-button { width:100%;min-height:54px;margin-top:16px;padding:12px 14px;display:grid;grid-template-columns:28px minmax(0,1fr) 22px;align-items:center;gap:10px;border:1px solid var(--primary-200);border-radius:14px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:800;text-align:left;cursor:pointer; }
+.care-team-add-button>.icon { width:26px;height:26px;border-radius:0;color:inherit;background:transparent; }.care-team-add-button>.icon:last-child { width:20px;height:20px;justify-self:end; }
+.care-team-add-button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.care-team-add-panel { margin-top:16px;padding:16px;border:1px solid var(--primary-200);border-radius:16px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.05); }
+.care-team-add-heading { display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:start; }.care-team-add-heading>span { display:grid;place-items:center;width:42px;height:42px;border-radius:12px;color:var(--primary-600);background:var(--primary-50); }.care-team-add-heading .icon { width:23px;height:23px;border-radius:0;color:inherit;background:transparent; }
+.care-team-add-heading h2 { margin:0;color:var(--text-primary);font-size:1.125rem;line-height:1.3; }.care-team-add-heading p { margin:4px 0 0;color:var(--text-muted);font-size:.975rem;line-height:1.45; }
+#care-team-member-form { display:grid;gap:14px;margin-top:16px; }#care-team-member-form label { display:grid;gap:7px;color:var(--text-primary);font-size:1rem;font-weight:750; }#care-team-member-form label>small { margin-top:-5px;color:var(--text-muted);font-size:.875rem;font-weight:500; }
+#care-team-member-form input,#care-team-member-form select { width:100%;min-height:50px;padding:11px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:1rem;box-sizing:border-box; }#care-team-member-form input:focus,#care-team-member-form select:focus { border-color:var(--primary-600);outline:3px solid color-mix(in srgb,var(--focus-ring) 45%,transparent);outline-offset:1px; }
+.care-team-add-actions { display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:10px;margin-top:2px; }.care-team-add-actions .button { min-height:50px;margin:0; }
+.care-team-form-error,.care-team-success { min-height:0;margin:0;color:var(--danger-700,#a72f28);font-size:.9375rem;line-height:1.4; }.care-team-success { margin-top:10px;color:var(--success-700,#24733b);text-align:center; }
 .care-team-boundary-note { display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:start;margin-top:16px;padding:13px;border:1px solid var(--primary-100);border-radius:14px;color:var(--text-secondary);background:var(--primary-50); }
 .care-team-boundary-note>.icon { width:36px;height:36px; }
 .care-team-boundary-note p { margin:0;font-size:1rem;line-height:1.5; }
 .care-team-empty { display:grid;justify-items:center;gap:8px;padding:24px 16px;border:1px dashed var(--border-default);border-radius:16px;background:var(--surface-primary);text-align:center; }
 .care-team-empty>.icon { width:38px;height:38px; }
 .care-team-empty p { margin:0;color:var(--text-muted);font-size:1rem;line-height:1.5; }
-@media (max-width:360px) { .care-team-member-card { grid-template-columns:44px minmax(0,1fr);gap:10px;padding:14px; }.care-team-member-icon,.care-team-member-photo { width:44px;height:44px; }.care-team-verified { font-size:.74rem; } }
+@media (max-width:360px) { .care-team-member-card { grid-template-columns:44px minmax(0,1fr);gap:10px;padding:14px; }.care-team-member-icon,.care-team-member-photo { width:44px;height:44px; }.care-team-verified { font-size:.74rem; }.care-team-add-panel { padding:14px; }.care-team-add-actions { grid-template-columns:1fr; } }
 .care-circle-members { display:grid;gap:12px;margin-top:20px; }
 .care-circle-member-card { padding:14px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
 .care-circle-member-heading { display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px; }
