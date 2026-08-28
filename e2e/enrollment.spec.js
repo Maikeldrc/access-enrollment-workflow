@@ -1023,7 +1023,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(page.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
-  await expect(page.getByText("Expected beneficiary payment amount: $6 per month. Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-cost-amount")).toHaveCount(0);
   await expect(page.locator(".access-consent-summary").getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("You can have one ACCESS provider for this type of care at a time.", { exact: true })).toBeVisible();
@@ -1045,7 +1045,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(fullDisclosure.getByText("ITERA HEALTH is your ACCESS care provider for this type of care.", { exact: true })).toBeVisible();
   await expect(fullDisclosure.getByText("You choose whether to enroll in ACCESS. Your decision to enroll or not enroll does not change your Medicare benefits, coverage, or rights.", { exact: true })).toBeVisible();
   await expect(fullDisclosure.getByRole("heading", { name: "Your expected cost" })).toBeVisible();
-  await expect(page.getByText(/Your expected beneficiary share for this ACCESS care is \$6 per month/)).toBeVisible();
+  await expect(page.getByText(/Your supplemental coverage was verified for this estimate/)).toBeVisible();
   await expect(fullDisclosure.getByText("ITERA may share information with CMS as needed to operate and evaluate ACCESS, subject to applicable privacy and security requirements.", { exact: true })).toBeVisible();
   await expect(fullDisclosure.getByText("ACCESS adds support to your existing care. ITERA works with Dr. Fresner, and you can continue seeing your regular doctors.", { exact: true })).toBeVisible();
   await expect(fullDisclosure.getByRole("heading", { name: "Questions before you enroll" })).toBeVisible();
@@ -1085,9 +1085,8 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
 test("ACCESS final review renders configured cost, claims, and device information", async ({ page }) => {
   await page.goto("/?scenario=access-disclosure-configured");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("Expected beneficiary payment amount: $6 per month. Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("$35");
-  await expect(page.locator("#screen-content")).not.toContainText("$0 per month");
   await expect(page.locator(".access-consent-summary").getByText("Medicare claims information", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Connected device information", { exact: true })).toBeVisible();
@@ -1125,7 +1124,7 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
   await expect(page.locator(".consent-disclosure-row")).toHaveCount(5);
   await expect(page.locator(".access-consent-summary").getByText("Participation is voluntary", { exact: true })).toBeVisible();
   await expect(page.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
-  await expect(page.getByText("Expected beneficiary payment amount: $6 per month. Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("Your regular Medicare benefits and cost-sharing continue to apply");
@@ -1205,16 +1204,18 @@ test("ACCESS personal representative must complete the authority attestation", a
 test("ACCESS agreement keeps track-based cost guidance with configured claims information", async ({ page }) => {
   await page.goto("/?scenario=access-disclosure-configured");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("Expected beneficiary payment amount: $6 per month. Medicare covers most of the cost of this care. If you have supplemental insurance, it may cover some or all of your $6 monthly share, which could reduce your out-of-pocket cost to $0.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Medicare claims information", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("$35");
-  await expect(page.locator("#screen-content")).not.toContainText("$0 per month");
 });
 
 test("ACCESS expected monthly cost follows the configured care track", async ({ page }) => {
   for (const [track, expected] of [["eCKM", "$6 per month"], ["CKM", "$7 per month"], ["BH", "$3 per month"], ["MSK", "$3 per month"]]) {
     await page.goto("/");
+    // Coverage is pinned so the care track is the only thing moving the amount.
+    await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" })));
+    await page.reload();
     await page.getByRole("combobox", { name: /ACCESS track/ }).selectOption(track);
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
@@ -1232,21 +1233,21 @@ test("ACCESS cost supports supplemental coverage verification states", async ({ 
   await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_COVERAGE_VERIFIED" })));
   await page.reload();
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.locator(".access-cost-row p")).toHaveText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost.");
+  await expect(page.locator(".access-cost-row p")).toHaveText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.");
 });
 
 test("ACCESS expected cost copy is localized in Spanish and Kreyòl", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
-  await expect(page.locator(".access-cost-row p")).toContainText("Monto de pago esperado del beneficiario: $6 al mes.");
-  await expect(page.getByText(/puede cubrir parte o la totalidad de su parte mensual de \$6/)).toBeVisible();
+  await expect(page.locator(".access-cost-row p")).toContainText("Monto de pago esperado del beneficiario: hasta $6 al mes.");
+  await expect(page.getByText(/Su cobertura suplementaria puede reducir este monto/)).toBeVisible();
   await page.getByText("Ver información completa de ACCESS", { exact: false }).click();
   await expect(page.locator(".access-consent-terms").getByRole("heading", { name: "Medicare y su información de salud" })).toBeVisible();
   await expect(page.locator(".access-consent-terms").getByRole("heading", { name: "Preguntas antes de inscribirse" })).toBeVisible();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
-  await expect(page.locator(".access-cost-row p")).toContainText("Montan peman benefisyè a prevwa: $6 pa mwa.");
-  await expect(page.getByText(/li ka kouvri yon pati oswa tout pati \$6 ou peye chak mwa a/)).toBeVisible();
+  await expect(page.locator(".access-cost-row p")).toContainText("Se gen yon bon tan depi nou te verifye kouvèti ou");
+  await expect(page.getByText(/Ekip swen ou ka reverifye l anvan ou deside/)).toBeVisible();
   await page.getByText("Gade tout enfòmasyon ACCESS yo", { exact: false }).click();
   await expect(page.locator(".access-consent-terms").getByRole("heading", { name: "Medicare ak enfòmasyon sante ou" })).toBeVisible();
   await expect(page.locator(".access-consent-terms").getByRole("heading", { name: "Kesyon anvan ou enskri" })).toBeVisible();
@@ -1943,8 +1944,8 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
 test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do not fall back to English", async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem("itera.enrollment.language.v1"));
   for (const locale of [
-    { clicks: 1, code: "ES", care: "Seguimiento regular", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS está diseñado para apoyarle en casa y entre visitas al médico.", careNote: "Su cuidado continúa entre visitas, mientras sus médicos siguen siendo parte de su cuidado.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Si tiene un seguro suplementario, puede cubrir parte o la totalidad de su parte mensual de $6, lo que podría reducir su costo de bolsillo a $0.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
-    { clicks: 2, code: "KR", care: "Tcheke regilyèman", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou fèt pou sipòte w lakay ou ak ant vizit kay doktè.", careNote: "Swen ou kontinye ant vizit yo, pandan doktè ou yo rete yon pati nan swen ou.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Medicare kouvri pifò nan depans swen sa a. Si ou gen asirans siplemantè, li ka kouvri yon pati oswa tout pati $6 ou peye chak mwa a, sa ki ka diminye depans ou peye nan pòch ou rive $0.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
+    { clicks: 1, code: "ES", care: "Seguimiento regular", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS está diseñado para apoyarle en casa y entre visitas al médico.", careNote: "Su cuidado continúa entre visitas, mientras sus médicos siguen siendo parte de su cuidado.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
+    { clicks: 2, code: "KR", care: "Tcheke regilyèman", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou fèt pou sipòte w lakay ou ak ant vizit kay doktè.", careNote: "Swen ou kontinye ant vizit yo, pandan doktè ou yo rete yon pati nan swen ou.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
   ]) {
     await page.goto("/?scenario=access-happy");
     for (let i = 0; i < locale.clicks; i += 1) await page.locator(".stage-language").click();

@@ -162,21 +162,24 @@ export const SECONDARY_COVERAGE_STATUSES = Object.freeze({
   VERIFIED: "SECONDARY_COVERAGE_VERIFIED"
 });
 
-export function resolveAccessCost(track = "eCKM", secondaryCoverageStatus = SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED) {
+export function resolveAccessCost(track = "eCKM", secondaryCoverageStatus = null) {
   const resolvedTrack = Object.prototype.hasOwnProperty.call(ACCESS_COST_BY_TRACK, track) ? track : "eCKM";
   const expectedMonthlyAmount = ACCESS_COST_BY_TRACK[resolvedTrack];
   const status = Object.values(SECONDARY_COVERAGE_STATUSES).includes(secondaryCoverageStatus) ? secondaryCoverageStatus : SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED;
   const displayValue = status === SECONDARY_COVERAGE_STATUSES.VERIFIED
     ? "$0"
     : `${status === SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED ? "up to " : ""}$${expectedMonthlyAmount} per month`;
-  return { track: resolvedTrack, expectedMonthlyAmount, displayValue, secondaryCoverageStatus: status };
+  // The raw argument is carried through so a caller can tell "the demo operator chose this state"
+  // from "nothing was configured", which is what decides whether the patient’s own verified coverage
+  // or a deliberate demo override determines what they are shown.
+  return { track: resolvedTrack, expectedMonthlyAmount, displayValue, secondaryCoverageStatus: status, configuredSecondaryCoverageStatus: secondaryCoverageStatus || null };
 }
 
 export const DEFAULT_PROTOTYPE_CONFIG = {
   program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"],
   referralOrigin: null,
   coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner", bpDeviceScenario: "itera-tenovi",
-  physicianPhotoUrl: "/assets/doctor-portrait-v2.png", secondaryCoverageStatus: SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED, accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: null,
+  physicianPhotoUrl: "/assets/doctor-portrait-v2.png", secondaryCoverageStatus: null, accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: null,
   showAccessClaimsSharing: false, showAccessTempoDisclosure: false, accessTempoDisclosureText: ""
 };
 

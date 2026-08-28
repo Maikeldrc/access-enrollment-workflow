@@ -1,4 +1,4 @@
-import { BP_FULFILLMENT_DEVICE_MODELS, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
+import { BP_FULFILLMENT_DEVICE_MODELS, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
@@ -30,7 +30,7 @@ import { EmmiConversationManager } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
-import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
+import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
 import { resolveNextBestAction } from "./nextBestAction.js";
@@ -38,7 +38,7 @@ import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./f
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
-import { accessTrackCost } from "./financialResponsibility.js";
+import { EXPLANATION_CODES, accessTrackCost, resolveExpectedPatientResponsibility } from "./financialResponsibility.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, classifyBloodPressure, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 import { BloodPressureSimulator, SIMULATION_STATUS, SIMULATION_TARGET, simulationAllowed } from "./bpSimulator.js";
@@ -742,6 +742,11 @@ function howCareWorks() {
     ${rows([["calendar", L("ITERA checks in regularly", "ITERA se comunica regularmente", "ITERA tcheke regilyèman"), L("We stay in touch and follow your care plan.", "Nos mantenemos en contacto y seguimos su plan de cuidado.", "Nou rete an kontak epi nou suiv plan swen ou.")], ["phone", L("Get support between visits", "Reciba apoyo entre visitas", "Jwenn sipò ant vizit yo"), L("Get help with questions and next steps.", "Reciba ayuda con sus preguntas y próximos pasos.", "Jwenn èd ak kesyon ak pwochen etap yo.")], ["people", L("Your doctor stays involved", "Su médico sigue involucrado", "Doktè ou rete enplike"), L("We share important updates with your doctor.", "Compartimos actualizaciones importantes con su médico.", "Nou pataje mizajou enpòtan avèk doktè ou.")]])}
     <aside class="trust-note">${icon("shield")}<span>${L("ITERA provides additional support between doctor visits.", "ITERA brinda apoyo adicional entre las visitas al médico.", "ITERA bay sipò anplis ant vizit kay doktè.")}</span></aside>
     ${actions(t().continue)}`;
+}
+
+// Which demo patient this session is about. The cost card and EMMI both ask here.
+function currentDemoPatientId() {
+  return selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario: service.getScenarioDeviceContext?.() || null });
 }
 
 function assistantContext() {
@@ -1953,6 +1958,26 @@ const disclosureRowsMarkup = (disclosures, rowClass) => disclosures
 
 const programFullInformation = (config, extraClass = "") => `<details class="full-terms program-full-terms ${extraClass}"><summary>${localized(config.fullInformationLabel) || localized(IMPORTANT_INFORMATION_COPY.fullInformationFallback)} ${icon("externalLink")}</summary><div class="program-full-content">${config.fullInformation.map(part => `<section class="access-full-section"><h2>${localized(part.title)}</h2><p>${localized(part.body)}</p></section>`).join("")}<p class="access-disclosure-version"><strong>${L("Disclosure version", "Versión de divulgación", "Vèsyon enfòmasyon")}: ${state.offer.disclosures.version}</strong></p></div></details>`;
 
+// What a patient pays has one answer, and the financial responsibility engine gives it. The card
+// used to read a three-state summary from the prototype configuration, which defaults to "no
+// supplemental coverage verified" — so the primary demo patient, whose supplement is verified to
+// cover this cost share, was shown $6 a month while EMMI told them $0. The prototype's coverage
+// control is still honoured, but as a deliberate override rather than a second opinion.
+const OVERRIDE_EXPLANATION = {
+  [SECONDARY_COVERAGE_STATUSES.VERIFIED]: EXPLANATION_CODES.SUPPLEMENTAL_COVERS_COST_SHARE,
+  [SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED]: EXPLANATION_CODES.SUPPLEMENTAL_COVERAGE_UNKNOWN,
+  [SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED]: EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE
+};
+function currentAccessCost() {
+  const accessCost = state.offer?.accessCost || config.accessCost || {};
+  const override = accessCost.configuredSecondaryCoverageStatus;
+  if (override) return { ...accessCost, explanationCode: OVERRIDE_EXPLANATION[override] || EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE };
+  const coverage = emmiDemoCoverage(currentDemoPatientId());
+  if (!coverage) return { ...accessCost, explanationCode: EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE };
+  const resolved = resolveExpectedPatientResponsibility({ track: state.offer?.accessTrack || accessCost.track || "eCKM", coverage });
+  return { ...accessCost, expectedMonthlyAmount: resolved.grossBeneficiaryResponsibility, explanationCode: resolved.explanationCode };
+}
+
 function accessCostSummary(accessCost = {}) {
   // Falls back to the canonical track configuration rather than a literal. A hardcoded 6 here
   // would quote the eCKM amount to a CKM patient who owes 7, or double the 3 that BH and MSK owe.
@@ -1960,16 +1985,46 @@ function accessCostSummary(accessCost = {}) {
     ? Number(accessCost.expectedMonthlyAmount)
     : accessTrackCost(accessCost.track);
   const monthlyShare = `$${amount}`;
-  const status = accessCost.secondaryCoverageStatus || "SECONDARY_NOT_VERIFIED";
-  if (status === "SECONDARY_COVERAGE_VERIFIED") return {
+  // The engine decides which of these the patient is in; this only puts its verdict into words.
+  const code = accessCost.explanationCode || EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE;
+  if (code === EXPLANATION_CODES.SUPPLEMENTAL_COVERS_COST_SHARE) return {
     amountLabel: L("Estimated out-of-pocket cost: $0", "Costo de bolsillo estimado: $0", "Depans estime nan pòch ou: $0"),
-    supportingCopy: L("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost.", "Monto de pago esperado del beneficiario: $0 al mes. Se espera que Medicare y su cobertura suplementaria verificada cubran este costo de ACCESS.", "Montan peman benefisyè a prevwa: $0 pa mwa. Yo prevwa Medicare ak kouvèti siplemantè verifye ou ap kouvri depans ACCESS sa a."),
+    // The $0 is named as the ACCESS payment specifically. A patient agreeing on this screen should
+    // not read it as "care is free" — the reading EMMI is also held to avoiding.
+    supportingCopy: L("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", "Monto de pago esperado del beneficiario: $0 al mes. Se espera que Medicare y su cobertura suplementaria verificada cubran este costo de ACCESS. Ese $0 es su pago esperado por ACCESS; otros servicios de salud pueden tener sus propios costos.", "Montan peman benefisyè a prevwa: $0 pa mwa. Yo prevwa Medicare ak kouvèti siplementè verifye ou ap kouvri depans ACCESS sa a. $0 sa a se peman ACCESS ou prevwa a; lòt sèvis sante ka gen pwòp depans pa yo."),
     fullDetails: L("Your supplemental coverage was verified for this estimate. Coverage can change, and you can review updated information before future charges.", "Su cobertura suplementaria fue verificada para este cálculo. La cobertura puede cambiar y puede revisar información actualizada antes de cargos futuros.", "Yo verifye kouvèti siplemantè ou pou estimasyon sa a. Kouvèti ka chanje, epi ou ka revize enfòmasyon ajou anvan depans alavni.")
   };
-  if (status === "SECONDARY_PRESENT_NOT_CONFIRMED") return {
+  if (code === EXPLANATION_CODES.SUPPLEMENTAL_COVERAGE_UNKNOWN) return {
     amountLabel: L(`Up to ${monthlyShare} per month`, `Hasta ${monthlyShare} al mes`, `Jiska ${monthlyShare} pa mwa`),
     supportingCopy: L(`Expected beneficiary payment amount: up to ${monthlyShare} per month. Medicare covers most of the cost of this care. Your supplemental coverage may reduce this amount.`, `Monto de pago esperado del beneficiario: hasta ${monthlyShare} al mes. Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.`, `Montan peman benefisyè a prevwa: jiska ${monthlyShare} pa mwa. Medicare kouvri pifò nan depans swen sa a. Kouvèti siplemantè ou ka diminye montan sa a.`),
     fullDetails: L("We have not yet confirmed what your supplemental insurance will pay. Your expected monthly share will not be more than the amount shown here.", "Aún no hemos confirmado cuánto pagará su seguro suplementario. No se espera que su parte mensual supere el monto mostrado aquí.", "Nou poko konfime konbyen asirans siplemantè ou ap peye. Yo pa prevwa pati pa mwa ou ap depase montan ki montre isit la.")
+  };
+  // A verification old enough to be out of date cannot support an amount, so the card says that
+  // rather than quoting one the record no longer stands behind.
+  if (code === EXPLANATION_CODES.COVERAGE_VERIFICATION_STALE) return {
+    amountLabel: L("We need to re-check your coverage", "Necesitamos verificar su cobertura de nuevo", "Nou bezwen reverifye kouvèti ou"),
+    supportingCopy: L("Your coverage was last verified a while ago, so we do not want to show you an amount that may be out of date. Your care team can re-check it before you decide.", "Su cobertura se verificó hace tiempo, así que preferimos no mostrarle un monto que podría estar desactualizado. Su equipo de atención puede verificarla de nuevo antes de que decida.", "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou. Ekip swen ou ka reverifye l anvan ou deside."),
+    fullDetails: L("Medicare covers most of the cost of this care. We will confirm your expected monthly share once your coverage is verified again.", "Medicare cubre la mayor parte del costo de este cuidado. Confirmaremos su parte mensual esperada cuando se verifique su cobertura de nuevo.", "Medicare kouvri pifò nan depans swen sa a. N ap konfime pati pa mwa ou prevwa a lè kouvèti ou verifye ankò.")
+  };
+  if (code === EXPLANATION_CODES.COVERAGE_NOT_VERIFIED) return {
+    amountLabel: L("We could not verify your coverage", "No pudimos verificar su cobertura", "Nou pa t ka verifye kouvèti ou"),
+    supportingCopy: L("We could not verify your coverage from the information we have, so we do not have an expected monthly amount for you yet. Your care team can check this with you.", "No pudimos verificar su cobertura con la información disponible, así que todavía no tenemos un monto mensual esperado. Su equipo de atención puede revisarlo con usted.", "Nou pa t ka verifye kouvèti ou ak enfòmasyon nou genyen, kidonk nou poko gen yon montan pa mwa ou prevwa. Ekip swen ou ka tcheke sa avèk ou."),
+    fullDetails: L("Medicare covers most of the cost of this care. Your expected monthly share will be confirmed once your coverage is verified.", "Medicare cubre la mayor parte del costo de este cuidado. Su parte mensual esperada se confirmará cuando se verifique su cobertura.", "Medicare kouvri pifò nan depans swen sa a. Pati pa mwa ou prevwa a ap konfime lè kouvèti ou verifye.")
+  };
+  // A Qualified Medicare Beneficiary designation has its own cost-sharing rules. Quoting a share
+  // against it, or inviting the patient to imagine supplemental insurance, are both wrong: QMB is
+  // not a Medigap policy, which is why the coverage model keeps them apart.
+  if (code === EXPLANATION_CODES.QMB_COST_SHARE_RULES) return {
+    amountLabel: L("Your care team will confirm your cost", "Su equipo confirmará su costo", "Ekip swen ou ap konfime depans ou"),
+    supportingCopy: L("Your coverage includes a Qualified Medicare Beneficiary designation, which has its own cost-sharing rules. We do not want to show an amount before your care team confirms how those rules apply to you.", "Su cobertura incluye la designación de Beneficiario Calificado de Medicare, que tiene sus propias reglas de costos. Preferimos no mostrar un monto antes de que su equipo confirme cómo se aplican esas reglas.", "Kouvèti ou gen yon deziyasyon Benefisyè Medicare Kalifye, ki gen pwòp règ pa l sou depans. Nou pa vle montre yon montan anvan ekip swen ou konfime kijan règ sa yo aplike pou ou."),
+    fullDetails: L("Qualified Medicare Beneficiary rules are not the same as supplemental insurance. Your care team will explain what applies to you before any charge.", "Las reglas del Beneficiario Calificado de Medicare no son lo mismo que un seguro suplementario. Su equipo le explicará qué aplica en su caso antes de cualquier cargo.", "Règ Benefisyè Medicare Kalifye yo pa menm bagay ak asirans siplemantè. Ekip swen ou ap esplike sa ki aplike pou ou anvan nenpòt depans.")
+  };
+  // Medicare Advantage is an eligibility question, not a pricing one. A monthly share here would
+  // answer a question the patient has not reached yet.
+  if (code === EXPLANATION_CODES.MEDICARE_ADVANTAGE_NOT_ELIGIBLE) return {
+    amountLabel: L("Your care team will review your coverage", "Su equipo revisará su cobertura", "Ekip swen ou ap revize kouvèti ou"),
+    supportingCopy: L("Your coverage shows a Medicare Advantage plan rather than Original Medicare. That affects whether ACCESS is available to you, not only what you would pay, so your care team needs to review it first.", "Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original. Eso afecta si ACCESS está disponible para usted, no solo lo que pagaría, así que su equipo debe revisarlo primero.", "Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal. Sa afekte si ACCESS disponib pou ou, se pa sèlman sa ou ta peye, kidonk ekip swen ou dwe revize l anvan."),
+    fullDetails: L("ACCESS is built on Original Medicare. Your care team will review your eligibility with you before any cost applies.", "ACCESS se basa en Medicare Original. Su equipo revisará su elegibilidad con usted antes de que aplique cualquier costo.", "ACCESS bati sou Medicare Orijinal. Ekip swen ou ap revize kalifikasyon ou avèk ou anvan nenpòt depans aplike.")
   };
   return {
     amountLabel: L(`${monthlyShare} per month`, `${monthlyShare} al mes`, `${monthlyShare} pa mwa`),
@@ -2014,7 +2069,7 @@ function consent() {
     const representative = representativeRole;
     const intro = L("Review the information below before choosing whether to enroll.", "Revise la información a continuación antes de decidir si desea inscribirse.", "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.");
     const config = state.offer.disclosures?.accessConfig || {};
-    const cost = accessCostSummary(state.offer.accessCost || config.accessCost);
+    const cost = accessCostSummary(currentAccessCost());
     const summaryRows = [
       ["people", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè."), L("You choose whether to enroll in ACCESS.", "Usted decide si desea inscribirse en ACCESS.", "Se ou ki chwazi si w ap enskri nan ACCESS.")],
       ["shield", L("Your Medicare benefits stay the same", "Sus beneficios de Medicare permanecen iguales", "Benefis Medicare ou yo rete menm jan an"), L("Your Medicare benefits, coverage, and rights do not change.", "Sus beneficios, cobertura y derechos de Medicare no cambian.", "Avantaj, pwoteksyon, ak dwa Medicare ou yo pa chanje.")],
@@ -5178,7 +5233,9 @@ async function advance() {
     // what the patient was actually shown at the moment they agreed. A single affirmative act is
     // only defensible if the evidence behind it stays complete: what was displayed, when, in which
     // language, at what expected cost and against which coverage verification.
-    const displayedCost = accessCostSummary(state.offer.accessCost || state.offer.disclosures?.accessConfig?.accessCost);
+    // Resolved the same way the card resolves it, so the evidence records the sentence the patient
+    // actually read rather than a second opinion about their coverage.
+    const displayedCost = accessCostSummary(currentAccessCost());
     state.consentAcknowledgement = {
       consentShape: state.offer.pathway === "ACCESS" ? "SINGLE_AFFIRMATIVE" : "SEPARATE_CONFIRMATIONS",
       disclosureVersion: state.disclosureVersion || state.offer.disclosures.version,

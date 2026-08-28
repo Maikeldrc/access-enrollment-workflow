@@ -214,7 +214,7 @@ describe("enrollment state machine", () => {
   it("builds ACCESS disclosure configuration from the resolved scenario", () => {
     const defaults = createPrototypeOffer({ program: "ACCESS", source: "Physician Referral", physician: "Dr. Martinez-Clark", accessTrack: "CKM" });
     expect(defaults.disclosures.accessConfig).toEqual({
-      accessCost: { track: "CKM", expectedMonthlyAmount: 7, displayValue: "$7 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" },
+      accessCost: { track: "CKM", expectedMonthlyAmount: 7, displayValue: "$7 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED", configuredSecondaryCoverageStatus: null },
       costSharingType: "COST_SHARING_APPLIES",
       costSharingAmount: null,
       verifiedPatientCost: null,
@@ -246,7 +246,7 @@ describe("enrollment state machine", () => {
 
   it("centralizes expected ACCESS cost by track and secondary coverage status", () => {
     expect(ACCESS_COST_BY_TRACK).toEqual({ eCKM: 6, CKM: 7, BH: 3, MSK: 3 });
-    expect(resolveAccessCost("eCKM")).toEqual({ track: "eCKM", expectedMonthlyAmount: 6, displayValue: "$6 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" });
+    expect(resolveAccessCost("eCKM")).toEqual({ track: "eCKM", expectedMonthlyAmount: 6, displayValue: "$6 per month", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED", configuredSecondaryCoverageStatus: null });
     expect(resolveAccessCost("CKM", SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED)).toMatchObject({ expectedMonthlyAmount: 7, displayValue: "up to $7 per month", secondaryCoverageStatus: "SECONDARY_PRESENT_NOT_CONFIRMED" });
     expect(resolveAccessCost("BH", SECONDARY_COVERAGE_STATUSES.VERIFIED)).toMatchObject({ expectedMonthlyAmount: 3, displayValue: "$0", secondaryCoverageStatus: "SECONDARY_COVERAGE_VERIFIED" });
     expect(createOffer("access-happy").accessCost).toMatchObject({ track: "eCKM", expectedMonthlyAmount: 6 });
