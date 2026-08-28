@@ -8,7 +8,7 @@ import {
   HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
   Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi,
   AudioLines, MessageCircle, Pause, Play, RotateCcw,
-  Droplets, Footprints, Scale, Smile, Wind,
+  Droplets, Footprints, Hospital, Scale, Smile, Wind,
   // Barrier iconography: a small, restrained set — one glyph per family of difficulty.
   Car
 } from "lucide";
@@ -32,6 +32,8 @@ import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
+import { REFILL_TRIGGER_POLICY, SIGNAL_STATUS, answerSupplySignal, detectLowSupply, estimateMedicationSupply, openSignalFor, supersedeSignalsForDispense, supplyPhrase, supplySignalAnalytics } from "./medicationSupply.js";
+import { REFILL_BLOCKERS, REFILL_PATHS, REFILL_STATUS, SUPPLY_ANSWERS, TAKING_ANSWERS, advanceRefill, createRefillEpisode, openRefillFor, refillAnalytics, refillCareTeamSummary, refillIdempotencyKey, refillIsOpen, refillNextStep, refillPatientStatus, resolveRefillPath, statusForPath } from "./medicationRefill.js";
 import { BARRIER_SOURCES, BARRIER_STATUS, INTERVENTION_TYPES, RESOLUTION_OUTCOMES, applyIntervention, barrierAnalytics, barrierCategoryConfig, barrierIcon, barrierIsActive, barrierOptionsFor, barrierPatientStatus, barrierPatientSummary, careTeamEscalationSummary, classifyBarrierText, confirmBarrier, createGoalBarrier, findReusableBarrier, localBarrierText, normalizeBarrierRecord, recordInterventionOutcome, reopenBarrier, resolveBarrier } from "./goalBarriers.js";
 
 const app = document.querySelector("#app");
@@ -49,6 +51,10 @@ const DEMO_IDENTITY = { dob: "05/12/1954", dobIso: "1954-05-12", zip: "33176" };
 const draftStore = new DraftStore();
 const growthStore = new GrowthStore();
 const EMMI_PREFERENCES_KEY = "itera.emmi.preferences.v1";
+// The demo pharmacy fill dates are relative to today so the prototype always shows one medication
+// approaching a refill and one comfortably stocked, whenever it is opened.
+const daysBeforeToday = days => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+const PROTOTYPE_DISPENSE_DATES = Object.freeze({ lisinopril: daysBeforeToday(25), atorvastatin: daysBeforeToday(6) });
 const savedEmmiPreferences = (() => {
   try { return JSON.parse(localStorage.getItem(EMMI_PREFERENCES_KEY) || "null") || {}; }
   catch { return {}; }
@@ -70,10 +76,29 @@ let state = {
   bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
+  // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
+  // real pharmacy feed would arrive, so the supply engine does not change when one exists. Nothing
+  // here is clinical data: it is demo content, and every estimate built from it is treated as an
+  // estimate.
   medicationsReviewStatus: "NOT_STARTED", careMedications: [
-    { id: "med-lisinopril", name: "Lisinopril", details: "10 mg · Once daily", active: true },
-    { id: "med-atorvastatin", name: "Atorvastatin", details: "20 mg · Once daily", active: true }
+    {
+      id: "med-lisinopril", name: "Lisinopril", strength: "10 mg", details: "10 mg · Once daily", sig: "Take once daily", active: true,
+      medicationRequestId: "rx-lisinopril-2026", prescriber: { id: "dr-fresner", name: "Dr. Fresner" },
+      pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
+      refillsRemaining: 0, prescriptionExpiresOn: "2027-02-01",
+      lastDispense: { date: PROTOTYPE_DISPENSE_DATES.lisinopril, daysSupply: 30, quantity: 30, source: "PHARMACY_DISPENSE" },
+      refillWorkflow: {}
+    },
+    {
+      id: "med-atorvastatin", name: "Atorvastatin", strength: "20 mg", details: "20 mg · Once daily", sig: "Take once daily at bedtime", active: true,
+      medicationRequestId: "rx-atorvastatin-2026", prescriber: { id: "dr-fresner", name: "Dr. Fresner" },
+      pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
+      refillsRemaining: 3, prescriptionExpiresOn: "2027-02-01",
+      lastDispense: { date: PROTOTYPE_DISPENSE_DATES.atorvastatin, daysSupply: 90, quantity: 90, source: "PHARMACY_DISPENSE" },
+      refillWorkflow: {}
+    }
   ],
+  medicationSupplySignals: [], medicationRefills: [], refillFlow: { medicationId: "", step: "", answer: "" }, activeRefillId: "", medicationNotice: "",
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
@@ -157,7 +182,8 @@ const iconMap = {
   droplets: Droplets,
   scale: Scale,
   wind: Wind,
-  car: Car
+  car: Car,
+  hospital: Hospital
 };
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
@@ -825,6 +851,48 @@ function ensureEmmiRuntime() {
       const known = findReusableBarrier(allPatientBarriers(), { category, goalId: goal.id });
       const barrier = recordBarrier({ goal, category, patientDescription, source: BARRIER_SOURCES.EMMI });
       return barrier ? { ...barrier, alreadyKnown: Boolean(known && barrierIsActive(known)) } : null;
+    },
+    // Supply, refills and the review screen all come from the same functions the medication screen
+    // uses, so voice, text and tapping cannot disagree about what is true.
+    onMedicationSupply: () => activeMedications().map(medication => {
+      const estimate = medicationSupplyEstimate(medication);
+      return {
+        medicationId: medication.id,
+        name: medicationLabel(medication),
+        sig: medication.sig || "",
+        canEstimate: estimate.eligible,
+        monitoring: estimate.monitoring,
+        estimatedDaysRemaining: estimate.estimatedDaysRemaining,
+        supplyConfidence: estimate.confidence,
+        pharmacy: medication.pharmacy?.name || null,
+        prescriber: medicationPrescriber(medication)?.name || null,
+        refillsRemaining: medication.refillsRemaining ?? null
+      };
+    }),
+    onActiveRefills: () => refillEpisodes().filter(refillIsOpen).map(refill => ({
+      refillId: refill.id,
+      medicationId: refill.medicationId,
+      medication: refill.medicationSnapshot?.name || "",
+      status: refill.status,
+      patientStatus: refillPatientStatus(refill, "en"),
+      waitingOn: refill.requiresAppointment ? "APPOINTMENT" : refill.requiresClinicalReview ? "CARE_TEAM" : refill.requiresPrescriber ? "PRESCRIBER" : "PHARMACY",
+      requestedAt: refill.requestedAt
+    })),
+    onRefillReview: ({ medicationId }) => {
+      const medication = medicationById(medicationId);
+      if (!medication) return null;
+      const existing = openRefillForMedication(medication.id);
+      // An existing request is reported, never duplicated.
+      if (existing) return { alreadyRequested: true, refillId: existing.id, status: existing.status, patientStatus: refillPatientStatus(existing, "en") };
+      const episode = startRefillEpisode(medication, { source: "EMMI" });
+      state.activeRefillId = episode.id;
+      state.screen = "MY_MEDICATIONS";
+      state.refillFlow = { medicationId: medication.id, step: "REVIEW", answer: "" };
+      // EMMI moved the patient somewhere real; closing the panel lands them on it rather than on
+      // the screen they were looking at before they asked.
+      state.assistantPendingNavigation = true;
+      draftStore.save(state);
+      return { alreadyRequested: false, refillId: episode.id, opened: "REFILL_REVIEW", medication: medicationLabel(medication) };
     },
     onReminder: ({ slot }) => {
       const goal = currentGoal();
@@ -1745,7 +1813,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -2052,6 +2120,238 @@ function deferredFlowConfirmation() {
   return `<div class="flow-deferred-screen">${art("check", true)}${titleBlock(L("No problem — you can continue later.", "No hay problema: puede continuar más tarde.", "Pa gen pwoblèm — ou ka kontinye pita."), L("Your enrollment is complete. Your care setup will be here when you’re ready.", "Su inscripción está completa. La configuración de su cuidado estará aquí cuando esté listo.", "Enskripsyon ou fini. Konfigirasyon swen ou ap la lè ou pare."))}${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "go-to-my-care")}</div>`;
 }
 
+// My Medications and the refill conversation. A medication card is quiet until something is
+// actually happening to it: no permanent "request refill" on every row, and no status the product
+// was not told about.
+
+// My Care says what needs attention, not how many medications exist. A count is not a reason to
+// open a screen; a refill waiting on the patient is.
+function medicationAttentionLine() {
+  detectMedicationSupplySignals();
+  const waiting = activeMedications().find(medication => openSupplySignalFor(medication.id));
+  if (waiting) return L(`${waiting.name} may be running low`, `${waiting.name} podría estarse acabando`, `${waiting.name} ka ap fini`);
+  const moving = refillEpisodes().find(refillIsOpen);
+  if (moving) return refillPatientStatus(moving, state.language);
+  const count = activeMedications().length;
+  return count ? L(`${count} medications on file`, `${count} medicamentos registrados`, `${count} medikaman nan dosye a`) : L("Nothing on file yet", "Nada registrado todavía", "Anyen nan dosye a poko");
+}
+
+const medicationIdentity = medication => `<div class="medication-identity">
+  <span class="medication-icon">${icon("pill")}</span>
+  <div><strong>${escapeHtml(medicationLabel(medication))}</strong>${medication.sig ? `<span>${escapeHtml(medication.sig)}</span>` : ""}</div>
+</div>`;
+
+// Requested, approved and ready are three different facts. The card shows the one the product was
+// told, and says what happens next in the patient's terms.
+function medicationRefillCard(medication, episode) {
+  const status = refillPatientStatus(episode, state.language);
+  const nextStep = refillNextStep(episode, { pharmacyStatusAvailable: pharmacyStatusAvailable(medication) }, state.language);
+  const destination = episode.status === REFILL_STATUS.PENDING_PRESCRIBER
+    ? medicationPrescriber(medication)?.name || ""
+    : [REFILL_STATUS.SENT_TO_PHARMACY, REFILL_STATUS.APPROVED, REFILL_STATUS.READY_FOR_PICKUP, REFILL_STATUS.PHARMACY_PROCESSING].includes(episode.status)
+      ? medication.pharmacy?.name || ""
+      : "";
+  const ready = episode.status === REFILL_STATUS.READY_FOR_PICKUP;
+  return `<article class="medication-card" data-refill-status="${episode.status}">
+    ${medicationIdentity(medication)}
+    <p class="medication-status">${ready ? icon("check") : icon("clock")}<span>${escapeHtml(status)}</span></p>
+    ${destination ? `<p class="medication-destination">${escapeHtml(destination)}</p>` : ""}
+    ${nextStep ? `<p class="medication-next-step">${escapeHtml(nextStep)}</p>` : ""}
+    <button type="button" class="goal-card-action" data-action="view-refill-status" data-medication-id="${medication.id}">${episode.requiresAppointment ? L("View details", "Ver detalles", "Gade detay") : L("View status", "Ver estado", "Gade estati")} ${icon("arrowRight")}</button>
+  </article>`;
+}
+
+function medicationSupplyCard(medication) {
+  return `<article class="medication-card medication-card-low" data-refill-status="LOW_SUPPLY">
+    ${medicationIdentity(medication)}
+    <p class="medication-status">${icon("info")}<span>${escapeHtml(medicationSupplyLine(medication))}</span></p>
+    <p class="medication-next-step">${L("EMMI can help you check whether you need a refill.", "EMMI puede ayudarle a confirmar si necesita una nueva surtida.", "EMMI ka ede w tcheke si ou bezwen yon ranplisaj.")}</p>
+    <button type="button" class="goal-card-action" data-action="review-medication-refill" data-medication-id="${medication.id}">${L("Review refill", "Revisar surtida", "Revize ranplisaj")} ${icon("arrowRight")}</button>
+  </article>`;
+}
+
+const medicationPlainCard = medication => `<article class="medication-card medication-card-quiet">${medicationIdentity(medication)}</article>`;
+
+function myMedicationsScreen() {
+  detectMedicationSupplySignals();
+  const flow = state.refillFlow || {};
+  if (flow.step && flow.medicationId) return medicationRefillFlow();
+  const medications = activeMedications();
+  const notice = state.medicationNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.medicationNotice)}</p>` : "";
+  const cards = medications.map(medication => {
+    const episode = openRefillForMedication(medication.id);
+    if (episode) return medicationRefillCard(medication, episode);
+    if (openSupplySignalFor(medication.id)) return medicationSupplyCard(medication);
+    return medicationPlainCard(medication);
+  }).join("");
+  return `${notice}${titleBlock(L("My medications", "Mis medicamentos", "Medikaman mwen yo"), L("Your medications on file, and anything that needs your attention.", "Sus medicamentos registrados y lo que necesita su atención.", "Medikaman ki nan dosye ou, ak sa ki bezwen atansyon ou."))}
+    ${medications.length ? `<div class="medication-list">${cards}</div>` : `<p class="goal-progress-empty">${L("We don’t have any medications on file yet.", "Todavía no tenemos medicamentos registrados.", "Nou poko gen okenn medikaman nan dosye a.")}</p>`}
+    <button type="button" class="goal-secondary-button" data-action="start-manual-refill">${icon("pill")}<span>${L("I need a refill", "Necesito una nueva surtida", "Mwen bezwen yon ranplisaj")}</span></button>
+    <button type="button" class="goal-back-button" data-action="back-to-my-care">${icon("arrowLeft")}<span>${L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</span></button>`;
+}
+
+// Which medication? Only asked when it is genuinely ambiguous, and always from the patient's own
+// active list rather than a guess.
+function medicationSelectionScreen() {
+  const medications = activeMedications();
+  return `${titleBlock(L("Which medication do you need?", "¿Qué medicamento necesita?", "Ki medikaman ou bezwen?"), L("Choose the one you’re running low on.", "Elija el que se le está acabando.", "Chwazi sa k ap fini an."), L("Refill", "Surtida", "Ranplisaj"))}
+    <div class="choice-list medication-choices">${medications.map(medication => `<button type="button" class="goal-response-button" data-action="review-medication-refill" data-medication-id="${medication.id}">${icon("pill")}<span>${escapeHtml(medicationLabel(medication))}</span></button>`).join("")}</div>
+    <button type="button" class="goal-inline-link" data-action="ask-emmi-about-refill">${L("It’s something else", "Es otro medicamento", "Se yon lòt bagay")} ${icon("arrowRight")}</button>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+// What ITERA already knows is shown for confirmation rather than asked again.
+function refillReviewScreen(medication) {
+  const prescriber = medicationPrescriber(medication);
+  return `${titleBlock(L("Review refill", "Revisar surtida", "Revize ranplisaj"), "", L("Refill", "Surtida", "Ranplisaj"))}
+    <section class="medication-summary">
+      ${medicationIdentity(medication)}
+      <dl class="medication-facts">
+        ${prescriber ? `<div><dt>${L("Prescriber", "Quien la receta", "Moun ki bay preskripsyon an")}</dt><dd>${escapeHtml(prescriber.name)}</dd></div>` : ""}
+        ${medication.pharmacy ? `<div><dt>${L("Pharmacy", "Farmacia", "Famasi")}</dt><dd>${escapeHtml(medication.pharmacy.name)}${medication.pharmacy.address ? `<small>${escapeHtml(medication.pharmacy.address)}</small>` : ""}</dd></div>` : ""}
+      </dl>
+      <button type="button" class="goal-inline-link" data-action="change-refill-pharmacy">${L("Need to use another pharmacy?", "¿Necesita usar otra farmacia?", "Bezwen sèvi ak yon lòt famasi?")}</button>
+    </section>
+    <h2 class="medication-question">${L("Do you still take this medication as directed?", "¿Sigue tomando este medicamento según las indicaciones?", "Èske ou toujou pran medikaman sa a jan yo mande a?")}</h2>
+    <div class="choice-list medication-answers">
+      <button type="button" class="goal-response-button" data-action="refill-taking-answer" data-answer="YES">${L("Yes", "Sí", "Wi")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-taking-answer" data-answer="CHANGED">${L("Something changed", "Algo cambió", "Yon bagay chanje")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-taking-answer" data-answer="STOPPED">${L("I no longer take it", "Ya no lo tomo", "Mwen pa pran li ankò")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-taking-answer" data-answer="UNSURE">${L("I’m not sure", "No estoy seguro", "Mwen pa sèten")}</button>
+    </div>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+// "Something changed" never continues to a refill. It asks what changed, and each answer goes
+// where it belongs: reconciliation, or the safety engine.
+function refillChangeScreen(medication) {
+  return `${titleBlock(L("What changed?", "¿Qué cambió?", "Kisa ki chanje?"), L("This helps your care team keep your record right.", "Esto ayuda a su equipo a mantener su información correcta.", "Sa ede ekip swen ou kenbe dosye ou kòrèk."), L("Refill", "Surtida", "Ranplisaj"))}
+    ${medicationIdentity(medication)}
+    <div class="choice-list medication-answers">
+      <button type="button" class="goal-response-button" data-action="refill-change-answer" data-change="DOSE">${L("I take a different dose", "Tomo una dosis diferente", "Mwen pran yon dòz diferan")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-change-answer" data-change="FREQUENCY">${L("I take it at different times", "Lo tomo en horarios diferentes", "Mwen pran l nan lòt lè")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-change-answer" data-change="CONCERN">${L("It makes me feel unwell", "Me hace sentir mal", "Li fè m santi m mal")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-change-answer" data-change="OTHER">${L("Something else", "Otra cosa", "Yon lòt bagay")}</button>
+    </div>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+function refillDoseScreen(medication) {
+  return `${titleBlock(L("What dose are you taking?", "¿Qué dosis está tomando?", "Ki dòz w ap pran?"), L("Your care team will review this. Nothing changes automatically.", "Su equipo lo revisará. Nada cambia automáticamente.", "Ekip swen ou ap revize sa. Anyen pa chanje otomatikman."), L("Refill", "Surtida", "Ranplisaj"))}
+    ${medicationIdentity(medication)}
+    <p class="medication-documented">${L("On file", "En el registro", "Nan dosye a")}: ${escapeHtml(medication.details || medication.sig || "")}</p>
+    <form id="refill-dose-form"><label class="field">${L("What you take", "Lo que usted toma", "Sa ou pran")}<input name="patientReportedDose" maxlength="80" placeholder="${L("Example: 10 mg twice a day", "Ejemplo: 10 mg dos veces al día", "Egzanp: 10 mg de fwa pa jou")}"></label></form>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}${cta(L("Send to my care team", "Enviar a mi equipo", "Voye bay ekip mwen"), "submit-refill-dose")}</div>`;
+}
+
+// Asking for a rough answer, not a pill count.
+function refillSupplyScreen(medication) {
+  return `${titleBlock(L("Do you have about a week or less remaining?", "¿Le queda alrededor de una semana o menos?", "Èske ou gen apeprè yon semèn oswa mwens ki rete?"), "", L("Refill", "Surtida", "Ranplisaj"))}
+    ${medicationIdentity(medication)}
+    <div class="choice-list medication-answers">
+      <button type="button" class="goal-response-button" data-action="refill-supply-answer" data-answer="RUNNING_LOW">${L("Yes, I’m running low", "Sí, se me está acabando", "Wi, l ap fini")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-supply-answer" data-answer="ENOUGH">${L("I have enough", "Tengo suficiente", "Mwen gen ase")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-supply-answer" data-answer="UNSURE">${L("I’m not sure", "No estoy seguro", "Mwen pa sèten")}</button>
+    </div>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+// The last screen before anything leaves ITERA: what will be sent, and where.
+function refillConfirmScreen(medication, resolution) {
+  const prescriber = medicationPrescriber(medication);
+  const destination = resolution.path === REFILL_PATHS.DIRECT_PHARMACY_FULFILLMENT
+    ? medication.pharmacy?.name || ""
+    : prescriber?.name || L("your care team", "su equipo de atención", "ekip swen ou");
+  return `${titleBlock(L("Ready to request", "Listo para solicitar", "Pare pou mande"), "", L("Refill", "Surtida", "Ranplisaj"))}
+    <section class="medication-summary">
+      ${medicationIdentity(medication)}
+      <dl class="medication-facts">
+        <div><dt>${L("Request goes to", "La solicitud se envía a", "Demann nan ale bay")}</dt><dd>${escapeHtml(destination)}</dd></div>
+        ${medication.pharmacy && destination !== medication.pharmacy.name ? `<div><dt>${L("Pharmacy", "Farmacia", "Famasi")}</dt><dd>${escapeHtml(medication.pharmacy.name)}</dd></div>` : ""}
+      </dl>
+    </section>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(L("Not now", "Ahora no", "Pa kounye a"), "close-refill-flow", true)}${cta(L("Request refill", "Solicitar surtida", "Mande ranplisaj"), "submit-refill-request")}</div>`;
+}
+
+// Where the request stands, in the patient's words, with only the actions that actually exist.
+function refillStatusScreen(medication, episode) {
+  const prescriber = medicationPrescriber(medication);
+  const status = refillPatientStatus(episode, state.language);
+  const nextStep = refillNextStep(episode, { pharmacyStatusAvailable: pharmacyStatusAvailable(medication) }, state.language);
+  const heading = episode.status === REFILL_STATUS.NEEDS_APPOINTMENT
+    ? L("One more step is needed", "Falta un paso más", "Gen yon etap ki manke")
+    : episode.status === REFILL_STATUS.NEEDS_CLINICAL_REVIEW
+      ? L("Your care team needs to review this", "Su equipo de atención debe revisar esto", "Ekip swen ou dwe revize sa")
+      : status;
+  const explanation = episode.status === REFILL_STATUS.NEEDS_APPOINTMENT
+    ? L("Your care team requires a follow-up visit before this medication can be renewed.", "Su equipo requiere una visita de seguimiento antes de renovar este medicamento.", "Ekip swen ou mande yon vizit swivi anvan yo ka renouvle medikaman sa a.")
+    : episode.status === REFILL_STATUS.NEEDS_CLINICAL_REVIEW
+      ? L("You told EMMI something about this medication that your care team should look at before the refill continues.", "Le contó a EMMI algo sobre este medicamento que su equipo debe revisar antes de continuar.", "Ou di EMMI yon bagay sou medikaman sa a ekip swen ou dwe gade anvan ranplisaj la kontinye.")
+      : episode.status === REFILL_STATUS.PENDING_PRESCRIBER
+        ? L(`Request sent to ${prescriber?.name || "your care team"}.`, `Solicitud enviada a ${prescriber?.name || "su equipo de atención"}.`, `Demann voye bay ${prescriber?.name || "ekip swen ou"}.`)
+        : episode.status === REFILL_STATUS.SENT_TO_PHARMACY
+          ? L(`Your refill was sent to ${medication.pharmacy?.name || "your pharmacy"}.`, `Su surtida fue enviada a ${medication.pharmacy?.name || "su farmacia"}.`, `Ranplisaj ou voye nan ${medication.pharmacy?.name || "famasi ou"}.`)
+          : "";
+  return `${titleBlock(heading, "", L("Refill", "Surtida", "Ranplisaj"))}
+    <section class="medication-summary">
+      ${medicationIdentity(medication)}
+      ${heading === status ? "" : `<p class="medication-status">${episode.status === REFILL_STATUS.READY_FOR_PICKUP ? icon("check") : icon("clock")}<span>${escapeHtml(status)}</span></p>`}
+      ${explanation ? `<p class="medication-next-step">${escapeHtml(explanation)}</p>` : ""}
+      ${nextStep ? `<p class="medication-next-step">${escapeHtml(nextStep)}</p>` : ""}
+    </section>
+    ${episode.status === REFILL_STATUS.NEEDS_APPOINTMENT ? `<button type="button" class="goal-secondary-button" data-action="coordinate-refill-appointment" data-medication-id="${medication.id}">${icon("calendar")}<span>${L("Coordinate appointment", "Coordinar la cita", "Òganize randevou a")}</span></button>` : ""}
+    ${[REFILL_STATUS.SENT_TO_PHARMACY, REFILL_STATUS.READY_FOR_PICKUP, REFILL_STATUS.APPROVED].includes(episode.status) && medication.pharmacy?.phone ? `<a class="goal-secondary-button" href="tel:${escapeHtml(medication.pharmacy.phone)}">${icon("phone")}<span>${L("Call the pharmacy", "Llamar a la farmacia", "Rele famasi a")}</span></a>` : ""}
+    ${[REFILL_STATUS.SENT_TO_PHARMACY, REFILL_STATUS.READY_FOR_PICKUP, REFILL_STATUS.APPROVED].includes(episode.status) ? `<button type="button" class="goal-secondary-button" data-action="refill-pickup-check" data-medication-id="${medication.id}">${icon("question")}<span>${L("Were you able to get it?", "¿Pudo recogerlo?", "Èske ou te ka jwenn li?")}</span></button>` : ""}
+    <button type="button" class="goal-inline-link" data-action="ask-emmi-about-refill">${L("Ask EMMI about this", "Preguntar a EMMI sobre esto", "Mande EMMI sou sa")} ${icon("arrowRight")}</button>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+// Approved is not obtained. This is the question that closes the loop, and its "not yet" hands
+// straight to the barrier engine.
+function refillPickupScreen(medication) {
+  return `${titleBlock(L(`Were you able to get your ${medication.name}?`, `¿Pudo recoger su ${medication.name}?`, `Èske ou te ka jwenn ${medication.name} ou?`), "", L("Refill", "Surtida", "Ranplisaj"))}
+    <div class="choice-list medication-answers">
+      <button type="button" class="goal-response-button" data-action="refill-pickup-answer" data-answer="YES">${L("Yes", "Sí", "Wi")}</button>
+      <button type="button" class="goal-response-button" data-action="refill-pickup-answer" data-answer="NOT_YET">${L("Not yet", "Todavía no", "Poko")}</button>
+    </div>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+// The difficulties that stop a refill from becoming medication in the patient's hand. Each one is
+// a barrier category the shared engine already knows how to work on.
+function refillBarrierScreen(medication) {
+  const options = [
+    ["PHARMACY_NOT_READY", "clock", L("The pharmacy says it isn’t ready", "La farmacia dice que no está lista", "Famasi a di li poko pare")],
+    ["TRANSPORTATION", "car", L("I can’t get to the pharmacy", "No puedo llegar a la farmacia", "Mwen pa ka rive nan famasi a")],
+    ["FINANCIAL", "info", L("It costs too much", "Cuesta demasiado", "Li koute twòp")],
+    ["MEDICATION_UNDERSTANDING", "pill", L("I have a question about the medication", "Tengo una pregunta sobre el medicamento", "Mwen gen yon kesyon sou medikaman an")],
+    ["SOCIAL_SUPPORT", "people", L("I need someone to help me", "Necesito que alguien me ayude", "Mwen bezwen yon moun ede m")],
+    ["OTHER", "question", L("Something else", "Otra cosa", "Yon lòt bagay")]
+  ];
+  return `${titleBlock(L("What’s making it difficult?", "¿Qué se lo está dificultando?", "Kisa k ap fè sa difisil?"), L("EMMI can help with many of these.", "EMMI puede ayudar con muchas de estas.", "EMMI ka ede ak anpil nan sa yo."), L("Refill", "Surtida", "Ranplisaj"))}
+    ${medicationIdentity(medication)}
+    <div class="choice-list medication-answers">${options.map(([value, glyph, label]) => `<button type="button" class="goal-response-button" data-action="refill-barrier-answer" data-barrier="${value}">${icon(glyph)}<span>${label}</span></button>`).join("")}</div>
+    <div class="actions">${cta(t().back, "close-refill-flow", true)}</div>`;
+}
+
+function medicationRefillFlow() {
+  const flow = state.refillFlow || {};
+  const medication = medicationById(flow.medicationId);
+  if (!medication) return myMedicationsScreen();
+  if (flow.step === "SELECT") return medicationSelectionScreen();
+  if (flow.step === "REVIEW") return refillReviewScreen(medication);
+  if (flow.step === "CHANGED") return refillChangeScreen(medication);
+  if (flow.step === "DOSE") return refillDoseScreen(medication);
+  if (flow.step === "SUPPLY") return refillSupplyScreen(medication);
+  if (flow.step === "CONFIRM") return refillConfirmScreen(medication, state.refillResolution || {});
+  if (flow.step === "PICKUP") return refillPickupScreen(medication);
+  if (flow.step === "PICKUP_BARRIER") return refillBarrierScreen(medication);
+  const episode = openRefillForMedication(medication.id) || activeRefillEpisode();
+  return episode ? refillStatusScreen(medication, episode) : myMedicationsScreen();
+}
+
 function myCareScreen() {
   const transition = currentFlowTransition();
   const progress = gettingStartedProgress();
@@ -2060,6 +2360,7 @@ function myCareScreen() {
   return `<div class="my-care-screen">${titleBlock(L("My Care", "Mi cuidado", "Swen mwen"), L("Your enrollment is complete. Continue when you’re ready.", "Su inscripción está completa. Continúe cuando esté listo.", "Enskripsyon ou fini. Kontinye lè ou pare."))}
     <section class="my-care-resume-card"><div>${icon("check")}<span><strong>${L("Getting Started", "Primeros pasos", "Premye etap yo")}</strong><small>${started ? L("In progress", "En curso", "An pwogrè") : L("Not finished yet", "Aún no terminado", "Poko fini")}</small></span></div>${transition.estimatedDuration ? `<p>${icon("clock")} ${localized(transition.estimatedDuration)}</p>` : ""}${cta(actionLabel, "resume-next-flow")}</section>
     <button type="button" class="link-card my-goals-link" data-action="open-my-goals">${icon("goals")}<span><strong>${L("My Goals", "Mis metas", "Objektif mwen")}</strong><small>${activePatientGoals().length ? L("View the goals you’re working toward", "Vea las metas en las que está trabajando", "Gade objektif w ap travay sou yo") : L("Choose what matters to you", "Elija lo que le importa", "Chwazi sa ki enpòtan pou ou")}</small></span><b aria-hidden="true">›</b></button>
+    <button type="button" class="link-card my-medications-link" data-action="open-my-medications">${icon("pill")}<span><strong>${L("My Medications", "Mis medicamentos", "Medikaman mwen yo")}</strong><small>${medicationAttentionLine()}</small></span><b>›</b></button>
     <button type="button" class="link-card my-care-circle-link" data-action="open-my-care-circle">${icon("people")}<span><strong>${L("My Care Circle", "Mi Círculo de cuidado", "Sèk swen mwen")}</strong><small>${L("Invite or manage someone you trust", "Invite o administre a alguien de confianza", "Envite oswa jere yon moun ou fè konfyans")}</small></span><b aria-hidden="true">›</b></button>
   </div>`;
 }
@@ -2246,6 +2547,228 @@ function medicationsReview() {
   const changeCount = Object.values(reviews).filter(review => ["NOT_TAKING", "DOSE_CHANGED", "FREQUENCY_CHANGED", "NEEDS_REVIEW"].includes(review.reviewStatus)).length;
   const addForm = state.medicationAddOpen ? `<form id="add-medication-form" class="medication-add-form"><h3>${state.medicationEditId ? L("Edit medication", "Editar medicamento", "Modifye medikaman") : L("Add a medication", "Agregar un medicamento", "Ajoute yon medikaman")}</h3><label class="field">${L("Medication name", "Nombre del medicamento", "Non medikaman an")}<input name="medicationName" autocomplete="off" value="${escapeHtml(state.additionalMedications.find(item => item.id === state.medicationEditId)?.medicationName || "")}" placeholder="${L("Example: Metformin", "Ejemplo: Metformina", "Egzanp: Metformin")}" required></label><label class="field">${L("Dose or instructions", "Dosis o instrucciones", "Dòz oswa enstriksyon")}<input name="medicationDetails" autocomplete="off" value="${escapeHtml(state.additionalMedications.find(item => item.id === state.medicationEditId)?.dose || "")}" placeholder="${L("Optional", "Opcional", "Opsyonèl")}"></label><label class="field">${L("How often do you take it?", "¿Con qué frecuencia lo toma?", "Konbyen fwa ou pran li?")}<select name="medicationFrequency"><option value="">${L("Optional", "Opcional", "Opsyonèl")}</option>${[["Once daily", L("Once daily", "Una vez al día", "Yon fwa pa jou")], ["Twice daily", L("Twice daily", "Dos veces al día", "De fwa pa jou")], ["Three times daily", L("Three times daily", "Tres veces al día", "Twa fwa pa jou")], ["As needed", L("As needed", "Según sea necesario", "Lè sa nesesè")], ["Other", L("Other", "Otra", "Lòt")]].map(([value, label]) => `<option value="${value}" ${state.additionalMedications.find(item => item.id === state.medicationEditId)?.frequency === value ? "selected" : ""}>${label}</option>`).join("")}</select></label><div class="inline-actions"><button type="button" class="button secondary" data-action="cancel-add-medication">${L("Cancel", "Cancelar", "Anile")}</button><button type="button" class="button primary" data-action="add-medication">${state.medicationEditId ? L("Save medication", "Guardar medicamento", "Sove medikaman") : L("Add medication", "Agregar medicamento", "Ajoute medikaman")}</button></div></form>` : "";
   return `${titleBlock(L("Confirm your medications", "Confirme sus medicamentos", "Konfime medikaman ou yo"), intro, L("Care setup", "Configuración", "Konfigirasyon swen"))}<div class="medication-review-progress" role="status" aria-live="polite"><strong>${reviewedCount === medications.length && medications.length ? "✓ " : ""}${L(`${reviewedCount} of ${medications.length} reviewed`, `${reviewedCount} de ${medications.length} revisados`, `${reviewedCount} sou ${medications.length} revize`)}</strong><span><i style="width:${medications.length ? reviewedCount / medications.length * 100 : 100}%"></i></span></div><section class="medication-review-section"><h2>${L("Review your medications", "Revise sus medicamentos", "Revize medikaman ou yo")}</h2><div class="medication-list">${medicationCards || `<p class="empty-state">${L("No medications are listed on file.", "No hay medicamentos registrados.", "Pa gen medikaman nan dosye a.")}</p>`}</div></section><section class="medication-additional-section"><h2>${L("Taking anything else?", "¿Toma algún otro medicamento?", "Èske ou pran nenpòt lòt medikaman?")}</h2><p>${L("Add any prescription medicine that isn’t listed above.", "Agregue cualquier medicamento recetado que no aparezca arriba.", "Ajoute nenpòt medikaman sou preskripsyon ki pa nan lis anwo a.")}</p>${added ? `<div class="medications-added-list"><h3>${L("Medications you added", "Medicamentos que agregó", "Medikaman ou ajoute")}</h3>${added}</div>` : ""}${addForm || `<div class="additional-medication-actions"><button type="button" data-action="open-add-medication">${icon("pill")} ${L("Add another medication", "Agregar otro medicamento", "Ajoute yon lòt medikaman")}</button><button type="button" class="${state.additionalMedicationsStatus === "NONE" ? "selected" : ""}" data-action="no-additional-medications">${icon("check")} ${L("No, that’s all", "No, eso es todo", "Non, se tout")}</button><button type="button" class="${state.additionalMedicationsStatus === "UNSURE" ? "selected" : ""}" data-action="unsure-additional-medications">${L("I’m not sure if anything is missing", "No estoy seguro de que falte algo", "Mwen pa sèten si gen yon bagay ki manke")}</button></div>`}${state.additionalMedicationsStatus === "UNSURE" ? `<p class="medication-reassurance">${L("That’s okay. Your care team can review your medication list with you.", "Está bien. Su equipo de atención puede revisar la lista con usted.", "Sa pa yon pwoblèm. Ekip swen ou ka revize lis la avèk ou.")}</p>` : ""}</section>${complete && (changeCount || state.additionalMedications.length) ? `<aside class="medication-review-summary"><strong>${L("Medication review", "Revisión de medicamentos", "Revizyon medikaman")}</strong><span>✓ ${L(`${reviewedCount} medications reviewed`, `${reviewedCount} medicamentos revisados`, `${reviewedCount} medikaman revize`)}</span>${changeCount ? `<span>${L(`${changeCount} change to review with your care team`, `${changeCount} cambio para revisar con su equipo`, `${changeCount} chanjman pou revize ak ekip swen ou`)}</span>` : ""}${state.additionalMedications.length ? `<span>${L(`${state.additionalMedications.length} medication added`, `${state.additionalMedications.length} medicamento agregado`, `${state.additionalMedications.length} medikaman ajoute`)}</span>` : ""}</aside>` : ""}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Continue", "Continuar", "Kontinye"), true, "", !complete)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Medication refill orchestration. The engines in medicationSupply.js and medicationRefill.js
+// decide what is true and what is allowed; this layer connects them to the patient's record, the
+// reconciliation workflow, the safety engine, the care-team queue, the barrier engine and the
+// appointment stub. It never prescribes and never claims an outcome it was not told about.
+// ---------------------------------------------------------------------------
+
+const activeMedications = () => (state.careMedications || []).filter(medication => medication.active !== false);
+const medicationById = id => (state.careMedications || []).find(medication => medication.id === id) || null;
+const medicationReviewStatus = id => state.medicationReviews?.[id]?.reviewStatus || "";
+
+// The prescriber on the record is the one that is shown, but a prototype configured with a
+// different physician name should not contradict itself on screen.
+const medicationPrescriber = medication => {
+  const prescriber = medication?.prescriber;
+  if (!prescriber) return null;
+  const offerProvider = state.offer?.referringProvider;
+  return offerProvider && offerProvider.id === prescriber.id ? { ...prescriber, name: state.offer.physician?.displayName || offerProvider.name } : prescriber;
+};
+
+const medicationLabel = medication => (medication ? `${medication.name}${medication.strength ? ` ${medication.strength}` : ""}` : "");
+const medicationSupplyEstimate = medication => estimateMedicationSupply(medication, { reviewStatus: medicationReviewStatus(medication?.id) });
+
+const supplySignals = () => state.medicationSupplySignals || [];
+const refillEpisodes = () => state.medicationRefills || [];
+const openRefillForMedication = id => openRefillFor(refillEpisodes(), id);
+const activeRefillEpisode = () => refillEpisodes().find(refill => refill.id === state.activeRefillId) || null;
+const openSupplySignalFor = id => openSignalFor(supplySignals(), id);
+
+const saveSupplySignal = signal => {
+  const existing = supplySignals().some(item => item.id === signal.id);
+  state.medicationSupplySignals = existing
+    ? supplySignals().map(item => (item.id === signal.id ? signal : item))
+    : [...supplySignals(), signal];
+  draftStore.save(state);
+  return signal;
+};
+
+const saveRefillEpisode = episode => {
+  const existing = refillEpisodes().some(item => item.id === episode.id);
+  state.medicationRefills = existing
+    ? refillEpisodes().map(item => (item.id === episode.id ? episode : item))
+    : [...refillEpisodes(), episode];
+  draftStore.save(state);
+  return episode;
+};
+
+const auditRefill = (event, episode, extra = {}) => audit(state, event, "success", { ...refillAnalytics(episode), ...extra });
+
+// Detection runs where medications are shown, and only ever produces a question. Everything that
+// would make the question wrong — an answer already given, a refill already moving, a fill that
+// already arrived — is the engine's business, not this function's.
+function detectMedicationSupplySignals() {
+  const raised = detectLowSupply({
+    medications: activeMedications(),
+    signals: supplySignals(),
+    refills: refillEpisodes(),
+    reviews: state.medicationReviews || {}
+  });
+  if (!raised.length) return;
+  raised.forEach(signal => {
+    saveSupplySignal({ ...signal, patientId: state.offer?.patient?.id || state.assistantDemoPatientId || "" });
+    audit(state, "medication_low_supply_detected", "success", supplySignalAnalytics(signal));
+  });
+}
+
+// Patient-facing supply line. Confidence decides whether this states anything at all.
+const medicationSupplyLine = medication => {
+  const signal = openSupplySignalFor(medication.id);
+  if (!signal) return "";
+  return supplyPhrase({
+    eligible: true,
+    confidence: signal.supplyConfidence,
+    estimatedDaysRemaining: signal.estimatedDaysRemaining
+  }, state.language);
+};
+
+// A refill starts as a draft the moment the patient opens it, so the conversation, the answers and
+// the eventual request all belong to one episode rather than being reassembled later.
+function startRefillEpisode(medication, { source = "PATIENT", signal = null } = {}) {
+  const existing = openRefillForMedication(medication.id);
+  if (existing) return existing;
+  const episode = createRefillEpisode({
+    patientId: state.offer?.patient?.id || state.assistantDemoPatientId || "",
+    medication: { ...medication, prescriber: medicationPrescriber(medication) },
+    supplySignalId: signal?.id || openSupplySignalFor(medication.id)?.id || null,
+    source
+  });
+  saveRefillEpisode(episode);
+  auditRefill("medication_refill_started", episode, { source });
+  return episode;
+}
+
+// Safety looks first at anything the patient said about how a medicine makes them feel. It runs on
+// the same deterministic rules the rest of EMMI uses.
+async function evaluateRefillSafety(description) {
+  if (!description) return null;
+  try {
+    const runtime = ensureEmmiRuntime();
+    return await runtime.tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: description });
+  } catch {
+    return { severity: "CARE_TEAM_REVIEW", instruction: "CREATE_HIGH_PRIORITY_TASK", policy: "SAFETY_CHECK_UNAVAILABLE" };
+  }
+}
+
+// One place where a refill leaves ITERA. Each path either uses an authorisation that already
+// exists or hands the decision to a person, and each records who told us what happened.
+function submitRefill(episode, medication, resolution) {
+  const prescriber = medicationPrescriber(medication);
+  const idempotencyKey = refillIdempotencyKey({ patientId: episode.patientId, medicationId: episode.medicationId, supplySignalId: episode.supplySignalId });
+  // A double tap, a voice turn and a button press are the same intent.
+  const duplicate = refillEpisodes().find(item => item.idempotencyKey === idempotencyKey && item.id !== episode.id && refillIsOpen(item));
+  if (duplicate) return { ok: true, episode: duplicate, duplicate: true };
+
+  const requiresTask = [REFILL_PATHS.CARE_TEAM_REVIEW, REFILL_PATHS.CLINICAL_REVIEW_REQUIRED, REFILL_PATHS.LAB_OR_OTHER_REQUIREMENT, REFILL_PATHS.APPOINTMENT_REQUIRED].includes(resolution.path);
+  const summary = refillCareTeamSummary({
+    episode: { ...episode, refillPath: resolution.path, blocker: episode.blocker },
+    medication: { ...medication, prescriber },
+    supplyEstimate: medicationSupplyEstimate(medication),
+    request: resolution.path === REFILL_PATHS.APPOINTMENT_REQUIRED ? "APPOINTMENT_COORDINATION" : resolution.path === REFILL_PATHS.PRESCRIBER_REFILL_REQUEST ? "PRESCRIBER_REFILL" : "CLINICAL_REVIEW"
+  });
+
+  let task = null;
+  if (requiresTask || resolution.path === REFILL_PATHS.PRESCRIBER_REFILL_REQUEST) {
+    const taskType = resolution.path === REFILL_PATHS.APPOINTMENT_REQUIRED ? "APPOINTMENT_REQUEST"
+      : resolution.path === REFILL_PATHS.PRESCRIBER_REFILL_REQUEST ? "MEDICATION_REFILL_REQUEST"
+        : "MEDICATION_REFILL_REVIEW";
+    task = ensureMedicationCareTeamTask(taskType, {
+      medicationId: medication.id,
+      refillId: episode.id,
+      priority: resolution.requiresClinicalReview ? "CLINICAL_REVIEW" : "ROUTINE",
+      reason: resolution.reason,
+      summary
+    });
+    // Nothing is claimed when the queue could not take it.
+    if (!task) return { ok: false, episode };
+  }
+
+  const status = statusForPath(resolution.path);
+  const submitted = advanceRefill({
+    ...episode,
+    idempotencyKey,
+    refillPath: resolution.path,
+    refillReason: resolution.reason,
+    requiresPrescriber: resolution.requiresPrescriber,
+    requiresClinicalReview: resolution.requiresClinicalReview,
+    requiresAppointment: resolution.requiresAppointment,
+    careTeamTaskId: task?.id || null,
+    prescriberId: prescriber?.id || null,
+    pharmacyId: medication.pharmacy?.id || null
+  }, { status, source: "ITERA", detail: { path: resolution.path, reason: resolution.reason } });
+  saveRefillEpisode(submitted);
+  auditRefill("medication_refill_submitted", submitted, { path: resolution.path, taskId: task?.id || null });
+  return { ok: true, episode: submitted };
+}
+
+// Medication tasks join the same care-team queue everything else uses; nothing here builds a second
+// task system.
+const ensureMedicationCareTeamTask = (type, details = {}) => {
+  const tasks = state.careTeamTasks || [];
+  const existing = tasks.find(task => task.type === type && task.refillId === details.refillId && task.status === "OPEN");
+  // The same request gaining context is still one request: the open task is enriched rather than
+  // duplicated or left with the thinner summary it was created with.
+  if (existing) {
+    const merged = { ...existing, ...details, summary: { ...(existing.summary || {}), ...(details.summary || {}) } };
+    state.careTeamTasks = tasks.map(task => (task.id === existing.id ? merged : task));
+    return merged;
+  }
+  const task = { id: `med_task_${Date.now().toString(36)}`, type, status: "OPEN", createdAt: new Date().toISOString(), ...details };
+  state.careTeamTasks = [...tasks, task];
+  return task;
+};
+
+// A patient report is an input to reconciliation, never an edit to the clinical order. The existing
+// medication review workflow owns that, so a refill that hits a change hands over to it.
+function recordRefillReconciliation(medication, { reviewStatus, patientReportedDose = "", patientNotes = "" }) {
+  savePatientMedicationReview(medication.id, reviewStatus, { patientReportedDose, patientNotes });
+  ensureMedicationCareTeamTask("MEDICATION_RECONCILIATION_REVIEW", {
+    medicationId: medication.id,
+    reason: reviewStatus,
+    priority: "ROUTINE",
+    summary: { medication: medicationLabel(medication), documentedSig: medication.sig || "", patientReported: patientReportedDose || patientNotes || reviewStatus }
+  });
+}
+
+// Where the pharmacy cannot report back, the product says so instead of implying it will know.
+const pharmacyStatusAvailable = medication => Boolean(medication?.pharmacy?.statusIntegration);
+
+// A refill that cannot proceed does not fail quietly: the reason is recorded, the right people get
+// a structured summary, and the patient is told what happens next. Nothing about the medication
+// order changes here — a patient report is input to reconciliation, never an edit.
+async function blockRefill(medication, blocker, { description = "", reviewStatus = "", patientReportedDose = "" } = {}) {
+  const episode = activeRefillEpisode() || startRefillEpisode(medication, { source: "PATIENT" });
+  if (reviewStatus) recordRefillReconciliation(medication, { reviewStatus, patientReportedDose, patientNotes: description });
+  const safetyResult = blocker === REFILL_BLOCKERS.MEDICATION_CONCERN ? await evaluateRefillSafety(description) : null;
+  const blocked = { ...episode, blocker, updatedAt: new Date().toISOString() };
+  saveRefillEpisode(blocked);
+  const resolution = resolveRefillPath({ medication: { ...medication, prescriber: medicationPrescriber(medication) }, blocker, safetyResult });
+  audit(state, "medication_refill_blocked", "success", { medicationId: medication.id, blocker, path: resolution.path, severity: safetyResult?.severity || null });
+  submitAndShow(medication, blocked, resolution);
+}
+
+// The single exit. If the submission did not happen, the patient is told that — never a success
+// message for something that failed.
+function submitAndShow(medication, episode, resolution) {
+  const result = submitRefill(episode, medication, resolution);
+  if (!result.ok) {
+    state.error = L("I couldn’t send that request right now. You can try again, or call your care team.", "No pude enviar esa solicitud ahora. Puede intentar de nuevo o llamar a su equipo de atención.", "Mwen pa t ka voye demann sa a kounye a. Ou ka eseye ankò oswa rele ekip swen ou.");
+    state.refillFlow = { ...state.refillFlow, step: state.refillFlow?.step === "CONFIRM" ? "CONFIRM" : "REVIEW" };
+    // A submission that failed leaves the episode open so a retry is the same request, not a new one.
+    saveRefillEpisode(advanceRefill(episode, { status: REFILL_STATUS.DRAFT, source: "ITERA", detail: { reason: "SUBMISSION_FAILED" } }));
+    render();
+    return;
+  }
+  state.activeRefillId = result.episode.id;
+  state.error = "";
+  state.refillFlow = { medicationId: medication.id, step: "STATUS", answer: "" };
+  state.screen = "MY_MEDICATIONS";
+  draftStore.save(state);
+  render();
 }
 
 function savePatientMedicationReview(medicationId, reviewStatus, reported = {}) {
@@ -3402,6 +3925,7 @@ function prototypeSetup() {
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
+renderers.MY_MEDICATIONS = myMedicationsScreen;
 renderers.MY_GOALS = myGoals;
 renderers.MY_CARE_CIRCLE = myCareCircleScreen;
 renderers.CARE_CIRCLE_REMOVE_CONFIRMATION = careCircleRemoveConfirmation;
@@ -4271,7 +4795,7 @@ async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   try {
     const response = await assistantAnswer(cleaned, assistantContext());
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
-    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "" });
+    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "" });
     emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
     if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
     runtime.audit.transcript("assistant", response.text);
@@ -4319,7 +4843,7 @@ function closeAssistant({ fromHistory = false } = {}) {
     emmiLive = null;
   }
   if (!fromHistory && emmiOverlayHistoryEntry) { emmiOverlayHistoryEntry = false; history.back(); }
-  if (languageChanged) { requestScroll({ navigationType: NAVIGATION.OVERLAY_CLOSE, restoreTop: scrollY }); render(); return; }
+  if (languageChanged || state.assistantPendingNavigation) { state.assistantPendingNavigation = false; requestScroll({ navigationType: NAVIGATION.OVERLAY_CLOSE, restoreTop: scrollY }); render(); return; }
   refreshVoiceGuidanceControls();
   requestAnimationFrame(() => {
     restoreOverlayPosition();
@@ -4361,6 +4885,14 @@ function bindAssistantLayer() {
     if (growthAction === "share-access" && state.enrollmentStatus === "COMPLETED") state.screen = "SHARE_ACCESS";
     // A difficulty EMMI heard in conversation opens where it can be acted on: the goal it belongs
     // to, with the help she already proposed.
+    if (growthAction === "medication-refill") {
+      state.screen = "MY_MEDICATIONS";
+      const medicationId = button.dataset.medicationId || "";
+      state.refillFlow = medicationId ? { medicationId, step: "REVIEW", answer: "" } : { medicationId: "", step: "", answer: "" };
+      draftStore.save(state);
+      render();
+      return;
+    }
     if (growthAction === "goal-barrier") {
       const barrier = findBarrierById(button.dataset.barrierId || "");
       if (barrier) {
@@ -4842,6 +5374,207 @@ function bind() {
       else if (response === "CHANGE_GOAL") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; }
       else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
       draftStore.save(state); render(); return;
+    }
+    if (action === "open-my-medications") { state.screen = "MY_MEDICATIONS"; state.refillFlow = { medicationId: "", step: "", answer: "" }; state.medicationNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "back-to-my-care") { state.screen = "MY_CARE"; state.refillFlow = { medicationId: "", step: "", answer: "" }; draftStore.save(state); render(); return; }
+    if (action === "close-refill-flow") { state.refillFlow = { medicationId: "", step: "", answer: "" }; state.error = ""; render(); return; }
+    if (action === "start-manual-refill") {
+      // The patient asked, so the medication is theirs to choose. With one active medication there
+      // is nothing to disambiguate.
+      const medications = activeMedications();
+      state.screen = "MY_MEDICATIONS";
+      state.refillFlow = medications.length === 1
+        ? { medicationId: medications[0].id, step: "REVIEW", answer: "" }
+        : { medicationId: medications[0]?.id || "", step: "SELECT", answer: "" };
+      if (medications.length === 1) startRefillEpisode(medications[0], { source: "PATIENT" });
+      audit(state, "medication_refill_requested_by_patient", "success", { medicationCount: medications.length });
+      render(); return;
+    }
+    if (action === "review-medication-refill") {
+      const medication = medicationById(el.dataset.medicationId || "");
+      if (!medication) return;
+      // An existing request answers the question rather than starting a second one.
+      const existing = openRefillForMedication(medication.id);
+      state.screen = "MY_MEDICATIONS";
+      if (existing) {
+        state.activeRefillId = existing.id;
+        state.refillFlow = { medicationId: medication.id, step: "STATUS", answer: "" };
+        render(); return;
+      }
+      const episode = startRefillEpisode(medication, { source: "PATIENT", signal: openSupplySignalFor(medication.id) });
+      state.activeRefillId = episode.id;
+      state.refillFlow = { medicationId: medication.id, step: "REVIEW", answer: "" };
+      render(); return;
+    }
+    if (action === "view-refill-status") {
+      const medication = medicationById(el.dataset.medicationId || "");
+      const episode = medication ? openRefillForMedication(medication.id) : null;
+      if (!medication || !episode) return;
+      state.screen = "MY_MEDICATIONS";
+      state.activeRefillId = episode.id;
+      state.refillFlow = { medicationId: medication.id, step: "STATUS", answer: "" };
+      render(); return;
+    }
+    if (action === "refill-taking-answer") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      const episode = activeRefillEpisode();
+      if (!medication || !episode) return;
+      const answer = el.dataset.answer || TAKING_ANSWERS.UNSURE;
+      saveRefillEpisode({ ...episode, patientConfirmedTaking: answer, updatedAt: new Date().toISOString() });
+      audit(state, "medication_refill_taking_answered", "success", { medicationId: medication.id, answer });
+      // Anything other than a plain yes stops the refill: the record and the patient disagree, and
+      // that is reconciliation's business, not a pharmacy's.
+      if (answer === TAKING_ANSWERS.CHANGED) { state.refillFlow = { ...state.refillFlow, step: "CHANGED" }; render(); return; }
+      if (answer === TAKING_ANSWERS.STOPPED) { await blockRefill(medication, REFILL_BLOCKERS.PATIENT_STOPPED, { reviewStatus: "NOT_TAKING" }); return; }
+      if (answer === TAKING_ANSWERS.UNSURE) { await blockRefill(medication, REFILL_BLOCKERS.UNSURE); return; }
+      state.refillFlow = { ...state.refillFlow, step: "SUPPLY" };
+      render(); return;
+    }
+    if (action === "refill-change-answer") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      if (!medication) return;
+      const change = el.dataset.change || "OTHER";
+      if (change === "DOSE") { state.refillFlow = { ...state.refillFlow, step: "DOSE" }; state.error = ""; render(); return; }
+      if (change === "CONCERN") { await blockRefill(medication, REFILL_BLOCKERS.MEDICATION_CONCERN, { description: L("The patient reports this medication makes them feel unwell.", "El paciente informa que este medicamento le hace sentir mal.", "Pasyan an rapòte medikaman sa a fè l santi l mal."), reviewStatus: "" }); return; }
+      if (change === "FREQUENCY") { await blockRefill(medication, REFILL_BLOCKERS.MEDICATION_DISCREPANCY, { reviewStatus: "FREQUENCY_CHANGED" }); return; }
+      await blockRefill(medication, REFILL_BLOCKERS.MEDICATION_DISCREPANCY);
+      return;
+    }
+    if (action === "submit-refill-dose") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      if (!medication) return;
+      const reported = String(new FormData(document.querySelector("#refill-dose-form")).get("patientReportedDose") || "").trim();
+      if (!reported) { state.error = L("Tell us what you are taking so your care team can review it.", "Díganos qué está tomando para que su equipo lo revise.", "Di nou sa w ap pran pou ekip ou ka revize l."); render(); return; }
+      await blockRefill(medication, REFILL_BLOCKERS.MEDICATION_DISCREPANCY, { reviewStatus: "DOSE_CHANGED", patientReportedDose: reported });
+      return;
+    }
+    if (action === "refill-supply-answer") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      const episode = activeRefillEpisode();
+      if (!medication || !episode) return;
+      const answer = el.dataset.answer || SUPPLY_ANSWERS.UNSURE;
+      saveRefillEpisode({ ...episode, patientConfirmedLowSupply: answer, updatedAt: new Date().toISOString() });
+      audit(state, "medication_refill_supply_answered", "success", { medicationId: medication.id, answer });
+      if (answer === SUPPLY_ANSWERS.ENOUGH) {
+        // The estimate was wrong, and the patient's answer is the one that counts.
+        const signal = openSupplySignalFor(medication.id);
+        if (signal) saveSupplySignal(answerSupplySignal(signal, { status: SIGNAL_STATUS.NOT_NEEDED }));
+        saveRefillEpisode(advanceRefill(episode, { status: REFILL_STATUS.CANCELED, source: "PATIENT", detail: { reason: "PATIENT_HAS_ENOUGH" } }));
+        state.medicationNotice = L("Good to know. I’ll check again later.", "Bueno saberlo. Lo revisaré más adelante.", "Bon pou m konnen. M ap tcheke ankò pita.");
+        state.refillFlow = { medicationId: "", step: "", answer: "" };
+        draftStore.save(state); render(); return;
+      }
+      const signal = openSupplySignalFor(medication.id);
+      if (signal) saveSupplySignal(answerSupplySignal(signal, { status: SIGNAL_STATUS.CONFIRMED_LOW_SUPPLY }));
+      state.refillResolution = resolveRefillPath({ medication: { ...medication, prescriber: medicationPrescriber(medication) }, capabilities: { pharmacyFulfillment: true } });
+      // A path that needs a person is not a request the patient has to confirm: it is submitted so
+      // the right people see it, and the patient is told what is happening.
+      if ([REFILL_PATHS.APPOINTMENT_REQUIRED, REFILL_PATHS.LAB_OR_OTHER_REQUIREMENT, REFILL_PATHS.CARE_TEAM_REVIEW].includes(state.refillResolution.path)) {
+        submitAndShow(medication, activeRefillEpisode(), state.refillResolution);
+        return;
+      }
+      state.refillFlow = { ...state.refillFlow, step: "CONFIRM" };
+      render(); return;
+    }
+    if (action === "submit-refill-request") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      const episode = activeRefillEpisode();
+      if (!medication || !episode) return;
+      // Guard the moment itself: a second tap while the first is in flight is the same intent.
+      if (episode.status === REFILL_STATUS.SUBMITTING || !refillIsOpen(episode)) return;
+      saveRefillEpisode(advanceRefill(episode, { status: REFILL_STATUS.SUBMITTING, source: "ITERA" }));
+      const resolution = state.refillResolution || resolveRefillPath({ medication: { ...medication, prescriber: medicationPrescriber(medication) }, capabilities: { pharmacyFulfillment: true } });
+      submitAndShow(medication, activeRefillEpisode(), resolution);
+      return;
+    }
+    if (action === "change-refill-pharmacy") {
+      // Changing a pharmacy is a real workflow this prototype does not have, so it says so rather
+      // than pretending, and hands it to the people who can do it.
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      if (!medication) return;
+      ensureMedicationCareTeamTask("MEDICATION_PHARMACY_CHANGE", { medicationId: medication.id, refillId: activeRefillEpisode()?.id || null, priority: "ROUTINE", reason: "PATIENT_REQUESTED_PHARMACY_CHANGE", summary: { medication: medicationLabel(medication), currentPharmacy: medication.pharmacy?.name || "" } });
+      audit(state, "medication_pharmacy_change_requested", "success", { medicationId: medication.id });
+      state.medicationNotice = L("Your care team will help you change pharmacy for this medication.", "Su equipo le ayudará a cambiar de farmacia para este medicamento.", "Ekip swen ou ap ede w chanje famasi pou medikaman sa a.");
+      state.refillFlow = { medicationId: "", step: "", answer: "" };
+      draftStore.save(state); render(); return;
+    }
+    if (action === "coordinate-refill-appointment") {
+      const medication = medicationById(el.dataset.medicationId || state.refillFlow?.medicationId || "");
+      const episode = medication ? openRefillForMedication(medication.id) : null;
+      if (!medication || !episode) return;
+      // Appointment coordination is not built yet. The need is captured with the medication context
+      // so nobody has to ask the patient for it again, and EMMI does not pretend to book anything.
+      const goal = currentGoal();
+      const barrier = goal ? recordBarrier({ goal, category: "APPOINTMENT_NEED", patientDescription: L(`Follow-up visit required before renewing ${medicationLabel(medication)}.`, `Se requiere una visita de seguimiento antes de renovar ${medicationLabel(medication)}.`, `Yo mande yon vizit swivi anvan yo renouvle ${medicationLabel(medication)}.`), source: BARRIER_SOURCES.EMMI }) : null;
+      const task = ensureMedicationCareTeamTask("APPOINTMENT_REQUEST", {
+        medicationId: medication.id,
+        refillId: episode.id,
+        priority: "ROUTINE",
+        reason: episode.refillReason || "FOLLOW_UP_VISIT_REQUIRED",
+        summary: { medication: medicationLabel(medication), prescriber: medicationPrescriber(medication)?.name || "", requestedProfessionalType: "PRESCRIBER", reasonSummary: "MEDICATION_RENEWAL", urgencyClassification: "ROUTINE", appointmentStatus: "NOT_SCHEDULED", refillId: episode.id }
+      });
+      saveRefillEpisode({ ...episode, relatedAppointmentNeedId: task?.id || null, relatedBarrierId: barrier?.id || episode.relatedBarrierId, updatedAt: new Date().toISOString() });
+      audit(state, "medication_refill_appointment_requested", "success", { medicationId: medication.id, refillId: episode.id });
+      state.medicationNotice = L("Your care team has what they need to arrange the visit with you.", "Su equipo tiene lo necesario para coordinar la visita con usted.", "Ekip swen ou gen sa yo bezwen pou òganize vizit la avèk ou.");
+      state.refillFlow = { medicationId: "", step: "", answer: "" };
+      draftStore.save(state); render(); return;
+    }
+    if (action === "refill-pickup-check") {
+      const medication = medicationById(el.dataset.medicationId || state.refillFlow?.medicationId || "");
+      if (!medication) return;
+      state.refillFlow = { medicationId: medication.id, step: "PICKUP", answer: "" };
+      render(); return;
+    }
+    if (action === "refill-pickup-answer") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      const episode = medication ? openRefillForMedication(medication.id) : null;
+      if (!medication || !episode) return;
+      if (el.dataset.answer === "YES") {
+        // The only thing that closes a refill is the medication reaching the patient.
+        const completed = advanceRefill({ ...episode, resolutionOutcome: "PATIENT_OBTAINED" }, { status: REFILL_STATUS.COMPLETED, source: "PATIENT" });
+        saveRefillEpisode(completed);
+        auditRefill("medication_refill_completed", completed, { confirmedBy: "PATIENT" });
+        state.medicationNotice = L("Good. I’ll keep an eye on your next refill.", "Muy bien. Estaré atenta a su próxima surtida.", "Trè byen. M ap veye pwochen ranplisaj ou.");
+        state.refillFlow = { medicationId: "", step: "", answer: "" };
+        draftStore.save(state); render(); return;
+      }
+      state.refillFlow = { ...state.refillFlow, step: "PICKUP_BARRIER" };
+      render(); return;
+    }
+    if (action === "refill-barrier-answer") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      const episode = medication ? openRefillForMedication(medication.id) : null;
+      if (!medication) return;
+      const category = el.dataset.barrier === "PHARMACY_NOT_READY" ? "ACCESS_TO_CARE" : el.dataset.barrier || "OTHER";
+      const goal = currentGoal();
+      // The barrier engine owns "I could not get it" — this hands over to it rather than building a
+      // second one for medications.
+      const barrier = goal
+        ? recordBarrier({ goal, category, patientDescription: L(`Could not get ${medicationLabel(medication)} after the refill.`, `No pudo obtener ${medicationLabel(medication)} después de la surtida.`, `Pa t ka jwenn ${medicationLabel(medication)} apre ranplisaj la.`), source: BARRIER_SOURCES.EMMI })
+        : null;
+      if (episode) saveRefillEpisode({ ...episode, relatedBarrierId: barrier?.id || null, updatedAt: new Date().toISOString() });
+      audit(state, "medication_refill_barrier_reported", "success", { medicationId: medication.id, category });
+      if (barrier) {
+        state.activeGoalId = barrier.goalId;
+        state.activeBarrierId = barrier.id;
+        state.screen = "MY_GOALS";
+        state.goalDetailView = "SUMMARY";
+        state.refillFlow = { medicationId: "", step: "", answer: "" };
+        await planNextBarrierHelp(barrier);
+        return;
+      }
+      ensureMedicationCareTeamTask("MEDICATION_ACCESS_SUPPORT", { medicationId: medication.id, refillId: episode?.id || null, priority: "ROUTINE", reason: category, summary: { medication: medicationLabel(medication), issue: category } });
+      state.medicationNotice = L("Your care team will help with this.", "Su equipo le ayudará con esto.", "Ekip swen ou ap ede w ak sa.");
+      state.refillFlow = { medicationId: "", step: "", answer: "" };
+      draftStore.save(state); render(); return;
+    }
+    if (action === "ask-emmi-about-refill") {
+      const medication = medicationById(state.refillFlow?.medicationId || "");
+      showHelp(el);
+      await askEmmi(medication
+        ? L(`I have a question about my ${medication.name} refill.`, `Tengo una pregunta sobre la surtida de ${medication.name}.`, `Mwen gen yon kesyon sou ranplisaj ${medication.name} mwen.`)
+        : L("I have a question about a refill.", "Tengo una pregunta sobre una surtida.", "Mwen gen yon kesyon sou yon ranplisaj."), { questionId: "refill-question", source: "medication-refill" });
+      return;
     }
     if (action === "open-goal-barriers") { state.goalDetailView = "BARRIERS"; state.error = ""; state.activeBarrierId = ""; render(); return; }
     if (action === "select-goal-barrier") {
@@ -5720,6 +6453,11 @@ async function boot() {
       if (!Array.isArray(state.healthInformationUpdateDraft.relatedConditionIds)) state.healthInformationUpdateDraft.relatedConditionIds = [];
       if (!state.healthInformationFlowStep) state.healthInformationFlowStep = state.healthInformationReviewStatus === "CHANGES_REPORTED" && state.patientReportedHealthUpdates.length ? "CHANGE_SAVED" : state.healthInformationReviewStatus === "NEEDS_HELP" ? "HELP_CONFIRMED" : "CHOICE";
       if (!Array.isArray(saved.careMedications)) state.careMedications = state.careMedications || [];
+      // A draft written before medications carried supply data restores without it; the engine
+      // treats a medication with no fill information as one it cannot estimate, which is correct.
+      if (!Array.isArray(saved.medicationSupplySignals)) state.medicationSupplySignals = [];
+      if (!Array.isArray(saved.medicationRefills)) state.medicationRefills = [];
+      state.refillFlow = { medicationId: "", step: "", answer: "" };
       if (!saved.medicationReviews || typeof saved.medicationReviews !== "object") state.medicationReviews = {};
       if (!Array.isArray(saved.additionalMedications)) state.additionalMedications = [];
       if (!["UNREVIEWED", "NONE", "ADDED", "UNSURE"].includes(saved.additionalMedicationsStatus)) state.additionalMedicationsStatus = "UNREVIEWED";

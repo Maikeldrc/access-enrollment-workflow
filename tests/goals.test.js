@@ -49,6 +49,16 @@ describe("goal category iconography", () => {
     expect(resolveGoalIcon({ goalType: "CUSTOM", customTitle: "Keep my blood pressure under control", goalCategory: "MEDICATIONS" })).toBe("pill");
   });
 
+  it("lets a goal override its category icon without changing its category", () => {
+    // Avoiding hospital visits is still prevention, but a patient recognises the place they are
+    // trying to stay out of faster than the abstract shield the category draws.
+    const goal = { goalType: "AVOID_HOSPITAL_VISITS" };
+    expect(goalCategoryOf(goal)).toBe("PREVENTION");
+    expect(resolveGoalIcon(goal, name => ["hospital", "shield"].includes(name))).toBe("hospital");
+    // The override is validated, so an icon the renderer cannot draw falls back to the category.
+    expect(resolveGoalIcon(goal, name => name === "shield")).toBe("shield");
+  });
+
   it("prefers an explicit override, then the category, then the generic target", () => {
     expect(resolveGoalIcon({ goalType: "BLOOD_PRESSURE_CONTROL", iconKey: "scale" })).toBe("scale");
     expect(resolveGoalIcon({ goalType: "BLOOD_PRESSURE_CONTROL" })).toBe("heart");

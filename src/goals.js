@@ -56,6 +56,7 @@ export const GOAL_CONFIG = Object.freeze({
   },
   AVOID_HOSPITAL_VISITS: {
     category: "PREVENTION",
+    iconKey: "hospital",
     displayName: T("Avoid hospital visits", "Evitar visitas al hospital", "Evite vizit lopital"),
     progressType: "PATIENT_REPORTED",
     suggestedActions: [
