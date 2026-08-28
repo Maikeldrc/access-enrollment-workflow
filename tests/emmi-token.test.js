@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { buildEmmiLiveTokenConfig, handleEmmiLiveToken } from "../server/emmiLiveToken.js";
 
-const call = async (method, env) => {
+const call = async (method, env, requestBody = undefined) => {
   let body = "";
   const headers = {};
   const res = { statusCode: 0, setHeader: (name, value) => { headers[name] = value; }, end: value => { body = value; } };
-  await handleEmmiLiveToken({ method }, res, env);
+  await handleEmmiLiveToken({ method, body: requestBody }, res, env);
   return { status: res.statusCode, headers, body: JSON.parse(body) };
 };
 
@@ -19,10 +19,27 @@ describe("EMMI ephemeral token endpoint safety", () => {
     expect(config.lockAdditionalFields).toEqual([]);
     expect(config.liveConnectConstraints).toMatchObject({
       model: "gemini-live-model",
-      config: { responseModalities: ["AUDIO"] }
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Sulafat" } } },
+        realtimeInputConfig: {
+          automaticActivityDetection: {
+            disabled: false,
+            startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
+            endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+            prefixPaddingMs: 300,
+            silenceDurationMs: 800
+          },
+          activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
+        }
+      }
     });
     expect(config.liveConnectConstraints.config).not.toHaveProperty("systemInstruction");
     expect(config.liveConnectConstraints.config).not.toHaveProperty("tools");
+    expect(config.liveConnectConstraints.config).toMatchObject({
+      sessionResumption: {},
+      contextWindowCompression: { slidingWindow: {} }
+    });
   });
   it("accepts POST only", async () => expect(await call("GET", {})).toMatchObject({ status: 405, body: { error: "method_not_allowed" } }));
   it("refuses any configuration that could use real patient data", async () => expect(await call("POST", { EMMI_PROTOTYPE_MODE: "true", EMMI_ALLOW_REAL_PATIENT_DATA: "true", GEMINI_API_KEY: "never-used" })).toMatchObject({ status: 403, body: { error: "unsafe_prototype_configuration" } }));
@@ -31,5 +48,10 @@ describe("EMMI ephemeral token endpoint safety", () => {
     expect(result).toMatchObject({ status: 503, body: { error: "gemini_not_configured" } });
     expect(JSON.stringify(result)).not.toContain("GEMINI_API_KEY");
     expect(result.headers["Cache-Control"]).toContain("no-store");
+  });
+  it("rejects unsupported Kreyòl Live voice before requesting a provider token", async () => {
+    const result = await call("POST", { EMMI_PROTOTYPE_MODE: "true", EMMI_ALLOW_REAL_PATIENT_DATA: "false", GEMINI_API_KEY: "must-not-be-used" }, { locale: "KR" });
+    expect(result).toMatchObject({ status: 503, body: { error: "VOICE_UNAVAILABLE_FOR_LOCALE", voiceCapability: "UNSUPPORTED_BY_GEMINI_LIVE", locale: "KR" } });
+    expect(JSON.stringify(result)).not.toMatch(/ko-KR|Korean|한국어/i);
   });
 });

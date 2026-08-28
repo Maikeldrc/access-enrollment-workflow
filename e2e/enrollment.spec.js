@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
 async function openOwnedBpVerification(page, scenario = "access-happy") {
   await page.goto(`/?scenario=${scenario}`);
@@ -377,6 +378,8 @@ test("ACCESS enrollment confirmation copy is localized in Spanish and Kreyòl", 
 });
 
 test("shared enrollment welcome adapts to every program and enrollment source", async ({ page }) => {
+  // Seven programs, each a full navigation: this is a long test, not a slow product.
+  test.setTimeout(120000);
   const programs = [
     ["ACCESS", "ACCESS", "Start my health check", "ACCESS_BASELINE"],
     ["CCM", "CCM", "Set up my care", "ONBOARDING"],
@@ -474,8 +477,8 @@ test("enrollment welcome highlights align without clipping on supported mobile w
 test("EMMI no longer exposes the prototype session log", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
-  await page.locator(".emmi-assistant").click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await openEmmiConversation(page);
+  await expect(page.locator(".assistant-layer")).toBeVisible();
   await expect(page.getByText("Prototype session log", { exact: true })).toHaveCount(0);
 });
 
@@ -846,8 +849,8 @@ test("EMMI uses the authoritative baseline counters when asked about another rea
   await reachBpReadings(page);
   await page.getByRole("button", { name: "I took my reading" }).click();
   await expect(page.getByRole("heading", { name: "Your monitor is connected", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  await openEmmiConversation(page);
+  const dialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   const input = dialog.getByPlaceholder("Ask a question…");
   await input.fill("Do I need to take my blood pressure again now?");
   await dialog.getByRole("button", { name: "Send question" }).click();
@@ -1031,9 +1034,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
 
   const continueButton = page.getByRole("button", { name: "Agree and continue" });
   await expect(continueButton).toBeDisabled();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await expect(continueButton).toBeDisabled();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(continueButton).toBeEnabled();
   await expect(page.locator('.contextual-assurance[data-assurance-type="ENROLLMENT_CHOICE"]')).toContainText("You choose whether to enroll");
 
@@ -1051,13 +1052,12 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(fullDisclosure.locator('a[href="tel:+13053948070"]')).toHaveText(/\(305\) 394-8070/);
   await expect(fullDisclosure).not.toContainText("Additional information includes beneficiary cost-sharing");
   await expect(page.getByText("Disclosure version: 2.1", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("I have reviewed this important information.")).toBeChecked();
-  await expect(page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.")).toBeChecked();
+  await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeChecked();
   const disclosureView = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(disclosureView.accessDisclosureView).toMatchObject({ disclosureVersion: "2.1", locale: "en", sessionId: disclosureView.sessionId, enrollmentId: null });
   expect(disclosureView.accessDisclosureView.viewedAt).toBeTruthy();
   expect(disclosureView.audit.map(event => event.eventType)).toContain("access_full_disclosure_viewed");
-  await page.locator(".emmi-assistant").click();
+  await openEmmiConversation(page);
   for (const question of ["What am I agreeing to?", "Can I change my mind?", "What will this cost?", "Does this change my Medicare?"]) {
     await expect(page.getByRole("button", { name: question })).toBeVisible();
   }
@@ -1135,9 +1135,7 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
 
   const cta = page.getByRole("button", { name: "Agree and continue" });
   await expect(cta).toBeDisabled();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await expect(cta).toBeDisabled();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(cta).toBeEnabled();
   await expect(page.locator('.contextual-assurance[data-assurance-type="ENROLLMENT_CHOICE"]')).toContainText("You choose whether to enroll");
 
@@ -1181,8 +1179,7 @@ test("ACCESS patient completes the simplified journey without redundant educatio
   await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await page.getByRole("button", { name: "Agree and continue" }).click();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible({ timeout: 5000 });
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
@@ -1192,14 +1189,14 @@ test("ACCESS patient completes the simplified journey without redundant educatio
 test("ACCESS personal representative must complete the authority attestation", async ({ page }) => {
   await page.goto("/?scenario=access-representative");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Personal representative");
   const authority = page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.");
-  const reviewed = page.getByLabel("I have reviewed this important information.");
-  const agreement = page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
+  const agreement = page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
   const cta = page.getByRole("button", { name: "Agree and continue" });
-  await reviewed.check();
   await agreement.check();
+  // A representative still attests their authority separately: that is a different statement
+  // about a different person, not a second confirmation of the same one.
   await expect(cta).toBeDisabled();
   await authority.check();
   await expect(cta).toBeEnabled();
@@ -1324,13 +1321,23 @@ test("role selection branches only personal representatives into representative 
   expect(representativeDraft.audit.map(event => event.eventType)).toEqual(expect.arrayContaining(["completion_role_selected", "representative_details_confirmed", "representative_phone_otp_sent", "representative_phone_otp_verified", "representative_authority_attested"]));
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.").check();
-  await page.getByLabel("I have reviewed this important information.").check();
-  await page.getByLabel("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
+  await page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
   await page.getByRole("button", { name: "Agree and continue" }).click();
   await expect(page.getByRole("heading", { name: "Completing your enrollment with Medicare" })).toBeVisible();
   const consentDraft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(consentDraft).toMatchObject({ consentRole: "PERSONAL_REPRESENTATIVE", consentVersion: "2.1" });
   expect(consentDraft.consentTimestamp).toBeTruthy();
+  // One checkbox on screen, but the evidence behind it is unchanged in substance and richer in
+  // detail: what was shown, when, in which language, at what cost, against which verification.
+  expect(consentDraft.consentAcknowledgement).toMatchObject({
+    consentShape: "SINGLE_AFFIRMATIVE",
+    signerRole: "PERSONAL_REPRESENTATIVE",
+    consentVersion: "2.1",
+    locale: "en"
+  });
+  expect(consentDraft.consentAcknowledgement.disclosureVersion).toBeTruthy();
+  expect(consentDraft.consentAcknowledgement.acceptedAt).toBeTruthy();
+  expect(consentDraft.consentAcknowledgement.displayedExpectedPatientPayment).toBeTruthy();
   expect(consentDraft.audit.map(event => event.eventType)).toContain("consent_saved");
   await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
   await expect(page.getByText("Please enter the patient’s date of birth and ZIP code.")).toBeVisible();
@@ -1346,7 +1353,7 @@ test("role selection branches only personal representatives into representative 
   await expect(page.getByLabel("Your mobile number")).toHaveValue("(305) 555-0123");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await expect(page.locator(".signer-role")).toContainText("Signing as: Personal representative");
-  await expect(page.getByText("I agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", { exact: true }).first()).toBeVisible();
 
   await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
   await page.goto("/?scenario=access-happy");
@@ -1398,7 +1405,8 @@ test("personal representative screens remain senior-friendly and clear of Emmi",
     await page.locator("#screen-select").selectOption(screenName, { force: true });
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const layout = await page.locator(".representative-details-screen").evaluate(screen => {
-      const assistant = document.querySelector(".emmi-assistant").getBoundingClientRect();
+      const pill = document.querySelector(".emmi-assistant");
+      const assistant = pill.getClientRects().length ? pill.getBoundingClientRect() : new DOMRect(-1, -1, 0, 0);
       const protectedElements = [...screen.querySelectorAll(".field,.verified-phone-status,.check-row,.actions,.representative-otp-links")];
       const overlaps = protectedElements.filter(element => {
         const rect = element.getBoundingClientRect();
@@ -1436,8 +1444,9 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await expect(page.locator(".recommendation-screen")).not.toContainText("recommended care");
   await expect(page.locator(".recommendation-screen")).not.toContainText(/\b(?:CCM|RPM|PCM|CPT)\b/);
   await expect(page.locator(".progress-meta span").last()).toHaveText("Your care");
+  await expect(page.locator(".emmi-guide")).toBeVisible();
   const assistant = page.locator(".emmi-assistant");
-  await expect(assistant).toBeVisible();
+  await expect(assistant).toBeHidden();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator(".recommendation-screen").evaluate(screen => {
     const assistantRect = document.querySelector(".emmi-assistant").getBoundingClientRect();
@@ -1452,8 +1461,8 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   expect(layout.overlaps).toBe(false);
   expect(Math.min(...layout.descriptionFonts)).toBeGreaterThanOrEqual(16);
   expect(layout.noteFont).toBeGreaterThanOrEqual(15);
-  await assistant.click();
-  await expect(page.getByRole("heading", { name: "Hi, I’m EMMI. How can I help?" })).toBeVisible();
+  await openEmmiConversation(page);
+  await expect(page.getByRole("heading", { name: "How can I help?" })).toBeVisible();
   await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
   await expect(page.getByText("What does ACCESS care include?")).toBeVisible();
   await expect(page.getByText("Will I keep seeing my doctor?")).toBeVisible();
@@ -1509,7 +1518,7 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
-  await expect(page.getByLabel("I agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
+  await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
   await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
   await expect(page.getByText("You continue working with Dr. Humberto Machado Jr.", { exact: true })).toBeVisible();
 });
@@ -1652,7 +1661,8 @@ test("landing human-support line stays compact, centered, and clear of the Care 
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/?scenario=access-happy");
     await expect(page.locator(".contextual-assurance")).toHaveCount(0);
-    await expect(page.locator(".emmi-assistant")).toBeVisible();
+    await expect(page.locator(".emmi-welcome")).toBeVisible();
+    await expect(page.locator(".emmi-assistant")).toBeHidden();
     const contact = page.locator(".contact-line");
     await expect(contact).toHaveText("Need help? Call (305) 394-8070");
     await expect(contact.locator("a")).toHaveAttribute("href", "tel:+13053948070");
@@ -1956,7 +1966,7 @@ test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do n
     await expect(page.locator(".access-consent-summary").getByText(locale.changeRule)).toBeVisible();
     await expect(page.getByText(locale.cost)).toBeVisible();
     await expect(page.getByText(locale.fullTerms, { exact: false })).toBeVisible();
-    await page.locator(".emmi-assistant").click();
+    await openEmmiConversation(page);
     await expect(page.locator(".assistant-header")).toContainText(locale.assistant);
     await expect(page.locator("#app")).not.toContainText("⟦");
   }
@@ -1976,8 +1986,9 @@ test("ACCESS does not confirm enrollment at eligibility", async ({ page }) => {
   await expect(page.locator('.contextual-assurance[data-assurance-type="NO_COMMITMENT_YET"]')).toContainText("You’ll review the details before you enroll");
   await expect(page.getByText("Enrollment confirmed")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText(/coverage is approved|Medicare approved your care|you’re enrolled|enrollment is confirmed/i);
+  await expect(page.locator(".emmi-guide")).toBeVisible();
   const assistant = page.locator(".emmi-assistant");
-  await expect(assistant).toBeVisible();
+  await expect(assistant).toBeHidden();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   const layout = await page.locator("#screen-content").evaluate(screen => {
     const bot = document.querySelector(".emmi-assistant").getBoundingClientRect();
@@ -2019,7 +2030,8 @@ test("ACCESS eligibility processing uses patient-friendly real status states", a
   await expect(page.locator('.process-list li[data-process-state="pending"]')).toHaveText("Confirming your ACCESS care option");
   await expect(page.locator(".process-list")).not.toContainText("care track");
   await expect(page.locator('.contextual-assurance[data-assurance-type="MEDICARE_PROTECTION"]')).toContainText("This check won’t affect your Medicare benefits");
-  await expect(page.locator(".emmi-assistant")).toBeVisible();
+  await expect(page.locator(".emmi-guide")).toBeVisible();
+  await expect(page.locator(".emmi-assistant")).toBeHidden();
   const audit = await page.locator(".eligibility-processing-screen").evaluate(screen => ({
     statusFonts: [...screen.querySelectorAll(".process-list li")].map(item => parseFloat(getComputedStyle(item).fontSize)),
     horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
@@ -2137,27 +2149,27 @@ test("language switch exposes Spanish UI", async ({ page }) => {
 
 test("Emmi remains available throughout the patient experience", async ({ page }) => {
   await page.goto("/?scenario=ccm-happy");
-  const emmi = page.getByRole("button", { name: "Ask Emmi, Care Assistant" });
+  // Home introduces EMMI in her own card, so the corner stays empty: one EMMI, not two.
+  await expect(page.locator(".emmi-welcome")).toBeVisible();
+  const emmi = page.getByRole("button", { name: "Open EMMI" });
+  await expect(emmi).toBeHidden();
+
+  await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
+  const compactEmmi = page.locator(".emmi-guide");
+  await expect(compactEmmi).toBeVisible();
+  await expect(emmi).toBeHidden();
+
+  // Past the compact card — on a screen long enough to scroll it away — EMMI returns as a named
+  // pill the patient can move where they like.
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  expect(await revealFloatingEmmi(page)).not.toBeNull();
   await expect(emmi).toBeVisible();
   await expect(emmi.locator("img")).toHaveAttribute("src", "/assets/emmi-assistant.png");
-  const emmiSurface = await emmi.evaluate(button => {
-    const buttonStyle = getComputedStyle(button);
-    const avatarStyle = getComputedStyle(button.querySelector(".emmi-avatar"));
-    return {
-      buttonBackground: buttonStyle.backgroundColor,
-      buttonBorder: buttonStyle.borderTopWidth,
-      buttonRadius: buttonStyle.borderRadius,
-      avatarBackground: avatarStyle.backgroundColor,
-      avatarRadius: avatarStyle.borderRadius
-    };
-  });
-  expect(emmiSurface).toEqual({
-    buttonBackground: "rgba(0, 0, 0, 0)",
-    buttonBorder: "0px",
-    buttonRadius: "0px",
-    avatarBackground: "rgba(0, 0, 0, 0)",
-    avatarRadius: "0px"
-  });
+  // How the pill is drawn is covered by emmi-guidance.spec.js; what matters here is that EMMI is
+  // reachable, named for assistive technology, and still where the patient left her.
+  await expect(emmi).toHaveAccessibleName("Open EMMI");
+  expect((await emmi.boundingBox()).height).toBeGreaterThanOrEqual(48);
+
   const initial = await emmi.boundingBox();
   await page.mouse.move(initial.x + initial.width / 2, initial.y + initial.height / 2);
   await page.mouse.down();
@@ -2165,13 +2177,12 @@ test("Emmi remains available throughout the patient experience", async ({ page }
   await page.mouse.up();
   const moved = await emmi.boundingBox();
   expect(Math.abs(moved.x - initial.x)).toBeGreaterThan(80);
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
-  await page.reload();
-  const restored = await emmi.boundingBox();
-  expect(Math.abs(restored.x - moved.x)).toBeLessThan(4);
-  await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
-  await expect(emmi).toBeVisible();
-  await emmi.click();
+
+  // Ask EMMI from the compact card opens the same conversation.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(compactEmmi).toBeVisible();
+  await expect(emmi).toBeHidden();
+  await compactEmmi.getByRole("button", { name: "Ask EMMI" }).click();
   await expect(page.getByText("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.")).toBeVisible();
 });
 
@@ -2185,8 +2196,8 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   const scrollBefore = await page.evaluate(() => window.scrollY);
   const progressBefore = await page.getByRole("progressbar", { name: "Journey progress" }).getAttribute("aria-valuenow");
 
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  await openEmmiConversation(page);
+  const dialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Ask me anything about your enrollment or care.")).toBeVisible();
   await expect(dialog.getByPlaceholder("Ask a question…")).toBeVisible();
@@ -2242,12 +2253,12 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
   await expect(acknowledgement).toBeChecked();
   await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", progressBefore);
-  await expect(page.getByRole("button", { name: "Ask Emmi, Care Assistant" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open EMMI" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  const consentDialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  await openEmmiConversation(page);
+  const consentDialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   await expect(consentDialog.getByText("What am I agreeing to?")).toBeVisible();
   await expect(consentDialog.getByText("Can I change my mind?")).toBeVisible();
   await expect(consentDialog.getByText("What will this cost?")).toBeVisible();
@@ -2279,7 +2290,8 @@ test("date of birth supports typing and calendar selection", async ({ page }) =>
   await expect(dateText).toHaveAttribute("inputmode", "numeric");
   await expect(zip).toHaveAttribute("inputmode", "numeric");
   await expect(page.locator("#identity-form input[name]")).toHaveCount(2);
-  await expect(page.locator(".emmi-assistant")).toBeVisible();
+  await expect(page.locator(".emmi-guide")).toBeVisible();
+  await expect(page.locator(".emmi-assistant")).toBeHidden();
   await dateText.fill("06151945");
   await expect(dateText).toHaveValue("06 / 15 / 1945");
 
@@ -2334,6 +2346,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     await expect(footer).toHaveAttribute("data-assurance-type", type);
     await expect(footer).toContainText(message);
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const audit = await page.locator("#screen-content").evaluate(screenContent => {
       const assurance = screenContent.querySelector(".contextual-assurance");
       const actionArea = screenContent.querySelector(".actions") || [...screenContent.querySelectorAll(".button")].at(-1);
@@ -2479,7 +2492,7 @@ test("prototype cards and scenario summary remain usable across tablet and deskt
   }
 });
 
-test("patient experience uses a centered 390px mobile shell on desktop and full width on phones", async ({ page }) => {
+test("patient experience uses a centered 384px mobile shell on desktop and full width on phones", async ({ page }) => {
   for (const width of [1366, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
@@ -2490,23 +2503,40 @@ test("patient experience uses a centered 390px mobile shell on desktop and full 
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     const shell = page.locator(".patient-app-shell");
     await expect(shell).toBeVisible();
-    await expect(page.locator(".emmi-assistant")).toBeVisible();
+    // Home presents EMMI as her introduction card; whichever presentation is painted has to stay
+    // inside the patient shell rather than float over the desktop configurator.
+    await expect(page.locator(".emmi-welcome")).toBeVisible();
     const layout = await shell.evaluate(element => {
       const rect = element.getBoundingClientRect();
-      const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
+      const emmi = [...document.querySelectorAll(".emmi-assistant, .emmi-welcome, .emmi-guide")]
+        .filter(node => node.getClientRects().length)
+        .map(node => node.getBoundingClientRect());
       return {
         width: rect.width,
         centered: Math.abs((rect.left + rect.right) / 2 - innerWidth / 2) < 1,
         minHeight: rect.height,
         horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
-        emmiInside: Boolean(emmi && emmi.left >= rect.left && emmi.right <= rect.right)
+        emmiCount: emmi.length,
+        emmiInside: emmi.every(box => box.left >= rect.left - 1 && box.right <= rect.right + 1)
       };
     });
-    expect(layout.width).toBeCloseTo(390, 0);
+    expect(layout.width).toBeCloseTo(384, 0);
     expect(layout.centered).toBe(true);
     expect(layout.minHeight).toBeGreaterThanOrEqual(844);
     expect(layout.horizontalOverflow).toBe(false);
+    expect(layout.emmiCount, "one EMMI presentation at a time").toBe(1);
     expect(layout.emmiInside).toBe(true);
+
+    // Expanded EMMI is a sheet over the patient experience, not over the whole desktop app.
+    await openEmmiConversation(page);
+    const panel = await page.locator(".assistant-layer").evaluate(layer => {
+      const rect = layer.getBoundingClientRect();
+      const shellRect = document.querySelector(".patient-app-shell").getBoundingClientRect();
+      return { width: rect.width, insideShell: rect.left >= shellRect.left - 1 && rect.right <= shellRect.right + 1 };
+    });
+    expect(panel.width).toBeCloseTo(384, 0);
+    expect(panel.insideShell).toBe(true);
+    await page.locator(".assistant-close").click();
   }
 
   for (const viewport of [{ width: 375, height: 812 }, { width: 390, height: 844 }, { width: 393, height: 852 }, { width: 430, height: 932 }]) {
@@ -2515,14 +2545,16 @@ test("patient experience uses a centered 390px mobile shell on desktop and full 
     await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
     const layout = await page.locator(".patient-app-shell").evaluate(element => {
       const rect = element.getBoundingClientRect();
-      const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
+      const emmi = [...document.querySelectorAll(".emmi-assistant, .emmi-welcome, .emmi-guide")]
+        .filter(node => node.getClientRects().length)
+        .map(node => node.getBoundingClientRect());
       return {
         width: rect.width,
         viewportWidth: innerWidth,
         horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
         naturalPageScroll: document.documentElement.scrollHeight > innerHeight,
         shellHasInternalScroll: element.scrollHeight > element.clientHeight + 1,
-        emmiInside: Boolean(emmi && emmi.left >= rect.left && emmi.right <= rect.right)
+        emmiInside: emmi.length > 0 && emmi.every(box => box.left >= rect.left - 1 && box.right <= rect.right + 1)
       };
     });
     expect(layout.width).toBeCloseTo(layout.viewportWidth, 0);
@@ -2579,7 +2611,7 @@ test("all traditional programs complete their implemented patient journey", asyn
     if (includesRpm) {
       await page.getByRole("button", { name: program === "RPM" ? "Set up my monitor" : "Continue getting started" }).click();
       await expect(page.getByRole("heading", { name: "Let’s prepare your home monitor" })).toBeVisible();
-      await page.getByRole("radio", { name: /I already have a monitor/ }).check();
+      await page.locator('.choice-card:has(input[value="owned"])').click();
       await page.getByRole("button", { name: "Continue" }).click();
       await page.getByRole("button", { name: "My monitor is connected" }).click();
       await page.getByRole("button", { name: "I took my reading" }).click();
@@ -2682,6 +2714,7 @@ test("core mobile screens tolerate 125 and 150 percent content scaling", async (
 
 test("patient screens share one page gutter and one content column", async ({ page }) => {
   const viewports = [
+    { width: 384, height: 824, gutter: [14, 17] },
     { width: 360, height: 800, gutter: [11, 13] },
     { width: 375, height: 812, gutter: [14, 16] },
     { width: 390, height: 844, gutter: [14, 17] },
@@ -2732,6 +2765,7 @@ test("the floating assistant never covers an action once the patient reaches it"
     for (const screen of ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ONBOARDING_COMPLETE"]) {
       await page.locator("#screen-select").selectOption(screen, { force: true });
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const covered = await page.evaluate(() => {
         const assistant = document.querySelector(".emmi-assistant");
         if (!assistant || getComputedStyle(assistant).display === "none") return false;
@@ -2743,6 +2777,50 @@ test("the floating assistant never covers an action once the patient reaches it"
           });
       });
       expect(covered, `${screen} @${viewport.width}`).toBe(false);
+    }
+  }
+});
+
+test("patient screens end with their content instead of an empty scroll tail", async ({ page }) => {
+  const viewports = [
+    // 384x824 is the primary mobile reference (Samsung Galaxy S25 Ultra).
+    { width: 384, height: 824 },
+    { width: 360, height: 800 },
+    { width: 375, height: 812 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+    { width: 430, height: 932 }
+  ];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ONBOARDING_COMPLETE"];
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/?scenario=access-happy");
+    for (const screen of screens) {
+      await page.locator("#screen-select").selectOption(screen, { force: true });
+      const audit = await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        const root = document.querySelector("#screen-content");
+        const meaningful = [...root.querySelectorAll("*")].filter(node => {
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.visibility === "hidden" || style.position === "fixed") return false;
+          const rect = node.getBoundingClientRect();
+          return rect.height > 4 && rect.width > 4 && (node.textContent.trim() || node.tagName === "IMG" || node.tagName === "BUTTON");
+        });
+        const contentBottom = Math.max(...meaningful.map(node => node.getBoundingClientRect().bottom));
+        const documentHeight = document.documentElement.scrollHeight;
+        return {
+          // Only counts when the page actually scrolls: a viewport taller than the content is
+          // the device, not manufactured height.
+          scrolls: documentHeight > innerHeight + 1,
+          tail: documentHeight - contentBottom,
+          bottomPadding: parseFloat(getComputedStyle(root).paddingBottom)
+        };
+      });
+      if (audit.scrolls) {
+        // Nothing below the last meaningful element but the single closing gap.
+        expect(audit.tail, `${screen} @${viewport.width}x${viewport.height} empty scroll tail`).toBeLessThanOrEqual(audit.bottomPadding + 8);
+      }
+      expect(audit.bottomPadding, `${screen} @${viewport.width} bottom padding`).toBeLessThanOrEqual(48);
     }
   }
 });

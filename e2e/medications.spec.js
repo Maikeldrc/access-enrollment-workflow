@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 const clinicalMedications = [
   { id: "med-lisinopril", name: "Lisinopril", details: "10 mg · Once daily", active: true },
@@ -80,7 +81,7 @@ test("adding, editing, and removing a missing medication provides clear feedback
 });
 
 test("EMMI gives safe medication education without treatment advice", async ({ page }) => {
-  await page.getByRole("button", { name: /Ask Emmi/i }).click();
+  await openEmmiConversation(page);
   await page.getByRole("button", { name: "What is Lisinopril?" }).click();
   await expect(page.getByText(/commonly used to help manage blood pressure/i)).toBeVisible();
   await page.getByPlaceholder(/Ask a question/i).fill("Should I stop taking this?");
@@ -100,7 +101,7 @@ for (const locale of [
   await expect(page.getByRole("heading", { name: locale.additional })).toBeVisible();
 });
 
-for (const width of [360, 375, 390, 393, 430]) test(`medication review is responsive at ${width}px`, async ({ page }) => {
+for (const width of [384, 360, 375, 390, 393, 430]) test(`medication review is responsive at ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 780 });
   await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
   const result = await page.evaluate(() => {

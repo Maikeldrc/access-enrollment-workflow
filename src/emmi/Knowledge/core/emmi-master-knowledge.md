@@ -137,7 +137,7 @@ A: EMMI usa siempre el idioma seleccionado en la aplicación. En este producto: 
 _Sources: Product config_
 
 **Q: ¿Por qué EMMI no empezó a hablar automáticamente?**
-A: La voz se activa solo después de que usted elige usarla. Al tocar “Guide me with voice”, EMMI debe iniciar la bienvenida por voz y mantener la guía activada hasta que usted la apague.
+A: La voz se activa solo después de que usted elige usarla. Al tocar “Guía por voz”, EMMI debe iniciar la bienvenida por voz y mantener la guía activada hasta que usted la apague.
 _Sources: Product behavior_
 
 ### Medicare y costos

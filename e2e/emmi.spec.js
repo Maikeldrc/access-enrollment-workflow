@@ -1,9 +1,10 @@
 import { mkdir } from "node:fs/promises";
 import { test, expect } from "@playwright/test";
+import { openEmmiConversation } from "./emmiSurfaces.js";
 
 const openEmmi = async page => {
-  await page.getByRole("button", { name: "Ask Emmi, Care Assistant" }).click();
-  return page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  await openEmmiConversation(page);
+  return page.locator(".assistant-layer");
 };
 const ask = async (dialog, text) => {
   await dialog.getByPlaceholder("Ask a question…").fill(text);
@@ -16,7 +17,14 @@ test("EMMI contextual mock tools, guardrails, confirmation, and audit work toget
   const dialog = await openEmmi(page);
 
   await ask(dialog, "How much will I pay?");
-  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /expected ACCESS cost is \$6 per month/i })).toBeVisible();
+  // The demo patient has verified Original Medicare and a supplement verified to cover the ACCESS
+  // cost share, so the answer is $0 with the reason attached — never "ACCESS is free", and never
+  // a $0 that reads as though every other cost were $0 too.
+  const costAnswer = dialog.locator(".assistant-message.assistant p").filter({ hasText: /expected payment for ACCESS is \$0/i });
+  await expect(costAnswer).toBeVisible();
+  await expect(costAnswer).toContainText(/supplemental insurance is expected to cover/i);
+  await expect(costAnswer).toContainText(/other healthcare services can still have their own costs/i);
+  await expect(dialog.locator(".assistant-message.assistant")).not.toContainText(/ACCESS is free|no cost|fully covered/i);
   await ask(dialog, "Can you enroll me?");
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /I cannot consent for you/i })).toBeVisible();
 
@@ -59,9 +67,10 @@ test("EMMI offers safe voice fallbacks and localized Kreyòl text", async ({ pag
   await page.goto("/?scenario=access-happy");
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
-  dialog = await page.getByRole("button", { name: "Mande Emmi, asistan swen" }).click().then(() => page.getByRole("dialog"));
-  await dialog.getByRole("button", { name: "Pale ak EMMI" }).click();
-  await expect(dialog.getByText(/Gid vwa poko disponib nan lang sa a/i)).toBeVisible();
+  // Home introduces EMMI in her own card, so that is where the conversation opens from.
+  dialog = await openEmmiConversation(page);
+  await expect(dialog.getByRole("button", { name: "Pale ak EMMI" })).toHaveCount(0);
+  await expect(dialog.getByText("Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj.")).toBeVisible();
   await expect(dialog.getByPlaceholder("Poze yon kesyon…")).toBeEnabled();
 });
 
@@ -70,15 +79,19 @@ test("EMMI mobile visual states remain readable without horizontal overflow", as
   for (const [state, filename, copy] of [
     ["", "emmi-closed.png", "Talk to EMMI"],
     ["LISTENING", "emmi-listening.png", "Listening…"],
-    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is speaking…"],
+    ["USER_SPEAKING", "emmi-listening-active.png", "Listening…"],
+    ["EMMI_THINKING", "emmi-thinking.png", "EMMI is thinking…"],
+    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is explaining…"],
     ["TOOL_RUNNING", "emmi-tool-running.png", "Checking your ACCESS cost…"]
   ]) {
     await page.goto(`/?scenario=access-happy${state ? `&emmiState=${state}` : ""}`);
     const dialog = await openEmmi(page);
     await expect(dialog.getByText(copy, { exact: false })).toBeVisible();
-    const metrics = await dialog.evaluate(layer => ({ overflow: layer.scrollWidth > layer.clientWidth, talkHeight: layer.querySelector(".assistant-talk-button")?.getBoundingClientRect().height || 68, minControl: Math.min(...[...layer.querySelectorAll("button")].map(button => button.getBoundingClientRect().height).filter(Boolean)) }));
+    const metrics = await dialog.evaluate(layer => ({ overflow: layer.scrollWidth > layer.clientWidth, talkHeight: layer.querySelector(".assistant-talk-button")?.getBoundingClientRect().height || 60, minControl: Math.min(...[...layer.querySelectorAll("button")].map(button => button.getBoundingClientRect().height).filter(Boolean)) }));
     expect(metrics.overflow).toBe(false);
-    expect(metrics.talkHeight).toBeGreaterThanOrEqual(68);
+    // One voice control, sized for a 65+ thumb rather than stacked with a second line of copy.
+    expect(metrics.talkHeight).toBeGreaterThanOrEqual(56);
+    expect(metrics.minControl).toBeGreaterThanOrEqual(44);
     await page.screenshot({ path: `qa-evidence/emmi/${filename}`, fullPage: false });
   }
 });

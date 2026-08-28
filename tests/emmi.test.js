@@ -4,7 +4,7 @@ import { EMMI_TOOL_DECLARATIONS, EmmiAuditLog, EmmiToolOrchestrator, selectDemoP
 const memory = new Map();
 const makeRuntime = (patientId = "DEMO-P001") => {
   const audit = new EmmiAuditLog({ sessionId: "TEST-SESSION", demoPatientId: patientId, locale: "EN", currentScreen: "INVITATION" });
-  return { audit, tools: new EmmiToolOrchestrator({ getContext: () => ({ patientId, accessTrack: "eCKM", currentScreen: "INVITATION", locale: "EN" }), auditLog: audit }) };
+  return { audit, tools: new EmmiToolOrchestrator({ getContext: () => ({ patientId, accessTrack: "eCKM", currentScreen: "MY_GOALS", locale: "EN", activeGoal: { id: "goal-bp", latestReading: { systolic: 120, diastolic: 80, classification: "WITHIN_EXPECTED_RANGE" }, readingTrend: { count: 5, averageSystolic: 124, averageDiastolic: 81, direction: "STABLE" }, clinicalTarget: { systolicMaximum: 139, diastolicMaximum: 89 }, progress: { readingCountThisWeek: 5 }, actions: [{ id: "action-bp", verificationMethod: "DEVICE" }], nextBestEducation: { id: "bp-numbers" } } }), auditLog: audit }) };
 };
 
 beforeEach(() => {
@@ -22,8 +22,21 @@ describe("EMMI prototype tools", () => {
 
   it("uses authoritative fixture data for cost and connected-device answers", async () => {
     const { tools } = makeRuntime();
-    expect(await tools.execute("getExpectedAccessCost", { patientId: "DEMO-P001", accessTrack: "eCKM" })).toMatchObject({ expectedMonthlyCost: 6, currency: "USD" });
+    // The cost tool now returns the engine's structured result: a gross amount from the track
+    // configuration, and a $0 expected payment justified by verified supplemental coverage.
+    expect(await tools.execute("getExpectedAccessCost", { patientId: "DEMO-P001", accessTrack: "eCKM" })).toMatchObject({
+      grossBeneficiaryResponsibility: 6, expectedPatientPayment: 0, currency: "USD",
+      explanationCode: "SUPPLEMENTAL_COVERS_COST_SHARE", responsibilityType: "EXPECTED"
+    });
+    expect(await tools.execute("getPatientCoverage", { patientId: "DEMO-P001" })).toMatchObject({ found: true });
     expect(await tools.execute("getAssignedDevice", { patientId: "DEMO-P001" })).toMatchObject({ found: true, vendor: "TENOVI", integrationStatus: "CONNECTED" });
+  });
+
+  it("returns goal readings and trends from runtime instead of model inference", async () => {
+    const { tools } = makeRuntime();
+    expect(await tools.execute("getLatestReading", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE" })).toMatchObject({ source: "PATIENT_RUNTIME", reading: { systolic: 120, diastolic: 80 } });
+    expect(await tools.execute("getReadingTrend", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE", periodDays: 7 })).toMatchObject({ source: "DETERMINISTIC_ANALYTICS", trend: { count: 5, direction: "STABLE" } });
+    expect(await tools.execute("getClinicalTarget", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE" })).toMatchObject({ source: "CARE_TEAM_CONFIGURATION", target: { systolicMaximum: 139 } });
   });
 
   it("distinguishes no device from a patient-owned unsupported device", async () => {
@@ -59,5 +72,13 @@ describe("EMMI prototype tools", () => {
     const serialized = JSON.stringify(EmmiAuditLog.all());
     expect(serialized).toContain("getExpectedAccessCost");
     expect(serialized).not.toMatch(/audioData|apiKey|ephemeralToken|GEMINI_API_KEY/i);
+  });
+
+  it("records non-PHI voice identity metadata for consistency debugging", () => {
+    const { audit } = makeRuntime();
+    audit.voiceEvent("EMMI_VOICE_SESSION_CONFIGURED", { voiceId: "Sulafat", voiceVersion: "emmi-voice-v1", provider: "gemini-live", locale: "EN", screenId: "INVITATION", connectionId: "voice-1" });
+    const entry = EmmiAuditLog.all().at(-1);
+    expect(entry).toMatchObject({ voiceId: "Sulafat", voiceVersion: "emmi-voice-v1", voiceProvider: "gemini-live" });
+    expect(entry.voiceEvents.at(-1)).toMatchObject({ type: "EMMI_VOICE_SESSION_CONFIGURED", voiceId: "Sulafat", screenId: "INVITATION" });
   });
 });
