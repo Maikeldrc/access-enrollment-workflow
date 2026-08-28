@@ -1540,6 +1540,41 @@ p { margin:0; }
 .other-condition input { width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--border-default);border-radius:9px;color:var(--text-primary);background:var(--surface-primary);font-size:.9rem; }
 .other-condition input:focus { border-color:var(--primary-600);box-shadow:0 0 0 4px var(--focus-ring);outline:0; }
 .prototype-error { min-height:24px;margin:12px 0 0;color:var(--error);font-size:.82rem;font-weight:700; }
+/* Simulated BP readings: an internal panel in the desktop console. It is deliberately marked so a
+   tester can never forget the readings arriving in the patient UI are generated. */
+.bp-simulation { margin:24px 0 0;padding:20px 22px;border:1px solid var(--primary-100);border-radius:16px;background:color-mix(in srgb,var(--primary-50) 55%,var(--surface-primary)); }
+.bp-simulation-header { display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between; }
+.bp-simulation-header h2 { margin:0;font-size:1.05rem;line-height:1.3; }
+.bp-simulation-header small { color:var(--text-secondary);font-size:.86rem; }
+.bp-simulation-status { display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--surface-primary);color:var(--text-secondary);font-size:.86rem;font-weight:700; }
+.bp-simulation-status i { width:9px;height:9px;border-radius:50%;background:var(--border-strong); }
+.bp-simulation[data-simulation-status="RUNNING"] .bp-simulation-status { color:var(--primary-700); }
+.bp-simulation[data-simulation-status="RUNNING"] .bp-simulation-status i { background:var(--success,#25ba7d);animation:bp-simulation-pulse 1.8s ease-in-out infinite; }
+@keyframes bp-simulation-pulse { 50% { opacity:.35; } }
+.bp-simulation-controls { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px; }
+.bp-simulation-rules { margin:14px 0 0;color:var(--text-secondary);font-size:.86rem;line-height:1.5; }
+.bp-simulation-rules code { padding:1px 6px;border-radius:5px;background:var(--surface-primary);font-size:.82rem; }
+.bp-simulation-actions { display:flex;flex-wrap:wrap;gap:9px;margin-top:16px; }
+.bp-simulation-actions button { min-height:42px;padding:9px 16px;border:1px solid var(--border-default);border-radius:10px;background:var(--surface-primary);color:var(--text-primary);font:inherit;font-size:.94rem;font-weight:700;cursor:pointer; }
+.bp-simulation-actions button:hover:not(:disabled) { border-color:var(--primary-300);background:var(--primary-50); }
+.bp-simulation-actions button:disabled { opacity:.45;cursor:not-allowed; }
+.bp-simulation-actions .bp-simulation-primary { border-color:var(--primary-600);background:var(--primary-600);color:#fff; }
+.bp-simulation-actions .bp-simulation-primary:hover { background:var(--primary-700);border-color:var(--primary-700); }
+.bp-simulation-countdown { margin:14px 0 0;color:var(--text-secondary);font-size:.94rem; }
+.bp-simulation-countdown strong { color:var(--text-primary);font-variant-numeric:tabular-nums; }
+.bp-simulation-latest { display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-primary); }
+.bp-simulation-latest span { color:var(--text-secondary);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em; }
+.bp-simulation-latest strong { font-size:1.15rem;font-variant-numeric:tabular-nums; }
+.bp-simulation-latest small { color:var(--text-muted);font-size:.82rem;font-variant-numeric:tabular-nums; }
+.bp-simulation-history { margin-top:16px; }
+.bp-simulation-history h3 { margin:0 0 8px;color:var(--text-secondary);font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase; }
+.bp-simulation-history ol { display:grid;gap:4px;margin:0;padding:0;list-style:none; }
+.bp-simulation-history li { display:grid;grid-template-columns:96px 84px 1fr;gap:10px;align-items:center;padding:7px 12px;border-radius:9px;background:var(--surface-primary);font-size:.9rem;font-variant-numeric:tabular-nums; }
+/* The verdict is the engine's, so it is the part that carries the colour. */
+[data-classification="ACTION_NEEDED"] { color:#b3261e;font-style:normal;font-weight:800; }
+[data-classification="NEEDS_REVIEW"] { color:#8a5a00;font-style:normal;font-weight:800; }
+[data-classification="ABOVE_EXPECTED_RANGE"],[data-classification="WITHIN_EXPECTED_RANGE"] { color:var(--text-secondary);font-style:normal;font-weight:700; }
+
 .scenario-footer { position:sticky;bottom:0;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;margin-top:22px;padding:24px 42px;border-top:1px solid var(--border-default);background:rgba(248,252,255,.96);backdrop-filter:blur(12px); }
 .scenario-summary { display:grid;gap:4px;min-width:0; }
 .scenario-summary span { color:var(--text-placeholder);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em; }
@@ -1740,6 +1775,18 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .growth-safe-link,
 .shell:not(:has(.prototype-console)) .growth-notice,
 .public-growth-page .public-growth-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
+
+/* The generic h1/h2 rules above are px, and they out-specify src/appointments.css, which would
+   leave appointment headings frozen while the rest of the screen grows at 125% and 150%. These
+   restate the same sizes at the same specificity in rem: identical at 100%, and they scale.
+   Everything else in src/appointments.css is already rem and is deliberately left alone. */
+.shell:not(:has(.prototype-console)) .appointment-screen-title { font-size:clamp(1.75rem,7.4vw,2rem);line-height:1.24; }
+.shell:not(:has(.prototype-console)) .appointment-section-title,
+.shell:not(:has(.prototype-console)) .appointment-subsection-title { font-size:1.3125rem;line-height:1.3; }
+.shell:not(:has(.prototype-console)) .appointment-need-title,
+.shell:not(:has(.prototype-console)) .appointment-question { font-size:1.25rem;line-height:1.35; }
+.shell:not(:has(.prototype-console)) .appointment-lead { font-size:1.125rem;line-height:1.52; }
+
 
 /* The expanded panel sizes its own type in rem so a patient who has turned text up to 150% gets
    a bigger EMMI, not just a bigger frame around the same 17px. */
