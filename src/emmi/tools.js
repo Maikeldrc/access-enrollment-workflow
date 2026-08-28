@@ -2,6 +2,8 @@ import { EMMI_CONFIG, EMMI_SYSTEM_PROMPT_VERSION, emmiPrototypeIsSafe } from "./
 import { getEmmiVoiceIdentity } from "./voiceIdentity.js";
 import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "../mock/emmiFixtures.js";
 import { normalizeCoverage } from "../coverage.js";
+import { DEMO_BP_MONITORING_RULES } from "../goalHealth.js";
+import { BP_CLINICAL_STATE, classifyObservation } from "../clinicalMonitoring.js";
 import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
@@ -141,11 +143,27 @@ export class EmmiToolOrchestrator {
       }
     } else if (name === "saveEnrollmentProgress") { result = { success: true, patientId, currentScreen: context.currentScreen, protectedFieldsUnchanged: ["consent", "eligibility", "enrollmentStatus"] }; this.onProgress(result); }
     else if (name === "evaluateClinicalEscalation") {
+      // Thresholds are read from the monitoring rules rather than written here. They used to be
+      // inline copies that happened to match; changing the configuration would have left this
+      // tool quietly enforcing the old numbers.
       const symptoms = String(args.symptoms || "").toLowerCase();
       const emergencySymptoms = /(chest pain|can.?t breathe|difficulty breathing|stroke|severe bleeding|very bad|pass(?:ed)? out|faint(?:ed|ing)?|dolor de pecho|no puedo respirar|muy mal|me desmay|desmayo|doulè nan pwatrin|pa ka respire|endispoze|pèdi konesans)/i.test(symptoms);
-      if (emergencySymptoms || Number(args.systolic) >= 180 || Number(args.diastolic) >= 120) result = { severity: "EMERGENCY", instruction: "CALL_911", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
-      else if (Number(args.systolic) >= 160 || Number(args.diastolic) >= 100) result = { severity: "CARE_TEAM_REVIEW", instruction: "CREATE_HIGH_PRIORITY_TASK", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
-      else result = { severity: "NORMAL", instruction: "CONTINUE", policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE" };
+      const reading = { systolic: Number(args.systolic), diastolic: Number(args.diastolic), timestamp: new Date().toISOString(), unit: "mmHg" };
+      const classification = classifyObservation(reading, {
+        rules: DEMO_BP_MONITORING_RULES,
+        symptoms: { chestPain: emergencySymptoms }
+      });
+      const severity = classification.state === BP_CLINICAL_STATE.CRITICAL_WITH_CONCERNING_SYMPTOMS || classification.state === BP_CLINICAL_STATE.CRITICAL || emergencySymptoms
+        ? "EMERGENCY"
+        : classification.readingClassification === "NEEDS_REVIEW" ? "CARE_TEAM_REVIEW" : "NORMAL";
+      result = {
+        severity,
+        instruction: severity === "EMERGENCY" ? "CALL_911" : severity === "CARE_TEAM_REVIEW" ? "CREATE_HIGH_PRIORITY_TASK" : "CONTINUE",
+        clinicalState: classification.state,
+        ruleId: classification.ruleId,
+        ruleVersion: classification.ruleVersion,
+        policy: "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE"
+      };
     } else if (name === "searchKnowledge") {
       // Retrieval runs on the server so the Knowledge Base is never shipped to the browser.
       // Only the journey context needed to pick a document is sent; no patient identifiers.
