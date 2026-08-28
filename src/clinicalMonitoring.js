@@ -47,6 +47,11 @@ export const ALERT_STATUS = Object.freeze({
 
 // Only these symptoms may raise a critical reading to the highest pathway, and only when the
 // approved questionnaire recorded them. Free text never reaches this.
+// The words a patient actually uses for an emergency, in all three languages. This lives with the
+// safety rules rather than in any one caller, because two callers with their own copies is exactly
+// how a chest-pain sentence ends up answered from the knowledge base.
+export const EMERGENCY_SYMPTOM_PATTERN = /chest pain|can.?t breathe|cannot breathe|difficulty breathing|short(?:ness)? of breath|stroke|severe bleeding|very bad|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (?:muy )?(?:fuerte |agudo |intenso )?(?:en (?:el|la) )?pecho|dolor de pecho|no puedo respirar|dificultad para respirar|muy mal|derrame|sangrado grave|me desmay|desmayo|emergencia|suicid|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
+
 export const CONCERNING_SYMPTOMS = Object.freeze(["chestPain", "shortnessOfBreath", "neurologicSymptoms"]);
 
 export const PLAUSIBLE_RANGE = Object.freeze({

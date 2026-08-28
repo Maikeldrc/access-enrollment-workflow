@@ -2,6 +2,11 @@ import { GoogleGenAI } from "@google/genai";
 import { getEmmiSpeechConfig, getEmmiVoiceIdentity } from "../src/emmi/voiceIdentity.js";
 
 const DEFAULT_MODEL = "gemini-3.1-flash-live-preview";
+const buckets = new Map(), LIMIT=10, WINDOW=60000;
+const header=(req,name)=>req.headers?.[name]||req.headers?.[name.toLowerCase()]||"";
+const originAllowed=(req,env)=>!(env.VERCEL_URL||env.EMMI_ALLOWED_ORIGINS)||new Set([...(String(env.EMMI_ALLOWED_ORIGINS||"").split(",").filter(Boolean)),...(env.VERCEL_URL?[`https://${env.VERCEL_URL}`]:[]),"http://localhost:5173","http://127.0.0.1:5173"]).has(String(header(req,"origin")));
+const rateAllowed=req=>{const key=String(header(req,"x-forwarded-for")||req.socket?.remoteAddress||"unknown").split(",")[0],now=Date.now(),items=(buckets.get(key)||[]).filter(t=>now-t<WINDOW);if(items.length>=LIMIT)return false;items.push(now);buckets.set(key,items);return true;};
+export const resetEmmiTokenRateLimits=()=>buckets.clear();
 const asBoolean = (value, fallback) => value == null ? fallback : String(value).toLowerCase() === "true";
 const json = (res, status, body) => {
   res.statusCode = status;
@@ -43,6 +48,8 @@ export const buildEmmiLiveTokenConfig = ({ model, expireTime, newSessionExpireTi
 
 export async function handleEmmiLiveToken(req, res, env = process.env) {
   if (req.method !== "POST") return json(res, 405, { error: "method_not_allowed" });
+  if (!originAllowed(req,env)) return json(res,403,{error:"origin_not_allowed"});
+  if (!rateAllowed(req)) return json(res,429,{error:"rate_limited"});
   const prototypeMode = asBoolean(env.EMMI_PROTOTYPE_MODE, true);
   const allowRealPatientData = asBoolean(env.EMMI_ALLOW_REAL_PATIENT_DATA, false);
   if (!prototypeMode || allowRealPatientData) return json(res, 403, { error: "unsafe_prototype_configuration" });

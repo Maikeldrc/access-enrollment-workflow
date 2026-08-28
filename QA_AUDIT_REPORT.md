@@ -140,7 +140,8 @@ should be picked up by whoever owns that module.
 | File | Why |
 | --- | --- |
 | `src/mock/emmiFixtures.js` | Derive coverage status from the coverage record (QA-001, QA-002) |
-| `src/app.js` | Anchor the cost regex (QA-003); canonical cost fallback (QA-006) — **applied but not committed**, see below |
+| `src/emmi/textOrchestrator.js` | Anchor the cost regex (QA-003) |
+| `src/app.js` | Canonical cost fallback (QA-006) |
 | `server/emmiKnowledge.js` | Medication safety and human support routing (QA-004, QA-005) |
 | `playwright.config.js` | Cap workers (QA-007) |
 | `tests/costConsistency.test.js` | New — QA-001, QA-002, QA-006 |
@@ -149,11 +150,6 @@ should be picked up by whoever owns that module.
 ## Remaining non-audio issues
 
 - **QA-008** (HIGH) — consent-boundary questions answered from RAG. Owned by the orchestrator module.
-- **QA-003 and QA-006 are fixed in the working tree but not committed.** Both live in `src/app.js`,
-  which now carries about 1,100 lines of another session's appointment work and imports an
-  untracked `src/appointments.js`. Committing the file would break the repository build the same way
-  it broke on Vercel earlier. The fixes are three lines and should ride along with that session's
-  next commit; if they are lost, reapply from this report.
 - **Cost card has no "unknown" state.** When coverage is stale or unverified the card confidently
   shows the gross amount while EMMI says the amount is not known. The card errs toward the maximum
   the patient might owe, which is the safe direction, but the two surfaces differ in confidence.

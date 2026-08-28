@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { settleLayout } from "./layout.js";
 import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
 test.beforeEach(async ({ page }) => {
@@ -46,6 +47,25 @@ test("Guide by voice starts the welcome session without a second click", async (
   await expect(page.locator(".emmi-welcome-choice")).toContainText("Voice guidance is unavailable");
   await page.getByRole("button", { name: /Turn voice off/i }).click();
   await expect(page.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
+});
+
+test("Home presents connection setup as Thinking instead of technical copy", async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [] }) } });
+  });
+  let releaseToken;
+  await page.route("**/api/emmi/live-token", route => new Promise(resolve => {
+    releaseToken = async () => {
+      await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "connection_failed" }) });
+      resolve();
+    };
+  }));
+
+  await page.getByRole("button", { name: /Guide by voice/i }).click();
+  const card = page.locator(".emmi-welcome-choice");
+  await expect(card.getByRole("status")).toContainText("Thinking…");
+  await expect(card).not.toContainText(/Connecting|Starting session/i);
+  await releaseToken();
 });
 
 test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", async ({ page }) => {
@@ -162,6 +182,8 @@ test("compact EMMI controls stay aligned and senior-friendly across journey mobi
     await page.reload();
     await page.getByRole("button", { name: /See how it works/i }).click();
     const bar = page.locator(".emmi-guide");
+    // The bar re-renders on its own frame after the resize; measure the settled one.
+    await settleLayout(page);
     const metrics = await bar.evaluate(node => {
       const parentStyle = getComputedStyle(node.parentElement);
       return {
@@ -535,9 +557,9 @@ test("floating EMMI is the avatar alone, with no label and no chrome", async ({ 
   // Transparent, no pill, no border: the avatar is the whole control.
   expect(geometry.background).toBe("rgba(0, 0, 0, 0)");
   expect(geometry.borderWidth).toBe("0px");
-  // The tap target stays comfortably large even though only the logo shows.
-  expect(geometry.width).toBeGreaterThanOrEqual(48);
-  expect(geometry.height).toBeGreaterThanOrEqual(48);
+  // The visible avatar and its tap target are deliberately larger for Medicare patients 65+.
+  expect(geometry.width).toBeGreaterThanOrEqual(64);
+  expect(geometry.height).toBeGreaterThanOrEqual(64);
 });
 
 test("floating EMMI stays inside the patient shell on a desktop preview", async ({ page }) => {

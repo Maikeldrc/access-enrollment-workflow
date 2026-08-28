@@ -194,6 +194,9 @@ describe("EMMI live context guards", () => {
     expect(client.sessionResumptionHandle).toBe("resume-handle");
     expect(onSessionResumption).toHaveBeenCalledWith(expect.objectContaining({ handle: "resume-handle", resumable: true }));
   });
+  it("allows multiple bounded reconnects", () => { vi.useFakeTimers(); const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onReconnectNeeded: () => "continue" }); client.sessionResumptionHandle = "resume"; client.connect = vi.fn().mockResolvedValue(true); expect(client.scheduleReconnect("loss")).toBe(true); vi.advanceTimersByTime(250); expect(client.connect).toHaveBeenCalledTimes(1); expect(client.scheduleReconnect("loss")).toBe(true); vi.advanceTimersByTime(500); expect(client.connect).toHaveBeenCalledTimes(2); vi.useRealTimers(); });
+  it("handles provider callback errors without throwing", () => { const onError = vi.fn(); const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onError }); expect(() => client.handleProviderError(new Error("failed"))).not.toThrow(); expect(onError).toHaveBeenCalledWith("VOICE_PROVIDER_ERROR"); });
+  it("uses GoAway for proactive handoff", async () => { vi.useFakeTimers(); const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onReconnectNeeded: () => "resume" }); client.sessionResumptionHandle = "resume"; client.connect = vi.fn().mockResolvedValue(true); client.disconnect = vi.fn(); await client.handleMessage({ goAway: { timeLeft: "1s" } }); vi.advanceTimersByTime(100); expect(client.disconnect).toHaveBeenCalledWith("go_away_handoff"); expect(client.connect).toHaveBeenCalled(); vi.useRealTimers(); });
 
   it("resolves at a semantic turn boundary and retains the turn metadata", async () => {
     const completed = [];

@@ -1,4 +1,4 @@
-import { BP_FULFILLMENT_DEVICE_MODELS, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
+import { BP_FULFILLMENT_DEVICE_MODELS, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
@@ -10,8 +10,16 @@ import {
   AudioLines, MessageCircle, Pause, Play, RotateCcw,
   Droplets, Footprints, Hospital, Scale, Smile, Wind,
   // Barrier iconography: a small, restrained set — one glyph per family of difficulty.
-  Car
+  Car,
+  // Appointment iconography: where the visit happens, how it happens, when, and when something
+  // needs the patient's attention.
+  MapPin, Video, TriangleAlert, CalendarClock
 } from "lucide";
+import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentStatusTone, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
+import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
+import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
+import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
@@ -22,16 +30,20 @@ import { EmmiConversationManager } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
-import { EMMI_DEMO_PATIENTS } from "./mock/emmiFixtures.js";
+import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
+import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
 import { resolveNextBestAction } from "./nextBestAction.js";
-import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
+import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
+import { EXPLANATION_CODES, accessTrackCost, resolveExpectedPatientResponsibility } from "./financialResponsibility.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
-import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
+import { ingestBloodPressureObservation } from "./clinicalMonitoring.js";
+import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, classifyBloodPressure, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
+import { BloodPressureSimulator, SIMULATION_STATUS, SIMULATION_TARGET, simulationAllowed } from "./bpSimulator.js";
 import { REFILL_TRIGGER_POLICY, SIGNAL_STATUS, answerSupplySignal, detectLowSupply, estimateMedicationSupply, openSignalFor, supersedeSignalsForDispense, supplyPhrase, supplySignalAnalytics } from "./medicationSupply.js";
 import { REFILL_BLOCKERS, REFILL_PATHS, REFILL_STATUS, SUPPLY_ANSWERS, TAKING_ANSWERS, advanceRefill, createRefillEpisode, openRefillFor, refillAnalytics, refillCareTeamSummary, refillIdempotencyKey, refillIsOpen, refillNextStep, refillPatientStatus, resolveRefillPath, statusForPath } from "./medicationRefill.js";
 import { BARRIER_SOURCES, BARRIER_STATUS, INTERVENTION_TYPES, RESOLUTION_OUTCOMES, applyIntervention, barrierAnalytics, barrierCategoryConfig, barrierIcon, barrierIsActive, barrierOptionsFor, barrierPatientStatus, barrierPatientSummary, careTeamEscalationSummary, classifyBarrierText, confirmBarrier, createGoalBarrier, findReusableBarrier, localBarrierText, normalizeBarrierRecord, recordInterventionOutcome, reopenBarrier, resolveBarrier } from "./goalBarriers.js";
@@ -73,7 +85,7 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -102,11 +114,12 @@ let state = {
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
+  patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "",
   supportRole: "NONE", careCircleStatus: "NONE", careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
   emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
@@ -183,7 +196,12 @@ const iconMap = {
   scale: Scale,
   wind: Wind,
   car: Car,
-  hospital: Hospital
+  hospital: Hospital,
+  // Appointment iconography.
+  mapPin: MapPin,
+  video: Video,
+  alert: TriangleAlert,
+  calendarClock: CalendarClock
 };
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
@@ -448,15 +466,7 @@ function persistEmmiPreferences() {
 const emmiGuidanceIsBusy = () => ["CONNECTING", "INTERRUPTING", "USER_SPEAKING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(state.assistantVoiceState);
 
 function emmiHomeVoiceStatus() {
-  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return L("Listening…", "Escuchando…", "N ap koute…");
-  if (state.assistantVoiceState === "EMMI_SPEAKING") return state.assistantVoiceDetail === "patient_response"
-    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-    : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…");
-  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return L("Connecting EMMI…", "Conectando con EMMI…", "N ap konekte EMMI…");
-  // A failed connect leaves the client DISCONNECTED, so the error has to be checked too —
-  // otherwise the card claims "Voice guidance is on" while nothing is playing.
-  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return L("Voice guidance is unavailable", "La guía por voz no está disponible", "Gid vwa pa disponib");
-  return L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+  return emmiVisibleStateLabel(emmiGuideState(), languageCode());
 }
 
 // The introduction card is the only EMMI on Home, so it carries both ways in: the voice EMMI is
@@ -729,6 +739,11 @@ function howCareWorks() {
     ${actions(t().continue)}`;
 }
 
+// Which demo patient this session is about. The cost card and EMMI both ask here.
+function currentDemoPatientId() {
+  return selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario: service.getScenarioDeviceContext?.() || null });
+}
+
 function assistantContext() {
   const deviceScenario = service.getScenarioDeviceContext?.() || null;
   const patientContextKey = [state.completionRole, state.accessOutcome, deviceScenario?.patientOwnsMonitor, deviceScenario?.integrationStatus].join("|");
@@ -782,6 +797,10 @@ function assistantContext() {
     firstTransmissionVerified: state.firstTransmissionVerified,
     careCircleStatus: state.careCircleStatus,
     supportRole: state.supportRole,
+    // A patient and a representative are agreeing to different things on the consent screen, so the
+    // guardrail that explains what is being signed needs to know which one is asking.
+    completedByRepresentative: isPersonalRepresentative(),
+    careTeam: patientCareTeam(),
     supportPersonName: state.supportPersonName || null,
     supportInviteStatus: state.supportInviteStatus,
     deviceScenario,
@@ -829,7 +848,19 @@ const emmiToolStatusLabel = name => ({
   getClinicalTarget: L("Checking your care-team target…", "Revisando el objetivo de su equipo…", "N ap verifye sib ekip swen ou…"),
   getGoalProgress: L("Checking your goal progress…", "Revisando el progreso de su meta…", "N ap verifye pwogrè objektif ou…"),
   requestCallback: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
-  createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…")
+  createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
+  getUpcomingAppointments: L("Checking your appointments…", "Revisando sus citas…", "N ap verifye randevou ou yo…"),
+  getAppointment: L("Checking your appointment…", "Revisando su cita…", "N ap verifye randevou ou…"),
+  getSchedulingCapability: L("Checking how this office schedules…", "Revisando cómo agenda este consultorio…", "N ap verifye kijan kabinè sa a bay randevou…"),
+  getProviderAvailability: L("Looking for open times…", "Buscando horarios disponibles…", "N ap chache lè ki lib…"),
+  startAppointmentRequest: L("Opening your appointment request…", "Abriendo su solicitud de cita…", "N ap louvri demann randevou ou…"),
+  createAppointmentRequest: L("Sending your request…", "Enviando su solicitud…", "N ap voye demann ou…"),
+  bookAppointment: L("Confirming that time…", "Confirmando ese horario…", "N ap konfime lè sa a…"),
+  rescheduleAppointment: L("Asking about a new time…", "Consultando un nuevo horario…", "N ap mande pou yon lè nouvo…"),
+  cancelAppointment: L("Canceling your appointment…", "Cancelando su cita…", "N ap anile randevou ou…"),
+  createAppointmentReminder: L("Saving your reminder…", "Guardando su recordatorio…", "N ap anrejistre rapèl ou…"),
+  getCareCircle: L("Checking your Care Circle…", "Revisando su Círculo de cuidado…", "N ap verifye Sèk swen ou…"),
+  shareAppointment: L("Sharing your appointment…", "Compartiendo su cita…", "N ap pataje randevou ou…")
 })[name] || L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…");
 
 function ensureEmmiRuntime() {
@@ -894,6 +925,146 @@ function ensureEmmiRuntime() {
       draftStore.save(state);
       return { alreadyRequested: false, refillId: episode.id, opened: "REFILL_REVIEW", medication: medicationLabel(medication) };
     },
+    // Appointments answer from the same records the screens read. EMMI never learns a time, a
+    // status or a provider from anywhere else, and every path that changes something asks first.
+    onUpcomingAppointments: () => ({
+      appointments: upcomingAppointments(appointmentRecords(), new Date()).map(record => ({
+        id: record.id,
+        patientStatus: appointmentPatientStatus(record, state.language),
+        nextStep: appointmentNextStep(record, state.language),
+        providerDisplayName: record.providerDisplayName || "",
+        specialty: record.requestedSpecialty || "",
+        scheduledAt: record.scheduledAt || "",
+        modality: record.modality || ""
+      })),
+      requests: pendingRequests(appointmentRecords()).map(record => ({
+        id: record.id,
+        patientStatus: appointmentPatientStatus(record, state.language),
+        providerDisplayName: record.providerDisplayName || "",
+        requestedAt: record.requestSentAt || record.createdAt
+      }))
+    }),
+    onAppointment: ({ appointmentId }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      return {
+        appointment: {
+          id: record.id,
+          status: record.status,
+          patientStatus: appointmentPatientStatus(record, state.language),
+          nextStep: appointmentNextStep(record, state.language),
+          providerDisplayName: record.providerDisplayName || "",
+          specialty: record.requestedSpecialty || "",
+          scheduledAt: record.scheduledAt || "",
+          modality: record.modality || "",
+          locationName: record.locationName || "",
+          reasonCategory: record.reasonCategory,
+          reminder: record.reminder ? { slot: record.reminder.slot, channel: record.reminder.channel } : null
+        }
+      };
+    },
+    onSchedulingCapability: ({ providerId, appointmentType }) => {
+      const capability = resolveSchedulingCapability({
+        patientId: state.offer?.patient?.id || "",
+        providerId: providerId || "",
+        practiceId: "",
+        appointmentType: appointmentType || ""
+      });
+      return { capability: capability.capability, supportedModalities: capability.supportedModalities, reason: capability.reason };
+    },
+    // Availability comes from the scheduling source or it does not come at all. A failure here is
+    // reported as a failure; it is never filled in with a plausible-looking time.
+    onProviderAvailability: ({ providerId, preferredTimeOfDay, modality }) => {
+      const result = getProviderAvailability({ providerId: providerId || "", preferredTimeOfDay, modality, now: new Date() });
+      if (!result.ok) return { ok: false, error: result.error };
+      return { ok: true, slots: result.slots.map(({ slotId, startAt, endAt, modality: slotModality, locationName }) => ({ slotId, startAt, endAt, modality: slotModality, locationName })) };
+    },
+    // Opening the flow requests nothing by itself, exactly like starting a refill review.
+    onStartAppointmentRequest: ({ reasonCategory, providerId, reasonSummary }) => {
+      const started = startAppointmentNeed({
+        source: APPOINTMENT_SOURCES.EMMI_CONVERSATION,
+        reasonCategory: reasonCategory || APPOINTMENT_REASON_CATEGORIES.OTHER,
+        reasonSummary: reasonSummary || "",
+        providerId: providerId || ""
+      });
+      const existing = started.record.requestedProfessionalId
+        ? findUpcomingAppointmentWithProvider(appointmentRecords(), started.record.requestedProfessionalId, new Date())
+        : null;
+      const { record } = classifyAppointmentPath(started.record);
+      openAppointmentScheduling(record, "REASON");
+      // EMMI moved the patient somewhere real; closing the panel lands them on it.
+      state.assistantPendingNavigation = true;
+      draftStore.save(state);
+      return {
+        success: true,
+        status: "FLOW_OPENED",
+        needId: record.id,
+        capability: record.schedulingCapability,
+        duplicate: Boolean(started.duplicate),
+        existingAppointmentId: existing?.id || null,
+        existingAppointmentStatus: existing ? appointmentPatientStatus(existing, state.language) : null,
+        providerResolved: started.resolution.status,
+        providerDisplayName: record.providerDisplayName || ""
+      };
+    },
+    onCreateAppointmentRequest: ({ needId, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(needId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = record.schedulingCapability === SCHEDULING_CAPABILITY.HUMAN_COORDINATION
+        || record.schedulingCapability === SCHEDULING_CAPABILITY.NO_AVAILABLE_CHANNEL
+        ? escalateAppointmentToCoordinator(record, { viaEmmi: true })
+        : sendAppointmentRequest(record, { viaEmmi: true });
+      if (!result.ok) return { success: false, status: result.error || "REQUEST_FAILED" };
+      return { success: true, status: result.record.status, needId: result.record.id, patientStatus: appointmentPatientStatus(result.record, state.language) };
+    },
+    onBookAppointment: ({ needId, slotId, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(needId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = confirmAppointmentSlot(record, slotId);
+      if (!result.ok) return { success: false, status: result.slotGone ? "SLOT_UNAVAILABLE" : "BOOKING_FAILED" };
+      return { success: true, status: result.record.status, confirmationNumber: result.record.confirmationNumber, scheduledAt: result.record.scheduledAt };
+    },
+    onRescheduleAppointment: ({ appointmentId, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = requestAppointmentReschedule(record, { viaEmmi: true });
+      return result.ok ? { success: true, status: result.record.status } : { success: false, status: result.error || "RESCHEDULE_FAILED" };
+    },
+    // §64: never on chat text alone. The confirmation is the gate, and it has no bypass.
+    onCancelAppointment: ({ appointmentId, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = cancelAppointmentRecord(record, { viaEmmi: true });
+      return result.ok ? { success: true, status: result.record.status } : { success: false, status: result.error || "CANCEL_FAILED" };
+    },
+    onAppointmentReminder: ({ appointmentId, slot, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = saveAppointmentReminder(record, slot);
+      if (!result.ok) return { success: false, status: result.error || result.status || "REMINDER_FAILED" };
+      return { success: true, slot: result.reminder.slot, time: result.reminder.time, channel: result.reminder.channel, note: result.note };
+    },
+    onCareCircle: () => {
+      const options = appointmentCareCircle();
+      return {
+        allowed: options.allowed,
+        reason: options.reason,
+        members: options.eligibleMembers.map(({ inviteId, firstName, relationship, status }) => ({ inviteId, firstName, relationship, status }))
+      };
+    },
+    onShareAppointment: ({ appointmentId, inviteId, confirmed }) => {
+      if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const result = shareAppointmentWithMember(record, inviteId);
+      if (!result.ok) return { success: false, status: result.error || "SHARE_FAILED" };
+      return { success: true, status: "SHARED", shares: result.scope.shares, neverShares: result.scope.neverShares };
+    },
     onReminder: ({ slot }) => {
       const goal = currentGoal();
       const preference = goal ? saveGoalReminder(goal, slot) : null;
@@ -906,6 +1077,7 @@ function ensureEmmiRuntime() {
     getConversation: () => emmiConversationManager?.contextForModel() || {},
     executeTool: (name, args) => emmiTools.execute(name, args),
     screenExplanation: assistantScreenExplanation,
+    onSafetyEpisode: episode => emmiConversationManager?.activateSafetyEpisode(episode),
     onEvent: (type, details) => {
       emmiAuditLog?.voiceEvent(type, details);
       if (type === "EMMI_ANSWER_ROUTED") emmiAuditLog?.answerTurn({ ...details, promptVersion: "emmi-answer-first-v1" });
@@ -927,7 +1099,7 @@ function ensureEmmiRuntime() {
       if (last?.role === role && last.voice && !last.interrupted) last.text = `${last.text} ${cleaned}`.trim();
       else state.assistantMessages.push({ role, text: cleaned, voice: true });
       emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
-      if (role === "assistant" && emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
+      if (role === "assistant") emmiConversationManager?.markGreeted();
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
     onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
@@ -1047,7 +1219,7 @@ function syncEmmiNavigationContext(override = {}) {
   const changed = !previousContext || previousContext.screenId !== next.screenId || previousContext.stageId !== next.stageId || previousContext.locale !== next.locale;
   if (!changed) return false;
   const intent = { ...(emmiNavigationIntent || {}), ...override };
-  const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
+  const sideFlows = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "MY_CARE_TEAM", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS", "PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"];
   emmiNavigationIntent = null;
   const navigationDirection = inferEmmiNavigationDirection(previousScreen, next.screenId, intent.navigationDirection);
   emmiConversationManager?.transition({ ...assistantContext(), ...next }, { ...intent, navigationDirection });
@@ -1087,163 +1259,51 @@ function assistantScreenExplanation(screen) {
     HEALTH_INFORMATION_REVIEW: L("This screen shows health information already on file. You can confirm it, report an update without changing the clinical record automatically, or ask for help reviewing it.", "Esta pantalla muestra información médica registrada. Puede confirmarla, informar una actualización sin cambiar automáticamente el registro clínico o pedir ayuda para revisarla.", "Ekran sa a montre enfòmasyon sante ki nan dosye a. Ou ka konfime li, rapòte yon mizajou san chanje dosye klinik la otomatikman, oswa mande èd pou revize li."),
     MEDICATIONS_REVIEW: L("Review each medication on file, tell us whether it is still correct or something changed, and then tell us whether anything is missing. Your answers do not change a prescription automatically.", "Revise cada medicamento registrado, indique si sigue correcto o si algo cambió y luego díganos si falta alguno. Sus respuestas no cambian automáticamente una receta.", "Revize chak medikaman nan dosye a, di nou si li toujou kòrèk oswa si gen yon chanjman, epi di nou si gen youn ki manke. Repons ou yo pa chanje yon preskripsyon otomatikman."),
     GOALS: L("This step shows goals available for your care so you can choose what matters most and personalize practical steps. Your care team remains responsible for clinical decisions.", "Este paso muestra metas disponibles para su cuidado para que elija lo que más le importa y personalice pasos prácticos. Su equipo de atención sigue siendo responsable de las decisiones clínicas.", "Etap sa a montre objektif ki disponib pou swen ou pou ou chwazi sa ki pi enpòtan epi pèsonalize etap pratik. Ekip swen ou rete responsab desizyon klinik yo."),
-    MY_GOALS: L("My Goals keeps the goals you chose, your plan, progress, and support requests in one place. These personal goals do not change clinical targets or medical orders.", "Mis metas reúne las metas que eligió, su plan, progreso y solicitudes de apoyo. Estas metas personales no cambian objetivos clínicos ni indicaciones médicas.", "Objektif mwen mete objektif ou chwazi yo, plan ou, pwogrè ou ak demann sipò yo nan yon sèl kote. Objektif pèsonèl sa yo pa chanje sib klinik ni lòd medikal.")
+    MY_GOALS: L("My Goals keeps the goals you chose, your plan, progress, and support requests in one place. These personal goals do not change clinical targets or medical orders.", "Mis metas reúne las metas que eligió, su plan, progreso y solicitudes de apoyo. Estas metas personales no cambian objetivos clínicos ni indicaciones médicas.", "Objektif mwen mete objektif ou chwazi yo, plan ou, pwogrè ou ak demann sipò yo nan yon sèl kote. Objektif pèsonèl sa yo pa chanje sib klinik ni lòd medikal."),
+    MY_CARE_TEAM: L("This screen shows the care professionals and organizations ITERA currently has on file as part of your care team.", "Esta pantalla muestra los profesionales y las organizaciones que ITERA tiene registrados como parte de su equipo de cuidado.", "Ekran sa a montre pwofesyonèl ak òganizasyon ITERA genyen nan dosye kòm pati ekip swen ou.")
   };
   return explanations[screen] || L("This screen shows your current enrollment task and what you need to do next.", "Esta pantalla muestra su tarea actual y lo que debe hacer después.", "Ekran sa a montre travay enskripsyon aktyèl ou ak sa ou bezwen fè pwochen.");
 }
 
-async function legacyAssistantActionAnswer(question, context) {
-  const normalized = question.toLowerCase();
+// The one turn that still needs the app's own state is a confirmation: “yes” carries no words to
+// route on, so what it agrees to comes from the action EMMI is holding, not from the question.
+async function assistantConfirmationAnswer(context) {
   const runtime = ensureEmmiRuntime();
-  const bpMatch = normalized.match(/(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i);
-  const concerningSymptoms = /(chest pain|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|feel very bad|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor de pecho|no puedo respirar|derrame|sangrado grave|me siento muy mal|me desmay|desmayo|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|mwen santi m mal anpil|endispoze|pèdi konesans|ijans|swisid)/i.test(question);
-  if (bpMatch || concerningSymptoms) {
-    const result = await runtime.tools.execute("evaluateClinicalEscalation", { systolic: Number(bpMatch?.[1] || 0), diastolic: Number(bpMatch?.[2] || 0), symptoms: question });
-    if (result.instruction === "CALL_911") return { emergency: true, text: L("This may require urgent medical attention. Please call 911 or seek emergency care now.", "Esto puede requerir atención médica urgente. Llame al 911 o busque atención de emergencia ahora.", "Sa ka mande swen medikal ijan. Tanpri rele 911 oswa chèche swen ijans kounye a.") };
-    if (result.instruction === "CREATE_HIGH_PRIORITY_TASK") return { text: L("This reading needs care-team review. Would you like me to create a high-priority task for your care team?", "Esta medición necesita revisión del equipo de atención. ¿Desea que cree una tarea de alta prioridad para su equipo?", "Mezi sa a bezwen ekip swen an revize li. Èske ou vle m kreye yon travay priyorite wo pou ekip ou a?"), pendingAction: "clinical-task" };
-  }
-  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(why.*goal|por qué.*meta|poukisa.*objektif)/i.test(normalized)) return { text: L("Your goals help your care team understand what matters to you and how you would like support. They are your personal goals, not medical orders or clinical targets.", "Sus metas ayudan a su equipo a comprender qué le importa y cómo desea recibir apoyo. Son metas personales, no indicaciones médicas ni objetivos clínicos.", "Objektif ou ede ekip swen ou konprann sa ki enpòtan pou ou ak fason ou ta renmen jwenn sipò. Se objektif pèsonèl ou, yo pa lòd medikal ni sib klinik.") };
-  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(change.*goal|cambiar.*meta|chanje.*objektif)/i.test(normalized)) return { text: L("Yes. You can adjust, pause, restart, or mark a personal goal achieved later from My Goals.", "Sí. Puede ajustar, pausar, reanudar o marcar una meta personal como lograda más adelante desde Mis metas.", "Wi. Ou ka ajiste, mete an poz, rekòmanse, oswa make yon objektif pèsonèl kòm reyalize pita nan Objektif mwen.") };
-  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(make.*plan|personalize.*plan|crear.*plan|personalizar.*plan|fè.*plan|pèsonalize.*plan)/i.test(normalized)) return { text: L("I can help you personalize small optional steps, but you choose what feels realistic. These steps are not medical orders, and your care team remains responsible for clinical decisions.", "Puedo ayudarle a personalizar pasos pequeños y opcionales, pero usted elige lo que le parezca realista. Estos pasos no son indicaciones médicas y su equipo de atención sigue siendo responsable de las decisiones clínicas.", "Mwen ka ede w pèsonalize ti etap opsyonèl, men se ou ki chwazi sa ki reyalis. Etap sa yo pa lòd medikal, epi ekip swen ou rete responsab desizyon klinik yo.") };
-  if (["GOALS", "MY_GOALS"].includes(context.currentScreen) && /(trouble|difficult|problema|dificultad|pwoblèm|difisil)/i.test(normalized)) return { text: L("That’s okay. Open the goal check-in and choose that you’re having difficulty. We’ll help you name the barrier and, if you choose, send a support request to your care team.", "Está bien. Abra el seguimiento de la meta e indique que tiene dificultades. Le ayudaremos a identificar la barrera y, si lo desea, enviar una solicitud de apoyo a su equipo.", "Sa pa yon pwoblèm. Louvri tcheke objektif la epi chwazi ou gen difikilte. N ap ede w idantifye baryè a epi, si ou vle, voye yon demann sipò bay ekip swen ou.") };
-  const affirmative = /^(yes|yes please|please do|sí|si|wi|dakò)$/i.test(normalized.trim());
-  if (affirmative && state.assistantPendingAction === "callback") {
+  if (state.assistantPendingAction === "callback") {
     const result = await runtime.tools.execute("requestCallback", { patientId: context.patientId, reason: "Patient requested help in EMMI", preferredLanguage: context.locale, confirmed: true });
     state.assistantPendingAction = "";
     return { text: result.success ? L("Done. I sent a callback request to the care team.", "Listo. Envié una solicitud para que el equipo de atención le llame.", "Fini. Mwen voye yon demann pou ekip swen an rele ou.") : L("I couldn’t request the call right now. You can call the care team directly.", "No pude solicitar la llamada en este momento. Puede llamar directamente al equipo.", "Mwen pa t kapab mande apèl la kounye a. Ou ka rele ekip swen an dirèkteman.") };
   }
-  if (affirmative && state.assistantPendingAction === "clinical-task") {
-    const result = await runtime.tools.execute("createCareTeamTask", { patientId: context.patientId, category: "clinical_review", reason: "Fictional elevated blood pressure reported in prototype", priority: "HIGH", confirmed: true });
+  // §64: a cancellation never follows from chat text. EMMI asks; this is the only place the
+  // answer is acted on, and it goes through the same authorization and idempotency as the button.
+  if (state.assistantPendingAction === "appointment-cancel") {
+    const result = await runtime.tools.execute("cancelAppointment", { appointmentId: state.assistantPendingAppointmentId, confirmed: true });
     state.assistantPendingAction = "";
-    return { text: result.success ? L("Done. I created a high-priority care-team task.", "Listo. Creé una tarea de alta prioridad para el equipo de atención.", "Fini. Mwen kreye yon travay priyorite wo pou ekip swen an.") : L("I couldn’t create the task right now. Please call the care team.", "No pude crear la tarea. Llame al equipo de atención.", "Mwen pa t kapab kreye travay la. Tanpri rele ekip swen an.") };
+    const appointmentId = state.assistantPendingAppointmentId;
+    state.assistantPendingAppointmentId = "";
+    return result.success
+      ? { text: L("Your appointment is canceled. If you need another one, I can help you request it.", "Su cita está cancelada. Si necesita otra, puedo ayudarle a solicitarla.", "Randevou ou anile. Si ou bezwen yon lòt, mwen ka ede w mande l."), quickAction: "appointment-view", appointmentId }
+      : { text: L("I couldn’t cancel that appointment. Nothing was changed. Your care team can help you with it.", "No pude cancelar esa cita. No se cambió nada. Su equipo de atención puede ayudarle.", "Mwen pa t ka anile randevou sa a. Anyen pa chanje. Ekip swen ou ka ede w."), quickAction: "appointment-view", appointmentId };
   }
-  if (context.currentScreen === "HEALTH_INFORMATION_REVIEW" && /(high blood pressure|hypertension|presión arterial alta|hipertensión|tansyon wo)/i.test(normalized)) return { text: L("High blood pressure means the force of blood against your blood vessels is often higher than recommended. I can explain the term, but I can’t diagnose you or confirm that the clinical record is correct.", "La presión arterial alta significa que la fuerza de la sangre contra los vasos sanguíneos suele ser mayor de lo recomendado. Puedo explicar el término, pero no diagnosticarle ni confirmar que el registro clínico sea correcto.", "Tansyon wo vle di fòs san an sou veso sangen yo souvan pi wo pase sa yo rekòmande. Mwen ka eksplike tèm nan, men mwen pa ka fè dyagnostik ni konfime dosye klinik la kòrèk.") };
-  if (context.currentScreen === "HEALTH_INFORMATION_REVIEW" && /(confirm|correct|diagnos|confirmar|correct|diagnóst|konfime|kòrèk|dyagnost)/i.test(normalized)) return { text: L("I can help explain what the information means, but I can’t confirm a diagnosis or change your clinical record. If you’re unsure, choose ‘I need help reviewing this’ so your care team can review it with you.", "Puedo ayudarle a entender la información, pero no confirmar un diagnóstico ni cambiar su registro clínico. Si tiene dudas, elija “Necesito ayuda para revisarlo” para que su equipo lo revise con usted.", "Mwen ka ede eksplike enfòmasyon an, men mwen pa ka konfime yon dyagnostik ni chanje dosye klinik ou. Si ou pa sèten, chwazi “Mwen bezwen èd revize sa a” pou ekip swen ou ka revize li avèk ou.") };
-  if (context.currentScreen === "HEALTH_INFORMATION_REVIEW" && /(not sure|care team|no estoy seguro|equipo|pa sèten|ekip swen)/i.test(normalized)) return { text: L("That’s okay. Your care team can review the information with you. EMMI will not mark it as confirmed or change it automatically.", "Está bien. Su equipo de atención puede revisar la información con usted. EMMI no la marcará como confirmada ni la cambiará automáticamente.", "Sa pa yon pwoblèm. Ekip swen ou ka revize enfòmasyon an avèk ou. EMMI p ap make li kòm konfime ni chanje li otomatikman.") };
-  if (/(someone help|invite someone|someone i trust|daughter help|son help|family.*help|caregiver|care circle|alguien.*ayud|invitar a alguien|alguien de confianza|hija.*ayud|hijo.*ayud|familiar.*ayud|cuidador|círculo de cuidado|yon moun.*ede|envite yon moun|moun mwen fè konfyans|pitit.*ede|fanmi.*ede|moun k ap bay swen|sèk swen)/i.test(normalized)) {
-    return { text: L("Yes. You can choose her from your contacts when that option is available, or enter her name and mobile number yourself. Nothing is sent until you review the details and tap Send invitation. She can provide basic support, but cannot consent, sign, or make healthcare decisions for you.", "Sí. Puede elegirla de sus contactos cuando esa opción esté disponible o ingresar su nombre y número celular. No se envía nada hasta que revise los datos y toque Enviar invitación. Puede brindar apoyo básico, pero no dar consentimiento, firmar ni tomar decisiones médicas por usted.", "Wi. Ou ka chwazi li nan kontak ou lè opsyon sa a disponib, oswa antre non li ak nimewo mobil li. Anyen p ap voye jiskaske ou revize detay yo epi peze Voye envitasyon. Li ka bay sipò debaz, men li pa ka bay konsantman, siyen, oswa pran desizyon swen sante pou ou."), quickAction: "care-circle" };
-  }
-  if (["CARE_CIRCLE_INVITE", "MY_CARE_CIRCLE", "CARE_CIRCLE_PERMISSIONS"].includes(context.currentScreen) && /(consent|sign|make decisions|decision for me|consentimiento|firmar|decisiones por mí|konsantman|siyen|desizyon pou mwen)/i.test(normalized)) return { text: L("No. A Care Circle member can provide only the basic support you choose. They cannot consent, sign, or make healthcare decisions for you, and they are not a Personal Representative.", "No. Un miembro del Círculo de cuidado solo puede brindar el apoyo básico que usted elija. No puede dar consentimiento, firmar ni tomar decisiones médicas por usted y no es un Representante personal.", "Non. Yon manm Sèk swen ka bay sèlman sipò debaz ou chwazi. Li pa ka bay konsantman, siyen, oswa pran desizyon swen sante pou ou, epi li pa yon Reprezantan pèsonèl.") };
-  if (context.currentScreen === "MEDICATIONS_REVIEW" && /(what is|what does).*(lisinopril)|qué es.*lisinopril|kisa.*lisinopril/i.test(normalized)) return { text: L("Lisinopril is commonly used to help manage blood pressure and certain heart conditions. I can provide general information, but I can’t tell you to start, stop, or change it.", "Lisinopril se usa comúnmente para ayudar a controlar la presión arterial y ciertas afecciones del corazón. Puedo ofrecer información general, pero no indicarle que lo inicie, suspenda o cambie.", "Yo itilize Lisinopril souvan pou ede kontwole tansyon ak kèk pwoblèm kè. Mwen ka bay enfòmasyon jeneral, men mwen pa ka di w kòmanse, sispann, oswa chanje li.") };
-  if (context.currentScreen === "MEDICATIONS_REVIEW" && /(don'?t know.*dose|not sure.*dose|no sé.*dosis|no estoy seguro.*dosis|pa konnen.*dòz|pa sèten.*dòz)/i.test(normalized)) return { text: L("That’s okay. You can leave the dose blank when adding a medication, or mark an on-file medication as not sure. Your care team can review it with you.", "Está bien. Puede dejar la dosis en blanco al agregar un medicamento o marcar que no está seguro sobre uno registrado. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Ou ka kite dòz la vid lè w ap ajoute yon medikaman, oswa make ou pa sèten sou yon medikaman nan dosye a. Ekip swen ou ka revize li avèk ou.") };
-  if (context.currentScreen === "MEDICATIONS_REVIEW" && /(should i|can i).*(stop|change|take)|debo.*(dejar|suspender|cambiar|tomar)|èske mwen dwe.*(sispann|chanje|pran)/i.test(normalized)) return { text: L("I can’t recommend starting, stopping, or changing a medication or dose. Record what you are taking today, and contact your clinician or care team for treatment advice.", "No puedo recomendar iniciar, suspender ni cambiar un medicamento o una dosis. Registre lo que toma actualmente y consulte a su profesional clínico o equipo de atención.", "Mwen pa ka rekòmande pou kòmanse, sispann, oswa chanje yon medikaman oswa dòz. Ekri sa w ap pran jodi a, epi kontakte klinisyen oswa ekip swen ou pou konsèy tretman.") };
-  if (context.currentScreen === "MEDICATIONS_REVIEW" && /(not sure.*take|don'?t know.*take|no estoy seguro.*tom|no sé si.*tom|pa sèten.*pran|pa konnen si.*pran)/i.test(normalized)) return { text: L("That’s okay. Choose ‘Something changed,’ then ‘I’m not sure about this medication.’ Your care team can review it with you.", "Está bien. Elija “Algo cambió” y luego “No estoy seguro de este medicamento”. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Chwazi “Gen yon bagay ki chanje,” epi “Mwen pa sèten sou medikaman sa a.” Ekip swen ou ka revize li avèk ou.") };
-  if (/(share access|send this|send.*brother|send.*sister|share.*brother|share.*family|compartir access|enviar.*hermano|compartir.*famil|pataje access|voye.*frè|pataje.*fanmi)/i.test(normalized)) {
-    return state.enrollmentStatus === "COMPLETED"
-      ? { text: L("Yes. I can help you share public information about ACCESS. They will still need to check whether ACCESS is available to them.", "Sí. Puedo ayudarle a compartir información pública sobre ACCESS. La otra persona deberá verificar si ACCESS está disponible para ella.", "Wi. Mwen ka ede w pataje enfòmasyon piblik sou ACCESS. Lòt moun nan ap toujou bezwen verifye si ACCESS disponib pou li."), quickAction: "share-access" }
-      : { text: L("After your enrollment is complete, I can help you share public information about ACCESS without sharing your enrollment information.", "Cuando complete su inscripción, puedo ayudarle a compartir información pública sobre ACCESS sin compartir los datos de su inscripción.", "Apre enskripsyon ou fini, mwen ka ede w pataje enfòmasyon piblik sou ACCESS san pataje enfòmasyon enskripsyon ou.") };
-  }
-  if (/(cost|pay|how much|costo|pagar|cuánto|pri|peye|koute)/i.test(normalized)) {
-    // The engine decides the amount and the reason; this only puts the reason into words.
-    const cost = await runtime.tools.execute("getExpectedAccessCost", { patientId: context.patientId, accessTrack: context.accessTrack });
-    return { text: emmiAccessCostAnswer(cost, state.language) };
-  }
-  const asksIfAnotherBpReadingIsNeeded = ((normalized.includes("blood pressure") || normalized.includes("pressure")) && (normalized.includes("again") || normalized.includes("now")))
-    || (normalized.includes("presión") && (normalized.includes("otra vez") || normalized.includes("ahora")))
-    || (normalized.includes("tansyon") && (normalized.includes("ankò") || normalized.includes("kounye a")));
-  if (asksIfAnotherBpReadingIsNeeded) {
-    const enrollmentContext = await runtime.tools.execute("getEnrollmentContext", { patientId: context.patientId });
-    const sourceIsVerified = enrollmentContext.deviceVerificationStatus === "SOURCE_VERIFIED" || enrollmentContext.firstTransmissionVerified === true;
-    if (sourceIsVerified && enrollmentContext.bpBaselineReadingCount > 0 && enrollmentContext.bpBaselineRemainingReadings > 0) return { text: L("No. Your monitor is connected and we received your first reading. You can take your next readings later, and ITERA will receive them automatically.", "No. Su monitor está conectado y recibimos su primera medición. Puede realizar las próximas más adelante e ITERA las recibirá automáticamente.", "Non. Aparèy ou konekte epi nou resevwa premye mezi ou a. Ou ka pran lòt mezi yo pita, epi ITERA ap resevwa yo otomatikman.") };
-  }
-  if (/(monitor|device|aparato|aparèy)/i.test(normalized)) {
-    const device = await runtime.tools.execute("getAssignedDevice", { patientId: context.patientId });
-    if (device.found && device.integrationStatus === "CONNECTED") return { text: L("I found the monitor assigned to your care, and it is connected to ITERA. You can continue with your blood pressure setup.", "Encontré el monitor asignado a su cuidado y está conectado a ITERA. Puede continuar configurando su presión arterial.", "Mwen jwenn aparèy ki asiyen pou swen ou a, epi li konekte ak ITERA. Ou ka kontinye ak konfigirasyon tansyon ou.") };
-    if (device.patientOwnsMonitor) return { text: L("You have your own blood pressure monitor, but it isn’t connected to ITERA. We can help arrange a connected monitor for your ACCESS readings.", "Tiene su propio monitor de presión arterial, pero no está conectado a ITERA. Podemos ayudarle a obtener un monitor conectado para sus mediciones de ACCESS.", "Ou gen pwòp aparèy tansyon pa ou, men li pa konekte ak ITERA. Nou ka ede fè aranjman pou yon aparèy konekte pou mezi ACCESS ou yo.") };
-    return { text: L("I don’t see a monitor assigned to your care yet. ITERA can help arrange a connected monitor for you.", "Todavía no veo un monitor asignado a su cuidado. ITERA puede ayudarle a obtener uno conectado.", "Mwen poko wè yon aparèy ki asiyen pou swen ou. ITERA ka ede fè aranjman pou yon aparèy konekte.") };
-  }
-  if (/(call me|someone call|talk with someone|hablar con alguien|que me llamen|pale ak yon moun|rele m)/i.test(normalized)) return { text: L("Would you like me to ask the ITERA care team to call you?", "¿Desea que solicite al equipo de atención de ITERA que le llame?", "Èske ou vle m mande ekip swen ITERA a rele ou?"), pendingAction: "callback" };
-  if (/(can you enroll|enroll me|inscríbeme|inscribirme|enskri m)/i.test(normalized)) return { text: L("I can explain the information and guide you, but you need to review and agree to enrollment yourself. I cannot consent for you.", "Puedo explicarle la información y orientarle, pero usted debe revisar y aceptar la inscripción. No puedo dar consentimiento por usted.", "Mwen ka esplike enfòmasyon an epi gide ou, men se ou menm ki dwe revize epi dakò ak enskripsyon an. Mwen pa ka bay konsantman pou ou.") };
-  if (/(check|select|mark).*(authorized|authority)|marcar.*autoriz|seleccionar.*autoriz|tcheke.*otorize/i.test(normalized)) return { text: L("I can explain the statement, but I can’t confirm your authority for you. Select the checkbox yourself only if it is true.", "Puedo explicarle la declaración, pero no puedo confirmar su autoridad. Marque la casilla usted mismo solo si es verdadera.", "Mwen ka esplike deklarasyon an, men mwen pa ka konfime otorite ou pou ou. Chwazi kaz la poukont ou sèlman si li vre.") };
-  if (/(why.*phone|verify.*phone|por qué.*teléfono|verificar.*teléfono|poukisa.*telefòn|verifye.*telefòn)/i.test(normalized)) return { text: L("We verify the representative’s phone to confirm how to reach the person completing enrollment for the patient. The verification does not confirm legal authority.", "Verificamos el teléfono del representante para confirmar cómo contactar a quien completa la inscripción. La verificación no confirma autoridad legal.", "Nou verifye telefòn reprezantan an pou konnen kijan pou kontakte moun k ap ranpli enskripsyon an. Verifikasyon an pa konfime otorite legal.") };
-  if (context.eligibilityStatus === "NOT_ELIGIBLE" && /(why|continue|enroll|por qué|continuar|inscribir|poukisa|kontinye|enskri)/i.test(normalized)) return { text: L("ACCESS enrollment cannot continue in this demo because Medicare placed the patient in a comparison group. Medicare benefits, coverage, and regular care remain unchanged.", "La inscripción en ACCESS no puede continuar en esta demostración porque Medicare asignó al paciente a un grupo de comparación. Sus beneficios, cobertura y cuidado habitual no cambian.", "Enskripsyon ACCESS pa ka kontinye nan demonstrasyon sa a paske Medicare mete pasyan an nan yon gwoup konparezon. Benefis, kouvèti ak swen nòmal Medicare pa chanje.") };
-  if (/(monitor|device|aparato|aparèy)/i.test(normalized) && context.deviceScenario?.patientOwnsMonitor && context.deviceScenario.integrationStatus === "UNSUPPORTED") return { text: L("You have your own blood pressure monitor, but it isn’t connected to ITERA. We can help arrange a connected monitor for your ACCESS readings.", "Tiene su propio monitor de presión arterial, pero no está conectado a ITERA. Podemos ayudarle a obtener un monitor conectado para sus mediciones de ACCESS.", "Ou gen pwòp aparèy tansyon pa ou, men li pa konekte ak ITERA. Nou ka ede fè aranjman pou yon aparèy konekte pou mezi ACCESS ou yo.") };
-  if (/(what am i agreeing|qué estoy aceptando|kisa mwen.*dakò)/i.test(normalized)) return { text: isPersonalRepresentative() ? L("You are agreeing, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH. CMS Alignment still must be completed before enrollment is confirmed.", "Está aceptando, en nombre del paciente, inscribir al paciente en ACCESS con ITERA HEALTH. La alineación de CMS aún debe completarse antes de confirmar la inscripción.", "Ou dakò, nan non pasyan an, pou enskri pasyan an nan ACCESS avèk ITERA HEALTH. Aliyman CMS dwe fini toujou anvan enskripsyon an konfime.") : L("You are agreeing to enroll in ACCESS with ITERA HEALTH. CMS Alignment still must be completed before enrollment is confirmed.", "Está aceptando inscribirse en ACCESS con ITERA HEALTH. La alineación de CMS aún debe completarse antes de confirmar la inscripción.", "Ou dakò pou enskri nan ACCESS avèk ITERA HEALTH. Aliyman CMS dwe fini toujou anvan enskripsyon an konfime.") };
-  if (/(personal representative|representante personal|reprezantan pèsonèl)/i.test(normalized)) return { text: L("A personal representative is someone authorized to make healthcare decisions for the patient. The representative signs on the patient’s behalf, not as the patient.", "Un representante personal es una persona autorizada para tomar decisiones médicas por el paciente. Firma en nombre del paciente, no como si fuera el paciente.", "Yon reprezantan pèsonèl se yon moun ki otorize pou pran desizyon swen sante pou pasyan an. Reprezantan an siyen nan non pasyan an, li pa siyen kòm pasyan an.") };
-  if (/(don'?t understand|do not understand|explain this|this screen|no entiendo|explique esto|mwen pa konprann|eksplike sa|ekran sa)/i.test(normalized)) return { text: assistantScreenExplanation(context.currentScreen) };
-  if (/(talk to someone|call me|need help|hablar con alguien|llámenme|necesito ayuda|pale ak yon moun|rele m|bezwen èd)/i.test(normalized)) return { text: L("You can call our care team now or request a callback below. You do not need to ask Emmi first.", "Puede llamar a nuestro equipo ahora o solicitar una llamada abajo. No necesita consultar primero con Emmi.", "Ou ka rele ekip swen nou an kounye a oswa mande pou nou rele ou anba a. Ou pa bezwen mande Emmi an premye.") };
-  if (/(what is access|qué es access|kisa access)/i.test(normalized)) return { text: L("ACCESS is a Medicare care option that can add coordinated support between doctor visits. Your regular Medicare benefits and doctors remain in place.", "ACCESS es una opción de cuidado de Medicare que puede añadir apoyo coordinado entre visitas. Sus beneficios y médicos habituales permanecen igual.", "ACCESS se yon opsyon swen Medicare ki ka ajoute sipò kowòdone ant vizit kay doktè. Benefis Medicare ou nòmalman genyen yo ak doktè ou yo pa chanje.") };
-  if (/(keep|seeing).*(doctor)|doctor.*(keep|seeing)|conservar.*médico|seguir.*médico|kenbe.*doktè|kontinye.*doktè/i.test(normalized)) {
-    const doctor = context.physicianDisplayName || L("your doctor", "su médico", "doktè ou");
-    return { text: L(`Yes. You can continue seeing ${doctor}. ITERA provides additional support and does not replace your doctor.`, `Sí. Puede continuar viendo a ${doctor}. ITERA brinda apoyo adicional y no reemplaza a su médico.`, `Wi. Ou ka kontinye wè ${doctor}. ITERA bay sipò anplis epi li pa ranplase doktè ou.`) };
-  }
-  if (/(cost|pay|anything|costo|pagar|pri|peye|koute)/i.test(normalized)) {
-    if (context.program === "ACCESS" && context.accessCost) {
-      const cost = accessCostSummary(context.accessCost);
-      return { text: `${cost.amountLabel}. ${cost.supportingCopy}` };
-    }
-    return { text: L("Coverage and possible cost-sharing depend on the care services involved. You can review the details and talk with our care team before deciding.", "La cobertura y posibles costos dependen de los servicios. Puede revisar los detalles y hablar con nuestro equipo antes de decidir.", "Kouvèti ak posib depans pataje depann de sèvis swen ki enplike yo. Ou ka revize detay yo epi pale ak ekip swen nou an anvan ou deside.") };
-  }
-  if (/(change|switch).*(access )?provider|(access )?provider.*(change|switch)|cambiar.*proveedor|chanje.*founisè/i.test(normalized)) return { text: L("Beginning 90 days after enrollment, you may end your ACCESS participation or switch to another participating provider.", "A partir de 90 días después de la inscripción, puede terminar su participación en ACCESS o cambiar a otro proveedor participante.", "Apati 90 jou apre enskripsyon an, ou ka mete fen nan patisipasyon ACCESS ou oswa chanje pou yon lòt founisè ki patisipe.") };
-  if (/(voluntary|change my mind|stop|voluntaria|cambiar de opinión|volontè|chanje lide|sispann)/i.test(normalized)) return { text: context.program === "ACCESS" ? L("Participation is voluntary. You can choose not to continue before enrollment. Beginning 90 days after enrollment, you may end ACCESS participation or switch to another participating provider.", "La participación es voluntaria. Puede decidir no continuar antes de inscribirse. A partir de 90 días después de la inscripción, puede finalizar ACCESS o cambiar a otro proveedor participante.", "Patisipasyon an volontè. Ou ka chwazi pa kontinye anvan enskripsyon an. Apati 90 jou apre enskripsyon an, ou ka mete fen nan patisipasyon ACCESS ou oswa chanje pou yon lòt founisè ki patisipe.") : L("Participation is voluntary. You can ask questions before enrolling and can change your mind.", "La participación es voluntaria. Puede preguntar antes de inscribirse y cambiar de opinión.", "Patisipasyon an volontè. Ou ka poze kesyon anvan ou enskri epi ou ka chanje lide ou.") };
-  if (/(medicare|benefit|beneficio)/i.test(normalized)) return { text: L("The enrollment review and eligibility check do not change your Medicare benefits. Your regular care remains available.", "La revisión y la verificación de elegibilidad no cambian sus beneficios de Medicare. Su cuidado habitual sigue disponible.", "Revizyon enskripsyon an ak chèk kalifikasyon an pa chanje benefis Medicare ou yo. Swen regilye ou rete disponib.") };
-  if (/(information|why do you need|información|por qué necesitan|enfòmasyon|poukisa)/i.test(normalized)) return { text: L("We use the requested information to securely verify your identity and determine which care options are available. Your information is protected.", "Usamos la información solicitada para verificar su identidad y determinar qué opciones están disponibles. Su información está protegida.", "Nou itilize enfòmasyon yo mande yo pou verifye idantite ou an sekirite epi detèmine ki opsyon swen ki disponib. Enfòmasyon ou pwoteje.") };
-  if (/(next|después|sigue|apre|pwochen)/i.test(normalized)) return { text: assistantScreenExplanation(context.currentScreen) };
-  return { text: L("I can explain this screen, your care options, Medicare eligibility, or what happens next. You can also talk with our care team at any time.", "Puedo explicar esta pantalla, sus opciones de cuidado, la elegibilidad de Medicare o qué sigue. También puede hablar con nuestro equipo en cualquier momento.", "Mwen ka eksplike ekran sa a, opsyon swen ou yo, kalifikasyon Medicare, oswa sa k ap pase apre. Ou ka pale tou ak ekip swen nou an nenpòt ki lè.") };
+  const result = await runtime.tools.execute("createCareTeamTask", { patientId: context.patientId, category: "clinical_review", reason: "Fictional elevated blood pressure reported in prototype", priority: "HIGH", confirmed: true });
+  state.assistantPendingAction = "";
+  return { text: result.success ? L("Done. I created a high-priority care-team task.", "Listo. Creé una tarea de alta prioridad para el equipo de atención.", "Fini. Mwen kreye yon travay priyorite wo pou ekip swen an.") : L("I couldn’t create the task right now. Please call the care team.", "No pude crear la tarea. Llame al equipo de atención.", "Mwen pa t kapab kreye travay la. Tanpri rele ekip swen an.") };
 }
 
-async function assistantAnswer(question, context) {
+async function assistantAnswer(question, context, { questionId = "" } = {}) {
   const affirmative = /^(yes|yes please|please do|sí|si|wi|dakò)$/i.test(question.trim());
-  if (affirmative && state.assistantPendingAction) return legacyAssistantActionAnswer(question, context);
-  return ensureEmmiRuntime().orchestrator.answer(question);
+  if (affirmative && state.assistantPendingAction) return assistantConfirmationAnswer(context);
+  // The quick question's catalog id travels with the question so a guardrail is reached the same
+  // way in every language, rather than through a regex written for the translated label.
+  return ensureEmmiRuntime().orchestrator.answer(question, { questionId });
 }
 
 const assistantVoiceCopy = () => {
-  const stateCopy = {
-    CONNECTING: L("Connecting…", "Conectando…", "N ap konekte…"),
-    INTERRUPTING: L("Listening…", "Escuchando…", "N ap koute…"),
-    LISTENING: L("Listening…", "Escuchando…", "N ap koute…"),
-    USER_SPEAKING: L("Listening…", "Escuchando…", "N ap koute…"),
-    EMMI_THINKING: L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…"),
-    EMMI_SPEAKING: state.assistantVoiceDetail === "patient_response"
-      ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-      : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…"),
-    TOOL_RUNNING: typeof state.assistantVoiceDetail === "string" && state.assistantVoiceDetail.includes("…") ? state.assistantVoiceDetail : L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…"),
-    ERROR: L("Voice is unavailable", "La voz no está disponible", "Vwa pa disponib"),
-    DISCONNECTED: L("Voice conversation ended", "La conversación por voz terminó", "Konvèsasyon vwa a fini")
-  };
-  return stateCopy[state.assistantVoiceState] || stateCopy.DISCONNECTED;
+  if (state.assistantVoiceState === "ERROR") return L("Voice is unavailable", "La voz no está disponible", "Vwa pa disponib");
+  if (state.assistantVoiceState === "DISCONNECTED") return L("Voice conversation ended", "La conversación por voz terminó", "Konvèsasyon vwa a fini");
+  const visibleState = resolveEmmiVisibleState({ internalState: state.assistantVoiceState });
+  return emmiVisibleStateLabel(visibleState, languageCode());
 };
-// One cost sentence per engine explanation code. The assistant never picks the wording from an
-// amount it read: an unknown amount is answered as unknown rather than rounded to $0.
-const emmiAccessCostAnswer = (result, language) => {
-  const gross = `$${result.grossBeneficiaryResponsibility}`;
-  const copy = {
-    SUPPLEMENTAL_COVERS_COST_SHARE: L(
-      "Based on the coverage we verified, your expected payment for ACCESS is $0. Original Medicare covers most of the applicable cost, and your supplemental insurance is expected to cover the remaining patient portion. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.",
-      "Según la cobertura que verificamos, su pago esperado por ACCESS es $0. Medicare Original cubre la mayor parte del costo aplicable y se espera que su seguro suplementario cubra la parte que le corresponde. Ese $0 es su pago esperado por ACCESS; otros servicios de salud pueden tener sus propios costos.",
-      "Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se $0. Medicare Orijinal kouvri pifò nan depans ki aplikab la, epi nou prevwa asirans siplemantè ou ap kouvri rès pati pa ou a. $0 sa a se peman ACCESS ou prevwa a; lòt sèvis sante ka gen pwòp depans pa yo."),
-    NO_SUPPLEMENTAL_COVERAGE: L(
-      `Based on the coverage we verified, your expected payment for ACCESS is ${gross} per month for your current track. Medicare covers most of the applicable cost and this is the remaining patient portion.`,
-      `Según la cobertura que verificamos, su pago esperado por ACCESS es de ${gross} al mes para su vía actual. Medicare cubre la mayor parte del costo aplicable y esta es la parte que le corresponde.`,
-      `Dapre kouvèti nou verifye a, peman ou prevwa pou ACCESS se ${gross} pa mwa pou wout ou kounye a. Medicare kouvri pifò nan depans ki aplikab la epi sa a se rès pati pa ou a.`),
-    SUPPLEMENTAL_COVERAGE_UNKNOWN: L(
-      `I could not confirm whether your supplemental coverage pays the ACCESS patient portion, so I do not have a final expected payment for you yet. Before that is confirmed, the patient portion for your current track is ${gross} per month. Your care team can check your coverage.`,
-      `No pude confirmar si su cobertura suplementaria paga la parte del paciente de ACCESS, así que todavía no tengo un pago esperado definitivo. Antes de confirmarlo, la parte del paciente para su vía actual es de ${gross} al mes. Su equipo de atención puede verificar su cobertura.`,
-      `Mwen pa t ka konfime si kouvèti siplemantè ou peye pati pasyan an pou ACCESS, kidonk mwen poko gen yon peman final. Anvan sa konfime, pati pasyan an pou wout ou kounye a se ${gross} pa mwa. Ekip swen ou ka verifye kouvèti ou.`),
-    COVERAGE_VERIFICATION_STALE: L(
-      "Your coverage was last verified a while ago, so I do not want to give you an amount that may be out of date. Your care team can re-check your coverage and then I can tell you your expected payment.",
-      "Su cobertura se verificó hace tiempo, así que prefiero no darle una cantidad que podría estar desactualizada. Su equipo de atención puede verificarla de nuevo y luego podré decirle su pago esperado.",
-      "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk mwen pa vle ba w yon montan ki ka pa ajou. Ekip swen ou ka reverifye kouvèti a epi apre sa mwen ka di w peman ou prevwa a."),
-    COVERAGE_NOT_VERIFIED: L(
-      "I could not verify your coverage from the information currently available, so I do not have an expected payment to give you yet. Your care team can check this with you.",
-      "No pude verificar su cobertura con la información disponible, así que todavía no tengo un pago esperado para darle. Su equipo de atención puede revisarlo con usted.",
-      "Mwen pa t ka verifye kouvèti ou ak enfòmasyon ki disponib kounye a, kidonk mwen poko gen yon peman pou m ba w. Ekip swen ou ka tcheke sa avèk ou."),
-    QMB_COST_SHARE_RULES: L(
-      "Your coverage includes a Qualified Medicare Beneficiary designation, which has its own cost-sharing rules. I do not want to state an amount for you without your care team confirming how those rules apply.",
-      "Su cobertura incluye la designación de Beneficiario Calificado de Medicare, que tiene sus propias reglas de costos. Prefiero no indicarle una cantidad sin que su equipo confirme cómo se aplican esas reglas.",
-      "Kouvèti ou gen yon deziyasyon Benefisyè Medicare Kalifye, ki gen pwòp règ pa l sou depans. Mwen pa vle bay yon montan san ekip swen ou konfime kijan règ sa yo aplike."),
-    MEDICARE_ADVANTAGE_NOT_ELIGIBLE: L(
-      "Your coverage shows a Medicare Advantage plan rather than Original Medicare. That affects whether ACCESS is available to you, not just the amount, so your care team needs to review your eligibility before I can talk about a payment.",
-      "Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original. Eso afecta si ACCESS está disponible para usted, no solo la cantidad, así que su equipo debe revisar su elegibilidad antes de que pueda hablar de un pago.",
-      "Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal. Sa afekte si ACCESS disponib pou ou, se pa sèlman montan an, kidonk ekip swen ou dwe revize kalifikasyon ou anvan mwen ka pale sou yon peman.")
-  }[result.explanationCode];
-  return copy || L(
-    "I do not have a confirmed expected payment for you right now. Your care team can check your coverage.",
-    "Ahora mismo no tengo un pago esperado confirmado. Su equipo de atención puede verificar su cobertura.",
-    "Mwen pa gen yon peman konfime kounye a. Ekip swen ou ka verifye kouvèti ou.");
-};
-
 const assistantVoiceErrorCopyFor = code => ({
   microphone_denied: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
   rate_limited: L("EMMI voice is temporarily busy. You can continue by typing.", "La voz de EMMI está ocupada temporalmente. Puede continuar escribiendo.", "Vwa EMMI okipe pou kounye a. Ou ka kontinye ekri."),
@@ -1325,29 +1385,17 @@ const emmiGuidancePrompt = message => {
 // status stay visible, one contextual action remains direct, and secondary controls expand
 // only on request. The task stays the visual priority.
 function emmiGuideState() {
-  if (!state.emmiVoiceGuidance) return "OFF";
-  if (!emmiVoiceIsSupported(languageCode())) return "UNSUPPORTED";
-  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return "ERROR";
-  if (state.emmiVoiceGuidancePaused) return "PAUSED";
-  if (state.emmiTransitionStatus === "UPDATING") return "UPDATING";
-  if (state.assistantVoiceState === "EMMI_SPEAKING") return "SPEAKING";
-  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return "LISTENING";
-  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return "THINKING";
-  return "ACTIVE_IDLE";
+  return resolveEmmiVisibleState({
+    internalState: state.assistantVoiceState,
+    transitionStatus: state.emmiTransitionStatus,
+    voiceEnabled: state.emmiVoiceGuidance,
+    voiceSupported: emmiVoiceIsSupported(languageCode()),
+    paused: state.emmiVoiceGuidancePaused,
+    hasError: state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && Boolean(state.assistantVoiceError))
+  });
 }
 
-const emmiGuideStatusLabel = guideState => ({
-  OFF: L("Need help?", "¿Necesita ayuda?", "Bezwen èd?"),
-  UNSUPPORTED: L("Voice guidance is unavailable in this language", "La guía por voz no está disponible en este idioma", "Gid vwa a pa disponib nan lang sa a"),
-  SPEAKING: state.assistantVoiceDetail === "patient_response"
-    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-    : L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…"),
-  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
-  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  PAUSED: L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz"),
-  ERROR: L("Voice guidance is temporarily unavailable", "La guía por voz no está disponible por ahora", "Gid vwa a pa disponib pou kounye a")
-})[guideState] || L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+const emmiGuideStatusLabel = guideState => emmiVisibleStateLabel(guideState, languageCode());
 
 // One label vocabulary for every EMMI surface. "Voice options" replaces "Controls" because the
 // label itself has to tell a Medicare patient what they will find: Ask EMMI is "I want to say
@@ -1620,12 +1668,12 @@ if (typeof window !== "undefined") {
 
 // The floating pill carries EMMI's name and live state rather than a bare avatar: the patient
 // has to be able to tell at a glance that this is EMMI and what she is doing right now.
-const emmiFloatingStatus = () => ({
-  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
-  SPEAKING: L("Speaking…", "Hablando…", "L ap pale…"),
-  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…")
-})[emmiGuideState()] || "";
+const emmiFloatingStatus = () => {
+  const visibleState = emmiGuideState();
+  return [EMMI_VISIBLE_STATE.LISTENING, EMMI_VISIBLE_STATE.SPEAKING, EMMI_VISIBLE_STATE.THINKING].includes(visibleState)
+    ? emmiVisibleStateLabel(visibleState, languageCode())
+    : "";
+};
 
 // One close path for the voice options sheet, so dismissal, transcript state, body scroll lock
 // and focus return can never drift apart between the surfaces that open it.
@@ -1813,7 +1861,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -1885,19 +1933,76 @@ const disclosureRowsMarkup = (disclosures, rowClass) => disclosures
 
 const programFullInformation = (config, extraClass = "") => `<details class="full-terms program-full-terms ${extraClass}"><summary>${localized(config.fullInformationLabel) || localized(IMPORTANT_INFORMATION_COPY.fullInformationFallback)} ${icon("externalLink")}</summary><div class="program-full-content">${config.fullInformation.map(part => `<section class="access-full-section"><h2>${localized(part.title)}</h2><p>${localized(part.body)}</p></section>`).join("")}<p class="access-disclosure-version"><strong>${L("Disclosure version", "Versión de divulgación", "Vèsyon enfòmasyon")}: ${state.offer.disclosures.version}</strong></p></div></details>`;
 
+// What a patient pays has one answer, and the financial responsibility engine gives it. The card
+// used to read a three-state summary from the prototype configuration, which defaults to "no
+// supplemental coverage verified" — so the primary demo patient, whose supplement is verified to
+// cover this cost share, was shown $6 a month while EMMI told them $0. The prototype's coverage
+// control is still honoured, but as a deliberate override rather than a second opinion.
+const OVERRIDE_EXPLANATION = {
+  [SECONDARY_COVERAGE_STATUSES.VERIFIED]: EXPLANATION_CODES.SUPPLEMENTAL_COVERS_COST_SHARE,
+  [SECONDARY_COVERAGE_STATUSES.PRESENT_NOT_CONFIRMED]: EXPLANATION_CODES.SUPPLEMENTAL_COVERAGE_UNKNOWN,
+  [SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED]: EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE
+};
+function currentAccessCost() {
+  // A traditional program has no ACCESS cost on the offer, and this runs for them too when the
+  // consent evidence is recorded, so the fallback is the disclosure configuration rather than a
+  // `config` that only exists inside the ACCESS consent view.
+  const accessCost = state.offer?.accessCost || state.offer?.disclosures?.accessConfig?.accessCost || {};
+  const override = accessCost.configuredSecondaryCoverageStatus;
+  if (override) return { ...accessCost, explanationCode: OVERRIDE_EXPLANATION[override] || EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE };
+  const coverage = emmiDemoCoverage(currentDemoPatientId());
+  if (!coverage) return { ...accessCost, explanationCode: EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE };
+  const resolved = resolveExpectedPatientResponsibility({ track: state.offer?.accessTrack || accessCost.track || "eCKM", coverage });
+  return { ...accessCost, expectedMonthlyAmount: resolved.grossBeneficiaryResponsibility, explanationCode: resolved.explanationCode };
+}
+
 function accessCostSummary(accessCost = {}) {
-  const amount = Number.isFinite(Number(accessCost.expectedMonthlyAmount)) ? Number(accessCost.expectedMonthlyAmount) : 6;
+  // Falls back to the canonical track configuration rather than a literal. A hardcoded 6 here
+  // would quote the eCKM amount to a CKM patient who owes 7, or double the 3 that BH and MSK owe.
+  const amount = Number.isFinite(Number(accessCost.expectedMonthlyAmount))
+    ? Number(accessCost.expectedMonthlyAmount)
+    : accessTrackCost(accessCost.track);
   const monthlyShare = `$${amount}`;
-  const status = accessCost.secondaryCoverageStatus || "SECONDARY_NOT_VERIFIED";
-  if (status === "SECONDARY_COVERAGE_VERIFIED") return {
+  // The engine decides which of these the patient is in; this only puts its verdict into words.
+  const code = accessCost.explanationCode || EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE;
+  if (code === EXPLANATION_CODES.SUPPLEMENTAL_COVERS_COST_SHARE) return {
     amountLabel: L("Estimated out-of-pocket cost: $0", "Costo de bolsillo estimado: $0", "Depans estime nan pòch ou: $0"),
-    supportingCopy: L("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost.", "Monto de pago esperado del beneficiario: $0 al mes. Se espera que Medicare y su cobertura suplementaria verificada cubran este costo de ACCESS.", "Montan peman benefisyè a prevwa: $0 pa mwa. Yo prevwa Medicare ak kouvèti siplemantè verifye ou ap kouvri depans ACCESS sa a."),
+    // The $0 is named as the ACCESS payment specifically. A patient agreeing on this screen should
+    // not read it as "care is free" — the reading EMMI is also held to avoiding.
+    supportingCopy: L("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", "Monto de pago esperado del beneficiario: $0 al mes. Se espera que Medicare y su cobertura suplementaria verificada cubran este costo de ACCESS. Ese $0 es su pago esperado por ACCESS; otros servicios de salud pueden tener sus propios costos.", "Montan peman benefisyè a prevwa: $0 pa mwa. Yo prevwa Medicare ak kouvèti siplementè verifye ou ap kouvri depans ACCESS sa a. $0 sa a se peman ACCESS ou prevwa a; lòt sèvis sante ka gen pwòp depans pa yo."),
     fullDetails: L("Your supplemental coverage was verified for this estimate. Coverage can change, and you can review updated information before future charges.", "Su cobertura suplementaria fue verificada para este cálculo. La cobertura puede cambiar y puede revisar información actualizada antes de cargos futuros.", "Yo verifye kouvèti siplemantè ou pou estimasyon sa a. Kouvèti ka chanje, epi ou ka revize enfòmasyon ajou anvan depans alavni.")
   };
-  if (status === "SECONDARY_PRESENT_NOT_CONFIRMED") return {
+  if (code === EXPLANATION_CODES.SUPPLEMENTAL_COVERAGE_UNKNOWN) return {
     amountLabel: L(`Up to ${monthlyShare} per month`, `Hasta ${monthlyShare} al mes`, `Jiska ${monthlyShare} pa mwa`),
     supportingCopy: L(`Expected beneficiary payment amount: up to ${monthlyShare} per month. Medicare covers most of the cost of this care. Your supplemental coverage may reduce this amount.`, `Monto de pago esperado del beneficiario: hasta ${monthlyShare} al mes. Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.`, `Montan peman benefisyè a prevwa: jiska ${monthlyShare} pa mwa. Medicare kouvri pifò nan depans swen sa a. Kouvèti siplemantè ou ka diminye montan sa a.`),
     fullDetails: L("We have not yet confirmed what your supplemental insurance will pay. Your expected monthly share will not be more than the amount shown here.", "Aún no hemos confirmado cuánto pagará su seguro suplementario. No se espera que su parte mensual supere el monto mostrado aquí.", "Nou poko konfime konbyen asirans siplemantè ou ap peye. Yo pa prevwa pati pa mwa ou ap depase montan ki montre isit la.")
+  };
+  // A verification old enough to be out of date cannot support an amount, so the card says that
+  // rather than quoting one the record no longer stands behind.
+  if (code === EXPLANATION_CODES.COVERAGE_VERIFICATION_STALE) return {
+    amountLabel: L("We need to re-check your coverage", "Necesitamos verificar su cobertura de nuevo", "Nou bezwen reverifye kouvèti ou"),
+    supportingCopy: L("Your coverage was last verified a while ago, so we do not want to show you an amount that may be out of date. Your care team can re-check it before you decide.", "Su cobertura se verificó hace tiempo, así que preferimos no mostrarle un monto que podría estar desactualizado. Su equipo de atención puede verificarla de nuevo antes de que decida.", "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou. Ekip swen ou ka reverifye l anvan ou deside."),
+    fullDetails: L("Medicare covers most of the cost of this care. We will confirm your expected monthly share once your coverage is verified again.", "Medicare cubre la mayor parte del costo de este cuidado. Confirmaremos su parte mensual esperada cuando se verifique su cobertura de nuevo.", "Medicare kouvri pifò nan depans swen sa a. N ap konfime pati pa mwa ou prevwa a lè kouvèti ou verifye ankò.")
+  };
+  if (code === EXPLANATION_CODES.COVERAGE_NOT_VERIFIED) return {
+    amountLabel: L("We could not verify your coverage", "No pudimos verificar su cobertura", "Nou pa t ka verifye kouvèti ou"),
+    supportingCopy: L("We could not verify your coverage from the information we have, so we do not have an expected monthly amount for you yet. Your care team can check this with you.", "No pudimos verificar su cobertura con la información disponible, así que todavía no tenemos un monto mensual esperado. Su equipo de atención puede revisarlo con usted.", "Nou pa t ka verifye kouvèti ou ak enfòmasyon nou genyen, kidonk nou poko gen yon montan pa mwa ou prevwa. Ekip swen ou ka tcheke sa avèk ou."),
+    fullDetails: L("Medicare covers most of the cost of this care. Your expected monthly share will be confirmed once your coverage is verified.", "Medicare cubre la mayor parte del costo de este cuidado. Su parte mensual esperada se confirmará cuando se verifique su cobertura.", "Medicare kouvri pifò nan depans swen sa a. Pati pa mwa ou prevwa a ap konfime lè kouvèti ou verifye.")
+  };
+  // A Qualified Medicare Beneficiary designation has its own cost-sharing rules. Quoting a share
+  // against it, or inviting the patient to imagine supplemental insurance, are both wrong: QMB is
+  // not a Medigap policy, which is why the coverage model keeps them apart.
+  if (code === EXPLANATION_CODES.QMB_COST_SHARE_RULES) return {
+    amountLabel: L("Your care team will confirm your cost", "Su equipo confirmará su costo", "Ekip swen ou ap konfime depans ou"),
+    supportingCopy: L("Your coverage includes a Qualified Medicare Beneficiary designation, which has its own cost-sharing rules. We do not want to show an amount before your care team confirms how those rules apply to you.", "Su cobertura incluye la designación de Beneficiario Calificado de Medicare, que tiene sus propias reglas de costos. Preferimos no mostrar un monto antes de que su equipo confirme cómo se aplican esas reglas.", "Kouvèti ou gen yon deziyasyon Benefisyè Medicare Kalifye, ki gen pwòp règ pa l sou depans. Nou pa vle montre yon montan anvan ekip swen ou konfime kijan règ sa yo aplike pou ou."),
+    fullDetails: L("Qualified Medicare Beneficiary rules are not the same as supplemental insurance. Your care team will explain what applies to you before any charge.", "Las reglas del Beneficiario Calificado de Medicare no son lo mismo que un seguro suplementario. Su equipo le explicará qué aplica en su caso antes de cualquier cargo.", "Règ Benefisyè Medicare Kalifye yo pa menm bagay ak asirans siplemantè. Ekip swen ou ap esplike sa ki aplike pou ou anvan nenpòt depans.")
+  };
+  // Medicare Advantage is an eligibility question, not a pricing one. A monthly share here would
+  // answer a question the patient has not reached yet.
+  if (code === EXPLANATION_CODES.MEDICARE_ADVANTAGE_NOT_ELIGIBLE) return {
+    amountLabel: L("Your care team will review your coverage", "Su equipo revisará su cobertura", "Ekip swen ou ap revize kouvèti ou"),
+    supportingCopy: L("Your coverage shows a Medicare Advantage plan rather than Original Medicare. That affects whether ACCESS is available to you, not only what you would pay, so your care team needs to review it first.", "Su cobertura muestra un plan Medicare Advantage en lugar de Medicare Original. Eso afecta si ACCESS está disponible para usted, no solo lo que pagaría, así que su equipo debe revisarlo primero.", "Kouvèti ou montre yon plan Medicare Advantage olye Medicare Orijinal. Sa afekte si ACCESS disponib pou ou, se pa sèlman sa ou ta peye, kidonk ekip swen ou dwe revize l anvan."),
+    fullDetails: L("ACCESS is built on Original Medicare. Your care team will review your eligibility with you before any cost applies.", "ACCESS se basa en Medicare Original. Su equipo revisará su elegibilidad con usted antes de que aplique cualquier costo.", "ACCESS bati sou Medicare Orijinal. Ekip swen ou ap revize kalifikasyon ou avèk ou anvan nenpòt depans aplike.")
   };
   return {
     amountLabel: L(`${monthlyShare} per month`, `${monthlyShare} al mes`, `${monthlyShare} pa mwa`),
@@ -1942,7 +2047,7 @@ function consent() {
     const representative = representativeRole;
     const intro = L("Review the information below before choosing whether to enroll.", "Revise la información a continuación antes de decidir si desea inscribirse.", "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.");
     const config = state.offer.disclosures?.accessConfig || {};
-    const cost = accessCostSummary(state.offer.accessCost || config.accessCost);
+    const cost = accessCostSummary(currentAccessCost());
     const summaryRows = [
       ["people", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè."), L("You choose whether to enroll in ACCESS.", "Usted decide si desea inscribirse en ACCESS.", "Se ou ki chwazi si w ap enskri nan ACCESS.")],
       ["shield", L("Your Medicare benefits stay the same", "Sus beneficios de Medicare permanecen iguales", "Benefis Medicare ou yo rete menm jan an"), L("Your Medicare benefits, coverage, and rights do not change.", "Sus beneficios, cobertura y derechos de Medicare no cambian.", "Avantaj, pwoteksyon, ak dwa Medicare ou yo pa chanje.")],
@@ -2031,6 +2136,8 @@ function shareAccessPrompt(moment) {
 // can never name a different "next step".
 function currentNextBestAction() {
   return resolveNextBestAction({
+    currentScreen: state.screen,
+    nextRoute: nextScreen(state),
     pathway: state.offer?.pathway,
     devicePath: state.devicePath,
     rpmDeviceFixture: state.offer?.fixture?.rpmDevice,
@@ -2359,9 +2466,78 @@ function myCareScreen() {
   const actionLabel = started ? L("Continue where you left off", "Continuar donde lo dejó", "Kontinye kote ou te rete a") : L("Continue setting up your care", "Continuar configurando su cuidado", "Kontinye mete swen ou an plas");
   return `<div class="my-care-screen">${titleBlock(L("My Care", "Mi cuidado", "Swen mwen"), L("Your enrollment is complete. Continue when you’re ready.", "Su inscripción está completa. Continúe cuando esté listo.", "Enskripsyon ou fini. Kontinye lè ou pare."))}
     <section class="my-care-resume-card"><div>${icon("check")}<span><strong>${L("Getting Started", "Primeros pasos", "Premye etap yo")}</strong><small>${started ? L("In progress", "En curso", "An pwogrè") : L("Not finished yet", "Aún no terminado", "Poko fini")}</small></span></div>${transition.estimatedDuration ? `<p>${icon("clock")} ${localized(transition.estimatedDuration)}</p>` : ""}${cta(actionLabel, "resume-next-flow")}</section>
+    ${upcomingCareSection(appointmentViewProps({ appointments: appointmentRecords() }))}
+    ${needAnAppointmentCard({ locale: state.language, icon })}
+    <button type="button" class="link-card my-care-team-link" data-action="open-my-care-team">${icon("physician")}<span><strong>${L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen")}</strong><small>${L("See who is supporting your care", "Vea quién está apoyando su cuidado", "Gade kiyès k ap sipòte swen ou")}</small></span><b aria-hidden="true">›</b></button>
     <button type="button" class="link-card my-goals-link" data-action="open-my-goals">${icon("goals")}<span><strong>${L("My Goals", "Mis metas", "Objektif mwen")}</strong><small>${activePatientGoals().length ? L("View the goals you’re working toward", "Vea las metas en las que está trabajando", "Gade objektif w ap travay sou yo") : L("Choose what matters to you", "Elija lo que le importa", "Chwazi sa ki enpòtan pou ou")}</small></span><b aria-hidden="true">›</b></button>
     <button type="button" class="link-card my-medications-link" data-action="open-my-medications">${icon("pill")}<span><strong>${L("My Medications", "Mis medicamentos", "Medikaman mwen yo")}</strong><small>${medicationAttentionLine()}</small></span><b>›</b></button>
     <button type="button" class="link-card my-care-circle-link" data-action="open-my-care-circle">${icon("people")}<span><strong>${L("My Care Circle", "Mi Círculo de cuidado", "Sèk swen mwen")}</strong><small>${L("Invite or manage someone you trust", "Invite o administre a alguien de confianza", "Envite oswa jere yon moun ou fè konfyans")}</small></span><b aria-hidden="true">›</b></button>
+  </div>`;
+}
+
+const careTeamRoleLabel = member => ({
+  [PROFESSIONAL_TYPES.PRIMARY_CARE]: L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal"),
+  [PROFESSIONAL_TYPES.SPECIALIST]: member?.specialty === "Cardiology" ? L("Cardiologist", "Cardiólogo", "Kadyològ") : L("Specialist", "Especialista", "Espesyalis"),
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("Care coordination", "Coordinación de cuidado", "Kowòdinasyon swen"),
+  [PROFESSIONAL_TYPES.PHARMACIST]: L("Pharmacy", "Farmacia", "Famasi"),
+  [PROFESSIONAL_TYPES.NURSE]: L("Nurse", "Enfermero o enfermera", "Enfimyè"),
+  [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: L("Device support", "Soporte de dispositivos", "Sipò aparèy"),
+  [PROFESSIONAL_TYPES.UNKNOWN]: L("Care professional", "Profesional de cuidado", "Pwofesyonèl swen")
+}[member?.professionalType] || L("Care professional", "Profesional de cuidado", "Pwofesyonèl swen"));
+
+const careTeamMemberIcon = member => ({
+  [PROFESSIONAL_TYPES.PHARMACIST]: "pill",
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: "people",
+  [PROFESSIONAL_TYPES.NURSE]: "people",
+  [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: "device"
+}[member?.professionalType] || "physician");
+
+const visibleCareTeam = () => patientCareTeam()
+  .sort((a, b) => ({ [PROFESSIONAL_TYPES.PRIMARY_CARE]: 0, [PROFESSIONAL_TYPES.SPECIALIST]: 1, [PROFESSIONAL_TYPES.CARE_MANAGER]: 2 }[a.professionalType] ?? 3)
+    - ({ [PROFESSIONAL_TYPES.PRIMARY_CARE]: 0, [PROFESSIONAL_TYPES.SPECIALIST]: 1, [PROFESSIONAL_TYPES.CARE_MANAGER]: 2 }[b.professionalType] ?? 3));
+
+const careTeamRoleOptions = () => [
+  ["PRIMARY_CARE", L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal")],
+  ["CARDIOLOGIST", L("Cardiologist", "Cardiólogo", "Kadyològ")],
+  ["SPECIALIST", L("Other specialist", "Otro especialista", "Lòt espesyalis")],
+  ["CARE_MANAGER", L("Care Manager", "Coordinador de cuidado", "Jesyonè swen")],
+  ["NURSE", L("Nurse", "Enfermero o enfermera", "Enfimyè")],
+  ["OTHER", L("Other care professional", "Otro profesional de cuidado", "Lòt pwofesyonèl swen")]
+];
+
+function careTeamAddForm() {
+  const draft = state.careTeamMemberDraft || {};
+  const specialist = draft.role === "SPECIALIST";
+  return `<section class="care-team-add-panel" aria-labelledby="care-team-add-title">
+    <div class="care-team-add-heading"><span aria-hidden="true">${icon("userPlus")}</span><div><h2 id="care-team-add-title">${L("Add a care team member", "Agregar un miembro del equipo", "Ajoute yon manm ekip swen")}</h2><p>${L("Add a professional who is part of your care.", "Agregue un profesional que forma parte de su cuidado.", "Ajoute yon pwofesyonèl ki fè pati swen ou.")}</p></div></div>
+    <form id="care-team-member-form" novalidate>
+      <label><span>${L("Professional’s name", "Nombre del profesional", "Non pwofesyonèl la")}</span><input name="careTeamDisplayName" value="${escapeHtml(draft.displayName || "")}" maxlength="80" autocomplete="name" required></label>
+      <label><span>${L("Role", "Función", "Wòl")}</span><select name="careTeamRole" required><option value="">${L("Select a role", "Seleccione una función", "Chwazi yon wòl")}</option>${careTeamRoleOptions().map(([value, label]) => `<option value="${value}" ${draft.role === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+      ${specialist ? `<label><span>${L("Specialty", "Especialidad", "Espesyalite")}</span><input name="careTeamSpecialty" value="${escapeHtml(draft.specialty || "")}" maxlength="60" required></label>` : ""}
+      <label><span>${L("Practice or clinic", "Consultorio o clínica", "Klinik oswa kabinè")}</span><small>${L("Optional", "Opcional", "Opsyonèl")}</small><input name="careTeamPracticeName" value="${escapeHtml(draft.practiceName || "")}" maxlength="80"></label>
+      <p class="care-team-form-error" role="alert">${state.careTeamNotice || ""}</p>
+      <div class="care-team-add-actions"><button type="button" class="button secondary" data-action="cancel-care-team-member">${L("Cancel", "Cancelar", "Anile")}</button><button type="button" class="button primary" data-action="save-care-team-member" disabled>${L("Add to my care team", "Agregar a mi equipo", "Ajoute nan ekip mwen")}</button></div>
+    </form>
+  </section>`;
+}
+
+function myCareTeamScreen() {
+  const team = visibleCareTeam();
+  const verifiedLabel = L("Verified", "Verificado", "Verifye");
+  const members = team.length ? team.map(member => {
+    const detail = [careTeamRoleLabel(member), member.practiceName].filter(Boolean).join(" · ");
+    const physicianPhoto = member.displayName === state.offer?.referringProvider?.name ? state.offer.referringProvider.verifiedPhotoUrl || "" : "";
+    return `<article class="care-team-member-card">
+      ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : `<span class="care-team-member-icon" aria-hidden="true">${icon(careTeamMemberIcon(member))}</span>`}
+      <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p></div>
+    </article>`;
+  }).join("") : `<div class="care-team-empty">${icon("people")}<strong>${L("Your care team details are not available yet", "Los detalles de su equipo de cuidado aún no están disponibles", "Detay ekip swen ou poko disponib")}</strong><p>${L("ITERA can help you review who supports your care.", "ITERA puede ayudarle a revisar quién apoya su cuidado.", "ITERA ka ede w revize kiyès k ap sipòte swen ou.")}</p></div>`;
+  return `<div class="my-care-team-screen">${titleBlock(L("My Care Team", "Mi equipo de cuidado", "Ekip swen mwen"), L("See the healthcare professionals who support your care.", "Vea los profesionales de salud que apoyan su cuidado.", "Gade pwofesyonèl sante ki sipòte swen ou."), L("Your care", "Su cuidado", "Swen ou"))}
+    <section class="care-team-members" aria-label="${L("Your care team", "Su equipo de cuidado", "Ekip swen ou")}">${members}</section>
+    ${state.careTeamAddOpen ? careTeamAddForm() : `<button type="button" class="care-team-add-button" data-action="open-care-team-member">${icon("userPlus")}<span>${L("Add a care team member", "Agregar un miembro del equipo", "Ajoute yon manm ekip swen")}</span>${icon("arrowRight")}</button>`}
+    <p class="care-team-success" role="status" aria-live="polite">${state.careTeamAddOpen ? "" : state.careTeamNotice}</p>
+    <aside class="care-team-boundary-note">${icon("info")}<p>${L("This list can include information from your care record and professionals you add.", "Esta lista puede incluir información de su registro de cuidado y profesionales que usted agregue.", "Lis sa a ka gen enfòmasyon nan dosye swen ou ak pwofesyonèl ou ajoute.")}</p></aside>
+    <div class="actions">${cta(t().back, "back", true)}</div>
   </div>`;
 }
 
@@ -2972,7 +3148,7 @@ const BARRIER_HELP_COPY = () => ({
   },
   [INTERVENTION_TYPES.APPOINTMENT_COORDINATION]: {
     title: L("Let’s get you an appointment", "Consigamos una cita", "Ann jwenn yon randevou"),
-    body: L("I can’t book appointments yet. I’ll pass your request to your care team so they can arrange it with you.", "Todavía no puedo agendar citas. Enviaré su solicitud a su equipo para que la coordine con usted.", "Mwen poko ka pran randevou. M ap voye demann ou bay ekip swen ou pou yo ka fè aranjman avèk ou."),
+    body: L("Let’s find out how this visit can be arranged. Some offices let me help you pick a time, and some need your care team to coordinate it — I’ll tell you which one this is.", "Veamos cómo se puede coordinar esta visita. En algunos consultorios puedo ayudarle a elegir una hora, y en otros su equipo debe coordinarla: le diré cuál es el caso.", "Ann gade kijan vizit sa a ka fikse. Gen kabinè kote m ka ede w chwazi yon lè, gen lòt kote ekip swen ou dwe koordone l — m ap di w kilès ki sa a."),
     cta: L("Send my request", "Enviar mi solicitud", "Voye demann mwen")
   },
   [INTERVENTION_TYPES.SAFETY_ESCALATION]: {
@@ -3143,6 +3319,603 @@ function detectGoalSignalBarriers(goal, runtime) {
   });
   persistBarrier(barrier, { historyEvent: "BARRIER_SIGNAL_RAISED", historyDetails: { signal: "MISSING_READINGS", days } });
   auditBarrier("goal_barrier_signal_raised", barrier, { signal: "MISSING_READINGS" });
+}
+
+// ---------------------------------------------------------------------------
+// Appointment coordination. The patient says what they need; this layer finds out who can help,
+// whether that office can actually be scheduled with, and then either helps them pick a real time,
+// sends a request, or hands it to a person. The engines decide; this connects them to the
+// patient's record, the safety engine, the barrier engine, the care-team queue and the Care Circle.
+// It never says an appointment is confirmed unless a real source said so.
+// ---------------------------------------------------------------------------
+
+const appointmentRecords = () => state.appointments || [];
+const appointmentById = id => appointmentRecords().find(item => item.id === id) || null;
+const activeAppointment = () => (state.activeAppointmentId ? appointmentById(state.activeAppointmentId) : null);
+
+const saveAppointment = record => {
+  const existing = appointmentRecords().some(item => item.id === record.id);
+  state.appointments = existing
+    ? appointmentRecords().map(item => (item.id === record.id ? record : item))
+    : [...appointmentRecords(), record];
+  draftStore.save(state);
+  return record;
+};
+
+// §117: a slot id encodes the provider and the exact start time, so it is PHI in everything but
+// name. Analytics get a short non-reversible digest; the record's events[] keep the real id.
+const slotAuditRef = slotId => {
+  const value = String(slotId || "");
+  if (!value) return "";
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) hash = (Math.imul(31, hash) + value.charCodeAt(index)) | 0;
+  return `slot_${(hash >>> 0).toString(36)}`;
+};
+
+// Analytics carry the shape of the appointment and never the provider, the address, the join link
+// or a word the patient wrote about why they need to be seen.
+const auditAppointment = (event, record, extra = {}) => {
+  audit(state, event, "success", { ...appointmentAnalytics(record), ...extra });
+  // A row that only reaches storage if something else happens to save is a row a patient can lose
+  // by closing the tab.
+  draftStore.save(state);
+};
+
+// Who this product knows can help. There is no provider directory behind this: everything comes
+// from the offer and the medication list, and anything the source did not actually state about a
+// professional is left blank rather than borrowed from another record.
+const defaultCardiologist = () => ({
+  id: "dr-martinez-cardiology",
+  displayName: "Dr. Pedro Martinez",
+  professionalType: PROFESSIONAL_TYPES.SPECIALIST,
+  specialty: "Cardiology",
+  practiceName: "Coral Gables Cardiology",
+  source: CARE_TEAM_SOURCES.CARE_RECORD,
+  verified: false
+});
+
+const patientCareTeam = () => {
+  const recordedMembers = buildCareTeam({ offer: state.offer, medications: activeMedications(), locale: state.language })
+    .filter(member => member.professionalType !== PROFESSIONAL_TYPES.PHARMACIST)
+    .map(member => member.professionalType === PROFESSIONAL_TYPES.CARE_MANAGER && member.source === CARE_TEAM_SOURCES.PROGRAM
+      ? { ...member, displayName: L("Care Manager", "Coordinador de cuidado", "Jesyonè swen"), verified: false }
+      : member);
+  const members = [
+    ...recordedMembers,
+    defaultCardiologist(),
+    ...(state.patientAddedCareTeamMembers || [])
+  ];
+  const seen = new Set();
+  return members.filter(member => {
+    if (!member?.id || !member.displayName || seen.has(member.id)) return false;
+    seen.add(member.id);
+    return true;
+  });
+};
+
+const appointmentActor = ({ viaEmmi = false } = {}) =>
+  resolveAppointmentActor({ completionRole: state.completionRole, role: state.role, viaEmmi });
+
+// Every mutating appointment path goes through this. In a prototype with no backend this is the
+// only authorization boundary there is, which is exactly why nothing may route around it.
+const guardAppointment = (action, { viaEmmi = false } = {}) =>
+  canActOnAppointment({
+    actor: appointmentActor({ viaEmmi }),
+    action,
+    identityVerified: Boolean(state.identityVerified),
+    careCirclePermissions: state.careCirclePermissions || {}
+  });
+
+const appointmentCapability = record =>
+  resolveSchedulingCapability({
+    patientId: state.offer?.patient?.id || "",
+    providerId: record?.requestedProfessionalId || "",
+    practiceId: (record?.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    appointmentType: record?.reasonCategory || ""
+  });
+
+// Barriers travel with the appointment as categories, never as the patient's own words.
+const knownAppointmentBarriers = () => allPatientBarriers().filter(barrierIsActive).map(barrier => barrier.category);
+
+// Appointment requests join the same care-team queue as everything else. The three older producers
+// all wrote a different summary shape under one type string; this is the shape they converge on,
+// and it keeps the keys the existing records and tests already read.
+const ensureAppointmentCareTeamTask = record => {
+  const tasks = state.careTeamTasks || [];
+  const existing = tasks.find(task => task.type === "APPOINTMENT_REQUEST" && task.needId === record.id && task.status === "OPEN");
+  const summary = appointmentCareTeamSummary(record, {
+    patientLabel: state.offer?.patient?.displayName || "",
+    knownBarriers: knownAppointmentBarriers(),
+    contactPreference: state.offer?.patient?.phoneMasked ? "PHONE" : "IN_APP",
+    locale: state.language
+  });
+  if (existing) {
+    const merged = { ...existing, summary: { ...(existing.summary || {}), ...summary } };
+    state.careTeamTasks = tasks.map(task => (task.id === existing.id ? merged : task));
+    draftStore.save(state);
+    return merged;
+  }
+  const task = {
+    id: `appt_task_${Date.now().toString(36)}`,
+    type: "APPOINTMENT_REQUEST",
+    status: "OPEN",
+    createdAt: new Date().toISOString(),
+    needId: record.id,
+    priority: record.urgencyClassification === APPOINTMENT_URGENCY.ROUTINE ? "ROUTINE" : "PRIORITY",
+    summary
+  };
+  state.careTeamTasks = [...tasks, task];
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.CARE_TEAM_TASK_CREATED, record, { taskId: task.id });
+  // A request the care team never receives is not a request. Persist here rather than relying on
+  // whatever happens to save next.
+  draftStore.save(state);
+  return task;
+};
+
+// A need becomes a record the moment we understand it, so a patient who leaves mid-conversation
+// comes back to something real rather than to nothing.
+function startAppointmentNeed({
+  source = APPOINTMENT_SOURCES.PATIENT_DIRECT_REQUEST,
+  reasonCategory = APPOINTMENT_REASON_CATEGORIES.OTHER,
+  reasonSummary = "",
+  providerId = "",
+  professionalType = "",
+  specialty = "",
+  relatedGoalId = "",
+  relatedBarrierId = "",
+  relatedRefillId = "",
+  urgencyClassification = APPOINTMENT_URGENCY.ROUTINE
+} = {}) {
+  const careTeam = patientCareTeam();
+  const resolved = resolveRequestedProfessional(careTeam, { text: reasonSummary, specialty, professionalType, locale: state.language });
+  const match = providerId ? careTeam.find(member => member.id === providerId) || resolved.match : resolved.match;
+  // Saying it twice is one need. A pending request for the same provider and the same reason is
+  // surfaced rather than duplicated.
+  const duplicate = findDuplicateAppointmentNeed(appointmentRecords(), {
+    requestedProfessionalId: match?.id || providerId || "",
+    reasonCategory
+  });
+  if (duplicate) return { record: duplicate, duplicate: true, careTeam, resolution: resolved };
+  const record = createAppointmentNeed({
+    patientId: state.offer?.patient?.id || state.assistantDemoPatientId || "",
+    source,
+    reasonCategory,
+    reasonSummary,
+    relatedGoalId,
+    relatedBarrierId,
+    relatedRefillId,
+    requestedProfessionalId: match?.id || "",
+    requestedProfessionalType: match?.professionalType || professionalType || PROFESSIONAL_TYPES.UNKNOWN,
+    requestedSpecialty: match?.specialty || specialty || "",
+    providerDisplayName: match?.displayName || "",
+    practiceName: match?.practiceName || "",
+    urgencyClassification,
+    actor: appointmentActor()
+  });
+  saveAppointment(record);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.NEED_CREATED, record, { source });
+  if (match) auditAppointment(APPOINTMENT_AUDIT_EVENTS.PROVIDER_RESOLVED, record, { resolution: resolved.status });
+  // A professional this product has never heard of is a care-team question, not a dead end.
+  if (resolved.status === "NOT_FOUND" && (specialty || professionalType)) {
+    const plan = professionalNotFoundPlan({ requestedSpecialty: specialty, locale: state.language });
+    ensureAppointmentCareTeamTask(record);
+    return { record, duplicate: false, careTeam, resolution: resolved, notFoundPlan: plan };
+  }
+  return { record, duplicate: false, careTeam, resolution: resolved };
+}
+
+// One place decides what happens next, so text, voice and tapping cannot disagree about whether an
+// office can be booked directly.
+function classifyAppointmentPath(record) {
+  const capability = appointmentCapability(record);
+  const updated = advanceAppointment({ ...record, schedulingCapability: capability.capability }, {
+    status: APPOINTMENT_STATUS.COLLECTING_PREFERENCES,
+    source: "ITERA",
+    actor: appointmentActor(),
+    detail: { capability: capability.capability }
+  });
+  saveAppointment(updated);
+  return { record: updated, capability };
+}
+
+// Availability is only ever what the scheduling source returned. When it cannot be reached the
+// patient is told that, and never shown a time that was invented to fill the screen.
+function loadAppointmentAvailability(record) {
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.AVAILABILITY_REQUESTED, record);
+  const searching = advanceAppointment(record, { status: APPOINTMENT_STATUS.SEARCHING_AVAILABILITY, source: "ITERA", actor: appointmentActor() });
+  const result = getProviderAvailability({
+    providerId: record.requestedProfessionalId,
+    preferredTimeOfDay: record.preferredTimeOfDay,
+    preferredDateRange: record.preferredDateRange,
+    modality: record.preferredModality,
+    now: new Date()
+  });
+  if (!result.ok) {
+    saveAppointment(searching);
+    return { ok: false, error: result.error, record: searching };
+  }
+  const withSlots = advanceAppointment({ ...searching, proposedTimes: result.slots }, {
+    status: APPOINTMENT_STATUS.SLOTS_AVAILABLE,
+    source: "SCHEDULING_SOURCE",
+    actor: APPOINTMENT_ACTORS.SYSTEM,
+    detail: { slotCount: result.slots.length }
+  });
+  saveAppointment(withSlots);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.SLOTS_SHOWN, withSlots, { slotCount: result.slots.length });
+  return { ok: true, slots: result.slots, record: withSlots };
+}
+
+// A slot can disappear between being shown and being taken. That is nobody's fault and it is never
+// reported as a confirmed appointment.
+function confirmAppointmentSlot(record, slotId) {
+  const permission = guardAppointment("BOOK");
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const key = appointmentIdempotencyKey({ patientId: record.patientId, providerId: record.requestedProfessionalId, slotId, action: "BOOK" });
+  const already = findByIdempotencyKey(appointmentRecords(), key);
+  if (already && already.status === APPOINTMENT_STATUS.CONFIRMED) return { ok: true, record: already, idempotent: true };
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.SLOT_SELECTED, record, { slotRef: slotAuditRef(slotId) });
+  const selecting = advanceAppointment({ ...record, idempotencyKey: key }, { status: APPOINTMENT_STATUS.PENDING_PATIENT_SELECTION, source: "PATIENT", actor: appointmentActor() });
+  const booking = advanceAppointment(selecting, { status: APPOINTMENT_STATUS.BOOKING, source: "PATIENT", actor: appointmentActor(), detail: { slotId } });
+  saveAppointment(booking);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.BOOKING_ATTEMPTED, booking, { slotRef: slotAuditRef(slotId) });
+  const result = bookSlot({ appointment: booking, slotId, idempotencyKey: key, now: new Date() });
+  if (!result.ok) {
+    // Back to the times we actually have, never forward to a confirmation we were not given.
+    const reverted = advanceAppointment(booking, {
+      status: APPOINTMENT_STATUS.SLOTS_AVAILABLE,
+      source: "SCHEDULING_SOURCE",
+      actor: APPOINTMENT_ACTORS.SYSTEM,
+      detail: { failure: result.slotGone ? "SLOT_GONE" : "BOOKING_FAILED" }
+    });
+    saveAppointment(reverted);
+    return { ok: false, slotGone: Boolean(result.slotGone), record: reverted };
+  }
+  const confirmed = advanceAppointment({
+    ...booking,
+    scheduledAt: result.scheduledAt,
+    scheduledEndAt: result.scheduledEndAt,
+    modality: result.modality,
+    locationName: result.locationName || "",
+    locationAddress: result.locationAddress || "",
+    joinUrl: result.joinUrl || "",
+    confirmationNumber: result.confirmationNumber
+  }, { status: APPOINTMENT_STATUS.CONFIRMED, source: "SCHEDULING_SOURCE", actor: APPOINTMENT_ACTORS.SYSTEM, detail: { slotId } });
+  saveAppointment(confirmed);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.BOOKING_CONFIRMED, confirmed, { slotRef: slotAuditRef(slotId) });
+  return { ok: true, record: confirmed };
+}
+
+// A request is a request. The confirmation screen for one says so, and the care team gets a
+// structured summary rather than a transcript.
+function sendAppointmentRequest(record, { viaEmmi = false } = {}) {
+  const permission = guardAppointment("CREATE", { viaEmmi });
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const key = appointmentIdempotencyKey({ patientId: record.patientId, providerId: record.requestedProfessionalId, slotId: "", action: "REQUEST" });
+  const already = findByIdempotencyKey(appointmentRecords(), key);
+  if (already && already.requestSentAt) return { ok: true, record: already, idempotent: true };
+  const result = submitAppointmentRequest({ appointment: { ...record, idempotencyKey: key }, idempotencyKey: key, now: new Date() });
+  if (!result.ok) return { ok: false, error: result.error, record };
+  const sent = advanceAppointment({ ...record, idempotencyKey: key, requestSentAt: result.requestSentAt }, {
+    status: APPOINTMENT_STATUS.REQUEST_SENT,
+    source: "ITERA",
+    actor: appointmentActor({ viaEmmi }),
+    detail: { capability: record.schedulingCapability }
+  });
+  saveAppointment(sent);
+  ensureAppointmentCareTeamTask(sent);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.REQUEST_SENT, sent);
+  return { ok: true, record: sent };
+}
+
+// Where the platform cannot coordinate at all, a person does. This is not a failure path dressed
+// up as one — it is the honest answer, and it still gives the patient a real next action.
+function escalateAppointmentToCoordinator(record, { viaEmmi = false, capability = SCHEDULING_CAPABILITY.HUMAN_COORDINATION } = {}) {
+  const permission = guardAppointment("CREATE", { viaEmmi });
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const escalated = advanceAppointment(record, {
+    status: APPOINTMENT_STATUS.REQUEST_SENT,
+    source: "ITERA",
+    actor: appointmentActor({ viaEmmi }),
+    detail: { capability }
+  });
+  if (escalated === record) return { ok: false, error: "TRANSITION_NOT_ALLOWED", record };
+  saveAppointment(escalated);
+  ensureAppointmentCareTeamTask(escalated);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.CARE_TEAM_TASK_CREATED, escalated, { path: capability });
+  return { ok: true, record: escalated };
+}
+
+function requestAppointmentReschedule(record, { viaEmmi = false } = {}) {
+  const permission = guardAppointment("RESCHEDULE", { viaEmmi });
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const key = appointmentIdempotencyKey({ patientId: record.patientId, providerId: record.requestedProfessionalId, slotId: record.scheduledAt || "", action: "RESCHEDULE" });
+  if (record.status === APPOINTMENT_STATUS.RESCHEDULE_REQUESTED) return { ok: true, record, idempotent: true };
+  const updated = advanceAppointment({ ...record, idempotencyKey: key }, {
+    status: APPOINTMENT_STATUS.RESCHEDULE_REQUESTED,
+    source: "PATIENT",
+    actor: appointmentActor({ viaEmmi })
+  });
+  if (updated === record) return { ok: false, error: "TRANSITION_NOT_ALLOWED", record };
+  saveAppointment(updated);
+  ensureAppointmentCareTeamTask(updated);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.RESCHEDULE_REQUESTED, updated);
+  return { ok: true, record: updated };
+}
+
+// Cancelling is destructive and irreversible from the patient's side, so it never happens because
+// of something someone typed. It takes an explicit confirmation, every time.
+function cancelAppointmentRecord(record, { viaEmmi = false } = {}) {
+  const permission = guardAppointment("CANCEL", { viaEmmi });
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  if ([APPOINTMENT_STATUS.CANCELED, APPOINTMENT_STATUS.CANCEL_REQUESTED].includes(record.status)) return { ok: true, record, idempotent: true };
+  const key = appointmentIdempotencyKey({ patientId: record.patientId, providerId: record.requestedProfessionalId, slotId: record.scheduledAt || "", action: "CANCEL" });
+  const requested = advanceAppointment({ ...record, idempotencyKey: key }, { status: APPOINTMENT_STATUS.CANCEL_REQUESTED, source: "PATIENT", actor: appointmentActor({ viaEmmi }) });
+  if (requested === record) return { ok: false, error: "TRANSITION_NOT_ALLOWED", record };
+  const canceled = advanceAppointment(requested, { status: APPOINTMENT_STATUS.CANCELED, source: "SCHEDULING_SOURCE", actor: APPOINTMENT_ACTORS.SYSTEM });
+  saveAppointment(canceled);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.CANCELED, canceled);
+  return { ok: true, record: canceled };
+}
+
+// Reminders are in-app only. The product has no scheduler and no channel, and it says so rather
+// than letting a patient believe their phone will ring.
+function saveAppointmentReminder(record, slotId) {
+  const permission = guardAppointment("REMIND");
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const result = createAppointmentReminder(record, slotId, { now: new Date(), confirmed: true });
+  if (!result.ok) return result;
+  const updated = { ...record, reminder: result.reminder, updatedAt: new Date().toISOString() };
+  saveAppointment(updated);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.REMINDER_CREATED, updated, { slot: slotId });
+  return { ok: true, record: updated, reminder: result.reminder, note: result.note };
+}
+
+// The first place in this product where a Care Circle permission actually decides anything.
+const appointmentCareCircle = () => careCircleSharingOptions({
+  invites: growthStore.allSupportInvites().filter(invite => invite.inviterPatientId === state.offer?.patient?.id && !invite.removedAt),
+  careCirclePermissions: state.careCirclePermissions || {},
+  completionRole: state.completionRole
+});
+
+function shareAppointmentWithMember(record, inviteId) {
+  const permission = guardAppointment("SHARE");
+  if (!permission.allowed) return { ok: false, error: permission.reason };
+  const options = appointmentCareCircle();
+  if (!options.allowed) return { ok: false, error: options.reason };
+  const member = options.eligibleMembers.find(item => item.inviteId === inviteId);
+  if (!member) return { ok: false, error: "MEMBER_NOT_ELIGIBLE" };
+  if ((record.sharedWith || []).some(item => item.inviteId === inviteId)) return { ok: true, record, idempotent: true };
+  const scope = appointmentShareScope(state.language);
+  const payload = sharedAppointmentPayload(record, { locale: state.language });
+  const updated = { ...record, sharedWith: [...(record.sharedWith || []), { inviteId, scope: scope.version, sharedAt: new Date().toISOString(), payload }], updatedAt: new Date().toISOString() };
+  saveAppointment(updated);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.SHARED_WITH_CARE_CIRCLE, updated, { inviteId });
+  return { ok: true, record: updated, scope, payload };
+}
+
+// Attendance is asked, never assumed, and a visit that did not happen is a difficulty to solve
+// rather than something the patient failed at.
+async function recordAppointmentAttendance(record, outcome) {
+  const plan = attendanceFollowUpPlan(outcome, state.language);
+  const status = outcome === ATTENDANCE_OUTCOMES.ATTENDED
+    ? APPOINTMENT_STATUS.COMPLETED
+    : outcome === ATTENDANCE_OUTCOMES.MISSED
+      ? APPOINTMENT_STATUS.NO_SHOW
+      : APPOINTMENT_STATUS.RESCHEDULE_REQUESTED;
+  const updated = advanceAppointment({ ...record, attendanceOutcome: outcome, followUpAskedAt: new Date().toISOString() }, {
+    status,
+    source: "PATIENT",
+    actor: appointmentActor(),
+    detail: { outcome }
+  });
+  saveAppointment(updated);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.FOLLOW_UP_OUTCOME, updated, { outcome });
+  if (outcome === ATTENDANCE_OUTCOMES.MISSED && plan?.barrierCategory) {
+    const goal = currentGoal();
+    if (goal) {
+      const barrier = recordBarrier({ goal, category: plan.barrierCategory, source: BARRIER_SOURCES.SYSTEM_SIGNAL });
+      if (barrier) {
+        saveAppointment({ ...updated, relatedBarrierId: barrier.id });
+        auditAppointment(APPOINTMENT_AUDIT_EVENTS.BARRIER_IDENTIFIED, updated, { category: plan.barrierCategory });
+        state.activeBarrierId = barrier.id;
+        await planNextBarrierHelp(barrier);
+        return { ok: true, record: updated, barrier };
+      }
+    }
+    // No goal to attach a difficulty to still means a person should look at this.
+    ensureAppointmentCareTeamTask(updated);
+  }
+  return { ok: true, record: updated };
+}
+
+// A difficulty raised from an appointment is the same record the goal screen writes, with the same
+// history. The taxonomy does not grow for appointments; it is mapped onto.
+async function recordAppointmentBarrier(record, reasonKey) {
+  // "I'm all set" is an answer, not a difficulty. Asking and being told nothing is wrong is the
+  // point of the check; it must not create a record.
+  const plan = appointmentBarrierPlan(reasonKey);
+  if (!plan?.category) return { ok: true, record, routed: "NO_BARRIER" };
+  const goal = currentGoal();
+  if (!goal) {
+    ensureAppointmentCareTeamTask(record);
+    auditAppointment(APPOINTMENT_AUDIT_EVENTS.BARRIER_IDENTIFIED, record, { category: plan.category, routed: "CARE_TEAM_TASK" });
+    return { ok: true, record, routed: "CARE_TEAM_TASK" };
+  }
+  const barrier = recordBarrier({ goal, category: plan.category, source: BARRIER_SOURCES.PATIENT });
+  if (!barrier) return { ok: false, error: "BARRIER_NOT_RECORDED" };
+  saveAppointment({ ...record, relatedBarrierId: barrier.id });
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.BARRIER_IDENTIFIED, record, { category: plan.category, routed: "BARRIER_ENGINE" });
+  state.activeBarrierId = barrier.id;
+  await planNextBarrierHelp(barrier);
+  return { ok: true, barrier, routed: "BARRIER_ENGINE" };
+}
+
+// §82/§83: an upcoming visit or an open request with the same office, for the same reason, is the
+// thing the patient is already waiting on — not a reason to start a second one.
+const existingAppointmentFor = record => {
+  if (!record?.requestedProfessionalId) return null;
+  const others = appointmentRecords().filter(item => item.id !== record.id);
+  return findUpcomingAppointmentWithProvider(others, record.requestedProfessionalId, new Date())
+    || findDuplicateAppointmentNeed(others, { requestedProfessionalId: record.requestedProfessionalId, reasonCategory: record.reasonCategory });
+};
+
+const openAppointmentDetail = (id, view = "") => {
+  state.activeAppointmentId = id;
+  state.appointmentFlow = view ? { appointmentId: id, view } : null;
+  state.screen = "APPOINTMENT_DETAIL";
+  draftStore.save(state);
+};
+
+const openAppointmentScheduling = (record, step = "REASON") => {
+  state.activeAppointmentId = record.id;
+  state.appointmentDraft = updateAppointmentDraft(state.appointmentDraft || createAppointmentDraft({ needId: record.id }), { needId: record.id });
+  state.appointmentFlow = { appointmentId: record.id, step, view: "" };
+  state.screen = "APPOINTMENT_SCHEDULING";
+  draftStore.save(state);
+};
+
+const appointmentViewProps = extra => ({ locale: state.language, icon, escapeHtml, now: new Date(), ...extra });
+
+// §21: a person coordinating is not an office deciding. The patient is told which it is.
+function appointmentCoordinationConfirmation(record) {
+  return `${titleBlock(L("Your care team is coordinating this", "Su equipo está coordinando esto", "Ekip swen ou ap koordone sa"), L("A care manager will work out the time with the office and come back to you.", "Un coordinador acordará la hora con el consultorio y le responderá.", "Yon koordonatè ap antann li ak kabinè a sou lè a epi l ap reponn ou."), L("Appointment", "Cita", "Randevou"))}
+    ${record.providerDisplayName ? `<p class="appointment-provider">${escapeHtml(record.providerDisplayName)}</p>` : ""}
+    <p class="appointment-status">${icon("clock")}<span>${escapeHtml(appointmentPatientStatus(record, state.language))}</span></p>
+    <p class="appointment-note">${L("There is no time set yet. We will tell you as soon as there is one for you to review.", "Todavía no hay una hora. Le avisaremos en cuanto haya una para que la revise.", "Poko gen yon lè. N ap di w kou gen youn pou ou gade.")}</p>
+    <div class="actions">
+      <button type="button" class="button primary" data-action="appointment-open" data-appointment-id="${escapeHtml(record.id)}">${L("View this request", "Ver esta solicitud", "Gade demann sa a")}</button>
+      <button type="button" class="button secondary" data-action="appointment-back">${L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</button>
+    </div>`;
+}
+
+// §23: when there is no channel at all, the honest answer is that there is no channel — followed
+// by something the patient can actually do.
+function appointmentNoChannelNotice(record) {
+  return `${titleBlock(L("I can’t schedule this one directly", "No puedo agendar esta directamente", "Mwen pa ka fikse sa a dirèkteman"), L("This office doesn’t connect to ITERA for scheduling. I can put your care team on it so someone reaches out for you.", "Este consultorio no se conecta con ITERA para agendar. Puedo avisar a su equipo para que alguien se comunique por usted.", "Kabinè sa a pa konekte ak ITERA pou bay randevou. Mwen ka mete ekip swen ou sou li pou yon moun kontakte w."), L("Appointment", "Cita", "Randevou"))}
+    ${record.providerDisplayName ? `<p class="appointment-provider">${escapeHtml(record.providerDisplayName)}</p>` : ""}
+    <p class="appointment-status">${icon("alert")}<span>${L("Not scheduled", "Sin agendar", "Pa fikse")}</span></p>
+    <div class="actions">
+      <button type="button" class="button primary" data-action="appointment-ask-care-team" data-appointment-id="${escapeHtml(record.id)}">${L("Ask my care team to help", "Pedir ayuda a mi equipo", "Mande ekip swen mwen ede")}</button>
+      <button type="button" class="button secondary" data-action="appointment-back">${L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</button>
+    </div>`;
+}
+
+// §82/§83: an appointment the patient already has is surfaced before a second one is created.
+function appointmentDuplicateNotice(record, existing) {
+  const confirmed = existing.status === APPOINTMENT_STATUS.CONFIRMED;
+  return `${titleBlock(confirmed
+      ? L("You already have an appointment", "Ya tiene una cita", "Ou deja gen yon randevou")
+      : L("You already have a request waiting", "Ya tiene una solicitud en espera", "Ou deja gen yon demann k ap tann"),
+    "", L("Appointment", "Cita", "Randevou"))}
+    <p class="appointment-provider">${escapeHtml(existing.providerDisplayName || L("Your care team", "Su equipo de atención", "Ekip swen ou"))}</p>
+    <p class="appointment-status">${icon(confirmed ? "check" : "clock")}<span>${escapeHtml(appointmentPatientStatus(existing, state.language))}</span></p>
+    <div class="actions">
+      <button type="button" class="button primary" data-action="appointment-open" data-appointment-id="${escapeHtml(existing.id)}">${confirmed ? L("View it", "Verla", "Gade l") : L("View the request", "Ver la solicitud", "Gade demann nan")}</button>
+      <button type="button" class="button secondary" data-action="appointment-submit-request" data-need-id="${escapeHtml(record.id)}" data-force="1">${L("Request another one anyway", "Solicitar otra de todos modos", "Mande yon lòt kanmèm")}</button>
+    </div>`;
+}
+
+// The reminder screen and the cancel confirmation live here rather than in appointmentViews.js
+// because both are about what this product can actually promise: a reminder that only ever appears
+// inside ITERA, and a cancellation that only ever happens after the patient says so out loud.
+function appointmentReminderScreen(record) {
+  const capability = appointmentReminderCapability(state.language);
+  const slots = appointmentReminderSlotOptions(state.language);
+  const chosen = record.reminder?.slot || "";
+  return `${titleBlock(L("When should I remind you?", "¿Cuándo le recuerdo?", "Kilè pou m fè w sonje?"), "", L("Appointment", "Cita", "Randevou"))}
+    <p class="appointment-note">${escapeHtml(capability.note)}</p>
+    <div class="choice-list appointment-reminder-choices">
+      ${slots.map(slot => `<button type="button" class="goal-response-button${chosen === slot.id ? " is-selected" : ""}" data-action="appointment-save-reminder" data-appointment-id="${escapeHtml(record.id)}" data-slot="${escapeHtml(slot.id)}">${icon("bell")}<span>${escapeHtml(slot.label)}</span></button>`).join("")}
+    </div>
+    <div class="actions"><button type="button" class="button secondary" data-action="appointment-open" data-appointment-id="${escapeHtml(record.id)}">${t().back}</button></div>`;
+}
+
+// §12 and §63: cancelling is destructive, so it takes a second, explicit yes on its own screen.
+function appointmentCancelConfirmation(record) {
+  return `${titleBlock(L("Cancel this appointment?", "¿Cancelar esta cita?", "Anile randevou sa a?"), L("We will let the office know. You can request another appointment whenever you need one.", "Avisaremos al consultorio. Puede solicitar otra cita cuando la necesite.", "N ap fè kabinè a konnen. Ou ka mande yon lòt randevou lè ou bezwen l."), L("Appointment", "Cita", "Randevou"))}
+    <p class="appointment-provider">${escapeHtml(record.providerDisplayName || L("Your care team", "Su equipo de atención", "Ekip swen ou"))}</p>
+    <p class="appointment-status">${escapeHtml(appointmentPatientStatus(record, state.language))}</p>
+    <div class="actions">
+      <button type="button" class="primary-button appointment-action" data-action="appointment-confirm-cancel" data-appointment-id="${escapeHtml(record.id)}">${L("Yes, cancel it", "Sí, cancelarla", "Wi, anile l")}</button>
+      <button type="button" class="button secondary" data-action="appointment-open" data-appointment-id="${escapeHtml(record.id)}">${L("Keep my appointment", "Conservar mi cita", "Kenbe randevou mwen")}</button>
+    </div>`;
+}
+
+function myAppointmentsScreen() {
+  // Landing on an empty Upcoming tab when the only visit is in the past is a dead end — and a past
+  // visit is exactly the one the after-visit question needs the patient to reach. Open on the first
+  // tab that actually has something in it unless the patient picked one.
+  const records = appointmentRecords();
+  const now = new Date();
+  const populated = ["UPCOMING", "REQUESTS", "PAST"].find(name => (
+    name === "UPCOMING" ? upcomingAppointments(records, now).length
+      : name === "REQUESTS" ? pendingRequests(records).length
+      : pastAppointments(records, now).length
+  ));
+  const tab = state.appointmentFlow?.tab || populated || "UPCOMING";
+  return appointmentsListScreen(appointmentViewProps({ appointments: records, tab }));
+}
+
+function appointmentDetailScreen() {
+  const record = activeAppointment();
+  if (!record) return myAppointmentsScreen();
+  // §65: a visit whose time has passed and that nobody has asked about yet opens on the question,
+  // not on a detail screen that pretends the visit is still ahead.
+  const view = state.appointmentFlow?.view
+    || (appointmentFollowUpDue(record, new Date()) ? "FOLLOW_UP" : "");
+  const props = appointmentViewProps({ appointment: record });
+  if (view === "PREP") return appointmentPrepView(props);
+  if (view === "BRIEF") return appointmentBriefView(props);
+  if (view === "BARRIER") return appointmentBarrierCheckView(appointmentViewProps({ appointment: record, preVisitCheck: preVisitCheckOptions({ appointment: record, locale: state.language }) }));
+  if (view === "SHARE") {
+    const sharing = appointmentCareCircle();
+    return appointmentShareView(appointmentViewProps({ appointment: record, members: sharing.eligibleMembers, sharing, scope: appointmentShareScope(state.language) }));
+  }
+  if (view === "REMINDER") return appointmentReminderScreen(record);
+  if (view === "CANCEL_CONFIRM") return appointmentCancelConfirmation(record);
+  if (view === "FOLLOW_UP") return appointmentFollowUpView(appointmentViewProps({ appointment: record, step: state.appointmentFlow?.step || "ATTENDANCE" }));
+  const notice = state.appointmentNotice
+    ? `<p class="appointment-note" role="status">${escapeHtml(state.appointmentNotice)}</p>`
+    : "";
+  state.appointmentNotice = "";
+  return notice + appointmentDetailView(appointmentViewProps({
+    appointment: record,
+    capability: appointmentCapability(record),
+    patientStatus: appointmentPatientStatus(record, state.language),
+    nextStep: appointmentNextStep(record, state.language),
+    tone: appointmentStatusTone(record)
+  }));
+}
+
+function appointmentSchedulingScreen() {
+  const record = activeAppointment();
+  if (!record) return myAppointmentsScreen();
+  const flow = state.appointmentFlow || {};
+  if (flow.step === "SLOTS") {
+    // BUG 13: slots render in the order the source returned them, so sort by time or a later
+    // slot can sit above an earlier one on the same day.
+    const slots = [...(record.proposedTimes || [])].sort((a, b) => String(a.startAt).localeCompare(String(b.startAt)));
+    return slotPickerView(appointmentViewProps({ appointment: record, slots, expanded: flow.expanded === true, error: flow.error || "" }));
+  }
+  if (flow.step === "BOOKED") return bookingConfirmationView(appointmentViewProps({ appointment: record }));
+  if (flow.step === "REQUESTED") return requestConfirmationView(appointmentViewProps({ appointment: record }));
+  if (flow.step === "COORDINATING") return appointmentCoordinationConfirmation(record);
+  if (flow.step === "NO_CHANNEL") return appointmentNoChannelNotice(record);
+  if (flow.step === "DUPLICATE") {
+    const existing = appointmentById(flow.duplicateId || "");
+    if (existing) return appointmentDuplicateNotice(record, existing);
+  }
+  // §30: what this office actually supports, never the vocabulary of everything that exists.
+  const capability = appointmentCapability(record);
+  return appointmentPreferenceView(appointmentViewProps({
+    appointment: record,
+    draft: state.appointmentDraft,
+    step: flow.step || "PROVIDER",
+    careTeam: patientCareTeam(),
+    capability,
+    supportedModalities: capability.supportedModalities,
+    submittable: draftIsSubmittable(state.appointmentDraft || createAppointmentDraft({ needId: record.id }))
+  }));
 }
 
 const frequencyLabel = value => ({
@@ -3877,6 +4650,187 @@ function prototypeScenarioSummary() {
   return [prototypeConfig.program, prototypeConfig.program === "ACCESS" ? prototypeConfig.accessTrack : null, prototypeConfig.source, physicianRequired ? prototypeConfig.physicianDisplayName : null, prototypeConfig.conditions.join(" + "), prototypeConfig.coverage, prototypeConfig.program === "ACCESS" ? eligibilityLabel : null, deviceLabel, languageLabel].filter(Boolean).join(" · ");
 }
 
+// ---------------------------------------------------------------------------------------------
+// Simulated blood pressure readings (prototype only)
+//
+// The simulator produces observations; everything after that is the app's real path. A simulated
+// reading is classified by the same classifyBloodPressure the rest of the app uses, lands in
+// state.bpReadings like a device reading, and from there the goal runtime, the trend and EMMI's
+// clinical context pick it up through code that has no idea a simulator exists. That is the point:
+// what a tester watches is the real reaction, not a mock of one.
+// ---------------------------------------------------------------------------------------------
+
+let bpSimulator = null;
+let bpSimulationTicker = null;
+const bpSimulationSettings = { intervalMinutes: 2, seed: null };
+
+// Same gate the rest of the prototype already uses, asked through the simulator's own predicate so
+// the rule lives in one place and stays testable without a bundler.
+const bpSimulationAllowed = () => emmiPrototypeIsSafe() && simulationAllowed({
+  prototypeMode: EMMI_CONFIG.prototypeMode,
+  allowRealPatientData: EMMI_CONFIG.allowRealPatientData
+});
+
+const bpSimulationStatus = () => bpSimulator?.status || SIMULATION_STATUS.OFF;
+const simulatedReadings = () => (state.bpReadings || []).filter(reading => reading.isSimulated);
+
+// One observation, one trip through the real engine. The simulator never says what a reading means.
+async function ingestSimulatedBpObservation(observation) {
+  const rules = DEMO_BP_MONITORING_RULES;
+  const classification = classifyBloodPressure(observation, rules);
+  if ((state.bpReadings || []).some(reading => reading.observationId === observation.observationId)) return;
+  audit(state, "simulated_bp_generated", "success", {
+    observationId: observation.observationId, simulationSessionId: observation.simulationSessionId,
+    simulationSequence: observation.simulationSequence, systolic: observation.systolic, diastolic: observation.diastolic
+  });
+  const history = [...(state.bpReadings || [])];
+  state.bpReadings = [...history, { ...observation, classification, monitoringRuleVersion: rules.version }];
+  audit(state, "simulated_bp_classified", "success", {
+    observationId: observation.observationId, classification, monitoringRuleVersion: rules.version,
+    // Recorded side by side so a QA run can see when the engine disagreed with what the generator
+    // aimed at -- a boundary reading is allowed to, and that is worth seeing rather than hiding.
+    simulationTarget: observation.simulationTarget
+  });
+  // The point of the simulator is to exercise the real pipeline, so the observation carries on
+  // into the monitoring engine exactly as a cuff reading would. Without this the readings were
+  // only classified and stored, and everything worth watching -- repeated criticals correlating
+  // into one alert instead of an alert storm, a worsening reading escalating, a calmer one not
+  // closing an open episode -- never ran at all.
+  const ingested = ingestBloodPressureObservation({
+    observation,
+    history,
+    episode: state.bpMonitoringEpisode || null,
+    rules
+  });
+  state.bpMonitoringEpisode = ingested.episode;
+  if (ingested.alert) {
+    audit(state, "simulated_alert_created", "success", {
+      alertId: ingested.alert.id, episodeId: ingested.episode?.id, clinicalState: ingested.alert.state,
+      severity: ingested.alert.severity, ruleVersion: ingested.alert.ruleVersion,
+      action: ingested.action, isSimulated: true
+    });
+  }
+  draftStore.save(state);
+  render();
+}
+
+function ensureBpSimulator() {
+  if (bpSimulator) return bpSimulator;
+  bpSimulator = new BloodPressureSimulator({
+    rules: DEMO_BP_MONITORING_RULES,
+    intervalMs: Math.max(1, bpSimulationSettings.intervalMinutes) * 60 * 1000,
+    seed: bpSimulationSettings.seed,
+    onObservation: ingestSimulatedBpObservation
+  });
+  return bpSimulator;
+}
+
+// The countdown is the only thing that changes every second, so it updates its own node instead of
+// re-rendering a console the tester may be typing into.
+function startBpSimulationTicker() {
+  stopBpSimulationTicker();
+  bpSimulationTicker = setInterval(() => {
+    const node = document.querySelector("#bp-simulation-countdown");
+    if (!node) return;
+    const remaining = bpSimulator?.msUntilNextReading();
+    node.textContent = remaining == null ? "--:--" : formatCountdown(remaining);
+  }, 1000);
+}
+
+function stopBpSimulationTicker() {
+  if (bpSimulationTicker) clearInterval(bpSimulationTicker);
+  bpSimulationTicker = null;
+}
+
+const formatCountdown = ms => {
+  const total = Math.ceil(ms / 1000);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
+function startBpSimulation() {
+  if (!bpSimulationAllowed()) return;
+  const sessionId = ensureBpSimulator().start();
+  startBpSimulationTicker();
+  audit(state, "simulation_started", "success", { simulationSessionId: sessionId, intervalMinutes: bpSimulationSettings.intervalMinutes });
+}
+
+function stopBpSimulation({ silent = false } = {}) {
+  if (!bpSimulator) return;
+  const sessionId = bpSimulator.stop();
+  stopBpSimulationTicker();
+  if (!silent) audit(state, "simulation_stopped", "success", { simulationSessionId: sessionId, readings: simulatedReadings().length });
+}
+
+// Reset clears the simulated readings and nothing else. Real observations, if this scenario ever
+// carried any, are left exactly where they are.
+function resetBpSimulation() {
+  stopBpSimulation({ silent: true });
+  const removed = simulatedReadings().length;
+  state.bpReadings = (state.bpReadings || []).filter(reading => !reading.isSimulated);
+  // The episode only ever held simulated observations, so it goes with them.
+  state.bpMonitoringEpisode = null;
+  bpSimulator?.dispose();
+  bpSimulator = null;
+  audit(state, "simulation_reset", "success", { removedSimulatedReadings: removed });
+  draftStore.save(state);
+}
+
+// A changed scenario is a different patient, and the next reading must not land on them.
+function stopBpSimulationForScenarioChange() {
+  if (!bpSimulator || bpSimulator.status !== SIMULATION_STATUS.RUNNING) return;
+  audit(state, "simulation_stopped", "success", { reason: "scenario_changed", simulationSessionId: bpSimulator.sessionId });
+  bpSimulator.dispose();
+  bpSimulator = null;
+  stopBpSimulationTicker();
+}
+
+// The console is an internal desktop tool, so this panel is English-only like the rest of it and
+// never appears in the Patient Experience.
+const SIMULATION_CLASSIFICATION_LABEL = {
+  ACTION_NEEDED: "CRITICAL",
+  NEEDS_REVIEW: "CAUTION",
+  ABOVE_EXPECTED_RANGE: "ABOVE RANGE",
+  WITHIN_EXPECTED_RANGE: "IN RANGE"
+};
+
+const simulationClockLabel = value => new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+
+function bpSimulationPanel() {
+  // Outside the prototype there is nothing to show and nothing that could be switched on.
+  if (!bpSimulationAllowed()) return "";
+  const status = bpSimulationStatus();
+  const running = status === SIMULATION_STATUS.RUNNING;
+  const readings = simulatedReadings();
+  const latest = readings.at(-1);
+  const remaining = bpSimulator?.msUntilNextReading();
+  const statusCopy = { OFF: "Simulation off", READY: "Simulation ready", RUNNING: "Simulation running", STOPPED: "Simulation stopped" }[status];
+  const rules = DEMO_BP_MONITORING_RULES;
+  return `<section class="bp-simulation" data-simulation-status="${status}">
+    <header class="bp-simulation-header">
+      <div><h2>Simulated BP readings</h2><small>Demo and QA only. Readings are tagged and never leave the prototype.</small></div>
+      <span class="bp-simulation-status"><i></i>${statusCopy}</span>
+    </header>
+    <div class="bp-simulation-controls">
+      <label class="prototype-field"><span><b>Pattern</b><small>Generated, then classified by the monitoring rules</small></span>
+        <select name="bpSimulationPattern" disabled><option>Random Caution + Critical</option></select></label>
+      <label class="prototype-field"><span><b>Interval</b><small>Applies to the next start</small></span>
+        <select name="bpSimulationInterval" ${running ? "disabled" : ""}>${[1, 2, 5].map(minutes => `<option value="${minutes}" ${bpSimulationSettings.intervalMinutes === minutes ? "selected" : ""}>Every ${minutes} minute${minutes === 1 ? "" : "s"}</option>`).join("")}</select></label>
+    </div>
+    <p class="bp-simulation-rules">Thresholds come from <code>${rules.version}</code>: review at ${rules.reviewAt.systolic}/${rules.reviewAt.diastolic}, action at ${rules.actionAt.systolic}/${rules.actionAt.diastolic}. The simulator generates a reading; the monitoring engine decides what it means.</p>
+    <div class="bp-simulation-actions">
+      ${running
+        ? `<button type="button" class="bp-simulation-primary" data-action="stop-bp-simulation">Stop simulation</button>`
+        : `<button type="button" class="bp-simulation-primary" data-action="start-bp-simulation">Start simulation</button>`}
+      <button type="button" data-action="inject-bp-caution" ${running ? "" : "disabled"}>Inject Caution</button>
+      <button type="button" data-action="inject-bp-critical" ${running ? "" : "disabled"}>Inject Critical</button>
+      <button type="button" data-action="reset-bp-simulation" ${readings.length || bpSimulator ? "" : "disabled"}>Reset</button>
+    </div>
+    ${running ? `<p class="bp-simulation-countdown">Next reading in <strong id="bp-simulation-countdown">${remaining == null ? "--:--" : formatCountdown(remaining)}</strong></p>` : ""}
+    ${latest ? `<div class="bp-simulation-latest"><span>Last simulated reading</span><strong>${latest.systolic} / ${latest.diastolic} mmHg</strong><em data-classification="${latest.classification}">${SIMULATION_CLASSIFICATION_LABEL[latest.classification] || latest.classification}</em><small>${simulationClockLabel(latest.observedAt || latest.timestamp)}</small></div>` : ""}
+    ${readings.length ? `<div class="bp-simulation-history"><h3>Recent simulated readings</h3><ol>${[...readings].reverse().slice(0, 8).map(reading => `<li><span>${simulationClockLabel(reading.observedAt || reading.timestamp)}</span><b>${reading.systolic}/${reading.diastolic}</b><em data-classification="${reading.classification}">${SIMULATION_CLASSIFICATION_LABEL[reading.classification] || reading.classification}</em></li>`).join("")}</ol></div>` : ""}
+  </section>`;
+}
+
 function prototypeSetup() {
   const access = prototypeConfig.program === "ACCESS";
   const physicianRequired = scenarioRequiresPhysician(prototypeConfig.program, prototypeConfig.source);
@@ -3915,6 +4869,7 @@ function prototypeSetup() {
       </div>
       <p class="prototype-error" id="prototype-error" role="alert"></p>
     </form>
+    ${bpSimulationPanel()}
     <section class="scenario-footer">
       <div class="scenario-summary" aria-live="polite"><span>Patient scenario</span><strong title="${escapeHtml(prototypeScenarioSummary())}">${prototypeScenarioSummary()}</strong></div>
       <button class="launch-button" type="button" data-action="launch-prototype">Launch Patient Experience ${icon("arrowRight", "button-icon")}</button>
@@ -3925,10 +4880,14 @@ function prototypeSetup() {
 const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
+renderers.MY_CARE_TEAM = myCareTeamScreen;
 renderers.MY_MEDICATIONS = myMedicationsScreen;
 renderers.MY_GOALS = myGoals;
 renderers.MY_CARE_CIRCLE = myCareCircleScreen;
 renderers.CARE_CIRCLE_REMOVE_CONFIRMATION = careCircleRemoveConfirmation;
+renderers.MY_APPOINTMENTS = myAppointmentsScreen;
+renderers.APPOINTMENT_DETAIL = appointmentDetailScreen;
+renderers.APPOINTMENT_SCHEDULING = appointmentSchedulingScreen;
 
 function devPanel() {
   if (import.meta.env.PROD) return "";
@@ -3936,7 +4895,16 @@ function devPanel() {
   return `<aside class="dev-panel ${state.devOpen ? "open" : ""}"><button class="dev-toggle" data-action="dev">Demo</button><div><label>Scenario<select id="scenario-select">${Object.entries(SCENARIOS).map(([id, x]) => `<option value="${id}" ${id === state.scenarioId ? "selected" : ""}>${x.label}</option>`).join("")}</select></label><label>Jump to<select id="screen-select">${journeyFor(state).map(x => `<option value="${x}" ${x === state.screen ? "selected" : ""}>${x}</option>`).join("")}</select></label><section class="emmi-voice-debug" aria-label="EMMI Voice Debug"><strong>EMMI Voice Debug</strong><span>Internal locale: ${voice.locale}</span><span>Resolved language: ${voice.resolvedLanguage}</span><span>Speech locale: ${voice.resolvedSpeechLocale}</span><span>Voice: ${voice.voiceId || "TEXT_ONLY"}</span><span>Voice version: ${voice.voiceVersion}</span><span>Provider: ${voice.provider}</span><span>Model: ${EMMI_CONFIG.model}</span><span>Status: ${state.assistantVoiceState}</span><span>Capability: ${voice.capability}</span><span>Error: ${state.assistantVoiceError || "NONE"}</span><span>Session: ${voice.sessionId || state.sessionId}</span></section><button class="small-action" data-action="clear">Clear saved demo</button></div></aside>`;
 }
 
-const scrollViewKey = () => `${state.screen}${state.screen === "MY_GOALS" && state.activeGoalId ? "#detail" : ""}`;
+// Appointment sub-views and scheduling steps replace the whole screen without changing
+// state.screen, so without them in the key the patient keeps the previous view's scroll position
+// and lands halfway down the new question. Same reason MY_GOALS carries its detail suffix.
+const scrollViewKey = () => {
+  if (state.screen === "MY_GOALS" && state.activeGoalId) return `${state.screen}#detail`;
+  if (state.screen === "APPOINTMENT_DETAIL") return `${state.screen}#${state.activeAppointmentId || ""}#${state.appointmentFlow?.view || ""}`;
+  if (state.screen === "APPOINTMENT_SCHEDULING") return `${state.screen}#${state.appointmentFlow?.step || ""}`;
+  if (state.screen === "MY_APPOINTMENTS") return `${state.screen}#${state.appointmentFlow?.tab || ""}`;
+  return state.screen;
+};
 
 function finishRender(scrollSnapshot, errorAppeared) {
   afterRenderScroll(scrollSnapshot, scrollViewKey(), { errorAppeared });
@@ -4018,9 +4986,28 @@ function bindPrototypeSetup() {
       bpDeviceScenario: data.bpDeviceScenario || prototypeConfig.bpDeviceScenario,
       physicianDisplayName: data.physicianDisplayName ?? prototypeConfig.physicianDisplayName
     });
+    // A different scenario is a different patient. Whatever was queued belonged to the old one.
+    stopBpSimulationForScenarioChange();
     render();
   });
   document.querySelector('[data-action="launch-prototype"]')?.addEventListener("click", launchPrototype);
+  document.querySelector('[name="bpSimulationInterval"]')?.addEventListener("change", event => {
+    bpSimulationSettings.intervalMinutes = Number(event.target.value) || 2;
+    // The interval is read when a simulator is built, so a change takes effect on the next start.
+    bpSimulator?.dispose();
+    bpSimulator = null;
+    render();
+  });
+  const simulationActions = {
+    "start-bp-simulation": () => startBpSimulation(),
+    "stop-bp-simulation": () => stopBpSimulation(),
+    "reset-bp-simulation": () => resetBpSimulation(),
+    "inject-bp-caution": () => bpSimulator?.inject(SIMULATION_TARGET.CAUTION),
+    "inject-bp-critical": () => bpSimulator?.inject(SIMULATION_TARGET.CRITICAL)
+  };
+  Object.entries(simulationActions).forEach(([action, run]) => {
+    document.querySelector(`[data-action="${action}"]`)?.addEventListener("click", async () => { await run(); render(); });
+  });
 }
 
 async function launchPrototype() {
@@ -4035,9 +5022,10 @@ async function launchPrototype() {
   localStorage.setItem("itera.prototype.config.v1", JSON.stringify(persistableConfig));
   history.replaceState({}, "", "?prototype=1");
   service = new MockEnrollmentService("prototype", prototypeConfig);
-    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
+    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
+  Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [] });
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
@@ -4343,7 +5331,9 @@ async function advance() {
     // what the patient was actually shown at the moment they agreed. A single affirmative act is
     // only defensible if the evidence behind it stays complete: what was displayed, when, in which
     // language, at what expected cost and against which coverage verification.
-    const displayedCost = accessCostSummary(state.offer.accessCost || state.offer.disclosures?.accessConfig?.accessCost);
+    // Resolved the same way the card resolves it, so the evidence records the sentence the patient
+    // actually read rather than a second opinion about their coverage.
+    const displayedCost = accessCostSummary(currentAccessCost());
     state.consentAcknowledgement = {
       consentShape: state.offer.pathway === "ACCESS" ? "SINGLE_AFFIRMATIVE" : "SEPARATE_CONFIRMATIONS",
       disclosureVersion: state.disclosureVersion || state.offer.disclosures.version,
@@ -4823,11 +5813,12 @@ async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   state.assistantBusy = true; refreshAssistantLayer();
   const thinkingStartedAt = Date.now();
   try {
-    const response = await assistantAnswer(cleaned, assistantContext());
+    const response = await assistantAnswer(cleaned, assistantContext(), { questionId });
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
-    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "" });
+    if (response.pendingAction) state.assistantPendingAppointmentId = response.appointmentId || "";
+    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "", appointmentId: response.appointmentId || "" });
     emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
-    if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
+    emmiConversationManager?.markGreeted();
     runtime.audit.transcript("assistant", response.text);
     audit(state, "emmi_question", response.emergency ? "emergency_guidance" : state.assistantOriginScreen);
   } catch {
@@ -4901,6 +5892,9 @@ function bindAssistantLayer() {
     askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
   });
   layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => {
+    // A tap can take the patient somewhere; typing and speaking cannot, so they get the answer the
+    // router builds from the care record instead. Different affordances for the same wish, not two
+    // answers to one question.
     if (button.dataset.questionId === "human-talk-care-team") { revealAssistantHumanSupport(); return; }
     askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" });
   }));
@@ -4923,6 +5917,29 @@ function bindAssistantLayer() {
       const medicationId = button.dataset.medicationId || "";
       state.refillFlow = medicationId ? { medicationId, step: "REVIEW", answer: "" } : { medicationId: "", step: "", answer: "" };
       draftStore.save(state);
+      render();
+      return;
+    }
+    // An appointment EMMI helped with opens where it can be acted on rather than described again.
+    if (growthAction === "appointment-view") {
+      const appointmentId = button.dataset.appointmentId || "";
+      if (appointmentId && appointmentById(appointmentId)) openAppointmentDetail(appointmentId);
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; draftStore.save(state); }
+      render();
+      return;
+    }
+    // Changing a time is an explicit workflow, never something a sentence performed on its own.
+    if (growthAction === "appointment-reschedule") {
+      const record = appointmentById(button.dataset.appointmentId || "");
+      if (record) openAppointmentDetail(record.id);
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; draftStore.save(state); }
+      render();
+      return;
+    }
+    if (growthAction === "appointment-request") {
+      const record = appointmentById(button.dataset.appointmentId || "");
+      if (record) openAppointmentScheduling(record, "PROVIDER");
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "REQUESTS" }; draftStore.save(state); }
       render();
       return;
     }
@@ -5408,7 +6425,234 @@ function bind() {
       else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
       draftStore.save(state); render(); return;
     }
+    // --- Appointment coordination -------------------------------------------------------------
+    if (action.startsWith("appointment-")) {
+      const appointmentId = el.dataset.appointmentId || el.dataset.needId || state.activeAppointmentId || "";
+      const record = appointmentById(appointmentId);
+      if (action === "appointment-open-list") { state.screen = "MY_APPOINTMENTS"; state.activeAppointmentId = ""; state.appointmentFlow = { tab: "" }; draftStore.save(state); render(); return; }
+      if (action === "appointment-list-tab") { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: el.dataset.tab || "" }; draftStore.save(state); render(); return; }
+      if (action === "appointment-back") { state.screen = "MY_CARE"; state.appointmentFlow = null; draftStore.save(state); render(); return; }
+      if (action === "appointment-ask-emmi") {
+        if (appointmentId) state.activeAppointmentId = appointmentId;
+        showHelp(el);
+        await askEmmi(record?.providerDisplayName
+          ? L(`I have a question about my appointment with ${record.providerDisplayName}.`, `Tengo una pregunta sobre mi cita con ${record.providerDisplayName}.`, `Mwen gen yon kesyon sou randevou mwen ak ${record.providerDisplayName}.`)
+          : L("I need help with an appointment.", "Necesito ayuda con una cita.", "Mwen bezwen èd ak yon randevou."), { questionId: "appointment-question", source: "appointment" });
+        return;
+      }
+      if (action === "appointment-open") { if (record) openAppointmentDetail(record.id); render(); return; }
+      if (!record) { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; render(); return; }
+
+      if (action === "appointment-open-prep") { openAppointmentDetail(record.id, "PREP"); render(); return; }
+      if (action === "appointment-open-brief") { openAppointmentDetail(record.id, "BRIEF"); render(); return; }
+      if (action === "appointment-open-share") { openAppointmentDetail(record.id, "SHARE"); render(); return; }
+      if (action === "appointment-open-reminder") { openAppointmentDetail(record.id, "REMINDER"); render(); return; }
+      if (action === "appointment-open-barrier") { openAppointmentDetail(record.id, "BARRIER"); render(); return; }
+
+      // §43-45: what the patient wants to talk about is theirs to write and theirs to remove.
+      if (action === "appointment-add-prep-topic") {
+        const input = document.querySelector('#appointment-prep-form [name="prepTopic"]');
+        const topic = (input?.value || "").trim().slice(0, 200);
+        if (!topic) return;
+        const prep = record.prep || { topics: [], notes: "", sharedWithProvider: false, updatedAt: "" };
+        saveAppointment({ ...record, prep: { ...prep, topics: [...(prep.topics || []), topic], updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        openAppointmentDetail(record.id, "PREP"); render(); return;
+      }
+      if (action === "appointment-remove-prep-topic") {
+        const index = Number(el.dataset.topicIndex);
+        const prep = record.prep || { topics: [] };
+        saveAppointment({ ...record, prep: { ...prep, topics: (prep.topics || []).filter((_, position) => position !== index), updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        openAppointmentDetail(record.id, "PREP"); render(); return;
+      }
+      // §47: the brief goes to the provider only because the patient chose to send it.
+      if (action === "appointment-share-brief") {
+        const prep = record.prep || { topics: [], notes: "" };
+        saveAppointment({ ...record, prep: { ...prep, sharedWithProvider: true, updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        ensureAppointmentCareTeamTask(record);
+        openAppointmentDetail(record.id, "BRIEF"); render(); return;
+      }
+
+      if (action === "appointment-save-reminder") {
+        const result = saveAppointmentReminder(record, el.dataset.slot || "");
+        state.appointmentNotice = result.ok ? result.note : L("I couldn’t save that reminder.", "No pude guardar ese recordatorio.", "Mwen pa t ka anrejistre rapèl sa a.");
+        openAppointmentDetail(record.id); render(); return;
+      }
+
+      // §114: sharing is offered only where a real, permitted member exists.
+      if (action === "appointment-share-with-member") {
+        const result = shareAppointmentWithMember(record, el.dataset.inviteId || "");
+        state.appointmentNotice = result.ok
+          ? L("Shared. They can see when and where the visit is, and nothing else.", "Compartido. Verán cuándo y dónde es la visita, y nada más.", "Pataje. Y ap wè kilè ak kote vizit la ye, epi anyen lòt.")
+          : L("I couldn’t share this appointment.", "No pude compartir esta cita.", "Mwen pa t ka pataje randevou sa a.");
+        openAppointmentDetail(record.id, "SHARE"); render(); return;
+      }
+
+      if (action === "appointment-get-directions") {
+        if (!record.locationAddress) return;
+        window.open(`https://maps.google.com/?q=${encodeURIComponent(record.locationAddress)}`, "_blank", "noopener");
+        return;
+      }
+
+      // §61/§63: changing or cancelling is an explicit workflow, and cancelling asks twice.
+      if (action === "appointment-request-reschedule") {
+        const result = requestAppointmentReschedule(record);
+        state.appointmentNotice = result.ok
+          ? L("Your care team is working on a new time with the office.", "Su equipo está gestionando un nuevo horario con el consultorio.", "Ekip swen ou ap chèche yon lè nouvo ak kabinè a.")
+          : L("I couldn’t request a change right now.", "No pude solicitar el cambio ahora.", "Mwen pa t ka mande chanjman an kounye a.");
+        openAppointmentDetail(record.id); render(); return;
+      }
+      if (action === "appointment-request-cancel") { openAppointmentDetail(record.id, "CANCEL_CONFIRM"); render(); return; }
+      if (action === "appointment-confirm-cancel") {
+        const result = cancelAppointmentRecord(record);
+        state.appointmentNotice = result.ok
+          ? L("Your appointment is canceled.", "Su cita está cancelada.", "Randevou ou anile.")
+          : L("I couldn’t cancel that appointment. Nothing was changed.", "No pude cancelar esa cita. No se cambió nada.", "Mwen pa t ka anile randevou sa a. Anyen pa chanje.");
+        openAppointmentDetail(record.id); render(); return;
+      }
+
+      // §51/§113: the pre-visit check asks; the answer routes into the barrier engine or nowhere.
+      if (action === "appointment-barrier-answer") {
+        await recordAppointmentBarrier(record, el.dataset.barrierReason || "");
+        if (state.screen === "APPOINTMENT_DETAIL") openAppointmentDetail(record.id);
+        render(); return;
+      }
+
+      // §65-69: attendance is asked once, answered without judgment, and a missed visit becomes
+      // something to solve rather than something the patient failed at.
+      if (action === "appointment-followup-attendance") {
+        const outcome = el.dataset.outcome || ATTENDANCE_OUTCOMES.UNKNOWN;
+        await recordAppointmentAttendance(record, outcome);
+        if (state.screen === "APPOINTMENT_DETAIL" || state.screen === "MY_APPOINTMENTS") {
+          openAppointmentDetail(record.id, "FOLLOW_UP");
+          state.appointmentFlow = { ...state.appointmentFlow, step: outcome === ATTENDANCE_OUTCOMES.ATTENDED ? "ATTENDED" : "MISSED" };
+        }
+        render(); return;
+      }
+      if (action === "appointment-followup-need") {
+        const need = el.dataset.need || "NOTHING";
+        if (need !== "NOTHING") { ensureAppointmentCareTeamTask(record); state.appointmentNotice = L("Your care team will follow up with you.", "Su equipo se comunicará con usted.", "Ekip swen ou ap kontakte w."); }
+        openAppointmentDetail(record.id); render(); return;
+      }
+      if (action === "appointment-followup-reschedule") {
+        if ((el.dataset.answer || "") === "YES") {
+          const started = startAppointmentNeed({
+            source: APPOINTMENT_SOURCES.FOLLOW_UP,
+            reasonCategory: record.reasonCategory,
+            reasonSummary: record.reasonSummary,
+            providerId: record.requestedProfessionalId,
+            relatedGoalId: record.relatedGoalId
+          });
+          const { record: next } = classifyAppointmentPath(started.record);
+          openAppointmentScheduling(next, "PROVIDER");
+        } else openAppointmentDetail(record.id);
+        render(); return;
+      }
+
+      // --- the scheduling flow ------------------------------------------------------------------
+      if (action === "appointment-change-preferences") { openAppointmentScheduling(record, "PROVIDER"); render(); return; }
+      if (action === "appointment-preference-back") {
+        const steps = APPOINTMENT_PREFERENCE_STEPS;
+        const at = Math.max(0, steps.indexOf(el.dataset.step || steps[0]) - 1);
+        state.appointmentFlow = { ...state.appointmentFlow, appointmentId: record.id, step: steps[at] };
+        render(); return;
+      }
+      // §26: one answer moves the patient one step. Nothing is submitted along the way.
+      if (action === "appointment-preference-answer") {
+        const field = el.dataset.field || "";
+        const value = el.dataset.value || "";
+        if (!APPOINTMENT_DRAFT_FIELDS.includes(field)) return;
+        const patch = { [field]: value };
+        if (field === "requestedProfessionalId") {
+          const member = patientCareTeam().find(item => item.id === value);
+          // Confirming a provider must never erase one. The care team is rebuilt from the offer and
+          // the medication list, so a professional the need already names may not be in it; only an
+          // explicit "someone else" clears the identity.
+          if (member) Object.assign(patch, { providerDisplayName: member.displayName, requestedProfessionalType: member.professionalType, requestedSpecialty: member.specialty });
+          else if (!value) Object.assign(patch, { providerDisplayName: "", requestedProfessionalType: "", requestedSpecialty: "" });
+        }
+        state.appointmentDraft = updateAppointmentDraft(state.appointmentDraft || createAppointmentDraft({ needId: record.id }), patch);
+        saveAppointment({ ...record, ...patch, updatedAt: new Date().toISOString() });
+        const steps = APPOINTMENT_PREFERENCE_STEPS;
+        const at = Math.min(steps.length - 1, steps.indexOf(state.appointmentFlow?.step || steps[0]) + 1);
+        const next = steps[at];
+        const answered = appointmentById(record.id) || record;
+        const duplicate = next === "REVIEW" ? existingAppointmentFor(answered) : null;
+        state.appointmentFlow = duplicate
+          ? { appointmentId: record.id, step: "DUPLICATE", duplicateId: duplicate.id }
+          : { ...state.appointmentFlow, appointmentId: record.id, step: next };
+        draftStore.save(state); render(); return;
+      }
+      if (action === "appointment-preference-other-time") {
+        state.appointmentFlow = { ...state.appointmentFlow, appointmentId: record.id, step: "TIME_OF_DAY", showAllTimes: true };
+        render(); return;
+      }
+
+      // §17/§19/§21/§23: where the patient goes next is decided by what the office actually
+      // supports, and each of the four levels gets its own honest ending.
+      if (action === "appointment-submit-request") {
+        const ready = draftIsSubmittable(state.appointmentDraft || createAppointmentDraft({ needId: record.id }));
+        if (!ready.ok) { state.appointmentFlow = { ...state.appointmentFlow, appointmentId: record.id, step: ready.missing.includes("requestedProfessionalId") ? "PROVIDER" : "REASON" }; render(); return; }
+        // §82/§83: an appointment or a pending request the patient already has is shown before a
+        // second one is created. "Request another one anyway" carries data-force and skips this.
+        const alreadyHave = el.dataset.force === "1" ? null : existingAppointmentFor(record);
+        if (alreadyHave) { state.appointmentFlow = { appointmentId: record.id, step: "DUPLICATE", duplicateId: alreadyHave.id }; render(); return; }
+        // §11: the provider and the reason can both have changed since the need was created, so the
+        // capability is resolved again here rather than trusting the value stamped at creation.
+        const capability = appointmentCapability(record);
+        if (capability.capability !== record.schedulingCapability) saveAppointment({ ...record, schedulingCapability: capability.capability, updatedAt: new Date().toISOString() });
+        const current = appointmentById(record.id) || record;
+        if (capability.capability === SCHEDULING_CAPABILITY.DIRECT_BOOKING) {
+          const availability = loadAppointmentAvailability(current);
+          state.appointmentFlow = { appointmentId: current.id, step: "SLOTS", error: availability.ok ? "" : (availability.error || "AVAILABILITY_UNAVAILABLE") };
+          render(); return;
+        }
+        if (capability.capability === SCHEDULING_CAPABILITY.NO_AVAILABLE_CHANNEL) {
+          // Nothing was sent anywhere. The screen says so, and the care team is the offered action.
+          state.appointmentFlow = { appointmentId: current.id, step: "NO_CHANNEL" };
+          render(); return;
+        }
+        const result = capability.capability === SCHEDULING_CAPABILITY.STRUCTURED_REQUEST
+          ? sendAppointmentRequest(current)
+          : escalateAppointmentToCoordinator(current, { capability: capability.capability });
+        if (!result.ok) { state.appointmentFlow = { appointmentId: current.id, step: "REVIEW", error: result.error || "REQUEST_NOT_SENT" }; render(); return; }
+        // The record that was actually sent is the one the confirmation describes. On an
+        // idempotency hit that is the earlier request, not the one the patient was looking at.
+        if (result.idempotent) { state.appointmentFlow = { appointmentId: current.id, step: "DUPLICATE", duplicateId: result.record.id }; render(); return; }
+        state.activeAppointmentId = result.record.id;
+        state.appointmentFlow = {
+          appointmentId: result.record.id,
+          step: capability.capability === SCHEDULING_CAPABILITY.STRUCTURED_REQUEST ? "REQUESTED" : "COORDINATING",
+          error: ""
+        };
+        draftStore.save(state); render(); return;
+      }
+      // §23: the only action offered when there is no scheduling channel at all.
+      if (action === "appointment-ask-care-team") {
+        const result = escalateAppointmentToCoordinator(record, { capability: SCHEDULING_CAPABILITY.NO_AVAILABLE_CHANNEL });
+        state.appointmentFlow = result.ok
+          ? { appointmentId: record.id, step: "COORDINATING" }
+          : { appointmentId: record.id, step: "NO_CHANNEL", error: result.error || "" };
+        draftStore.save(state); render(); return;
+      }
+      if (action === "appointment-more-times") {
+        const availability = loadAppointmentAvailability(record);
+        state.appointmentFlow = { appointmentId: record.id, step: "SLOTS", expanded: true, error: availability.ok ? "" : (availability.error || "AVAILABILITY_UNAVAILABLE") };
+        render(); return;
+      }
+      // §123/§124: a time that could not be held sends the patient back to real times, never to a
+      // confirmation screen, and never with the blame.
+      if (action === "appointment-select-slot") {
+        const result = confirmAppointmentSlot(record, el.dataset.slotId || "");
+        if (result.ok) { state.appointmentFlow = { appointmentId: record.id, step: "BOOKED" }; state.screen = "APPOINTMENT_SCHEDULING"; draftStore.save(state); render(); return; }
+        const availability = loadAppointmentAvailability(result.record || record);
+        state.appointmentFlow = { appointmentId: record.id, step: "SLOTS", error: result.slotGone ? "SLOT_GONE" : (availability.ok ? "BOOKING_FAILED" : "AVAILABILITY_UNAVAILABLE") };
+        render(); return;
+      }
+      return;
+    }
     if (action === "open-my-medications") { state.screen = "MY_MEDICATIONS"; state.refillFlow = { medicationId: "", step: "", answer: "" }; state.medicationNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "open-my-appointments") { state.screen = "MY_APPOINTMENTS"; state.activeAppointmentId = ""; state.appointmentFlow = { tab: el.dataset.tab || "" }; draftStore.save(state); render(); return; }
+    if (action === "back-to-appointments") { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: el.dataset.tab || "" }; draftStore.save(state); render(); return; }
     if (action === "back-to-my-care") { state.screen = "MY_CARE"; state.refillFlow = { medicationId: "", step: "", answer: "" }; draftStore.save(state); render(); return; }
     if (action === "close-refill-flow") { state.refillFlow = { medicationId: "", step: "", answer: "" }; state.error = ""; render(); return; }
     if (action === "start-manual-refill") {
@@ -5535,22 +6779,24 @@ function bind() {
       const medication = medicationById(el.dataset.medicationId || state.refillFlow?.medicationId || "");
       const episode = medication ? openRefillForMedication(medication.id) : null;
       if (!medication || !episode) return;
-      // Appointment coordination is not built yet. The need is captured with the medication context
-      // so nobody has to ask the patient for it again, and EMMI does not pretend to book anything.
-      const goal = currentGoal();
-      const barrier = goal ? recordBarrier({ goal, category: "APPOINTMENT_NEED", patientDescription: L(`Follow-up visit required before renewing ${medicationLabel(medication)}.`, `Se requiere una visita de seguimiento antes de renovar ${medicationLabel(medication)}.`, `Yo mande yon vizit swivi anvan yo renouvle ${medicationLabel(medication)}.`), source: BARRIER_SOURCES.EMMI }) : null;
-      const task = ensureMedicationCareTeamTask("APPOINTMENT_REQUEST", {
-        medicationId: medication.id,
-        refillId: episode.id,
-        priority: "ROUTINE",
-        reason: episode.refillReason || "FOLLOW_UP_VISIT_REQUIRED",
-        summary: { medication: medicationLabel(medication), prescriber: medicationPrescriber(medication)?.name || "", requestedProfessionalType: "PRESCRIBER", reasonSummary: "MEDICATION_RENEWAL", urgencyClassification: "ROUTINE", appointmentStatus: "NOT_SCHEDULED", refillId: episode.id }
+      // A renewal that needs a visit is an appointment need like any other. The medication context
+      // travels with it so nobody has to ask the patient for it again, and the record exists before
+      // the patient answers anything, so leaving mid-way does not lose the need.
+      const prescriber = medicationPrescriber(medication);
+      const started = startAppointmentNeed({
+        source: APPOINTMENT_SOURCES.SYSTEM_WORKFLOW,
+        reasonCategory: APPOINTMENT_REASON_CATEGORIES.MEDICATION_RENEWAL,
+        reasonSummary: L(`Follow-up visit required before renewing ${medicationLabel(medication)}.`, `Se requiere una visita de seguimiento antes de renovar ${medicationLabel(medication)}.`, `Yo mande yon vizit swivi anvan yo renouvle ${medicationLabel(medication)}.`),
+        providerId: prescriber?.id || "",
+        professionalType: "PRESCRIBER",
+        relatedRefillId: episode.id
       });
-      saveRefillEpisode({ ...episode, relatedAppointmentNeedId: task?.id || null, relatedBarrierId: barrier?.id || episode.relatedBarrierId, updatedAt: new Date().toISOString() });
-      audit(state, "medication_refill_appointment_requested", "success", { medicationId: medication.id, refillId: episode.id });
-      state.medicationNotice = L("Your care team has what they need to arrange the visit with you.", "Su equipo tiene lo necesario para coordinar la visita con usted.", "Ekip swen ou gen sa yo bezwen pou òganize vizit la avèk ou.");
+      const { record } = classifyAppointmentPath(started.record);
+      saveRefillEpisode({ ...episode, relatedAppointmentNeedId: record.id, updatedAt: new Date().toISOString() });
+      audit(state, "medication_refill_appointment_requested", "success", { medicationId: medication.id, refillId: episode.id, capability: record.schedulingCapability });
       state.refillFlow = { medicationId: "", step: "", answer: "" };
-      draftStore.save(state); render(); return;
+      openAppointmentScheduling(record, "PROVIDER");
+      render(); return;
     }
     if (action === "refill-pickup-check") {
       const medication = medicationById(el.dataset.medicationId || state.refillFlow?.medicationId || "");
@@ -5727,6 +6973,51 @@ function bind() {
       goal.status = "ACHIEVED"; goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_ACHIEVED", { clinicalOutcomeChanged: false, cmsOutcomeChanged: false }); state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
     }
     if (action === "change-goal-priority") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY"; state.screen = "GOALS"; render(); return; }
+    if (action === "open-my-care-team") { state.screen = "MY_CARE_TEAM"; state.careTeamAddOpen = false; state.careTeamNotice = ""; draftStore.save(state); render(); return; }
+    if (action === "open-care-team-member") {
+      state.careTeamAddOpen = true;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = "";
+      render(); return;
+    }
+    if (action === "cancel-care-team-member") {
+      state.careTeamAddOpen = false;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = "";
+      render(); return;
+    }
+    if (action === "save-care-team-member") {
+      const form = document.querySelector("#care-team-member-form");
+      if (!form) return;
+      const data = new FormData(form);
+      const displayName = String(data.get("careTeamDisplayName") || "").trim().slice(0, 80);
+      const role = String(data.get("careTeamRole") || "");
+      const specialtyInput = String(data.get("careTeamSpecialty") || "").trim().slice(0, 60);
+      const practiceName = String(data.get("careTeamPracticeName") || "").trim().slice(0, 80);
+      const type = role === "CARDIOLOGIST" || role === "SPECIALIST" ? PROFESSIONAL_TYPES.SPECIALIST
+        : PROFESSIONAL_TYPES[role] || (role === "OTHER" ? PROFESSIONAL_TYPES.UNKNOWN : "");
+      const specialty = role === "CARDIOLOGIST" ? "Cardiology" : specialtyInput;
+      if (!displayName || !type || (role === "SPECIALIST" && !specialty)) {
+        state.careTeamNotice = L("Please complete the required information.", "Complete la información requerida.", "Tanpri ranpli enfòmasyon obligatwa yo.");
+        render(); return;
+      }
+      const member = {
+        id: `patient-care-team-${Date.now().toString(36)}`,
+        displayName,
+        professionalType: type,
+        specialty,
+        practiceName,
+        source: CARE_TEAM_SOURCES.PATIENT_REPORTED,
+        verified: false,
+        createdAt: new Date().toISOString()
+      };
+      state.patientAddedCareTeamMembers = [...(state.patientAddedCareTeamMembers || []), member];
+      state.careTeamAddOpen = false;
+      state.careTeamMemberDraft = { displayName: "", role: "", specialty: "", practiceName: "" };
+      state.careTeamNotice = L("Care team member added.", "Miembro agregado al equipo de cuidado.", "Manm ekip swen an ajoute.");
+      audit(state, "patient_care_team_member_added", "success", { memberId: member.id, professionalType: member.professionalType, source: member.source });
+      draftStore.save(state); render(); return;
+    }
     if (action === "open-my-care-circle") { state.screen = "MY_CARE_CIRCLE"; state.careCircleNotice = ""; render(); return; }
     if (action === "invite-another-care-circle") { Object.assign(state, { growthReturnScreen: "MY_CARE_CIRCLE", careCircleContext: "ONGOING_CARE", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", careCircleContactNumbers: [], careCircleNotice: "", screen: "CARE_CIRCLE_INVITE" }); render(); return; }
     if (action === "resend-care-circle") { const result = growthStore.resendSupportInvite(el.dataset.inviteId); state.careCircleNotice = result.status === "COOLDOWN" ? L(`Please wait ${result.retryAfterSeconds} seconds before sending again.`, `Espere ${result.retryAfterSeconds} segundos antes de volver a enviar.`, `Tanpri tann ${result.retryAfterSeconds} segonn anvan ou voye ankò.`) : result.inviteId ? L("Invitation sent again.", "Invitación reenviada.", "Envitasyon an voye ankò.") : L("This invitation could not be resent.", "No se pudo reenviar esta invitación.", "Nou pa t kapab voye envitasyon sa a ankò."); audit(state, "invite_resent", result.inviteId ? "success" : result.status, { inviteId: el.dataset.inviteId }); render(); return; }
@@ -5846,7 +7137,12 @@ function bind() {
       const progress = gettingStartedProgress();
       const now = new Date().toISOString();
       const resumed = action === "resume-next-flow" || [FLOW_STATUS.DEFERRED, FLOW_STATUS.IN_PROGRESS].includes(progress.status);
-      const resumeRoute = progress.resumeRoute || transition.nextRoute;
+      const resumeRoute = resolveGettingStartedEntryRoute({
+        pathway: state.offer.pathway,
+        journey: journeyFor(state),
+        savedResumeRoute: progress.resumeRoute || state.baselineResumeScreen,
+        configuredRoute: transition.nextRoute
+      });
       state.enrollmentConfirmed = true;
       state.enrollmentStatus = "COMPLETED";
       state.enrollmentCompletedAt ||= state.consentTimestamp || now;
@@ -5868,14 +7164,19 @@ function bind() {
     if (action === "defer-next-flow") {
       const transition = currentFlowTransition();
       const now = new Date().toISOString();
+      const resumeRoute = resolveGettingStartedEntryRoute({
+        pathway: state.offer.pathway,
+        journey: journeyFor(state),
+        configuredRoute: transition.nextRoute
+      });
       state.enrollmentConfirmed = true;
       state.enrollmentStatus = "COMPLETED";
       state.enrollmentCompletedAt ||= state.consentTimestamp || now;
-      setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: transition.nextRoute });
+      setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute });
       state.activationStatus = "NOT_STARTED";
       state.baselineDeferredAt = now;
-      state.baselineResumeScreen = transition.nextRoute;
-      audit(state, "next_flow_deferred", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, resumeRoute: transition.nextRoute });
+      state.baselineResumeScreen = resumeRoute;
+      audit(state, "next_flow_deferred", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, resumeRoute });
       state.screen = "FLOW_DEFERRED";
       draftStore.save(state);
       render();
@@ -5906,7 +7207,9 @@ function bind() {
       } else if (["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "SHARE_ACCESS"].includes(state.screen)) {
         state.screen = state.growthReturnScreen || (state.enrollmentStatus === "COMPLETED" ? "ENROLLMENT_CONFIRMED" : "INVITATION");
         render();
-      } else if (state.screen === "MY_CARE_CIRCLE") {
+      } else if (state.screen === "MY_CARE_TEAM" && state.careTeamAddOpen) {
+        state.careTeamAddOpen = false; state.careTeamNotice = ""; render();
+      } else if (["MY_CARE_CIRCLE", "MY_CARE_TEAM"].includes(state.screen)) {
         state.screen = "MY_CARE"; render();
       } else if (state.screen === "CARE_CIRCLE_REMOVE_CONFIRMATION") {
         state.screen = "MY_CARE_CIRCLE"; render();
@@ -6279,6 +7582,31 @@ function bind() {
     }
   });
   bindActions(document);
+  const careTeamMemberForm = document.querySelector("#care-team-member-form");
+  const readCareTeamMemberDraft = () => {
+    if (!careTeamMemberForm) return state.careTeamMemberDraft;
+    const data = new FormData(careTeamMemberForm);
+    return {
+      displayName: String(data.get("careTeamDisplayName") || ""),
+      role: String(data.get("careTeamRole") || ""),
+      specialty: String(data.get("careTeamSpecialty") || ""),
+      practiceName: String(data.get("careTeamPracticeName") || "")
+    };
+  };
+  const updateCareTeamMemberCta = () => {
+    if (!careTeamMemberForm) return;
+    const draft = readCareTeamMemberDraft();
+    state.careTeamMemberDraft = draft;
+    const button = careTeamMemberForm.querySelector('[data-action="save-care-team-member"]');
+    if (button) button.disabled = !(draft.displayName.trim() && draft.role && (draft.role !== "SPECIALIST" || draft.specialty.trim()));
+  };
+  careTeamMemberForm?.addEventListener("input", updateCareTeamMemberCta);
+  careTeamMemberForm?.addEventListener("change", event => {
+    state.careTeamMemberDraft = readCareTeamMemberDraft();
+    if (event.target.name === "careTeamRole") render();
+    else updateCareTeamMemberCta();
+  });
+  updateCareTeamMemberCta();
   document.querySelector("#scenario-select")?.addEventListener("change", e => { location.search = `?scenario=${encodeURIComponent(e.target.value)}`; });
   document.querySelector("#screen-select")?.addEventListener("change", e => { state.screen = e.target.value; state.identityVerified = true; if (state.screen === "ACCESS_ELIGIBILITY_RESULT") state.accessOutcome = state.offer.fixture.accessOutcome || "eligible"; render(); });
   const dobInput = document.querySelector(".date-text");
@@ -6490,6 +7818,13 @@ async function boot() {
       // treats a medication with no fill information as one it cannot estimate, which is correct.
       if (!Array.isArray(saved.medicationSupplySignals)) state.medicationSupplySignals = [];
       if (!Array.isArray(saved.medicationRefills)) state.medicationRefills = [];
+      // A draft written before appointments existed restores without them. appointmentFlow is
+      // never persisted, so a patient who left mid-scheduling comes back to their appointments
+      // rather than to a half-answered question they did not choose to resume.
+      if (!Array.isArray(saved.appointments)) state.appointments = [];
+      if (!saved.appointmentDraft || typeof saved.appointmentDraft !== "object") state.appointmentDraft = null;
+      state.appointmentFlow = null;
+      if (typeof saved.activeAppointmentId !== "string") state.activeAppointmentId = "";
       state.refillFlow = { medicationId: "", step: "", answer: "" };
       if (!saved.medicationReviews || typeof saved.medicationReviews !== "object") state.medicationReviews = {};
       if (!Array.isArray(saved.additionalMedications)) state.additionalMedications = [];

@@ -226,7 +226,7 @@ test("needing someone to help routes to Care Circle rather than assuming a repre
   expect(stored.completionRole).toBe("patient");
 });
 
-test("needing an appointment is captured for the care team without pretending EMMI can book it", async ({ page }) => {
+test("needing an appointment is captured for the care team with the appointment fields a scheduling module needs", async ({ page }) => {
   await openGoalDetail(page);
   await tellEmmiWhatsDifficult(page);
   await page.getByRole("button", { name: "Something else" }).click();
@@ -234,7 +234,7 @@ test("needing an appointment is captured for the care team without pretending EM
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByText("Let’s get you an appointment")).toBeVisible();
-  await expect(page.getByText(/I can’t book appointments yet/)).toHaveCount(1);
+  await expect(page.getByText(/Some offices let me help you pick a time/)).toHaveCount(1);
   await page.getByRole("button", { name: "Send my request" }).click();
 
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));

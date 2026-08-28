@@ -70,9 +70,14 @@ and routed to the care team. No scheduling logic is implemented.
 - Declining help is `PATIENT_DECLINED` on the record. It is never described as non-adherence.
 - Analytics carry category, source, outcome and timing. They never carry what the patient wrote.
 
-## Deliberately not built
+## Deliberately not built (superseded)
 
-Appointment scheduling. `APPOINTMENT_NEED` is recognised, classified, captured with
-`requestedProfessionalType`, `reasonSummary`, `patientPreferredTime`, `urgencyClassification` and
-`appointmentStatus`, and routed to the care team as an `APPOINTMENT_REQUEST` task. EMMI says
-plainly that she cannot book appointments yet.
+Appointment scheduling was left out of this capability on purpose. `APPOINTMENT_NEED` is
+recognised, classified, captured with `requestedProfessionalType`, `reasonSummary`,
+`patientPreferredTime`, `urgencyClassification` and `appointmentStatus`, and routed to the care
+team as an `APPOINTMENT_REQUEST` task.
+
+That gap is now filled by Appointment Coordination — see
+`docs/APPOINTMENT_COORDINATION_ARCHITECTURE.md`. The barrier record keeps exactly the shape
+described above; the appointment itself lives on its own record rather than widening
+`barrier.appointmentRequest`.

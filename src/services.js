@@ -1,4 +1,5 @@
 import { BP_FULFILLMENT_DEVICE_MODELS, createOffer, createPrototypeOffer } from "./config.js";
+import { serializeAppointmentDraft, serializeAppointmentForDraft } from "./appointments.js";
 
 const wait = (ms = 650) => new Promise(resolve => setTimeout(resolve, ms));
 const tx = prefix => `${prefix}_${Date.now().toString(36)}`;
@@ -226,6 +227,27 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalSupportDraft: state.goalSupportDraft,
       goalNotice: state.goalNotice,
       goalHistory: (state.goalHistory || []).map(item => ({ id: item.id, goalId: item.goalId, type: item.type, details: item.details || {}, occurredAt: item.occurredAt, actor: item.actor }))
+    });
+    // Appointments persist through the same explicit whitelist as everything else: the two
+    // serializers are the field list, kept next to the record they describe. appointmentFlow is
+    // deliberately absent — it is transient view routing, and restoring it would drop a patient
+    // back into a half-finished scheduling step they did not ask to resume.
+    Object.assign(safe, {
+      appointments: (state.appointments || []).map(serializeAppointmentForDraft),
+      appointmentDraft: state.appointmentDraft ? serializeAppointmentDraft(state.appointmentDraft) : null,
+      activeAppointmentId: state.activeAppointmentId || ""
+    });
+    Object.assign(safe, {
+      patientAddedCareTeamMembers: (state.patientAddedCareTeamMembers || []).map(member => ({
+        id: member.id,
+        displayName: member.displayName,
+        professionalType: member.professionalType,
+        specialty: member.specialty || "",
+        practiceName: member.practiceName || "",
+        source: member.source,
+        verified: false,
+        createdAt: member.createdAt
+      }))
     });
     Object.assign(safe, {
       supportRole: state.supportRole,

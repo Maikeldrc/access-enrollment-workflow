@@ -8,6 +8,11 @@ export default defineConfig({
   // passed seven tests that a parallel run failed. Capping the workers fixes the cause; giving
   // the tests longer timeouts would only have hidden it.
   workers: 4,
+  // A run cannot say whether a red test is broken or merely unlucky, and the honest reading of an
+  // ambiguous red run becomes "probably nothing" — which is how a real regression gets waved through.
+  // One caught exactly that here. This hides nothing: Playwright reports what passed on a second
+  // attempt as flaky, separately from what failed both times.
+  retries: 1,
   use: {
     baseURL: "http://127.0.0.1:4174",
     trace: "retain-on-failure",

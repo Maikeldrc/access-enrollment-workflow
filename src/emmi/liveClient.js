@@ -1,4 +1,3 @@
-import { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity } from "@google/genai";
 import { EMMI_CONFIG } from "./config.js";
 import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
@@ -13,6 +12,7 @@ const bytesToBase64 = bytes => {
 const base64ToBytes = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
 export const resample = (input, fromRate, toRate) => {
   if (fromRate === toRate) return input;
+  const source = fromRate > toRate ? lowPassForDownsampling(input, fromRate, toRate) : input;
   const ratio = fromRate / toRate;
   const output = new Float32Array(Math.round(input.length / ratio));
   for (let i = 0; i < output.length; i += 1) {
@@ -20,17 +20,18 @@ export const resample = (input, fromRate, toRate) => {
     const left = Math.floor(position);
     const right = Math.min(input.length - 1, left + 1);
     const mix = position - left;
-    output[i] = input[left] * (1 - mix) + input[right] * mix;
+    output[i] = source[left] * (1 - mix) + source[right] * mix;
   }
   return output;
 };
+export const lowPassForDownsampling = (input, fromRate, toRate, taps = 31) => { if (fromRate <= toRate) return input; const half = taps >> 1, cutoff = (toRate / fromRate) * .45, kernel = new Float32Array(taps); let total=0; for(let i=0;i<taps;i++){const d=i-half,s=d===0?2*cutoff:Math.sin(2*Math.PI*cutoff*d)/(Math.PI*d),w=.54-.46*Math.cos(2*Math.PI*i/(taps-1));kernel[i]=s*w;total+=kernel[i];} for(let i=0;i<taps;i++)kernel[i]/=total; const out=new Float32Array(input.length); for(let i=0;i<input.length;i++){let v=0;for(let k=0;k<taps;k++)v+=input[Math.max(0,Math.min(input.length-1,i+k-half))]*kernel[k];out[i]=v;} return out; };
 // The provider contract this pipeline has to keep: 16 kHz mono PCM16, little endian, base64.
 export const EMMI_PROVIDER_SAMPLE_RATE = 16000;
 // One captured frame at the device rate. At a typical 48 kHz that is ~85 ms of audio, which is
 // the packet cadence the previous pipeline produced.
-export const EMMI_MIC_FRAME_SIZE = 4096;
-export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v2";
-const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=2";
+export const EMMI_MIC_FRAME_SIZE = 2048;
+export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v3";
+const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=3";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
 // the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
 export const supportsAudioWorklet = (context, scope = globalThis) =>
@@ -97,6 +98,7 @@ export class EmmiLiveClient {
     this.sessionResumptionHandle = this.getContext()?.emmiConversation?.sessionResumptionHandle || "";
     this.intentionalClose = false;
     this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 3; this.reconnectTimer = null; this.stabilityTimer = null; this.goAwayReconnectScheduled = false;
     this.audioDeviceChangeHandler = () => this.handleAudioDeviceChange();
     this.voiceIdentity = new EmmiVoiceIdentityGuard({
       sessionId: this.getContext()?.sessionId || "",
@@ -162,6 +164,7 @@ export class EmmiLiveClient {
     if (!payload.voiceIdentity || payload.voiceIdentity.voiceId !== resolvedVoice.voiceId || payload.voiceIdentity.voiceVersion !== resolvedVoice.voiceVersion || payload.voiceIdentity.provider !== resolvedVoice.provider) throw this.fail("voice_identity_mismatch");
     this.onVoiceIdentity?.("EMMI_VOICE_SESSION_CONFIGURED", { ...resolvedVoice, sessionId: context.sessionId, screenId: context.currentScreen, connectionId });
     try {
+      const { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity } = await import("@google/genai");
       // Ephemeral auth tokens are only served on v1alpha: the SDK routes them to
       // BidiGenerateContentConstrained, which does not exist on v1beta, so the socket never
       // opens and no audio is ever produced.
@@ -191,6 +194,7 @@ export class EmmiLiveClient {
         callbacks: {
           onopen: () => {
             this.intentionalClose = false;
+            clearTimeout(this.stabilityTimer); this.stabilityTimer = setTimeout(() => { this.reconnectAttempts = 0; }, 10000);
             this.startAudioCapture().then(() => {
               this.setState("LISTENING");
               this.startTimers();
@@ -200,17 +204,12 @@ export class EmmiLiveClient {
             });
           },
           onmessage: message => this.handleMessage(message),
-          onerror: error => this.fail(error?.message?.includes("429") ? "rate_limited" : "VOICE_PROVIDER_ERROR"),
+          onerror: error => this.handleProviderError(error),
           onclose: () => {
             if (this.intentionalClose || this.state === "DISCONNECTED") return;
-            const canResume = Boolean(this.sessionResumptionHandle) && this.reconnectAttempts < 1;
+            const canResume = Boolean(this.sessionResumptionHandle) && this.reconnectAttempts < this.maxReconnectAttempts;
             this.disconnect("connection_lost");
-            if (canResume) {
-              this.reconnectAttempts += 1;
-              this.setState("CONNECTING", "VOICE_RECONNECTING");
-              const recoveryText = this.onReconnectNeeded?.({ reason: "connection_lost", handle: this.sessionResumptionHandle }) || "";
-              setTimeout(() => this.connect(recoveryText, { priority: "TRANSITION_GUIDANCE", contextIndependent: false }).catch(() => {}), 350);
-            }
+            if (canResume) this.scheduleReconnect("connection_lost");
           }
         }
       });
@@ -316,6 +315,7 @@ export class EmmiLiveClient {
     if (message.goAway) {
       this.emitVoiceTelemetry("EMMI_LIVE_GO_AWAY", { timeLeft: message.goAway.timeLeft || "" });
       this.onSessionResumption?.({ handle: this.sessionResumptionHandle, resumable: Boolean(this.sessionResumptionHandle), reason: "go_away" });
+      if (this.sessionResumptionHandle && !this.goAwayReconnectScheduled) { this.goAwayReconnectScheduled = true; this.scheduleReconnect("go_away", { proactive: true }); }
     }
     const server = message.serverContent;
     if (server?.inputTranscription?.text) {
@@ -569,10 +569,12 @@ export class EmmiLiveClient {
     this.session.sendClientContent({ turns: contextualTurn, turnComplete: true });
     return true;
   }
-  setMuted(value) { this.muted = value; this.onState?.(this.state, value ? "muted" : "unmuted"); }
+  async setMuted(value) { this.muted=Boolean(value); if(this.muted){this.stopAudioCapture();this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED",{reason:"paused"});} else if(this.session&&!this.stream){try{this.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});await this.startAudioCapture();}catch{this.muted=true;this.onError?.("VOICE_PERMISSION_DENIED");}} this.onState?.(this.state,this.muted?"muted":"unmuted");return !this.muted; }
+  handleProviderError(error) { const code=normalizeEmmiVoiceError(error?.message?.includes("429")?"rate_limited":"VOICE_PROVIDER_ERROR");this.onError?.(code);this.disconnect(code);return false; }
+  scheduleReconnect(reason,{proactive=false}={}){if(!this.sessionResumptionHandle||this.reconnectAttempts>=this.maxReconnectAttempts)return false;clearTimeout(this.reconnectTimer);const attempt=++this.reconnectAttempts,delay=proactive?100:Math.min(2000,250*(2**(attempt-1))),handle=this.sessionResumptionHandle,recovery=this.onReconnectNeeded?.({reason,handle,attempt})||"";this.setState("CONNECTING","VOICE_RECONNECTING");this.reconnectTimer=setTimeout(()=>{if(proactive&&this.isActive())this.disconnect("go_away_handoff");this.goAwayReconnectScheduled=false;this.connect(recovery,{priority:"TRANSITION_GUIDANCE"}).catch(()=>{});},delay);return true;}
   disconnect(reason = "ended") {
     this.intentionalClose = true;
-    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); this.stopPlayback();
+    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.stabilityTimer); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
     this.session = null; this.stopAudioCapture();
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;

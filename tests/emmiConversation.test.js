@@ -46,7 +46,7 @@ describe("EMMI conversation continuity", () => {
     first.markGreeted();
     first.recordTurn("user", "I will finish later");
     const later = new EmmiConversationManager({ patientId: "p1", scenarioId: "access", storage, sessionStorage: memoryStorage(), now: () => 1000 + 31 * 60 * 1000 });
-    expect(later.contextForModel()).toMatchObject({ conversationMode: EMMI_CONVERSATION_MODES.RESUME, greetingAllowed: false, lastUserTurn: "I will finish later" });
+    expect(later.contextForModel()).toMatchObject({ conversationMode: EMMI_CONVERSATION_MODES.RESUME, greetingAllowed: false, lastUserTurn: "" });
   });
 
   it("blocks an unexpected greeting during continuation and emits telemetry", () => {

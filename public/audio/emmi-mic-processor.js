@@ -1,4 +1,4 @@
-// EMMI microphone capture worklet (emmi-audio-v2).
+// EMMI microphone capture worklet (emmi-audio-v3).
 //
 // Runs on the audio rendering thread and does the least work that is worth doing there:
 // it accumulates the 128-sample render quanta the browser hands it into one frame the size
@@ -13,7 +13,7 @@ class EmmiMicProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
     const requested = Number(options?.processorOptions?.frameSize);
-    this.frameSize = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 4096;
+    this.frameSize = Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 2048;
     this.frame = new Float32Array(this.frameSize);
     this.offset = 0;
   }

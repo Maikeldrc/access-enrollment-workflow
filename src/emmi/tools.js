@@ -3,14 +3,18 @@ import { getEmmiVoiceIdentity } from "./voiceIdentity.js";
 import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "../mock/emmiFixtures.js";
 import { normalizeCoverage } from "../coverage.js";
 import { DEMO_BP_MONITORING_RULES } from "../goalHealth.js";
-import { BP_CLINICAL_STATE, classifyObservation } from "../clinicalMonitoring.js";
+import { BP_CLINICAL_STATE, EMERGENCY_SYMPTOM_PATTERN, classifyObservation } from "../clinicalMonitoring.js";
 import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
+import { conversationPolicyResponse } from "./conversationPolicy.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const clone = value => JSON.parse(JSON.stringify(value));
-const readLogs = () => { try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]"); } catch { return []; } };
-const writeLogs = logs => { try { localStorage.setItem(LOG_KEY, JSON.stringify(logs.slice(-25))); } catch { /* Prototype logging is best effort. */ } };
+let memoryLogs = []; const store = () => globalThis.sessionStorage;
+const readLogs = () => { try { return store() ? JSON.parse(store().getItem(LOG_KEY) || "[]") : memoryLogs; } catch { return memoryLogs; } };
+const writeLogs = logs => { memoryLogs = logs.slice(-25); try { store()?.setItem(LOG_KEY, JSON.stringify(memoryLogs)); } catch {} };
+const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey/i;
+const safe = value => Array.isArray(value) ? value.map(safe) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([key]) => !sensitive.test(key)).map(([key,item]) => [key,safe(item)])) : value;
 
 export const selectDemoPatientId = ({ language = "en", completionRole = "patient", eligibilityStatus = "", deviceScenario = null } = {}) => {
   if (deviceScenario?.patientOwnsMonitor && deviceScenario.integrationStatus === "UNSUPPORTED") return "DEMO-P006";
@@ -29,12 +33,12 @@ export class EmmiAuditLog {
   }
   updateContext({ locale, currentScreen }) { const voice = getEmmiVoiceIdentity(locale); this.entry.locale = locale; this.entry.currentScreen = currentScreen; this.entry.voiceId = voice.voiceId; this.entry.voiceVersion = voice.voiceVersion; this.entry.voiceProvider = voice.provider; this.persist(); }
   voiceEvent(type, details = {}) { this.entry.voiceEvents.push({ timestamp: new Date().toISOString(), type, ...clone(details) }); this.persist(); }
-  transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), text }); this.persist(); }
+  transcript(role, text) { this.entry[role === "user" ? "userTranscript" : "assistantTranscript"].push({ timestamp: new Date().toISOString(), characters: String(text || "").length, retained: false }); this.persist(); }
   answerTurn(metadata = {}) { this.entry.answerTurns ||= []; this.entry.answerTurns.push({ timestamp: new Date().toISOString(), ...clone(metadata) }); this.entry.answerTurns = this.entry.answerTurns.slice(-50); this.persist(); }
   tool(name, args, result) {
     const timestamp = new Date().toISOString();
-    this.entry.toolsCalled.push({ timestamp, tool: name, arguments: clone(args) });
-    this.entry.toolResults.push({ timestamp, tool: name, result: clone(result) });
+    this.entry.toolsCalled.push({ timestamp, tool: name, arguments: safe(clone(args)) });
+    this.entry.toolResults.push({ timestamp, tool: name, result: safe(clone(result)) });
     if (name === "requestCallback" && result.success) this.entry.callbackRequested = true;
     if (name === "createCareTeamTask" && result.success) this.entry.careTeamTaskCreated = true;
     if (name === "evaluateClinicalEscalation" && result.severity !== "NORMAL") this.entry.clinicalEscalationTriggered = true;
@@ -46,6 +50,7 @@ export class EmmiAuditLog {
 }
 
 export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
+  { name: "applyConversationPolicy", description: "Return approved deterministic consent or representative-authority wording. Always call before answering these topics.", parameters: { type: "OBJECT", properties: { question: { type: "STRING" }, locale: { type: "STRING" } }, required: ["question"] } },
   { name: "getEnrollmentContext", description: "Get authoritative fictional prototype enrollment context.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getExpectedAccessCost", description: "Get the deterministic expected ACCESS patient payment for this patient from the financial responsibility engine. Always use for any question about what the patient pays, why it is that amount, or what it would be without supplemental coverage. Never calculate a patient's cost yourself and never treat having supplemental insurance as meaning the patient pays nothing: expectedPatientPayment of null means the amount is not known and must not be stated.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, accessTrack: { type: "STRING" } }, required: ["patientId", "accessTrack"] } },
   { name: "getPatientCoverage", description: "Get this patient's verified coverage: whether they have Original Medicare or Medicare Advantage, Part A and Part B status, and any secondary payers including Medicare Supplement, Medicaid or QMB. Always use for 'do I have Medicare', 'do I have supplemental insurance', 'what is my secondary coverage' and similar patient-specific coverage questions. Only a payer typed MEDICARE_SUPPLEMENT may be described to the patient as supplemental or Medigap coverage.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
@@ -71,11 +76,23 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getMedicationSupply", description: "Get this patient's medications with the deterministic supply estimate for each one: whether it can be estimated at all, roughly how many days remain, and how much the engine trusts that. Never calculate a supply yourself, never state a pill count, and never present an estimate as a fact. An estimate is a reason to ask the patient, not a reason to act.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getActiveRefills", description: "Get refill requests already in progress for this patient and what each one is waiting on. Always use before offering to request a refill, so an existing request is reported rather than duplicated, and use it to answer any question about where a refill stands.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "startRefillReview", description: "Open the refill review for one medication so the patient can confirm they still take it and whether they are running low. Use when the patient says they are running out or asks for a refill. This starts a review; it never requests, approves or renews anything.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, medicationId: { type: "STRING" } }, required: ["patientId", "medicationId"] } },
+  { name: "getUpcomingAppointments", description: "Get the appointments already on file for this patient with their patient-facing status. Always use before answering when an appointment is, whether one exists, or before offering to request another one, so an existing appointment is reported rather than duplicated. Never state a date, time, provider or status that is not in this result.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getAppointment", description: "Get one appointment the patient already has, including its patient-facing status and next step. Use for any question about a specific visit. If it is not found, say so; never describe an appointment this tool did not return.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" } }, required: ["appointmentId"] } },
+  { name: "getSchedulingCapability", description: "Find out how this professional's office can actually be scheduled with: direct booking, a structured request, human coordination by the care team, or no available channel. Always call this before offering to book, request or coordinate anything, because offering a booking the office cannot accept is a promise the product cannot keep.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, providerId: { type: "STRING" }, appointmentType: { type: "STRING" } }, required: ["providerId"] } },
+  { name: "getProviderAvailability", description: "Get real appointment times from the trusted scheduling source. This is the only source of availability: never invent, estimate, remember or reuse a time, and never present a time the result did not contain. If it returns ok false, tell the patient you could not check the times and offer to try again or reach the care team.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, providerId: { type: "STRING" }, preferredTimeOfDay: { type: "STRING" }, modality: { type: "STRING" } }, required: ["providerId"] } },
+  { name: "startAppointmentRequest", description: "Open the appointment request so the patient can confirm who they need to see, why, and when. Use when the patient says they need a visit or need to see a professional. This starts the flow; it requests, books and sends nothing by itself.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, reasonCategory: { type: "STRING" }, providerId: { type: "STRING" }, reasonSummary: { type: "STRING" } }, required: ["reasonCategory"] } },
+  { name: "createAppointmentRequest", description: "Send the completed appointment request to the office only after the patient explicitly confirms. A sent request is not a confirmed appointment: report it as a request that was sent and that the office still has to answer. If it was not sent, say so; never announce a request that did not go out.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, needId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["needId", "confirmed"] } },
+  { name: "bookAppointment", description: "Book a real time the patient chose from getProviderAvailability, only after they explicitly confirm. Never say an appointment is confirmed until this returns success. A time can disappear between being shown and being booked: if it returns SLOT_UNAVAILABLE, say that time could not be confirmed, never blame the patient, and offer updated times.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, needId: { type: "STRING" }, slotId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["needId", "slotId", "confirmed"] } },
+  { name: "rescheduleAppointment", description: "Start a reschedule of an existing appointment only after the patient explicitly confirms in this conversation. Rescheduling changes care the patient is counting on, so it is never done from chat text alone.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "confirmed"] } },
+  { name: "cancelAppointment", description: "Cancel an existing appointment only after the patient explicitly confirms that they want it cancelled. Cancelling is destructive and is never inferred from what the patient said in conversation: mentioning a problem getting there, a conflict or a bad day is not a cancellation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "confirmed"] } },
+  { name: "createAppointmentReminder", description: "Save a reminder for an appointment after the patient explicitly chose a reminder time. Reminders appear inside ITERA; this does not send phone, text or email notifications, and must never be described as one. Only say a reminder was set after this returns success.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, slot: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "slot", "confirmed"] } },
+  { name: "getCareCircle", description: "Get the Care Circle members this patient has actually invited and their invitation status. Use before offering to share anything with a support person, so nobody is offered who is not really there.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "shareAppointment", description: "Share limited appointment details with one Care Circle member after the patient explicitly confirms. Sharing is scoped: a Care Circle member is a support person, never a decision maker, and sharing an appointment never gives them access to the rest of the patient's information.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, inviteId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "inviteId", "confirmed"] } },
   { name: "searchKnowledge", description: "Look up ITERA's approved explanations of programs, Medicare, enrollment, devices, care and safety topics. Use for conceptual questions such as 'What is CCM?' or 'What is a Care Circle?'. This returns general education only and is never a source for what is true for this patient: for eligibility, cost, devices, medications, enrollment status or next step, call the matching patient tool instead.", parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] } }
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, auditLog }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
@@ -90,6 +107,20 @@ export class EmmiToolOrchestrator {
     this.onMedicationSupply = onMedicationSupply;
     this.onActiveRefills = onActiveRefills;
     this.onRefillReview = onRefillReview;
+    // Appointments are patient state and provider truth. EMMI holds neither: every read asks the
+    // application, and every write asks the application after the patient confirmed it.
+    this.onUpcomingAppointments = onUpcomingAppointments;
+    this.onAppointment = onAppointment;
+    this.onSchedulingCapability = onSchedulingCapability;
+    this.onProviderAvailability = onProviderAvailability;
+    this.onStartAppointmentRequest = onStartAppointmentRequest;
+    this.onCreateAppointmentRequest = onCreateAppointmentRequest;
+    this.onBookAppointment = onBookAppointment;
+    this.onRescheduleAppointment = onRescheduleAppointment;
+    this.onCancelAppointment = onCancelAppointment;
+    this.onAppointmentReminder = onAppointmentReminder;
+    this.onCareCircle = onCareCircle;
+    this.onShareAppointment = onShareAppointment;
     this.auditLog = auditLog;
   }
   async execute(name, args = {}) {
@@ -98,7 +129,8 @@ export class EmmiToolOrchestrator {
     const patientId = context.patientId;
     if (args.patientId && args.patientId !== patientId) throw new Error("prototype_patient_mismatch");
     let result;
-    if (name === "getEnrollmentContext") result = clone(context);
+    if (name === "applyConversationPolicy") result = conversationPolicyResponse(args.question, args.locale || context.locale) || { intent: "NO_POLICY_MATCH", text: "", deterministic: true };
+    else if (name === "getEnrollmentContext") result = clone(context);
     else if (name === "getExpectedAccessCost") {
       // The engine decides the amount; the model only explains the result it is handed. Note the
       // gross amount comes from the track configuration, never from a copy on the patient record.
@@ -122,7 +154,9 @@ export class EmmiToolOrchestrator {
     else if (name === "getClinicalTarget") result = { metricType: args.metricType, target: clone(context.activeGoal?.clinicalTarget || null), source: context.activeGoal?.clinicalTarget ? "CARE_TEAM_CONFIGURATION" : "UNAVAILABLE" };
     else if (name === "getGoalProgress") result = { goalId: args.goalId, progress: clone(context.activeGoal?.progress || null), actions: clone(context.activeGoal?.actions || []), source: "PATIENT_RUNTIME" };
     else if (name === "getEducationRecommendation") result = { goalId: args.goalId, topic: clone(context.activeGoal?.nextBestEducation || null), source: context.activeGoal?.nextBestEducation ? "APPROVED_TOPIC_CATALOG" : "UNAVAILABLE" };
-    else if (name === "getCareTeam") result = { physicianDisplayName: context.physicianDisplayName || null, enrollmentSource: context.enrollmentSource || null };
+    // The care team the patient actually has, built by careTeamDirectory from their own record,
+    // rather than a single display name. EMMI can only name someone this list contains.
+    else if (name === "getCareTeam") result = { physicianDisplayName: context.physicianDisplayName || null, enrollmentSource: context.enrollmentSource || null, members: clone(context.careTeam || []) };
     else if (name === "getNextBestAction") result = clone(context.nextBestAction || { label: "", route: context.currentScreen, actionType: "NONE" });
     else if (name === "checkDeviceConnection") {
       const device = EMMI_DEMO_DEVICES.find(item => item.deviceId === args.deviceId);
@@ -156,13 +190,91 @@ export class EmmiToolOrchestrator {
         const saved = this.onReminder({ slot: String(args.slot || "").toUpperCase() });
         result = saved ? { success: true, slot: saved.slot, time: saved.time, channel: saved.channel, note: "Reminders appear inside ITERA. No phone notification is scheduled." } : { success: false, status: "REMINDER_NOT_SAVED" };
       }
+    } else if (name === "getUpcomingAppointments") {
+      result = clone(this.onUpcomingAppointments() || { appointments: [], requests: [] });
+    } else if (name === "getAppointment") {
+      // A "not found" answer is an object too, so it has to be recognised by its own shape rather
+      // than by being falsy — otherwise a missing appointment is reported as a found one.
+      const found = this.onAppointment({ appointmentId: String(args.appointmentId || "") });
+      result = found?.appointment ? clone(found) : { success: false, status: "NOT_FOUND" };
+    } else if (name === "getSchedulingCapability") {
+      // Not every office can be booked, and some cannot be reached at all. An unresolved capability
+      // is reported as unknown rather than assumed, because assuming it invents a channel.
+      const resolved = this.onSchedulingCapability({ providerId: String(args.providerId || ""), appointmentType: String(args.appointmentType || "") });
+      result = resolved?.capability
+        ? { capability: resolved.capability, supportedModalities: clone(resolved.supportedModalities || []) }
+        : { success: false, status: "CAPABILITY_UNKNOWN" };
+    } else if (name === "getProviderAvailability") {
+      // Real availability only. A lookup that did not succeed is a failure, never an empty calendar
+      // and never a time the model may fill in for itself.
+      const availability = this.onProviderAvailability({ providerId: String(args.providerId || ""), preferredTimeOfDay: String(args.preferredTimeOfDay || ""), modality: String(args.modality || "") });
+      result = availability?.ok
+        ? { ok: true, slots: clone(availability.slots || []) }
+        : { ok: false, error: availability?.error || "AVAILABILITY_UNAVAILABLE" };
+    } else if (name === "startAppointmentRequest") {
+      // Opening the flow is not requesting a visit, the same way opening a refill review is not
+      // requesting a refill.
+      const opened = this.onStartAppointmentRequest({ reasonCategory: String(args.reasonCategory || "OTHER"), providerId: String(args.providerId || ""), reasonSummary: String(args.reasonSummary || "").slice(0, 400) });
+      result = opened ? { success: true, status: "FLOW_OPENED", needId: opened.needId || opened.id || "" } : { success: false, status: "APPOINTMENT_FLOW_NOT_OPENED" };
+    } else if (name === "createAppointmentRequest") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const sent = this.onCreateAppointmentRequest({ needId: String(args.needId || ""), confirmed: true });
+        // A request that was sent is a request. A request that was not sent is never described as one.
+        result = sent?.success
+          ? { success: true, status: sent.status || "REQUEST_SENT", needId: sent.needId || String(args.needId || "") }
+          : { success: false, status: sent?.status || "REQUEST_NOT_SENT", needId: String(args.needId || "") };
+      }
+    } else if (name === "bookAppointment") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const booked = this.onBookAppointment({ needId: String(args.needId || ""), slotId: String(args.slotId || ""), confirmed: true });
+        // Only the booking system's own confirmation may be called confirmed. A slot that vanished
+        // between being shown and being chosen is reported as unavailable, never as booked.
+        result = booked?.success
+          ? { success: true, status: booked.status || "CONFIRMED", confirmationNumber: booked.confirmationNumber || "" }
+          : booked?.slotGone
+            ? { success: false, status: "SLOT_UNAVAILABLE" }
+            : { success: false, status: booked?.status || "BOOKING_FAILED" };
+      }
+    } else if (name === "rescheduleAppointment") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const changed = this.onRescheduleAppointment({ appointmentId: String(args.appointmentId || ""), confirmed: true });
+        result = changed?.success ? { success: true, status: changed.status || "RESCHEDULE_REQUESTED" } : { success: false, status: changed?.status || "RESCHEDULE_NOT_REQUESTED" };
+      }
+    } else if (name === "cancelAppointment") {
+      // A cancellation takes away care the patient is counting on and cannot be undone from here.
+      // Chat text is never enough: the patient confirms it explicitly, every time.
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const canceled = this.onCancelAppointment({ appointmentId: String(args.appointmentId || ""), confirmed: true });
+        result = canceled?.success ? { success: true, status: canceled.status || "CANCELED" } : { success: false, status: canceled?.status || "CANCEL_NOT_COMPLETED" };
+      }
+    } else if (name === "createAppointmentReminder") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const saved = this.onAppointmentReminder({ appointmentId: String(args.appointmentId || ""), slot: String(args.slot || "").toUpperCase(), confirmed: true });
+        result = saved
+          ? { success: true, slot: saved.slot, time: saved.time, channel: "IN_APP", note: "Reminders appear inside ITERA. No phone notification is scheduled." }
+          : { success: false, status: "REMINDER_NOT_SAVED" };
+      }
+    } else if (name === "getCareCircle") {
+      result = clone(this.onCareCircle() || { allowed: false, reason: "NO_CARE_CIRCLE", members: [] });
+    } else if (name === "shareAppointment") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const shared = this.onShareAppointment({ appointmentId: String(args.appointmentId || ""), inviteId: String(args.inviteId || ""), confirmed: true });
+        // Sharing is scoped. What was shared comes back from the application, never from here.
+        result = shared?.success ? { success: true, status: shared.status || "SHARED", scope: clone(shared.scope || null) } : { success: false, status: shared?.status || "NOT_SHARED" };
+      }
     } else if (name === "saveEnrollmentProgress") { result = { success: true, patientId, currentScreen: context.currentScreen, protectedFieldsUnchanged: ["consent", "eligibility", "enrollmentStatus"] }; this.onProgress(result); }
     else if (name === "evaluateClinicalEscalation") {
       // Thresholds are read from the monitoring rules rather than written here. They used to be
       // inline copies that happened to match; changing the configuration would have left this
       // tool quietly enforcing the old numbers.
       const symptoms = String(args.symptoms || "").toLowerCase();
-      const emergencySymptoms = /(chest pain|can.?t breathe|difficulty breathing|stroke|severe bleeding|very bad|pass(?:ed)? out|faint(?:ed|ing)?|dolor de pecho|no puedo respirar|muy mal|me desmay|desmayo|doulè nan pwatrin|pa ka respire|endispoze|pèdi konesans)/i.test(symptoms);
+      const emergencySymptoms = EMERGENCY_SYMPTOM_PATTERN.test(symptoms);
       const reading = { systolic: Number(args.systolic), diastolic: Number(args.diastolic), timestamp: new Date().toISOString(), unit: "mmHg" };
       const classification = classifyObservation(reading, {
         rules: DEMO_BP_MONITORING_RULES,

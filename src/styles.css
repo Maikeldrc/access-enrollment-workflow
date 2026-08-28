@@ -76,9 +76,10 @@
      This sizes the desktop patient preview only; on a real phone the shell is 100% width and
      the layout stays fluid from roughly 360px to 430px. */
   --patient-shell-width:384px;
-  /* EMMI's brandmark where she is a control rather than a greeting: the compact card and the
-     floating avatar. The Home introduction and the expanded panel size their own hero. */
+  /* EMMI's compact-card brandmark stays intentionally small. The floating control has its own
+     larger senior-friendly size so it remains easy to recognize without enlarging other surfaces. */
   --emmi-avatar-compact:38px;
+  --emmi-avatar-floating:64px;
   --patient-page-gutter:clamp(12px,4vw,16px);
   --patient-card-radius:14px;
   --patient-card-padding:16px;
@@ -768,13 +769,14 @@ p { margin:0; }
 /* Floating EMMI: a labeled pill — a robot head alone does not tell a Medicare patient what it is. Its edges are measured from the patient shell
    rather than computed from 100vw, so on a desktop preview it stays inside the phone instead of
    drifting onto the page background, and nothing here assumes the shell is 384px wide. */
-.emmi-assistant { position:fixed;z-index:10;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(76px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));display:grid;place-items:center;min-width:52px;min-height:52px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;box-shadow:none;font:inherit;cursor:grab;touch-action:none;user-select:none; }
+.emmi-assistant { position:fixed;z-index:10;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(76px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));display:grid;place-items:center;width:var(--emmi-avatar-floating);height:var(--emmi-avatar-floating);min-width:var(--emmi-avatar-floating);min-height:var(--emmi-avatar-floating);padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;box-shadow:none;font:inherit;cursor:grab;touch-action:none;user-select:none; }
 .emmi-assistant:hover { transform:translateY(-1px); }
 .emmi-assistant:focus-visible { outline:3px solid var(--focus-ring);outline-offset:3px;border-radius:50%; }
 .emmi-assistant.dragging { cursor:grabbing;transform:none;box-shadow:none; }
 .emmi-assistant:focus-visible { outline:3px solid var(--primary-600);outline-offset:3px; }
 .emmi-assistant:disabled { cursor:default;opacity:1; }
 .emmi-avatar { display:grid;place-items:center;width:var(--emmi-avatar-compact);height:var(--emmi-avatar-compact);overflow:visible;border-radius:0;background:transparent;flex:0 0 var(--emmi-avatar-compact); }
+.emmi-assistant .emmi-avatar { width:var(--emmi-avatar-floating);height:var(--emmi-avatar-floating);flex-basis:var(--emmi-avatar-floating); }
 .emmi-avatar img { display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
 .emmi-assistant img { pointer-events:none;user-select:none; }
 .emmi-contextual-nudge { position:fixed;z-index:9;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(136px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
@@ -1369,7 +1371,39 @@ p { margin:0; }
 .care-circle-invite-screen { padding-bottom:108px; }
 .care-circle-sticky-actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:14px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
 .shell:has(.care-circle-invite-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
-.my-care-circle-link { width:100%;margin-top:18px; }
+.my-care-team-link,.my-care-circle-link { width:100%;margin-top:18px; }
+.my-care-team-screen { width:100%;min-width:0; }
+.care-team-members { display:grid;gap:12px;margin-top:20px; }
+.care-team-member-card { display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);box-shadow:0 6px 18px rgba(0,78,137,.04); }
+.care-team-member-icon { display:grid;place-items:center;width:48px;height:48px;border-radius:14px;color:var(--primary-600);background:var(--primary-50); }
+.care-team-member-icon>.icon { width:26px;height:26px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-photo { display:block;width:48px;height:48px;border:2px solid var(--surface-primary);border-radius:50%;object-fit:cover;object-position:50% 24%;box-shadow:0 0 0 1px var(--border-default); }
+.care-team-member-copy { min-width:0; }
+.care-team-member-name { display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;min-width:0; }
+.care-team-member-name>strong { min-width:0;color:var(--text-primary);font-size:1.0625rem;line-height:1.35;overflow-wrap:anywhere; }
+.care-team-verified { display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:999px;color:var(--success-700,#24733b);background:var(--success-bg,#eaf8ef);font-size:.78rem;font-weight:800;line-height:1.25; }
+.care-team-verified>.icon { width:15px;height:15px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-copy>p { margin:4px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.48; }
+.care-team-member-phone { display:inline-flex;align-items:center;gap:7px;min-height:44px;margin-top:7px;color:var(--primary-700);font-size:1rem;font-weight:700;text-decoration:none; }
+.care-team-member-phone>.icon { width:21px;height:21px;border-radius:0;color:inherit;background:transparent; }
+.care-team-member-phone:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px;border-radius:8px; }
+.care-team-add-button { width:100%;min-height:54px;margin-top:16px;padding:12px 14px;display:grid;grid-template-columns:28px minmax(0,1fr) 22px;align-items:center;gap:10px;border:1px solid var(--primary-200);border-radius:14px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:1rem;font-weight:800;text-align:left;cursor:pointer; }
+.care-team-add-button>.icon { width:26px;height:26px;border-radius:0;color:inherit;background:transparent; }.care-team-add-button>.icon:last-child { width:20px;height:20px;justify-self:end; }
+.care-team-add-button:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.care-team-add-panel { margin-top:16px;padding:16px;border:1px solid var(--primary-200);border-radius:16px;background:var(--surface-primary);box-shadow:0 8px 24px rgba(0,78,137,.05); }
+.care-team-add-heading { display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:start; }.care-team-add-heading>span { display:grid;place-items:center;width:42px;height:42px;border-radius:12px;color:var(--primary-600);background:var(--primary-50); }.care-team-add-heading .icon { width:23px;height:23px;border-radius:0;color:inherit;background:transparent; }
+.care-team-add-heading h2 { margin:0;color:var(--text-primary);font-size:1.125rem;line-height:1.3; }.care-team-add-heading p { margin:4px 0 0;color:var(--text-muted);font-size:.975rem;line-height:1.45; }
+#care-team-member-form { display:grid;gap:14px;margin-top:16px; }#care-team-member-form label { display:grid;gap:7px;color:var(--text-primary);font-size:1rem;font-weight:750; }#care-team-member-form label>small { margin-top:-5px;color:var(--text-muted);font-size:.875rem;font-weight:500; }
+#care-team-member-form input,#care-team-member-form select { width:100%;min-height:50px;padding:11px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--text-primary);background:var(--surface-primary);font:inherit;font-size:1rem;box-sizing:border-box; }#care-team-member-form input:focus,#care-team-member-form select:focus { border-color:var(--primary-600);outline:3px solid color-mix(in srgb,var(--focus-ring) 45%,transparent);outline-offset:1px; }
+.care-team-add-actions { display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:10px;margin-top:2px; }.care-team-add-actions .button { min-height:50px;margin:0; }
+.care-team-form-error,.care-team-success { min-height:0;margin:0;color:var(--danger-700,#a72f28);font-size:.9375rem;line-height:1.4; }.care-team-success { margin-top:10px;color:var(--success-700,#24733b);text-align:center; }
+.care-team-boundary-note { display:grid;grid-template-columns:38px minmax(0,1fr);gap:10px;align-items:start;margin-top:16px;padding:13px;border:1px solid var(--primary-100);border-radius:14px;color:var(--text-secondary);background:var(--primary-50); }
+.care-team-boundary-note>.icon { width:36px;height:36px; }
+.care-team-boundary-note p { margin:0;font-size:1rem;line-height:1.5; }
+.care-team-empty { display:grid;justify-items:center;gap:8px;padding:24px 16px;border:1px dashed var(--border-default);border-radius:16px;background:var(--surface-primary);text-align:center; }
+.care-team-empty>.icon { width:38px;height:38px; }
+.care-team-empty p { margin:0;color:var(--text-muted);font-size:1rem;line-height:1.5; }
+@media (max-width:360px) { .care-team-member-card { grid-template-columns:44px minmax(0,1fr);gap:10px;padding:14px; }.care-team-member-icon,.care-team-member-photo { width:44px;height:44px; }.care-team-verified { font-size:.74rem; }.care-team-add-panel { padding:14px; }.care-team-add-actions { grid-template-columns:1fr; } }
 .care-circle-members { display:grid;gap:12px;margin-top:20px; }
 .care-circle-member-card { padding:14px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
 .care-circle-member-heading { display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px; }
@@ -1540,6 +1574,41 @@ p { margin:0; }
 .other-condition input { width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--border-default);border-radius:9px;color:var(--text-primary);background:var(--surface-primary);font-size:.9rem; }
 .other-condition input:focus { border-color:var(--primary-600);box-shadow:0 0 0 4px var(--focus-ring);outline:0; }
 .prototype-error { min-height:24px;margin:12px 0 0;color:var(--error);font-size:.82rem;font-weight:700; }
+/* Simulated BP readings: an internal panel in the desktop console. It is deliberately marked so a
+   tester can never forget the readings arriving in the patient UI are generated. */
+.bp-simulation { margin:24px 0 0;padding:20px 22px;border:1px solid var(--primary-100);border-radius:16px;background:color-mix(in srgb,var(--primary-50) 55%,var(--surface-primary)); }
+.bp-simulation-header { display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between; }
+.bp-simulation-header h2 { margin:0;font-size:1.05rem;line-height:1.3; }
+.bp-simulation-header small { color:var(--text-secondary);font-size:.86rem; }
+.bp-simulation-status { display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--surface-primary);color:var(--text-secondary);font-size:.86rem;font-weight:700; }
+.bp-simulation-status i { width:9px;height:9px;border-radius:50%;background:var(--border-strong); }
+.bp-simulation[data-simulation-status="RUNNING"] .bp-simulation-status { color:var(--primary-700); }
+.bp-simulation[data-simulation-status="RUNNING"] .bp-simulation-status i { background:var(--success,#25ba7d);animation:bp-simulation-pulse 1.8s ease-in-out infinite; }
+@keyframes bp-simulation-pulse { 50% { opacity:.35; } }
+.bp-simulation-controls { display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px; }
+.bp-simulation-rules { margin:14px 0 0;color:var(--text-secondary);font-size:.86rem;line-height:1.5; }
+.bp-simulation-rules code { padding:1px 6px;border-radius:5px;background:var(--surface-primary);font-size:.82rem; }
+.bp-simulation-actions { display:flex;flex-wrap:wrap;gap:9px;margin-top:16px; }
+.bp-simulation-actions button { min-height:42px;padding:9px 16px;border:1px solid var(--border-default);border-radius:10px;background:var(--surface-primary);color:var(--text-primary);font:inherit;font-size:.94rem;font-weight:700;cursor:pointer; }
+.bp-simulation-actions button:hover:not(:disabled) { border-color:var(--primary-300);background:var(--primary-50); }
+.bp-simulation-actions button:disabled { opacity:.45;cursor:not-allowed; }
+.bp-simulation-actions .bp-simulation-primary { border-color:var(--primary-600);background:var(--primary-600);color:#fff; }
+.bp-simulation-actions .bp-simulation-primary:hover { background:var(--primary-700);border-color:var(--primary-700); }
+.bp-simulation-countdown { margin:14px 0 0;color:var(--text-secondary);font-size:.94rem; }
+.bp-simulation-countdown strong { color:var(--text-primary);font-variant-numeric:tabular-nums; }
+.bp-simulation-latest { display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--surface-primary); }
+.bp-simulation-latest span { color:var(--text-secondary);font-size:.82rem;text-transform:uppercase;letter-spacing:.06em; }
+.bp-simulation-latest strong { font-size:1.15rem;font-variant-numeric:tabular-nums; }
+.bp-simulation-latest small { color:var(--text-muted);font-size:.82rem;font-variant-numeric:tabular-nums; }
+.bp-simulation-history { margin-top:16px; }
+.bp-simulation-history h3 { margin:0 0 8px;color:var(--text-secondary);font-size:.82rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase; }
+.bp-simulation-history ol { display:grid;gap:4px;margin:0;padding:0;list-style:none; }
+.bp-simulation-history li { display:grid;grid-template-columns:96px 84px 1fr;gap:10px;align-items:center;padding:7px 12px;border-radius:9px;background:var(--surface-primary);font-size:.9rem;font-variant-numeric:tabular-nums; }
+/* The verdict is the engine's, so it is the part that carries the colour. */
+[data-classification="ACTION_NEEDED"] { color:#b3261e;font-style:normal;font-weight:800; }
+[data-classification="NEEDS_REVIEW"] { color:#8a5a00;font-style:normal;font-weight:800; }
+[data-classification="ABOVE_EXPECTED_RANGE"],[data-classification="WITHIN_EXPECTED_RANGE"] { color:var(--text-secondary);font-style:normal;font-weight:700; }
+
 .scenario-footer { position:sticky;bottom:0;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;margin-top:22px;padding:24px 42px;border-top:1px solid var(--border-default);background:rgba(248,252,255,.96);backdrop-filter:blur(12px); }
 .scenario-summary { display:grid;gap:4px;min-width:0; }
 .scenario-summary span { color:var(--text-placeholder);font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em; }
@@ -1740,6 +1809,18 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .growth-safe-link,
 .shell:not(:has(.prototype-console)) .growth-notice,
 .public-growth-page .public-growth-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
+
+/* The generic h1/h2 rules above are px, and they out-specify src/appointments.css, which would
+   leave appointment headings frozen while the rest of the screen grows at 125% and 150%. These
+   restate the same sizes at the same specificity in rem: identical at 100%, and they scale.
+   Everything else in src/appointments.css is already rem and is deliberately left alone. */
+.shell:not(:has(.prototype-console)) .appointment-screen-title { font-size:clamp(1.75rem,7.4vw,2rem);line-height:1.24; }
+.shell:not(:has(.prototype-console)) .appointment-section-title,
+.shell:not(:has(.prototype-console)) .appointment-subsection-title { font-size:1.3125rem;line-height:1.3; }
+.shell:not(:has(.prototype-console)) .appointment-need-title,
+.shell:not(:has(.prototype-console)) .appointment-question { font-size:1.25rem;line-height:1.35; }
+.shell:not(:has(.prototype-console)) .appointment-lead { font-size:1.125rem;line-height:1.52; }
+
 
 /* The expanded panel sizes its own type in rem so a patient who has turned text up to 150% gets
    a bigger EMMI, not just a bigger frame around the same 17px. */
