@@ -46,7 +46,10 @@ export const TOOL_FIRST_INTENTS = Object.freeze({
 const INTENT_RULES = [
   // Order matters: safety and personalised lookups win before topical matches.
   { intent: "CLINICAL_SAFETY", risk: "high", test: /\b(chest pain|can'?t breathe|cannot breathe|stroke|emergency|911|dizzy|faint|blood pressure is|bp is|\d{3}\s*\/\s*\d{2,3})\b|dolor de pecho|no puedo respirar|mareo|emergencia|doulè nan pwatrin|pa ka respire|tèt vire/i },
-  { intent: "MEDICATION_SAFETY", risk: "high", test: /\b(stop|quit|skip|double|increase|decrease|change)\b[^.?]{0,40}\b(medication|medicine|pill|dose|lisinopril|atorvastatin)\b|dejar de tomar|cambiar la dosis|sispann pran/i },
+  // Past tense and accidental doses matter as much as intent: "I stopped taking my medication"
+  // and "I accidentally took two doses" are what a patient actually says, and neither matched
+  // here, so EMMI was free to answer them from general knowledge alone.
+  { intent: "MEDICATION_SAFETY", risk: "high", test: /\b(stop|stopped|stopping|quit|skip|skipped|skipping|miss|missed|double|doubled|increase|increased|decrease|decreased|change|changed)\b[^.?]{0,40}\b(medication|medications|medicine|medicines|pill|pills|dose|doses|lisinopril|atorvastatin)\b|\b(took|take|taking|taken)\b[^.?]{0,20}\b(two|twice|double|extra|2)\b[^.?]{0,20}\b(dose|doses|pill|pills|medication|medicine)\b|\b(two|twice|double|extra|too many)\b[^.?]{0,15}\b(dose|doses)\b|dejar de tomar|dej[\u00e9e] de tomar|cambiar la dosis|doble dosis|dos dosis|tom[\u00e9e] de m[\u00e1a]s|sispann pran|pran de fwa/i },
   { intent: "COST", risk: "high", test: /\b(cost|pay|price|owe|charge|bill|copay|coinsurance|deductible|free|\$)\b|cuánto|cuanto|costo|pagar|gratis|konbyen|peye/i },
   { intent: "ELIGIBILITY", risk: "high", test: /\b(eligible|eligibility|qualify|qualified|approved)\b|elegib|califico|kalifye/i },
   { intent: "MEDICATION_LIST", risk: "high", test: /what (medications|medicines|pills).*(have|file|registered)|medications.*on file|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye/i },
@@ -63,7 +66,9 @@ const INTENT_RULES = [
   { intent: "GOALS", risk: "low", test: /\b(goal|goals|target|priorit)\b|objetivo|meta|objektif/i },
   { intent: "HEALTH_INFORMATION", risk: "low", test: /\b(health information|health info|my information|review this|confirm my)\b|información de salud|enfòmasyon sante/i },
   { intent: "CARE_PLAN", risk: "low", test: /\b(care plan|plan of care)\b|plan de cuidado|plan swen/i },
-  { intent: "HUMAN_SUPPORT", risk: "medium", test: /\b(call|speak to|talk to|someone|human|care team|support)\b|llamar|hablar con|rele|pale ak/i },
+  // Patients name the person, not the department: "talk with my doctor" and "help from my nurse"
+  // reached no intent at all and fell through to generic handling.
+  { intent: "HUMAN_SUPPORT", risk: "medium", test: /\b(call|speak (?:to|with)|talk (?:to|with)|someone|human|care team|care manager|support|doctor|physician|nurse|cardiologist)\b|llamar|hablar con|mi m[\u00e9e]dico|mi enfermer|equipo de cuidado|rele|pale ak|dokt\u00e8 m|enfimy\u00e8/i },
   { intent: "PROGRAM_EXPLANATION", risk: "low", test: /\b(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|tcm|rtm|chronic care|remote patient|principal care)\b/i },
   { intent: "GENERAL_KNOWLEDGE", risk: "low", test: /\b(what is|what are|what does|why|how does|explain|tell me about)\b|qué es|que es|por qué|porque|kisa|poukisa/i }
 ];
