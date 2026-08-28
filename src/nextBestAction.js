@@ -5,6 +5,8 @@
 const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
 const LABELS = Object.freeze({
+  seeHowItWorks: T("See how it works", "Ver cómo funciona", "Gade kijan sa mache"),
+  continue: T("Continue", "Continuar", "Kontinye"),
   startHealthCheck: T("Start my health check", "Iniciar mi evaluación de salud", "Kòmanse chèk sante mwen"),
   setUpMyCare: T("Set up my care", "Configurar mi cuidado", "Mete swen mwen an plas"),
   continueGettingStarted: T("Continue getting started", "Continuar los primeros pasos", "Kontinye premye etap yo"),
@@ -12,6 +14,7 @@ const LABELS = Object.freeze({
   getMyMonitor: T("Get my monitor", "Obtener mi monitor", "Jwenn monitè mwen"),
   takeFirstReading: T("Take my first reading", "Tomar mi primera medición", "Pran premye mezi mwen")
 });
+const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.seeHowItWorks, actionType: "LEARN_MORE" }, ENROLLMENT_CONFIRMED: { label: LABELS.startHealthCheck, actionType: "HEALTH_CHECK" } });
 
 // A device is only "already with the patient" when ITERA assigned one or the patient told us
 // they own one. Anything else means the monitor still has to be arranged.
@@ -45,6 +48,8 @@ const PROGRAM_ACTIONS = Object.freeze({
 });
 
 export function resolveNextBestAction(context = {}) {
+  if (context.currentScreen && SCREEN_ACTIONS[context.currentScreen]) return { ...SCREEN_ACTIONS[context.currentScreen], route: context.nextRoute || context.currentScreen };
+  if (context.currentScreen && context.nextRoute) return { label: LABELS.continue, route: context.nextRoute, actionType: "CONTINUE_CURRENT_JOURNEY" };
   const resolve = PROGRAM_ACTIONS[context.pathway] || PROGRAM_ACTIONS.CCM;
   return resolve(context);
 }

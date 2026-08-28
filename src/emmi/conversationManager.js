@@ -10,6 +10,7 @@ export const EMMI_CONVERSATION_MODES = Object.freeze({
 
 const STORAGE_KEY = "itera.emmi.conversation.v1";
 const VISIT_KEY = "itera.emmi.visit.v1";
+const SESSION_KEY = "itera.emmi.conversation.session.v1";
 const MAX_TURNS = 12;
 const RESUME_AFTER_MS = 30 * 60 * 1000;
 const greetingPattern = /^\s*(hi|hello|hey|good (morning|afternoon|evening)|hola|buen(os|as) (d[ií]as|tardes|noches)|bonjou|bonswa)(\b|[,!.])/i;
@@ -31,7 +32,8 @@ export class EmmiConversationManager {
     this.onEvent = onEvent;
     this.scope = `${scenarioId || "default"}:${patientId || "anonymous"}`;
     const all = parse(this.storage.get(STORAGE_KEY)) || {};
-    const saved = all[this.scope] || null;
+    const sessionAll = parse(this.sessionStorage.get(SESSION_KEY)) || {};
+    const saved = sessionAll[this.scope] || all[this.scope] || null;
     let visitId = this.sessionStorage.get(VISIT_KEY);
     const sameVisit = Boolean(visitId && saved?.visitId === visitId);
     if (!visitId) { visitId = uid("visit"); this.sessionStorage.set(VISIT_KEY, visitId); }
@@ -60,6 +62,7 @@ export class EmmiConversationManager {
       contextVersion: Number(saved?.contextVersion) || 0,
       sessionResumptionHandle: saved?.sessionResumptionHandle || "",
       sessionResumable: Boolean(saved?.sessionResumable),
+      activeSafetyEpisode: saved?.activeSafetyEpisode?.active ? saved.activeSafetyEpisode : null,
       lastInteractionAt: saved?.lastInteractionAt || this.now()
     };
     this.persist();
@@ -76,6 +79,8 @@ export class EmmiConversationManager {
     this.data.mode = EMMI_CONVERSATION_MODES.CONTINUATION;
     this.touch("EMMI_GREETING_COMPLETED");
   }
+  activateSafetyEpisode(episode) { if (!episode?.active) return null; this.data.activeSafetyEpisode = { ...episode, updatedAt: this.now() }; this.touch("EMMI_SAFETY_EPISODE_ACTIVATED", { episodeId: episode.id }); return this.data.activeSafetyEpisode; }
+  resolveSafetyEpisode(resolution = "HUMAN_HELP_CONFIRMED") { if (!this.data.activeSafetyEpisode?.active) return null; this.data.activeSafetyEpisode = { ...this.data.activeSafetyEpisode, active: false, resolution, resolvedAt: this.now() }; this.touch("EMMI_SAFETY_EPISODE_RESOLVED", { resolution }); return this.data.activeSafetyEpisode; }
 
   transition(context = {}, meta = {}) {
     const nextScreen = context.currentScreen || context.screenId || "";
@@ -151,7 +156,8 @@ export class EmmiConversationManager {
       recentTurns: this.data.recentTurns,
       contextVersion: this.data.contextVersion,
       sessionResumptionHandle: this.data.sessionResumptionHandle,
-      sessionResumable: this.data.sessionResumable
+      sessionResumable: this.data.sessionResumable,
+      activeSafetyEpisode: this.data.activeSafetyEpisode
     };
   }
 
@@ -163,7 +169,9 @@ export class EmmiConversationManager {
   touch(event, details = {}) { this.data.lastInteractionAt = this.now(); this.persist(); this.onEvent(event, details); }
   persist() {
     const all = parse(this.storage.get(STORAGE_KEY)) || {};
-    all[this.scope] = this.data;
+    const { recentTurns, conversationSummary, lastUserTurn, lastEmmiTurn, pendingQuestion, ...persistent } = this.data;
+    all[this.scope] = persistent;
     this.storage.set(STORAGE_KEY, JSON.stringify(all));
+    const sessionAll = parse(this.sessionStorage.get(SESSION_KEY)) || {}; sessionAll[this.scope] = this.data; this.sessionStorage.set(SESSION_KEY, JSON.stringify(sessionAll));
   }
 }
