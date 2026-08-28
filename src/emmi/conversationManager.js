@@ -67,7 +67,15 @@ export class EmmiConversationManager {
 
   snapshot() { return globalThis.structuredClone ? globalThis.structuredClone(this.data) : JSON.parse(JSON.stringify(this.data)); }
   greetingAllowed() { return !this.data.hasGreeted && this.data.mode === EMMI_CONVERSATION_MODES.INITIAL; }
-  markGreeted() { this.data.hasGreeted = true; this.data.mode = EMMI_CONVERSATION_MODES.CONTINUATION; this.touch("EMMI_GREETING_COMPLETED"); }
+  // Greeting is a fact about this patient's conversation, not about the mode it resumed in. Gating
+  // the record on INITIAL meant a reload before EMMI's first turn left hasGreeted false forever,
+  // and she introduced herself again every time the panel opened.
+  markGreeted() {
+    if (this.data.hasGreeted) return;
+    this.data.hasGreeted = true;
+    this.data.mode = EMMI_CONVERSATION_MODES.CONTINUATION;
+    this.touch("EMMI_GREETING_COMPLETED");
+  }
 
   transition(context = {}, meta = {}) {
     const nextScreen = context.currentScreen || context.screenId || "";
