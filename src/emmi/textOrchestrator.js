@@ -521,7 +521,7 @@ export class EmmiTextOrchestrator {
         const members = careTeam?.members || [];
         const resolution = resolveRequestedProfessional(members, { text: asked, professionalType: careTeamRequest.professionalType, locale: String(locale).toLowerCase() });
         trace.responseMode = "OPERATIONAL_CARE_TEAM_CONTACT"; trace.runtimeFactsUsed.push("getCareTeam"); emit("EMMI_ANSWER_ROUTED");
-        return { text: careTeamContactPrompt({ resolution, locale, careTeamSize: members.length }), pendingAction: "callback", trace };
+        return { text: careTeamContactPrompt({ resolution, locale, careTeamSize: members.length, requestedType: careTeamRequest.professionalType }), pendingAction: "callback", trace };
       } catch (error) {
         // A failed operational intent fails operationally. Sending the phrase to retrieval here is
         // the defect this route exists to prevent.

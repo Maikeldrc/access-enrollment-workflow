@@ -1,13 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiTextOrchestrator } from "../src/emmi/textOrchestrator.js";
 import { CARE_TEAM_CONTACT_INTENT, detectCareTeamContact } from "../src/emmi/careTeamContact.js";
-import { PROFESSIONAL_TYPES } from "../src/careTeamDirectory.js";
+import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES } from "../src/careTeamDirectory.js";
 
 // Tapping "Talk with my care team" already reaches the support options. These tests are about the
 // same request arriving as words: typed, or spoken through the live session, where it used to reach
 // no intent at all and came back as an explanation of what a care team is.
 const CARE_TEAM = [
   { id: "dr-rivera", displayName: "Dr. Alejandro Rivera", professionalType: PROFESSIONAL_TYPES.PRIMARY_CARE, specialty: "Primary Care", source: "REFERRING_PROVIDER" }
+];
+
+// The same care team as the record actually builds it: the programme is on it, as the
+// organisational care manager rather than as a named individual.
+const WITH_PROGRAM = [
+  ...CARE_TEAM,
+  { id: "itera", displayName: "ITERA HEALTH", professionalType: PROFESSIONAL_TYPES.CARE_MANAGER, source: CARE_TEAM_SOURCES.PROGRAM, verified: true }
 ];
 
 function harness({ locale = "EN", careTeam = CARE_TEAM, careTeamFails = false } = {}) {
@@ -97,6 +104,31 @@ describe("reaching the care team is an action, not a question", () => {
     const answer = await orchestrator.answer("Can my care manager call me?");
     expect(answer.text).toMatch(/don’t see that person listed/i);
     expect(answer.text).not.toContain("Dr. Alejandro Rivera");
+  });
+
+  // ITERA HEALTH is on the care team as the organisational care manager, not as somebody the
+  // patient can be introduced to. Naming it here produced "ITERA HEALTH is on your care team. I can
+  // ask the ITERA care team to contact you" — the same sentence twice, about a person who is not one.
+  it("offers the programme rather than introducing it as a person", async () => {
+    const { orchestrator } = harness({ careTeam: WITH_PROGRAM });
+    const answer = await orchestrator.answer("Talk with my care team", { questionId: "human-talk-care-team" });
+    expect(answer.text).toBe("I can ask the ITERA care team to contact you about this. Would you like me to?");
+  });
+
+  // Asking for "my care team" names nobody, so there is nobody EMMI can fail to find. Reporting a
+  // missing person here answers a question the patient did not ask.
+  it("does not report a missing person to a patient who asked for none", async () => {
+    const { orchestrator } = harness();
+    const answer = await orchestrator.answer("I need to speak with my care team");
+    expect(answer.text).toBe("I can ask the ITERA care team to contact you about this. Would you like me to?");
+  });
+
+  // The record does hold a care manager: the programme fills that role. Denying it is the same
+  // defect as inventing one, in the other direction.
+  it("does not deny a role the record fills", async () => {
+    const { orchestrator } = harness({ careTeam: WITH_PROGRAM });
+    const answer = await orchestrator.answer("Can my care manager call me?");
+    expect(answer.text).toBe("I can ask the ITERA care team to contact you about this. Would you like me to?");
   });
 
   it("stays in the patient's language", async () => {

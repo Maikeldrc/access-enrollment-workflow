@@ -5794,6 +5794,9 @@ function bindAssistantLayer() {
     askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
   });
   layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => {
+    // A tap can take the patient somewhere; typing and speaking cannot, so they get the answer the
+    // router builds from the care record instead. Different affordances for the same wish, not two
+    // answers to one question.
     if (button.dataset.questionId === "human-talk-care-team") { revealAssistantHumanSupport(); return; }
     askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" });
   }));

@@ -7,7 +7,7 @@
 // patient's own record and resolves who they asked for. This module only recognises the request
 // and puts the runtime's answer into words.
 
-import { PROFESSIONAL_TYPES } from "../careTeamDirectory.js";
+import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES } from "../careTeamDirectory.js";
 
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 
@@ -51,11 +51,15 @@ export function detectCareTeamContact({ question = "", questionId = "" } = {}) {
 // EMMI asks before creating anything, so a patient who mentioned their doctor in passing is never
 // told a request was sent. What she offers is the callback she can actually make: the ITERA care
 // team reaching out. She never promises the named clinician will be the one to call.
-export function careTeamContactPrompt({ resolution, locale, careTeamSize = 0 }) {
-  if (resolution?.status === "RESOLVED" && resolution.match?.displayName) return pick(locale, {
-    EN: `${resolution.match.displayName} is on your care team. I can ask the ITERA care team to contact you about this. Would you like me to?`,
-    ES: `${resolution.match.displayName} forma parte de su equipo de atención. Puedo pedir al equipo de ITERA que se comunique con usted sobre esto. ¿Desea que lo haga?`,
-    KR: `${resolution.match.displayName} fè pati ekip swen ou. Mwen ka mande ekip swen ITERA a kontakte w sou sa. Èske ou vle m fè sa?`
+export function careTeamContactPrompt({ resolution, locale, careTeamSize = 0, requestedType = PROFESSIONAL_TYPES.UNKNOWN }) {
+  // Only a person is named. The programme itself is on the care team as the organisational care
+  // manager, and "ITERA HEALTH is on your care team, I can ask the ITERA care team to contact you"
+  // says the same thing twice while sounding like a person who is not one.
+  const named = resolution?.status === "RESOLVED" && resolution.match?.source !== CARE_TEAM_SOURCES.PROGRAM ? resolution.match : null;
+  if (named?.displayName) return pick(locale, {
+    EN: `${named.displayName} is on your care team. I can ask the ITERA care team to contact you about this. Would you like me to?`,
+    ES: `${named.displayName} forma parte de su equipo de atención. Puedo pedir al equipo de ITERA que se comunique con usted sobre esto. ¿Desea que lo haga?`,
+    KR: `${named.displayName} fè pati ekip swen ou. Mwen ka mande ekip swen ITERA a kontakte w sou sa. Èske ou vle m fè sa?`
   });
   if (resolution?.status === "AMBIGUOUS" && resolution.candidates?.length) {
     const names = resolution.candidates.map(item => item.displayName).join(" · ");
@@ -65,9 +69,9 @@ export function careTeamContactPrompt({ resolution, locale, careTeamSize = 0 }) 
       KR: `Ekip swen ou gen ladan ${names}. Mwen ka mande ekip swen ITERA a kontakte w sou sa. Èske ou vle m fè sa?`
     });
   }
-  // A named role the record does not contain is said out loud rather than quietly answered by
-  // somebody else.
-  if (careTeamSize) return pick(locale, {
+  // Only when they asked for a particular kind of person. Saying "I don’t see that person" to
+  // someone who just asked for their care team answers a question they did not ask.
+  if (careTeamSize && requestedType !== PROFESSIONAL_TYPES.UNKNOWN && resolution?.status !== "RESOLVED") return pick(locale, {
     EN: "I don’t see that person listed in your care information, but I can ask the ITERA care team to contact you about this. Would you like me to?",
     ES: "No veo a esa persona en su información de cuidado, pero puedo pedir al equipo de ITERA que se comunique con usted sobre esto. ¿Desea que lo haga?",
     KR: "Mwen pa wè moun sa a nan enfòmasyon swen ou, men mwen ka mande ekip swen ITERA a kontakte w sou sa. Èske ou vle m fè sa?"
