@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { revealFloatingEmmi } from "./emmiSurfaces.js";
+import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/?scenario=access-happy");
@@ -587,3 +587,26 @@ test("floating EMMI follows the shell when the window is resized", async ({ page
     expect(geometry.rightGap, `${label} keeps its inset after resize`).toBeLessThanOrEqual(20);
   }
 });
+
+test("Talk with my care team takes the patient to the human support options", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  await openEmmiConversation(page);
+
+  const support = page.locator(".assistant-human-support");
+  await expect(page.locator('[data-question-id="human-talk-care-team"]')).toHaveText("Talk with my care team");
+  await page.locator('[data-question-id="human-talk-care-team"]').click();
+  await page.waitForTimeout(800);
+
+  // Wanting to reach a person is a request, not a question: it goes to the options rather than
+  // producing an answer that tells the patient to look further down the panel.
+  await expect(support).toBeInViewport();
+  await expect(support.getByRole("link", { name: /Talk to our care team/ })).toBeVisible();
+  await expect(support.getByRole("button", { name: /Have someone call me/ })).toBeVisible();
+  await expect(page.locator(".assistant-message")).toHaveCount(0);
+  // Focus lands on the section so a screen reader hears the heading rather than staying where
+  // the patient tapped.
+  expect(await page.evaluate(() => document.activeElement?.classList.contains("assistant-human-support"))).toBe(true);
+});
+

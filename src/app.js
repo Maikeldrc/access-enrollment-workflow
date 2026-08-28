@@ -1834,7 +1834,7 @@ function assistantLayer() {
       ${EMMI_CONFIG.enableText ? `<section class="assistant-quick"><h2>${L("Quick questions", "Preguntas rápidas", "Kesyon rapid")}</h2><div>${quickQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question.label)}" data-question-id="${question.id}" data-question-intent="${question.intent}">${escapeHtml(question.label)}</button>`).join("")}</div></section>
       <button class="assistant-faq-toggle" type="button" data-assistant-action="faq" aria-expanded="${state.assistantFaqOpen}">${L("Browse common questions", "Ver preguntas comunes", "Gade kesyon komen")} ${icon("chevronRight")}</button>
       ${state.assistantFaqOpen ? `<section class="assistant-common-questions">${commonQuestions.map(question => `<button type="button" data-assistant-question="${escapeHtml(question)}" data-question-id="common-question">${question}</button>`).join("")}</section>` : ""}` : ""}
-      <section class="assistant-human-support"><h2>${L("Prefer to talk with someone?", "¿Prefiere hablar con alguien?", "Ou prefere pale ak yon moun?")}</h2><a class="assistant-support-action" href="tel:+13053948070" data-assistant-action="human-support">${icon("phone")}<span><strong>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</strong><small>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</small></span></a><button class="assistant-support-action" type="button" data-assistant-action="callback">${icon("phone")}<span><strong>${L("Have someone call me", "Quiero que alguien me llame", "Mande yon moun rele m")}</strong><small>${L("EMMI will confirm before sending the request", "EMMI confirmará antes de enviar la solicitud", "EMMI ap konfime anvan li voye demann lan")}</small></span></button></section>
+      <section class="assistant-human-support" id="assistant-human-support" tabindex="-1" aria-labelledby="assistant-human-support-title"><h2 id="assistant-human-support-title">${L("Prefer to talk with someone?", "¿Prefiere hablar con alguien?", "Ou prefere pale ak yon moun?")}</h2><a class="assistant-support-action" href="tel:+13053948070" data-assistant-action="human-support">${icon("phone")}<span><strong>${L("Talk to our care team", "Hable con nuestro equipo", "Pale ak ekip swen nou an")}</strong><small>${L("Call", "Llame al", "Rele")} ${state.offer.participantProvider.supportPhone}</small></span></a><button class="assistant-support-action" type="button" data-assistant-action="callback">${icon("phone")}<span><strong>${L("Have someone call me", "Quiero que alguien me llame", "Mande yon moun rele m")}</strong><small>${L("EMMI will confirm before sending the request", "EMMI confirmará antes de enviar la solicitud", "EMMI ap konfime anvan li voye demann lan")}</small></span></button></section>
       <p class="emmi-disclaimer">${icon("info")}<span>${L("EMMI is an AI assistant, not a clinician. For medical emergencies, call 911.", "EMMI es una asistente de IA, no una profesional clínica. Para emergencias médicas, llame al 911.", "EMMI se yon asistan IA, li pa yon pwofesyonèl klinik. Pou ijans medikal, rele 911.")}</span></p>
       <button class="button secondary assistant-back" type="button" data-assistant-action="close">${icon("arrowLeft", "button-icon")} ${labels.closeEmmi}</button>
     </div></aside>`;
@@ -4756,6 +4756,16 @@ async function runAlignment() {
 }
 // Re-rendering the panel must never cost the patient what they were typing: the field is restored
 // from the live DOM, not from state, because a half-written question is not application state.
+function revealAssistantHumanSupport() {
+  const section = document.querySelector(".assistant-human-support");
+  if (!section) return;
+  section.scrollIntoView({ behavior: "smooth", block: "center" });
+  section.classList.add("is-highlighted");
+  section.focus({ preventScroll: true });
+  setTimeout(() => section.classList.remove("is-highlighted"), 2000);
+  audit(state, "emmi_human_support_revealed", "success", { screen: state.screen });
+}
+
 function refreshAssistantLayer({ focusInput = false } = {}) {
   const current = document.querySelector(".assistant-layer");
   if (!current) return;
@@ -4870,7 +4880,10 @@ function bindAssistantLayer() {
     event.preventDefault();
     askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
   });
-  layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" })));
+  layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => {
+    if (button.dataset.questionId === "human-talk-care-team") { revealAssistantHumanSupport(); return; }
+    askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" });
+  }));
   layer.querySelectorAll("[data-assistant-growth]").forEach(button => button.addEventListener("click", () => {
     const growthAction = button.dataset.assistantGrowth;
     const originScreen = state.assistantOriginScreen || state.screen;

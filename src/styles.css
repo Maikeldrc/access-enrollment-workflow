@@ -1092,7 +1092,12 @@ p { margin:0; }
 .assistant-faq-toggle .icon { width:20px;height:20px;color:inherit;background:transparent;transition:transform .15s ease; }
 .assistant-faq-toggle[aria-expanded="true"] .icon { transform:rotate(90deg); }
 .assistant-common-questions { display:grid;gap:8px;margin:0 0 16px; }
-.assistant-human-support { display:grid;gap:9px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border-default); }
+.assistant-human-support { display:grid;gap:9px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border-default);scroll-margin-block:16px; }
+.assistant-human-support:focus { outline:none; }
+/* Brief tint when the patient is brought here from "Talk with my care team", so the eye lands on
+   what moved. Colour is not carrying the message: focus moves here and the heading is announced. */
+.assistant-human-support.is-highlighted { border-radius:14px;background:var(--primary-50);box-shadow:0 0 0 8px var(--primary-50);transition:background .2s ease; }
+@media (prefers-reduced-motion:reduce) { .assistant-human-support.is-highlighted { transition:none; } }
 .assistant-support-action { display:grid;grid-template-columns:42px 1fr;gap:11px;align-items:center;min-height:72px;width:100%;padding:12px;border:1px solid var(--border-default);border-radius:12px;color:var(--text-primary);background:var(--surface-primary);font:inherit;text-align:left;text-decoration:none;cursor:pointer; }
 .assistant-support-action .icon { width:40px;height:40px; }
 .assistant-support-action strong,.assistant-support-action small { display:block; }
@@ -1842,3 +1847,32 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .goal-barrier-help { align-items:center; }
 .goal-barrier-safety { border-color:var(--primary-600);background:var(--primary-50); }
 .goal-barrier-safety .assistant-emergency-action { margin-top:10px; }
+
+/* My Medications. A medication row is quiet until something is happening to it, and every card
+   wraps rather than truncates: a medication name, a prescriber and a pharmacy address are identity,
+   not decoration, and must never be cut off. */
+.medication-list { display:grid;gap:12px;margin:0 0 18px; }
+.medication-card { display:grid;gap:10px;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
+.medication-card-quiet { background:var(--surface-secondary); }
+.medication-card-low { border-color:var(--primary-300);background:var(--primary-50); }
+.medication-card[data-refill-status="READY_FOR_PICKUP"] { border-color:var(--primary-600); }
+.medication-identity { display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start; }
+.medication-icon { display:grid;place-items:center;width:40px;height:40px;border-radius:13px;color:var(--primary-700);background:var(--primary-50); }
+.medication-icon .icon { width:22px;height:22px;color:inherit;background:transparent; }
+.medication-identity strong { display:block;font-size:1.25rem;line-height:1.3;overflow-wrap:anywhere; }
+.medication-identity span { display:block;margin-top:3px;color:var(--text-secondary);font-size:1.0625rem;line-height:1.45;overflow-wrap:anywhere; }
+.medication-status { display:flex;gap:8px;align-items:flex-start;margin:0;color:var(--text-primary);font-size:1.0625rem;font-weight:700;line-height:1.45; }
+.medication-status .icon { flex:0 0 22px;width:22px;height:22px;color:var(--primary-600);background:transparent; }
+.medication-destination,.medication-next-step,.medication-documented { margin:0;color:var(--text-secondary);font-size:1.0625rem;line-height:1.5;overflow-wrap:anywhere; }
+.medication-card .goal-card-action { justify-self:start;min-height:48px; }
+.medication-summary { display:grid;gap:14px;margin:0 0 20px;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
+.medication-facts { display:grid;gap:12px;margin:0; }
+.medication-facts div { display:grid;gap:2px; }
+.medication-facts dt { color:var(--text-muted);font-size:1rem;font-weight:700;line-height:1.35; }
+.medication-facts dd { margin:0;color:var(--text-primary);font-size:1.0625rem;line-height:1.45;overflow-wrap:anywhere; }
+.medication-facts dd small { display:block;margin-top:2px;color:var(--text-secondary);font-size:1rem;line-height:1.4; }
+.medication-question { margin:0 0 12px;font-size:1.25rem;line-height:1.35; }
+.medication-answers .goal-response-button,.medication-choices .goal-response-button { display:flex;gap:11px;align-items:center;text-align:left; }
+.medication-answers .icon,.medication-choices .icon { flex:0 0 24px;width:24px;height:24px;color:var(--primary-600);background:transparent; }
+.medication-answers span,.medication-choices span { min-width:0;overflow-wrap:anywhere; }
+a.goal-secondary-button { text-decoration:none; }
