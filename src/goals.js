@@ -196,6 +196,13 @@ export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";
 // says so plainly rather than showing "0 of 7", which reads as failure for something never started.
 export const goalIsReadyToPersonalize = goal => !goal || goal.planStatus !== "COMPLETED";
 
+// A calendar day is the patient's day, not UTC's. After 8pm in Miami an ISO date has already
+// rolled over to tomorrow, which made today's readings and check-ins look like another day's.
+export const localDateKey = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
 const startOfWeek = (now = new Date()) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
 
@@ -237,8 +244,14 @@ export function goalProgressSummary(goal, { runtime = null, now = new Date() } =
 // One resolver for "what should I do next", so a goal card, Goal Detail and EMMI cannot each
 // invent their own answer. Blood pressure knows more about itself than a generic goal does, so it
 // walks its own ladder; everything else falls back to the plan's own next incomplete step.
-export function goalNextBestAction(goal, { runtime = null, educationPending = false, now = new Date() } = {}) {
+//
+// Priority: safety, then a difficulty that is waiting on the patient, then the care plan, then
+// education, then general progress. Telling a patient to review a trend while their monitor is
+// broken is advice they cannot take.
+export function goalNextBestAction(goal, { runtime = null, educationPending = false, barriers = [], now = new Date() } = {}) {
   if (!goal) return { key: "CHECK_IN" };
+  const waitingBarrier = (barriers || []).find(barrier => ["SUSPECTED", "OPEN"].includes(barrier?.status));
+  if (waitingBarrier) return { key: waitingBarrier.status === "SUSPECTED" ? "CONFIRM_BARRIER" : "RESOLVE_BARRIER", barrierId: waitingBarrier.id, barrierCategory: waitingBarrier.category };
   if (goalIsReadyToPersonalize(goal)) return { key: "FINISH_PLAN" };
   if (goal.goalType === "BLOOD_PRESSURE_CONTROL" && runtime) {
     const readings = runtime.readings || [];
@@ -250,7 +263,7 @@ export function goalNextBestAction(goal, { runtime = null, educationPending = fa
     if (runtime.trend?.direction && runtime.trend.direction !== "INSUFFICIENT_DATA") return { key: "REVIEW_TREND" };
     return { key: "TAKE_READING" };
   }
-  const today = now.toISOString().slice(0, 10);
+  const today = localDateKey(now);
   const pending = (goal.actions || []).find(action =>
     action.status === "ACTIVE" && !(action.completionHistory || []).some(entry => entry.date === today));
   if (pending) return { key: "COMPLETE_ACTION", actionId: pending.id, title: pending.title };

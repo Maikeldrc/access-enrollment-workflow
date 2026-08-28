@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GOAL_CATEGORIES, GOAL_CONFIG, GOAL_ICON_REGISTRY, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, resolveGoalIcon, suggestedActionsFor } from "../src/goals.js";
+import { GOAL_CATEGORIES, GOAL_CONFIG, GOAL_ICON_REGISTRY, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalNextBestAction, localDateKey, resolveGoalIcon, suggestedActionsFor } from "../src/goals.js";
 
 describe("patient goal model", () => {
   it("keeps a patient goal separate from clinical targets", () => {
@@ -84,5 +84,32 @@ describe("goal category iconography", () => {
     const actionIcons = suggestedActionsFor("BLOOD_PRESSURE_CONTROL").map(action => goalActionIcon(action.id));
     expect(new Set(actionIcons).size).toBeGreaterThan(1);
     expect(actionIcons).not.toEqual(actionIcons.map(() => resolveGoalIcon({ goalType: "BLOOD_PRESSURE_CONTROL" })));
+  });
+});
+
+describe("the patient's calendar day", () => {
+  // Before this, an evening in Miami was already tomorrow in UTC, so a reading taken at 8:42am
+  // stopped counting as today the moment the clock passed 8pm.
+  it("uses local dates, so today does not roll over at 8pm Eastern", () => {
+    const eveningLocal = new Date(2026, 7, 27, 21, 4, 0);
+    expect(localDateKey(eveningLocal)).toBe("2026-08-27");
+    const morningReading = new Date(2026, 7, 27, 8, 42, 0);
+    expect(localDateKey(morningReading)).toBe(localDateKey(eveningLocal));
+  });
+});
+
+describe("next best action with an active difficulty", () => {
+  const plannedGoal = { id: "g1", goalType: "STAY_ACTIVE", planStatus: "COMPLETED", actions: [{ id: "a1", status: "ACTIVE", completionHistory: [] }] };
+
+  it("puts a difficulty waiting on the patient ahead of the care plan", () => {
+    expect(goalNextBestAction(plannedGoal, { barriers: [{ id: "b1", status: "OPEN", category: "DEVICE_TECHNOLOGY" }] }))
+      .toMatchObject({ key: "RESOLVE_BARRIER", barrierId: "b1", barrierCategory: "DEVICE_TECHNOLOGY" });
+    expect(goalNextBestAction(plannedGoal, { barriers: [{ id: "b2", status: "SUSPECTED", category: "DEVICE_TECHNOLOGY" }] }))
+      .toMatchObject({ key: "CONFIRM_BARRIER", barrierId: "b2" });
+  });
+
+  it("leaves the plan in charge once the difficulty is being handled", () => {
+    expect(goalNextBestAction(plannedGoal, { barriers: [{ id: "b1", status: "IN_PROGRESS" }, { id: "b2", status: "WAITING_FOR_CARE_TEAM" }] }))
+      .toMatchObject({ key: "COMPLETE_ACTION" });
   });
 });

@@ -1,3 +1,4 @@
+import { classifyBarrierText } from "../goalBarriers.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
@@ -19,6 +20,45 @@ const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+// "Something is getting in my way" rather than "tell me about X". Without this a question about
+// medications would be filed as a difficulty with medications.
+const DIFFICULTY = /\b(i (can'?t|cannot|don'?t|do not|keep|always|never|forget|struggle)|it'?s (hard|difficult)|hard (to|for me)|having (a hard time|trouble)|trouble|difficult|no puedo|no entiendo|no s[eé] c[oó]mo|se me olvida|me cuesta|se me hace dif[ií]cil|dif[ií]cil|problema|mwen pa ka|mwen pa konprann|mwen bliye|difisil|pwobl[eè]m)\b/i;
+
+// One acknowledgement per family of difficulty: what EMMI understood, and what happens next. Never
+// "problem solved", never a promise the product cannot keep.
+const BARRIER_ACKNOWLEDGEMENT = {
+  UNDERSTANDING: { EN: "Let me explain it in plain language, and tell me if anything is still unclear.", ES: "Permítame explicárselo con palabras sencillas, y dígame si algo sigue sin quedar claro.", KR: "Kite m eksplike w sa nan mo senp, epi di m si gen yon bagay ki poko klè." },
+  FORGETFULNESS_ROUTINE: { EN: "That happens to many people. We can add a reminder to your plan for a time that suits you.", ES: "Eso le pasa a muchas personas. Podemos agregar un recordatorio a su plan a la hora que le convenga.", KR: "Sa rive anpil moun. Nou ka ajoute yon rapèl nan plan ou pou yon lè ki bon pou ou." },
+  DEVICE_TECHNOLOGY: { EN: "I can walk you through your monitor step by step, and if it still won’t work our device support team can call you.", ES: "Puedo guiarle paso a paso con su monitor y, si aún no funciona, nuestro equipo de soporte puede llamarle.", KR: "Mwen ka gide w etap pa etap ak monitè ou, epi si li toujou pa mache ekip sipò nou an ka rele w." },
+  MEDICATION_UNDERSTANDING: { EN: "I can share general information about your medications. Your care team decides anything about how you take them.", ES: "Puedo darle información general sobre sus medicamentos. Su equipo decide cualquier cosa sobre cómo los toma.", KR: "Mwen ka pataje enfòmasyon jeneral sou medikaman ou yo. Ekip swen ou deside tout bagay sou fason ou pran yo." },
+  MEDICATION_CONCERN: { EN: "Thank you for telling me. I can’t change anything about your medicine, so I’m letting your care team know so they can review it with you.", ES: "Gracias por contármelo. No puedo cambiar nada de su medicamento, así que avisaré a su equipo para que lo revise con usted.", KR: "Mèsi paske ou di m sa. Mwen pa ka chanje anyen sou medikaman ou, kidonk m ap fè ekip swen ou konnen pou yo ka revize l avèk ou." },
+  MOTIVATION: { EN: "Keeping a plan going is hard, and a smaller plan is a normal thing to ask for. We can make this easier together.", ES: "Mantener un plan cuesta, y pedir un plan más sencillo es algo normal. Podemos hacerlo más fácil juntos.", KR: "Kenbe yon plan difisil, epi mande yon plan pi senp se yon bagay nòmal. Nou ka fè sa pi fasil ansanm." },
+  TIME_ROUTINE: { EN: "We can change how often these steps happen so they fit your day.", ES: "Podemos cambiar con qué frecuencia hace estos pasos para que encajen en su día.", KR: "Nou ka chanje konbyen fwa ou fè etap sa yo pou yo antre nan jounen ou." },
+  PHYSICAL_LIMITATION: { EN: "Thank you for telling me. I’ll let your care team know so your plan fits what feels comfortable for you.", ES: "Gracias por contármelo. Avisaré a su equipo para que su plan se ajuste a lo que le resulte cómodo.", KR: "Mèsi paske ou di m sa. M ap fè ekip swen ou konnen pou plan ou mache ak sa ki alèz pou ou." },
+  NUTRITION: { EN: "I can share approved guidance on everyday food choices, like reading labels for salt.", ES: "Puedo compartir orientación aprobada sobre las comidas de todos los días, como leer las etiquetas para ver la sal.", KR: "Mwen ka pataje konsèy apwouve sou chwa manje chak jou, tankou li etikèt pou sèl." },
+  EQUIPMENT_ACCESS: { EN: "Let’s make sure you have what you need. I’ll pass this to the team that handles equipment.", ES: "Asegurémonos de que tenga lo que necesita. Pasaré esto al equipo que se encarga del equipamiento.", KR: "Ann asire w ou gen sa ou bezwen. M ap voye sa bay ekip ki okipe aparèy yo." },
+  FINANCIAL: { EN: "Thank you for telling me. Your care team can look at what support may be available to you.", ES: "Gracias por contármelo. Su equipo puede revisar qué apoyo podría estar disponible para usted.", KR: "Mèsi paske ou di m sa. Ekip swen ou ka gade ki sipò ki ka disponib pou ou." },
+  TRANSPORTATION: { EN: "Getting there matters as much as the visit. I’ll pass this to your care team so they can help you plan it.", ES: "Llegar importa tanto como la cita. Pasaré esto a su equipo para que le ayuden a organizarlo.", KR: "Rive a enpòtan menm jan ak vizit la. M ap voye sa bay ekip swen ou pou yo ka ede w planifye l." },
+  SOCIAL_SUPPORT: { EN: "You can invite someone you trust to help you with this, and you stay in control of your care.", ES: "Puede invitar a alguien de confianza para que le ayude, y usted mantiene el control de su cuidado.", KR: "Ou ka envite yon moun ou fè konfyans pou ede w, epi se ou ki kontwole swen ou." },
+  LANGUAGE_COMMUNICATION: { EN: "We can use English, Spanish or Kreyòl. Tell me which you prefer and I’ll switch.", ES: "Podemos usar inglés, español o criollo haitiano. Dígame cuál prefiere y lo cambio.", KR: "Nou ka sèvi ak anglè, panyòl oswa kreyòl. Di m kilès ou pito epi m ap chanje l." },
+  ACCESS_TO_CARE: { EN: "Not being able to reach your doctor is worth solving. I’ll let your care team know.", ES: "No poder comunicarse con su médico merece solución. Avisaré a su equipo de atención.", KR: "Pa ka jwenn doktè ou se yon bagay ki merite rezoud. M ap fè ekip swen ou konnen." },
+  // Appointment scheduling does not exist yet, and EMMI says so rather than implying it does.
+  APPOINTMENT_NEED: { EN: "I can’t book appointments yet, so I’m passing your request to your care team with what you told me. They will arrange it with you.", ES: "Todavía no puedo agendar citas, así que envío su solicitud a su equipo con lo que me contó. Ellos lo coordinarán con usted.", KR: "Mwen poko ka pran randevou, kidonk m ap voye demann ou bay ekip swen ou ak sa ou di m. Y ap fè aranjman avèk ou." },
+  CLINICAL_SYMPTOM: { EN: "Thank you for telling me. How you are feeling comes first, so I’m letting your care team know.", ES: "Gracias por contármelo. Cómo se siente es lo primero, así que avisaré a su equipo de atención.", KR: "Mèsi paske ou di m sa. Kijan ou santi w se premye bagay, kidonk m ap fè ekip swen ou konnen." },
+  OTHER: { EN: "Thank you for telling me. I’ve noted it, and we can work on it together.", ES: "Gracias por contármelo. Lo anoté y podemos trabajarlo juntos.", KR: "Mèsi paske ou di m sa. Mwen note l epi nou ka travay sou li ansanm." }
+};
+
+const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
+  const base = pick(locale, BARRIER_ACKNOWLEDGEMENT[category] || BARRIER_ACKNOWLEDGEMENT.OTHER);
+  if (!alreadyKnown) return base;
+  // Mentioning it again is not a new problem: EMMI says she already has it rather than starting over.
+  const prefix = pick(locale, {
+    EN: "I still have this one open for you.",
+    ES: "Todavía tengo esto abierto para usted.",
+    KR: "Mwen toujou gen sa a ouvè pou ou."
+  });
+  return `${prefix} ${base}`;
+};
 
 export const expandEmmiQuery = ({ question, conversation = {}, program = "" } = {}) => {
   const raw = clean(question);
@@ -267,6 +307,28 @@ export class EmmiTextOrchestrator {
     if (HUMAN_SUPPORT.test(question)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
       return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+    }
+    // A patient describing something that is getting in their way is not asking a question. It is
+    // told after the safety and medication checks above, so a symptom is never filed as a
+    // difficulty, and it produces the same record the goal screen writes.
+    if (DIFFICULTY.test(question)) {
+      const classified = classifyBarrierText(question);
+      if (classified.matched) {
+        trace.intent = "GOAL_BARRIER"; trace.responseMode = "BARRIER_ENGINE"; trace.toolCalls.push("recordGoalBarrier");
+        try {
+          const recorded = await this.executeTool("recordGoalBarrier", { patientId: context.patientId, category: classified.category, patientDescription: clean(question) });
+          emit("EMMI_ANSWER_ROUTED", { barrierCategory: classified.category });
+          if (recorded?.success) return { text: barrierAcknowledgement(locale, classified.category, recorded.alreadyKnown), quickAction: "goal-barrier", barrierId: recorded.barrierId, barrierCategory: classified.category, trace };
+        } catch (error) {
+          emit("EMMI_TOOL_FAILED", { tool: "recordGoalBarrier", error: error?.message || "unknown" });
+        }
+        // Nothing was recorded, so nothing is claimed. The patient still gets a way forward.
+        return { text: pick(locale, {
+          EN: "Thank you for telling me. I couldn’t save that just now, but you can tell your care team, and I can help you reach them.",
+          ES: "Gracias por contármelo. No pude guardarlo ahora, pero puede decírselo a su equipo de atención y puedo ayudarle a comunicarse con ellos.",
+          KR: "Mèsi paske ou di m sa. Mwen pa t ka anrejistre l kounye a, men ou ka di ekip swen ou, epi mwen ka ede w jwenn yo."
+        }), trace };
+      }
     }
 
     let tool = "";

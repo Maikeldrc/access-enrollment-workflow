@@ -63,16 +63,23 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "createCareTeamTask", description: "Create a fictional care-team task only after explicit patient confirmation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, category: { type: "STRING" }, reason: { type: "STRING" }, priority: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "category", "reason", "priority", "confirmed"] } },
   { name: "saveEnrollmentProgress", description: "Save current navigation only. Cannot consent, enroll, or change eligibility.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, currentScreen: { type: "STRING" } }, required: ["patientId", "currentScreen"] } },
   { name: "evaluateClinicalEscalation", description: "Apply deterministic MOCK safety rules to a fictional reading and symptoms. The model must not decide severity.", parameters: { type: "OBJECT", properties: { systolic: { type: "NUMBER" }, diastolic: { type: "NUMBER" }, symptoms: { type: "STRING" } }, required: ["systolic", "diastolic", "symptoms"] } },
+  { name: "getGoalBarriers", description: "Get the difficulties already identified for this patient's active goal, what was tried and how it went. Use before offering help so EMMI does not repeat something that did not work or ask about something already being handled.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "recordGoalBarrier", description: "Record a difficulty the patient described in conversation, using the shared barrier taxonomy. Use when the patient says something is making a goal, an action, a routine, a device, a medication or getting care hard. Never record a clinical symptom this way: symptoms go to evaluateClinicalEscalation first.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, category: { type: "STRING" }, patientDescription: { type: "STRING" } }, required: ["patientId", "category"] } },
+  { name: "createGoalReminder", description: "Save a reminder on the patient's goal plan after they explicitly chose a time. Reminders appear inside ITERA; this does not send phone notifications. Never call this without the patient choosing.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, slot: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["patientId", "slot", "confirmed"] } },
   { name: "searchKnowledge", description: "Look up ITERA's approved explanations of programs, Medicare, enrollment, devices, care and safety topics. Use for conceptual questions such as 'What is CCM?' or 'What is a Care Circle?'. This returns general education only and is never a source for what is true for this patient: for eligibility, cost, devices, medications, enrollment status or next step, call the matching patient tool instead.", parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] } }
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, auditLog }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
     this.onTask = onTask;
     this.onProgress = onProgress;
+    // Barriers and reminders are patient state, so the tool hands them to the application rather
+    // than keeping a second copy of the truth inside EMMI.
+    this.onBarrier = onBarrier;
+    this.onReminder = onReminder;
     this.auditLog = auditLog;
   }
   async execute(name, args = {}) {
@@ -117,6 +124,21 @@ export class EmmiToolOrchestrator {
     } else if (name === "createCareTeamTask") {
       if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
       else { result = { success: true, taskId: id("TASK-DEMO"), status: "CREATED", category: args.category, priority: args.priority }; this.onTask(result); }
+    } else if (name === "getGoalBarriers") {
+      result = { goalId: context.activeGoal?.id || null, barriers: clone(context.activeGoal?.barriers || []) };
+    } else if (name === "recordGoalBarrier") {
+      const recorded = this.onBarrier({ category: String(args.category || "OTHER"), patientDescription: String(args.patientDescription || "") });
+      result = recorded
+        ? { success: true, barrierId: recorded.id, category: recorded.category, status: recorded.status, owner: recorded.owner, resolutionPath: recorded.resolutionPath, alreadyKnown: Boolean(recorded.alreadyKnown) }
+        : { success: false, status: "NO_ACTIVE_GOAL" };
+    } else if (name === "createGoalReminder") {
+      // A reminder is the patient's decision. Without it there is nothing to save, and EMMI must
+      // not claim otherwise.
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const saved = this.onReminder({ slot: String(args.slot || "").toUpperCase() });
+        result = saved ? { success: true, slot: saved.slot, time: saved.time, channel: saved.channel, note: "Reminders appear inside ITERA. No phone notification is scheduled." } : { success: false, status: "REMINDER_NOT_SAVED" };
+      }
     } else if (name === "saveEnrollmentProgress") { result = { success: true, patientId, currentScreen: context.currentScreen, protectedFieldsUnchanged: ["consent", "eligibility", "enrollmentStatus"] }; this.onProgress(result); }
     else if (name === "evaluateClinicalEscalation") {
       const symptoms = String(args.symptoms || "").toLowerCase();

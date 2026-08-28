@@ -762,7 +762,7 @@ p { margin:0; }
 .shell:has(.error-card) .floating-help,
 .shell:has(.faq) .floating-help,
 .shell:has(.text-button) .floating-help { display:none; }
-/* Floating EMMI: the avatar alone, on nothing. Its edges are measured from the patient shell
+/* Floating EMMI: a labeled pill — a robot head alone does not tell a Medicare patient what it is. Its edges are measured from the patient shell
    rather than computed from 100vw, so on a desktop preview it stays inside the phone instead of
    drifting onto the page background, and nothing here assumes the shell is 384px wide. */
 .emmi-assistant { position:fixed;z-index:10;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(76px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));display:grid;place-items:center;min-width:52px;min-height:52px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;box-shadow:none;font:inherit;cursor:grab;touch-action:none;user-select:none; }
@@ -1805,6 +1805,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
   .screen:has(.invitation-stage) .emmi-welcome-identity { grid-template-columns:50px minmax(0,1fr); }
   .screen:has(.invitation-stage) .emmi-welcome-identity img { width:50px;height:50px; }
 }
+
 /* Scroll policy offsets. Revealing a target uses block:"nearest", which respects scroll-margin, so
    this is the one place that knows what covers the edges of the viewport: the sticky Continue bar
    on the review screens and the floating EMMI pill above it. Without the bottom margin, "nearest"
@@ -1815,3 +1816,29 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 [aria-invalid="true"],
 .field.invalid,
 .medication-add-form { scroll-margin-top:16px; scroll-margin-bottom:132px; }
+
+/* Barriers: what is making a goal hard, and what we are doing about it. The card carries a state
+   in plain words and one way in, so a goal never turns into a list of problems. Long descriptions
+   wrap instead of being cut: a patient's own words are not decoration. */
+.goal-support-prompt p,.goal-support-active p { margin:0 0 10px;color:var(--text-secondary);font-size:1.0625rem;line-height:1.5; }
+.goal-support-prompt .goal-secondary-button,.goal-support-active .goal-secondary-button { margin-top:6px; }
+.goal-barrier-card { display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;align-items:start;padding:14px 15px;border:1px solid var(--primary-300);border-radius:14px;background:var(--primary-50); }
+.goal-barrier-card > .goal-barrier-icon { display:grid;place-items:center;width:38px;height:38px;border-radius:12px;color:var(--primary-700);background:var(--surface-primary); }
+.goal-barrier-card .goal-barrier-icon .icon { width:22px;height:22px;color:inherit;background:transparent; }
+.goal-barrier-card strong { display:block;font-size:1.0625rem;line-height:1.35;overflow-wrap:anywhere; }
+.goal-barrier-card .goal-barrier-state { display:block;margin-top:3px;color:var(--primary-700);font-size:1rem;font-weight:700;line-height:1.35; }
+.goal-barrier-card p { margin:6px 0 0;color:var(--text-secondary);font-size:1rem;line-height:1.5;overflow-wrap:anywhere; }
+.goal-barrier-card small { display:block;margin-top:6px;color:var(--text-muted);font-size:.9375rem;line-height:1.45; }
+.goal-barrier-card .goal-card-action { grid-column:1/-1;justify-self:start;min-height:48px; }
+.goal-barrier-stack { display:grid;gap:10px; }
+.goal-barrier-resolved { display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.45; }
+.goal-barrier-resolved .icon { flex:0 0 20px;width:20px;height:20px;color:var(--primary-600);background:transparent; }
+.goal-summary-help .goal-summary-value { color:var(--primary-700);font-weight:700; }
+/* Choosing a difficulty: one question, big targets, and labels that wrap to as many lines as the
+   patient's language needs. */
+.goal-barrier-choices .goal-response-button,.goal-followup-options .goal-response-button,.goal-reminder-slots .goal-response-button { display:flex;gap:11px;align-items:center;text-align:left; }
+.goal-barrier-choices .icon,.goal-reminder-slots .icon { flex:0 0 24px;width:24px;height:24px;color:var(--primary-600);background:transparent; }
+.goal-barrier-choices span,.goal-reminder-slots span { min-width:0;overflow-wrap:anywhere; }
+.goal-barrier-help { align-items:center; }
+.goal-barrier-safety { border-color:var(--primary-600);background:var(--primary-50); }
+.goal-barrier-safety .assistant-emergency-action { margin-top:10px; }

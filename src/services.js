@@ -184,11 +184,23 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalFlowOrigin: state.goalFlowOrigin,
       patientGoals: (state.patientGoals || []).map(goal => ({
         id: goal.id, patientId: goal.patientId, goalType: goal.goalType, title: goal.title, customTitle: goal.customTitle || "", status: goal.status, priority: goal.priority, whyItMatters: goal.whyItMatters || "", planStatus: goal.planStatus,
-        actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
+        actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), reminderSlot: action.reminderSlot || "", reminderTime: action.reminderTime || "", status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
         progress: (goal.progress || []).map(item => ({ id: item.id, goalId: item.goalId, actionId: item.actionId || null, progressType: item.progressType, value: item.value ?? null, patientReportedStatus: item.patientReportedStatus || "", timestamp: item.timestamp })),
-        barriers: (goal.barriers || []).map(item => ({ id: item.id, goalId: item.goalId, barrierType: item.barrierType, notes: item.notes || "", status: item.status, createdAt: item.createdAt })),
+        // A barrier persists as the care signal it is: what was tried, how it went, who owns it
+        // now, and when EMMI should ask again. Dropping the intervention history would leave a
+        // restored session offering help the patient already told us did not work.
+        barriers: (goal.barriers || []).map(item => ({
+          id: item.id, goalId: item.goalId, goalActionId: item.goalActionId ?? null, category: item.category || item.barrierType || "OTHER", subtype: item.subtype || "", scope: item.scope || "GOAL",
+          patientDescription: item.patientDescription ?? item.notes ?? "", source: item.source || "PATIENT", status: item.status, owner: item.owner || "EMMI",
+          resolutionPath: item.resolutionPath ?? null, resolutionPlan: item.resolutionPlan || "",
+          interventions: (item.interventions || []).map(entry => ({ id: entry.id, type: entry.type, detail: entry.detail || {}, startedAt: entry.startedAt, outcome: entry.outcome ?? null, outcomeAt: entry.outcomeAt ?? null, followUpAt: entry.followUpAt ?? null })),
+          followUpAt: item.followUpAt ?? null, detectedAt: item.detectedAt || item.createdAt, confirmedAt: item.confirmedAt ?? null, resolvedAt: item.resolvedAt ?? null,
+          resolutionOutcome: item.resolutionOutcome ?? null, recurrenceCount: item.recurrenceCount || 0, appointmentRequest: item.appointmentRequest ?? null,
+          createdBy: item.createdBy || item.source || "PATIENT", createdAt: item.createdAt, updatedAt: item.updatedAt || item.createdAt
+        })),
         supportRequests: (goal.supportRequests || []).map(item => ({ id: item.id, goalId: item.goalId, supportType: item.supportType, careTeamTaskId: item.careTeamTaskId || null, status: item.status, createdAt: item.createdAt })),
         reviews: (goal.reviews || []).map(item => ({ id: item.id, goalId: item.goalId, reviewedAt: item.reviewedAt, patientStatus: item.patientStatus, changesMade: Boolean(item.changesMade) })),
+        reminderPreference: goal.reminderPreference ?? null,
         createdBy: goal.createdBy, createdAt: goal.createdAt, updatedAt: goal.updatedAt
       })),
       goalPrimaryId: state.goalPrimaryId,

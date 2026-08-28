@@ -8,7 +8,9 @@ import {
   HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
   Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi,
   AudioLines, MessageCircle, Pause, Play, RotateCcw,
-  Droplets, Footprints, Scale, Smile, Wind
+  Droplets, Footprints, Scale, Smile, Wind,
+  // Barrier iconography: a small, restrained set — one glyph per family of difficulty.
+  Car
 } from "lucide";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
@@ -28,8 +30,9 @@ import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./f
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
-import { GOAL_CONFIG, LEGACY_GOAL_TYPES, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
+import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
+import { BARRIER_SOURCES, BARRIER_STATUS, INTERVENTION_TYPES, RESOLUTION_OUTCOMES, applyIntervention, barrierAnalytics, barrierCategoryConfig, barrierIcon, barrierIsActive, barrierOptionsFor, barrierPatientStatus, barrierPatientSummary, careTeamEscalationSummary, classifyBarrierText, confirmBarrier, createGoalBarrier, findReusableBarrier, localBarrierText, normalizeBarrierRecord, recordInterventionOutcome, reopenBarrier, resolveBarrier } from "./goalBarriers.js";
 
 const app = document.querySelector("#app");
 // What the patient is actually looking at right now. render() runs after the handlers have
@@ -73,7 +76,7 @@ let state = {
   ],
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
-  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { barrierType: "", notes: "" }, goalSupportDraft: "", goalNotice: "", goalHistory: [],
+  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
   supportRole: "NONE", careCircleStatus: "NONE", careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
@@ -153,7 +156,8 @@ const iconMap = {
   smile: Smile,
   droplets: Droplets,
   scale: Scale,
-  wind: Wind
+  wind: Wind,
+  car: Car
 };
 const svgNodes = nodes => nodes.map(([tag, attrs]) => `<${tag} ${Object.entries(attrs).filter(([key]) => key !== "key").map(([key, value]) => `${key}="${value}"`).join(" ")}></${tag}>`).join("");
 const icon = (name, extra = "") => `<span class="icon ${extra}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${svgNodes(iconMap[name] || iconMap.info)}</svg></span>`;
@@ -341,9 +345,13 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
 // The floating pill is EMMI scrolled out of reach, not a second assistant: it says her name,
 // shows what she is doing, and opens the expanded panel in place. One tap, one destination, on
 // every screen — the patient never lands on an intermediate menu about EMMI instead of EMMI.
+// The nudge is its own markup rather than a slice of the pill's, because slicing the assistant's
+// HTML on a literal tag put a second floating EMMI on screen the moment an attribute order changed.
+const emmiContextualNudge = () => `<button type="button" class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>`;
+
 const emmiAssistant = () => {
   const guideState = emmiGuideState();
-  return `${state.emmiContextualNudgeVisible ? `<button type="button" class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>` : ""}<button type="button" class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
+  return `${state.emmiContextualNudgeVisible ? emmiContextualNudge() : ""}<button type="button" class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 };
 
 function header() {
@@ -763,7 +771,18 @@ function assistantContext() {
       clinicalTarget: activeGoalHealth?.clinicalTarget || null,
       actions: (activeGoalRecord.actions || []).map(action => ({ id: action.id, title: action.title, verificationMethod: resolveGoalActionVerification(action), status: action.status })),
       progress: activeGoalHealth ? { readingCountThisWeek: activeGoalHealth.trend.count } : null,
-      nextBestEducation: nextBestGoalEducation({ goalType: activeGoalRecord.goalType, completedTopicIds: (activeGoalRecord.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId) })
+      nextBestEducation: nextBestGoalEducation({ goalType: activeGoalRecord.goalType, completedTopicIds: (activeGoalRecord.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId) }),
+      // EMMI knows what is already being worked on, so a patient who mentions a difficulty again
+      // is answered in context instead of being asked the same questions from the start.
+      barriers: activeGoalBarriers(activeGoalRecord).map(barrier => ({
+        id: barrier.id,
+        category: barrier.category,
+        status: barrier.status,
+        owner: barrier.owner,
+        patientDescription: barrier.patientDescription,
+        lastIntervention: (barrier.interventions || []).at(-1)?.type || null,
+        lastOutcome: (barrier.interventions || []).at(-1)?.outcome || null
+      }))
     } : null,
     medications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
     emmiConversation: emmiConversationManager.contextForModel()
@@ -797,7 +816,22 @@ function ensureEmmiRuntime() {
     auditLog: emmiAuditLog,
     onCallback: result => { state.callbackRequested = true; audit(state, "emmi_callback_requested", "success", { requestId: result.requestId, prototype: true }); },
     onTask: result => { state.careTeamTasks = [...(state.careTeamTasks || []), result]; audit(state, "emmi_care_team_task_created", "success", { taskId: result.taskId, prototype: true }); },
-    onProgress: () => draftStore.save(state)
+    onProgress: () => draftStore.save(state),
+    // A difficulty EMMI hears in conversation becomes the same record the goal screen writes, so
+    // voice, text and tapping all end up in one place with one history.
+    onBarrier: ({ category, patientDescription }) => {
+      const goal = currentGoal();
+      if (!goal) return null;
+      const known = findReusableBarrier(allPatientBarriers(), { category, goalId: goal.id });
+      const barrier = recordBarrier({ goal, category, patientDescription, source: BARRIER_SOURCES.EMMI });
+      return barrier ? { ...barrier, alreadyKnown: Boolean(known && barrierIsActive(known)) } : null;
+    },
+    onReminder: ({ slot }) => {
+      const goal = currentGoal();
+      const preference = goal ? saveGoalReminder(goal, slot) : null;
+      if (preference) draftStore.save(state);
+      return preference;
+    }
   });
   emmiTextOrchestrator ||= new EmmiTextOrchestrator({
     getContext: assistantContext,
@@ -1639,7 +1673,7 @@ function scheduleEmmiHesitationSupport() {
     if (state.assistantOpen) return;
     state.emmiContextualNudgeVisible = true;
     const bot = document.querySelector(".emmi-assistant");
-    if (bot && !document.querySelector(".emmi-contextual-nudge")) bot.insertAdjacentHTML("beforebegin", emmiAssistant().split('<button class="emmi-assistant"')[0]);
+    if (bot && !document.querySelector(".emmi-contextual-nudge")) bot.insertAdjacentHTML("beforebegin", emmiContextualNudge());
     document.querySelector(".emmi-contextual-nudge")?.addEventListener("click", showHelp);
     emmiHesitationCleanup?.();
     emmiHesitationCleanup = null;
@@ -1711,7 +1745,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -2271,6 +2305,323 @@ const ensureGoalCareTeamTask = (type, goal, details = {}) => {
   state.careTeamTasks = [...tasks, task];
   return task;
 };
+// ---------------------------------------------------------------------------
+// Barriers: what is making a goal hard, what we are doing about it, and whether it helped.
+// This layer owns none of the capabilities it uses. Education, Care Circle, device support and
+// care-team tasks already exist; the barrier engine decides which of them a difficulty deserves
+// and records what happened.
+// ---------------------------------------------------------------------------
+
+const barrierCapabilities = () => ({
+  hasDevice: Boolean(state.bpDevice || state.assignedDeviceId || state.patientHasBloodPressureMonitor || state.deviceStatus === "ACTIVE"),
+  careCircleAvailable: state.completionRole !== "personalRepresentative",
+  additionalLanguages: true
+});
+
+const goalBarriers = goal => (goal?.barriers || []).map(normalizeBarrierRecord).filter(Boolean);
+const activeGoalBarriers = goal => goalBarriers(goal).filter(barrierIsActive);
+const resolvedGoalBarriers = goal => goalBarriers(goal).filter(item => item.status === BARRIER_STATUS.RESOLVED);
+// Global-care difficulties — transport, language, cost — are raised from whichever goal the
+// patient happened to be looking at, so finding one has to look across all of them.
+const allPatientBarriers = () => activePatientGoals().flatMap(goal => goalBarriers(goal).map(barrier => ({ ...barrier, goalId: barrier.goalId || goal.id })));
+const findBarrierById = barrierId => allPatientBarriers().find(barrier => barrier.id === barrierId) || null;
+const activeBarrier = () => (state.activeBarrierId ? findBarrierById(state.activeBarrierId) : null);
+const barrierGoal = barrier => (barrier ? patientGoalById(barrier.goalId) : null);
+
+// Analytics carry the shape of the difficulty and never a word the patient wrote.
+const auditBarrier = (event, barrier, extra = {}) => audit(state, event, "success", { ...barrierAnalytics(barrier), ...extra });
+
+function persistBarrier(barrier, { historyEvent = "", historyDetails = {} } = {}) {
+  const goal = barrierGoal(barrier);
+  if (!goal) return barrier;
+  const existing = (goal.barriers || []).some(item => item.id === barrier.id);
+  goal.barriers = existing
+    ? (goal.barriers || []).map(item => (item.id === barrier.id ? barrier : item))
+    : [...(goal.barriers || []), barrier];
+  goal.updatedAt = new Date().toISOString();
+  if (historyEvent) goalHistoryEvent(goal.id, historyEvent, { barrierId: barrier.id, category: barrier.category, ...historyDetails });
+  draftStore.save(state);
+  return barrier;
+}
+
+// Saying the same thing twice is one difficulty with more context. Saying it again months later,
+// after it was resolved, is the same difficulty coming back — with its history intact.
+function recordBarrier({ goal, category, patientDescription = "", source = BARRIER_SOURCES.PATIENT, goalActionId = null, appointmentRequest = null }) {
+  if (!goal) return null;
+  const existing = findReusableBarrier(allPatientBarriers(), { category, goalId: goal.id, goalActionId });
+  if (existing && barrierIsActive(existing)) {
+    const updated = { ...existing, patientDescription: patientDescription || existing.patientDescription, updatedAt: new Date().toISOString() };
+    persistBarrier(updated, { historyEvent: "BARRIER_MENTIONED_AGAIN" });
+    auditBarrier("goal_barrier_updated", updated, { source });
+    return updated;
+  }
+  if (existing) {
+    const reopened = reopenBarrier(existing, { patientDescription });
+    persistBarrier(reopened, { historyEvent: "BARRIER_RECURRED", historyDetails: { recurrenceCount: reopened.recurrenceCount } });
+    auditBarrier("goal_barrier_recurred", reopened, { source });
+    return reopened;
+  }
+  const barrier = createGoalBarrier({
+    patientId: state.offer?.patient?.id || state.assistantDemoPatientId || "",
+    goalId: goal.id,
+    goalActionId,
+    category,
+    patientDescription,
+    source,
+    appointmentRequest
+  });
+  persistBarrier(barrier, { historyEvent: "BARRIER_IDENTIFIED", historyDetails: { source } });
+  auditBarrier("goal_barrier_identified", barrier, { source });
+  return barrier;
+}
+
+// The safety engine looks first at anything that could be clinical. It runs on the same
+// deterministic rules the rest of EMMI uses, never on the model's judgement.
+async function evaluateBarrierSafety(barrier) {
+  const config = barrierCategoryConfig(barrier.category);
+  if (!config.requiresSafetyEvaluation) return null;
+  try {
+    const runtime = ensureEmmiRuntime();
+    return await runtime.tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: barrier.patientDescription || localBarrierText(config.label, "en") });
+  } catch {
+    // A safety check that cannot run is treated as needing a person, never as "probably fine".
+    return { severity: "CARE_TEAM_REVIEW", instruction: "CREATE_HIGH_PRIORITY_TASK", policy: "SAFETY_CHECK_UNAVAILABLE" };
+  }
+}
+
+async function planBarrierHelp(barrier) {
+  const safetyResult = await evaluateBarrierSafety(barrier);
+  return { resolution: resolveBarrier({ barrier, capabilities: barrierCapabilities(), safetyResult }), safetyResult };
+}
+
+// What each kind of help is called in front of the patient, and what EMMI says she will do. The
+// copy never claims a problem is solved and never blames the patient for having one.
+const BARRIER_HELP_COPY = () => ({
+  [INTERVENTION_TYPES.EDUCATION]: {
+    title: L("Let me explain it", "Permítame explicárselo", "Kite m eksplike w sa"),
+    body: L("I can walk you through what your numbers mean, in plain language.", "Puedo explicarle qué significan sus números, en palabras sencillas.", "Mwen ka esplike w sa chif ou yo vle di, an mo senp."),
+    cta: L("Explain it to me", "Explíquemelo", "Eksplike m sa")
+  },
+  [INTERVENTION_TYPES.REMINDER]: {
+    title: L("A reminder could help", "Un recordatorio podría ayudar", "Yon rapèl ka ede"),
+    body: L("We can add a reminder to your plan for the time of day that suits you.", "Podemos agregar un recordatorio a su plan a la hora que mejor le convenga.", "Nou ka ajoute yon rapèl nan plan ou pou lè ki pi bon pou ou."),
+    cta: L("Set up a reminder", "Configurar un recordatorio", "Mete yon rapèl")
+  },
+  [INTERVENTION_TYPES.ROUTINE_ADJUSTMENT]: {
+    title: L("Let’s find a time that fits", "Busquemos un momento que le funcione", "Ann jwenn yon lè ki mache pou ou"),
+    body: L("You can change how often these steps happen so they fit your day.", "Puede cambiar con qué frecuencia hace estos pasos para que encajen en su día.", "Ou ka chanje konbyen fwa ou fè etap sa yo pou yo antre nan jounen ou."),
+    cta: L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen")
+  },
+  [INTERVENTION_TYPES.DEVICE_GUIDANCE]: {
+    title: L("I can walk you through your monitor", "Puedo guiarle con su monitor", "Mwen ka gide w ak monitè ou"),
+    body: L("I’ll go step by step, and then we can check whether a reading came through.", "Iremos paso a paso y luego revisamos si llegó una lectura.", "N ap ale etap pa etap, epi n ap tcheke si yon lekti rive."),
+    cta: L("Show me the steps", "Muéstreme los pasos", "Montre m etap yo")
+  },
+  [INTERVENTION_TYPES.CARE_CIRCLE]: {
+    title: L("Someone you trust can help", "Alguien de confianza puede ayudar", "Yon moun ou fè konfyans ka ede"),
+    body: L("You can invite someone to help you with this. You stay in control of your care.", "Puede invitar a alguien para que le ayude con esto. Usted mantiene el control de su cuidado.", "Ou ka envite yon moun pou ede w ak sa. Se ou ki kontwole swen ou."),
+    cta: L("Add someone to my Care Circle", "Agregar a alguien a mi Círculo de cuidado", "Ajoute yon moun nan Sèk swen mwen")
+  },
+  [INTERVENTION_TYPES.PLAN_ADJUSTMENT]: {
+    title: L("We can make the plan smaller", "Podemos hacer el plan más sencillo", "Nou ka fè plan an pi senp"),
+    body: L("Choosing fewer steps, or gentler ones, is a normal part of making a plan work.", "Elegir menos pasos, o más sencillos, es parte normal de hacer que un plan funcione.", "Chwazi mwens etap, oswa pi fasil, se yon bagay nòmal pou fè yon plan mache."),
+    cta: L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen")
+  },
+  [INTERVENTION_TYPES.LANGUAGE_SUPPORT]: {
+    title: L("We can change the language", "Podemos cambiar el idioma", "Nou ka chanje lang lan"),
+    body: L("You can read and talk with EMMI in English, Spanish or Kreyòl.", "Puede leer y hablar con EMMI en inglés, español o criollo haitiano.", "Ou ka li epi pale ak EMMI an anglè, panyòl oswa kreyòl."),
+    cta: L("Change my language", "Cambiar mi idioma", "Chanje lang mwen")
+  },
+  [INTERVENTION_TYPES.DEVICE_SUPPORT_TASK]: {
+    title: L("Let’s get you real help with the monitor", "Consigamos ayuda real con el monitor", "Ann jwenn èd reyèl pou monitè a"),
+    body: L("Our device support team can call you and work through it with you.", "Nuestro equipo de soporte puede llamarle y resolverlo con usted.", "Ekip sipò aparèy nou an ka rele w epi rezoud sa avèk ou."),
+    cta: L("Ask for device support", "Solicitar soporte del monitor", "Mande sipò pou aparèy la")
+  },
+  [INTERVENTION_TYPES.CARE_TEAM_TASK]: {
+    title: L("Your care team should see this", "Su equipo de atención debe ver esto", "Ekip swen ou ta dwe wè sa"),
+    body: L("I’ll send them what you told me so they can follow up with you.", "Les enviaré lo que me contó para que puedan comunicarse con usted.", "M ap voye sa ou di m pou yo ka kontakte w."),
+    cta: L("Tell my care team", "Avisar a mi equipo", "Di ekip swen mwen")
+  },
+  [INTERVENTION_TYPES.RESOURCE_SUPPORT]: {
+    title: L("Let’s ask about support for this", "Consultemos qué apoyo existe", "Ann mande ki sipò ki genyen"),
+    body: L("Your care team can look at what support may be available to you.", "Su equipo puede revisar qué apoyo podría estar disponible para usted.", "Ekip swen ou ka gade ki sipò ki ka disponib pou ou."),
+    cta: L("Ask my care team", "Consultar a mi equipo", "Mande ekip swen mwen")
+  },
+  [INTERVENTION_TYPES.APPOINTMENT_COORDINATION]: {
+    title: L("Let’s get you an appointment", "Consigamos una cita", "Ann jwenn yon randevou"),
+    body: L("I can’t book appointments yet. I’ll pass your request to your care team so they can arrange it with you.", "Todavía no puedo agendar citas. Enviaré su solicitud a su equipo para que la coordine con usted.", "Mwen poko ka pran randevou. M ap voye demann ou bay ekip swen ou pou yo ka fè aranjman avèk ou."),
+    cta: L("Send my request", "Enviar mi solicitud", "Voye demann mwen")
+  },
+  [INTERVENTION_TYPES.SAFETY_ESCALATION]: {
+    title: L("This needs attention now", "Esto necesita atención ahora", "Sa bezwen atansyon kounye a"),
+    body: L("If this is an emergency, call 911. I’ve let your care team know as well.", "Si es una emergencia, llame al 911. También avisé a su equipo de atención.", "Si se yon ijans, rele 911. Mwen avèti ekip swen ou tou."),
+    cta: L("Talk to my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen")
+  }
+});
+
+const barrierHelpCopy = type => BARRIER_HELP_COPY()[type] || BARRIER_HELP_COPY()[INTERVENTION_TYPES.CARE_TEAM_TASK];
+
+// Reminder times stay coarse on purpose: a Medicare patient does not need a recurrence editor to
+// say "mornings work better for me".
+const REMINDER_SLOTS = () => [
+  { id: "MORNING", time: "08:00", label: L("Morning", "Por la mañana", "Nan maten") },
+  { id: "AFTERNOON", time: "14:00", label: L("Afternoon", "Por la tarde", "Nan apremidi") },
+  { id: "EVENING", time: "19:00", label: L("Evening", "Por la noche", "Nan aswè") }
+];
+
+const reminderSlotLabel = slotId => REMINDER_SLOTS().find(slot => slot.id === slotId)?.label || "";
+
+// There is no notification scheduler in this product yet, so a reminder is saved with the plan and
+// EMMI follows up in the app. Nothing here tells the patient a notification will arrive.
+function saveGoalReminder(goal, slotId) {
+  const slot = REMINDER_SLOTS().find(item => item.id === slotId);
+  if (!goal || !slot) return null;
+  const now = new Date().toISOString();
+  goal.actions = (goal.actions || []).map(action => ({ ...action, remindersEnabled: true, reminderSlot: slot.id, reminderTime: slot.time, updatedAt: now }));
+  goal.reminderPreference = { slot: slot.id, time: slot.time, channel: "IN_APP", createdAt: now };
+  goalHistoryEvent(goal.id, "GOAL_REMINDER_SET", { slot: slot.id, channel: "IN_APP" });
+  return goal.reminderPreference;
+}
+
+// Applying help is where the barrier engine reaches into the capabilities that already exist. Each
+// branch returns whether it succeeded, because a patient must never be told something worked when
+// it did not.
+function applyBarrierHelp(barrier, type, detail = {}) {
+  const goal = barrierGoal(barrier);
+  if (!goal) return { ok: false };
+  if (type === INTERVENTION_TYPES.REMINDER) {
+    const preference = saveGoalReminder(goal, detail.slot);
+    if (!preference) return { ok: false };
+    return { ok: true, detail: { ...detail, channel: "IN_APP" } };
+  }
+  if (type === INTERVENTION_TYPES.CARE_TEAM_TASK || type === INTERVENTION_TYPES.RESOURCE_SUPPORT || type === INTERVENTION_TYPES.SAFETY_ESCALATION || type === INTERVENTION_TYPES.DEVICE_SUPPORT_TASK || type === INTERVENTION_TYPES.APPOINTMENT_COORDINATION) {
+    const taskType = type === INTERVENTION_TYPES.DEVICE_SUPPORT_TASK ? "DEVICE_SUPPORT"
+      : type === INTERVENTION_TYPES.SAFETY_ESCALATION ? "CLINICAL_SAFETY_ESCALATION"
+        : type === INTERVENTION_TYPES.APPOINTMENT_COORDINATION ? "APPOINTMENT_REQUEST"
+          : type === INTERVENTION_TYPES.RESOURCE_SUPPORT ? "RESOURCE_SUPPORT"
+            : "PATIENT_BARRIER_REVIEW";
+    // The care team receives a structured summary of the difficulty and what was already tried,
+    // never a dump of the conversation.
+    const task = ensureGoalCareTeamTask(taskType, goal, {
+      barrierId: barrier.id,
+      priority: type === INTERVENTION_TYPES.SAFETY_ESCALATION ? "URGENT_REVIEW" : "ROUTINE",
+      summary: careTeamEscalationSummary({ barrier, goalTitle: goalDisplayName(goal, state.language), request: taskType })
+    });
+    return { ok: Boolean(task), detail: { ...detail, taskId: task?.id || null, taskType } };
+  }
+  return { ok: true, detail };
+}
+
+
+// Identify → understand → help. Recording the difficulty and choosing what to offer happen in one
+// step, so the patient never sees a screen that only says "noted".
+async function startBarrierHelp({ goal, category, patientDescription = "", source = BARRIER_SOURCES.PATIENT }) {
+  // Answering EMMI's question turns her suspicion into the patient's own account of it, in the
+  // category they chose — not the one the signal guessed.
+  const suspected = activeBarrier();
+  if (suspected?.status === BARRIER_STATUS.SUSPECTED) {
+    const confirmed = confirmBarrier(suspected, { category, patientDescription });
+    persistBarrier(confirmed, { historyEvent: "BARRIER_CONFIRMED", historyDetails: { category } });
+    auditBarrier("goal_barrier_confirmed", confirmed, { source: BARRIER_SOURCES.PATIENT });
+    state.activeBarrierId = confirmed.id;
+    await planNextBarrierHelp(confirmed);
+    return;
+  }
+  const barrier = recordBarrier({ goal, category, patientDescription, source });
+  if (!barrier) return;
+  state.activeBarrierId = barrier.id;
+  await planNextBarrierHelp(barrier);
+}
+
+// Safety is not offered, it happens: a difficulty the safety engine flags is escalated before the
+// patient is asked anything, and then they are told what was done.
+async function planNextBarrierHelp(barrier) {
+  const { resolution, safetyResult } = await planBarrierHelp(barrier);
+  state.barrierHelpPlan = { intervention: resolution.intervention, path: resolution.path, severity: resolution.severity || safetyResult?.severity || null };
+  if (resolution.intervention === INTERVENTION_TYPES.SAFETY_ESCALATION) {
+    const applied = applyBarrierHelp(barrier, INTERVENTION_TYPES.SAFETY_ESCALATION, { severity: safetyResult?.severity || "CARE_TEAM_REVIEW" });
+    const escalated = applyIntervention(barrier, { type: INTERVENTION_TYPES.SAFETY_ESCALATION, detail: applied.detail });
+    persistBarrier(escalated, { historyEvent: "BARRIER_SAFETY_ESCALATED", historyDetails: { severity: safetyResult?.severity || "CARE_TEAM_REVIEW" } });
+    auditBarrier("goal_barrier_safety_escalated", escalated, { severity: safetyResult?.severity || "CARE_TEAM_REVIEW" });
+    state.activeBarrierId = escalated.id;
+  }
+  state.goalDetailView = "BARRIER_HELP";
+  state.error = "";
+  draftStore.save(state);
+  render();
+}
+
+// Help that lives somewhere else in the product is handed over rather than reimplemented here.
+async function runInterventionSideEffect(barrier, type, trigger) {
+  const goal = barrierGoal(barrier);
+  if (type === INTERVENTION_TYPES.EDUCATION || type === INTERVENTION_TYPES.DEVICE_GUIDANCE) {
+    state.goalDetailView = "SUMMARY";
+    render();
+    showHelp(trigger);
+    const question = type === INTERVENTION_TYPES.EDUCATION
+      ? L("Please explain this to me in simple words.", "Explíquemelo con palabras sencillas, por favor.", "Tanpri eksplike m sa nan mo senp.")
+      : L("Can you walk me through using my blood pressure monitor, step by step?", "¿Puede guiarme paso a paso para usar mi monitor de presión?", "Èske ou ka gide m etap pa etap pou m sèvi ak monitè tansyon mwen?");
+    await askEmmi(question, { questionId: `barrier-${type.toLowerCase()}`, source: "goal-barrier" });
+    return;
+  }
+  if (type === INTERVENTION_TYPES.CARE_CIRCLE) {
+    state.growthReturnScreen = "MY_GOALS";
+    state.growthContext = "goal-barrier";
+    state.careCircleContext = state.enrollmentStatus === "COMPLETED" ? "ONGOING_CARE" : "ENROLLMENT";
+    state.careCircleNotice = "";
+    state.goalDetailView = "SUMMARY";
+    state.screen = "CARE_CIRCLE_INVITE";
+    draftStore.save(state); render(); return;
+  }
+  if (type === INTERVENTION_TYPES.PLAN_ADJUSTMENT || type === INTERVENTION_TYPES.ROUTINE_ADJUSTMENT) {
+    if (goal) {
+      state.goalFlowOrigin = "MY_GOALS";
+      state.goalPlanningGoalId = goal.id;
+      state.goalPlanDraft = { actionIds: (goal.actions || []).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: (goal.actions || []).find(item => item.source === "PATIENT")?.title || "", frequency: (goal.actions || [])[0]?.frequency || "few-days", remindersEnabled: (goal.actions || []).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
+      state.goalFlowStep = "PLAN_ACTIONS";
+      state.screen = "GOALS";
+    }
+    state.goalDetailView = "SUMMARY";
+    draftStore.save(state); render(); return;
+  }
+  if (type === INTERVENTION_TYPES.LANGUAGE_SUPPORT) {
+    state.goalDetailView = "SUMMARY";
+    setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en");
+    draftStore.save(state); render(); return;
+  }
+  state.goalNotice = type === INTERVENTION_TYPES.REMINDER
+    ? L("Your reminder is saved with this goal. EMMI will check back to see if it helps.", "Su recordatorio quedó guardado con esta meta. EMMI volverá a preguntarle si le ayuda.", "Rapèl ou anrejistre ak objektif sa a. EMMI ap tounen tcheke si li ede.")
+    : L("Your care team has what you told me. They will follow up with you.", "Su equipo de atención tiene lo que me contó. Se comunicarán con usted.", "Ekip swen ou gen sa ou di m. Y ap kontakte w.");
+  state.goalDetailView = "SUMMARY";
+  state.activeBarrierId = "";
+  draftStore.save(state); render();
+}
+
+// A signal is not a finding. Missing readings on a goal that expects them opens a question EMMI
+// asks the patient; it never records a cause, and it is raised once.
+function detectGoalSignalBarriers(goal, runtime) {
+  if (!goal || !runtime || goal.status !== "ACTIVE") return;
+  if (goalIsReadyToPersonalize(goal)) return;
+  const expectsReadings = (goal.actions || []).some(action => action.templateId === "check-bp");
+  if (!expectsReadings) return;
+  const days = 3;
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  const recent = (runtime.readings || []).filter(reading => new Date(reading.timestamp).getTime() >= since);
+  if (recent.length) return;
+  const alreadyRaised = goalBarriers(goal).some(barrier =>
+    barrier.source === BARRIER_SOURCES.SYSTEM_SIGNAL && ["SUSPECTED", "CLOSED"].includes(barrier.status));
+  if (alreadyRaised || activeGoalBarriers(goal).length) return;
+  const barrier = createGoalBarrier({
+    patientId: state.offer?.patient?.id || state.assistantDemoPatientId || "",
+    goalId: goal.id,
+    category: "DEVICE_TECHNOLOGY",
+    source: BARRIER_SOURCES.SYSTEM_SIGNAL,
+    patientDescription: ""
+  });
+  persistBarrier(barrier, { historyEvent: "BARRIER_SIGNAL_RAISED", historyDetails: { signal: "MISSING_READINGS", days } });
+  auditBarrier("goal_barrier_signal_raised", barrier, { signal: "MISSING_READINGS" });
+}
+
 const frequencyLabel = value => ({
   daily: L("Every day", "Todos los días", "Chak jou"),
   "few-days": L("A few days each week", "Algunos días por semana", "Kèk jou chak semèn"),
@@ -2384,6 +2735,8 @@ const goalStatusIcon = goal => {
 };
 
 const goalNextStepCopy = key => ({
+  CONFIRM_BARRIER: L("Answer EMMI’s question about this goal", "Responda la pregunta de EMMI sobre esta meta", "Reponn kesyon EMMI sou objektif sa a"),
+  RESOLVE_BARRIER: L("Get help with what’s making this hard", "Reciba ayuda con lo que se lo dificulta", "Jwenn èd ak sa ki fè sa difisil"),
   FINISH_PLAN: L("Finish personalizing your plan", "Termine de personalizar su plan", "Fini pèsonalize plan ou"),
   TAKE_READING: L("Take your next blood pressure reading", "Tome su próxima lectura de presión arterial", "Pran pwochen lekti tansyon ou"),
   UNDERSTAND_READING: L("Understand your latest blood pressure reading", "Entienda su lectura más reciente de presión arterial", "Konprann dènye lekti tansyon ou"),
@@ -2401,9 +2754,22 @@ const goalEducationPending = goal => Boolean(nextBestGoalEducation({
   completedTopicIds: (goal.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId)
 }));
 
+// A difficulty the patient is waiting on outranks the care plan: telling someone to review a
+// trend while their monitor is broken is advice they cannot take.
 const goalNextStep = goal => {
-  const next = goalNextBestAction(goal, { runtime: goalRuntimeFor(goal), educationPending: goalEducationPending(goal) });
+  const next = goalNextBestAction(goal, { runtime: goalRuntimeFor(goal), educationPending: goalEducationPending(goal), barriers: goalBarriers(goal) });
   return next.key === "COMPLETE_ACTION" ? next.title || "" : goalNextStepCopy(next.key);
+};
+
+// One line on the card, and only when something is actually active. A goal is not covered in
+// warnings, and the line names the difficulty rather than counting failures.
+const goalNeedsHelpLine = goal => {
+  const active = activeGoalBarriers(goal);
+  if (!active.length) return "";
+  const label = active.length === 1
+    ? barrierPatientSummary(active[0], state.language)
+    : L(`${active.length} things we’re helping with`, `${active.length} cosas en las que le ayudamos`, `${active.length} bagay n ap ede w avèk yo`);
+  return `<div class="goal-summary-block goal-summary-help"><span class="goal-summary-label">${L("Needs help", "Necesita ayuda", "Bezwen èd")}</span><p class="goal-summary-value">${escapeHtml(label)}</p></div>`;
 };
 
 // Progress is only ever what the goal actually measured. A goal with no plan yet says so instead
@@ -2443,6 +2809,7 @@ function primaryGoalCard(goal) {
   return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     ${goalProgressMarkup(goal)}
+    ${goalNeedsHelpLine(goal)}
     ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
     <button type="button" class="goal-card-cta" data-action="${ctaAction.action}" data-goal-id="${goal.id}"><span>${ctaAction.label}</span>${icon("arrowRight")}</button>
   </article>`;
@@ -2542,14 +2909,14 @@ function goalReadingHistory(goal, health) {
 }
 
 function goalActionRow(action, health, goal) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const verificationMethod = resolveGoalActionVerification(action);
   const doneToday = (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED";
   const frequency = action.frequency ? frequencyLabel(action.frequency) : "";
   const actionTemplate = action.templateId ? suggestedActionsFor(goal.goalType).find(item => item.id === action.templateId) : null;
   const actionTitle = actionTemplate ? localGoalText(actionTemplate.title, state.language) : action.title;
   if (verificationMethod === "DEVICE") {
-    const receivedToday = health.latest && new Date(health.latest.timestamp).toISOString().slice(0, 10) === today;
+    const receivedToday = health.latest && localDateKey(health.latest.timestamp) === today;
     return `<li class="goal-action goal-action-automatic ${receivedToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong><small class="goal-action-verification">${receivedToday ? `${icon("check")}${L("Reading received today", "Lectura recibida hoy", "Lekti resevwa jodi a")}` : L("Waiting for today’s monitor reading", "Esperando la lectura de hoy del monitor", "N ap tann lekti monitè jodi a")}</small></div><span class="goal-action-source">${L("Automatic", "Automático", "Otomatik")}</span></li>`;
   }
   if (verificationMethod === "EMMI_LESSON") {
@@ -2561,16 +2928,151 @@ function goalActionRow(action, health, goal) {
   return `<li class="goal-action ${doneToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong>${frequency ? `<small>${frequency}</small>` : ""}<p>${doneToday ? `${icon("check")}${L("Reported today", "Registrado hoy", "Rapòte jodi a")}` : prompt}</p></div><div class="goal-action-buttons">${doneToday ? "" : `<button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}">${medication ? L("Yes", "Sí", "Wi") : L("Yes, I did", "Sí, lo hice", "Wi, mwen te fè sa")}</button>`}${medication ? `<button type="button" class="goal-action-button secondary" data-action="ask-emmi-medication">${L("I have a question", "Tengo una pregunta", "Mwen gen yon kesyon")}</button>` : ""}</div></li>`;
 }
 
+// The patient never reads the word "barrier", and never reads a status enum. They read what is
+// hard, what we are doing about it, and what happens next.
+const barrierCardCopy = barrier => {
+  const summary = barrierPatientSummary(barrier, state.language);
+  const last = (barrier.interventions || []).at(-1);
+  if (!last) return { summary, detail: "", followUp: "" };
+  const detail = last.type === INTERVENTION_TYPES.REMINDER
+    ? `${L("Reminder", "Recordatorio", "Rapèl")}: ${reminderSlotLabel(last.detail?.slot)}`
+    : last.type === INTERVENTION_TYPES.CARE_TEAM_TASK || last.type === INTERVENTION_TYPES.DEVICE_SUPPORT_TASK || last.type === INTERVENTION_TYPES.RESOURCE_SUPPORT || last.type === INTERVENTION_TYPES.APPOINTMENT_COORDINATION
+      ? L("Your care team has been notified.", "Su equipo de atención fue notificado.", "Nou avèti ekip swen ou.")
+      : barrierHelpCopy(last.type).title;
+  const followUp = barrier.status === BARRIER_STATUS.WAITING_FOR_CARE_TEAM
+    ? ""
+    : L("EMMI will check back to see if this helps.", "EMMI volverá a preguntarle si esto ayuda.", "EMMI ap tounen tcheke si sa ede.");
+  return { summary, detail, followUp };
+};
+
+// The section heading already says we are working on this, so a card only repeats a state when it
+// says something different: waiting on the care team, or waiting on an answer from the patient.
+const barrierSupportCard = barrier => `<article class="goal-barrier-card" data-barrier-status="${barrier.status}">
+  <span class="goal-barrier-icon">${icon(barrierIcon(barrier))}</span>
+  <div>
+    <strong>${escapeHtml(barrierCardCopy(barrier).summary)}</strong>
+    ${barrierPatientStatus(barrier, state.language) === L("We’re working on this", "Estamos trabajando en esto", "N ap travay sou sa") ? "" : `<span class="goal-barrier-state">${escapeHtml(barrierPatientStatus(barrier, state.language))}</span>`}
+    ${barrierCardCopy(barrier).detail ? `<p>${escapeHtml(barrierCardCopy(barrier).detail)}</p>` : ""}
+    ${barrierCardCopy(barrier).followUp ? `<small>${escapeHtml(barrierCardCopy(barrier).followUp)}</small>` : ""}
+  </div>
+  <button type="button" class="goal-card-action" data-action="review-goal-barrier" data-barrier-id="${barrier.id}">${L("Review", "Revisar", "Revize")} ${icon("arrowRight")}</button>
+</article>`;
+
+// One difficulty gets its own card. Several get a count and one way in, because a list of problems
+// on top of a goal is the opposite of help.
+function goalSupportSection(goal) {
+  const active = activeGoalBarriers(goal);
+  const resolved = resolvedGoalBarriers(goal);
+  const resolvedNote = resolved.length
+    ? `<p class="goal-barrier-resolved">${icon("check")}<span>${resolved.length === 1
+      ? L(`Recently resolved: ${barrierPatientSummary(resolved.at(-1), state.language)}`, `Resuelto recientemente: ${barrierPatientSummary(resolved.at(-1), state.language)}`, `Rezoud dènyèman: ${barrierPatientSummary(resolved.at(-1), state.language)}`)
+      : L(`${resolved.length} things we resolved together`, `${resolved.length} cosas que resolvimos juntos`, `${resolved.length} bagay nou rezoud ansanm`)}</span></p>`
+    : "";
+  if (!active.length) {
+    return `<section class="goal-section goal-support-prompt">
+      <h2>${L("Need help?", "¿Necesita ayuda?", "Bezwen èd?")}</h2>
+      <p>${L("Is anything making this goal difficult?", "¿Hay algo que le dificulte avanzar con esta meta?", "Èske gen yon bagay ki fè objektif sa a difisil?")}</p>
+      <p class="goal-section-support">${L("EMMI can help with many common problems, or connect you with your care team when that is what you need.", "EMMI puede ayudar con muchos problemas comunes o conectarle con su equipo de atención cuando lo necesite.", "EMMI ka ede ak anpil pwoblèm komen, oswa konekte w ak ekip swen ou lè se sa ou bezwen.")}</p>
+      <button type="button" class="goal-secondary-button" data-action="open-goal-barriers">${icon("question")}<span>${L("Tell EMMI what’s difficult", "Contarle a EMMI qué es difícil", "Di EMMI sa ki difisil")}</span></button>
+      ${resolvedNote}
+    </section>`;
+  }
+  return `<section class="goal-section goal-support-active">
+    <h2>${L("We’re working on this", "Estamos trabajando en esto", "N ap travay sou sa")}</h2>
+    ${active.length === 1 ? barrierSupportCard(active[0]) : `<p class="goal-section-support">${L(`${active.length} things we’re helping with`, `${active.length} cosas en las que le estamos ayudando`, `${active.length} bagay n ap ede w avèk yo`)}</p><div class="goal-barrier-stack">${active.map(barrierSupportCard).join("")}</div>`}
+    <button type="button" class="goal-secondary-button" data-action="open-goal-barriers">${icon("question")}<span>${L("Something else is difficult", "Hay otra cosa difícil", "Gen yon lòt bagay ki difisil")}</span></button>
+    ${resolvedNote}
+  </section>`;
+}
+
+// One question, contextual options, and always a way to say it in your own words.
+//
+// When the platform noticed something rather than the patient reporting it, the same screen asks
+// instead of telling: missing readings could be a broken cuff, a trip, a hospital stay or a week
+// that got away from someone. EMMI does not guess which.
+function goalBarrierPicker(goal) {
+  const suspected = activeBarrier()?.status === BARRIER_STATUS.SUSPECTED ? activeBarrier() : null;
+  const options = barrierOptionsFor({
+    goal,
+    hasDevice: barrierCapabilities().hasDevice,
+    hasMedications: Boolean((state.careMedications || []).length),
+    locale: state.language
+  });
+  const heading = suspected
+    ? L("Is anything making it hard to take your readings?", "¿Hay algo que le dificulte tomar sus lecturas?", "Èske gen yon bagay ki fè li difisil pou pran lekti ou?")
+    : L("What’s making this difficult?", "¿Qué se lo está haciendo difícil?", "Kisa k ap fè sa difisil?");
+  const lead = suspected
+    ? L("We haven’t received some of your recent readings. Nothing is wrong — I’d just like to know if something is getting in the way.", "No hemos recibido algunas de sus lecturas recientes. No pasa nada: solo quiero saber si algo se lo está dificultando.", "Nou pa resevwa kèk nan dènye lekti ou yo. Pa gen anyen ki mal — mwen jis vle konnen si gen yon bagay k ap anpeche w.")
+    : L("Choose the one that fits best. You can tell me more after.", "Elija la que mejor corresponda. Después puede contarme más.", "Chwazi sa ki pi bon. Ou ka di m plis apre.");
+  return `${titleBlock(heading, lead, L("Getting help", "Obtener ayuda", "Jwenn èd"))}
+    <div class="choice-list goal-barrier-choices">${options.map(option => `<button type="button" class="goal-response-button" data-action="select-goal-barrier" data-barrier-category="${option.category}">${icon(option.icon)}<span>${escapeHtml(option.label)}</span></button>`).join("")}</div>
+    ${suspected ? `<button type="button" class="goal-inline-link" data-action="dismiss-suspected-barrier" data-barrier-id="${suspected.id}">${L("Nothing is making it difficult", "Nada me lo está dificultando", "Anyen pa fè l difisil")}</button>` : ""}
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+}
+
+// "Something else" is not a dead end: the patient describes it, and the same classifier that
+// listens to EMMI conversations decides what kind of help it is.
+function goalBarrierDescribe() {
+  return `${titleBlock(L("Tell EMMI in your own words", "Cuéntele a EMMI en sus propias palabras", "Di EMMI nan pwòp mo pa ou"), L("You can type it here, or say it to EMMI.", "Puede escribirlo aquí o decírselo a EMMI.", "Ou ka ekri l isit oswa di l bay EMMI."), L("Getting help", "Obtener ayuda", "Jwenn èd"))}
+    <form id="goal-barrier-describe-form"><label class="field"><span class="sr-only">${L("What is making this difficult?", "¿Qué se lo está haciendo difícil?", "Kisa k ap fè sa difisil?")}</span><textarea name="patientDescription" rows="4" maxlength="400" placeholder="${L("Example: I can’t get the cuff to stay on my arm.", "Ejemplo: No logro que el brazalete se quede en mi brazo.", "Egzanp: Mwen pa ka fè manchèt la rete sou bra mwen.")}">${escapeHtml(state.goalBarrierDraft?.patientDescription || "")}</textarea></label></form>
+    <button type="button" class="goal-secondary-button" data-action="describe-barrier-with-emmi">${icon("mic")}<span>${L("Tell EMMI instead", "Decírselo a EMMI", "Di EMMI pito")}</span></button>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "submit-goal-barrier-description")}</div>`;
+}
+
+// What EMMI proposes, why, and the patient's right to say no. A declined offer is a choice on the
+// record, never a failure.
+function goalBarrierHelp() {
+  const barrier = activeBarrier();
+  if (!barrier) return goalBarrierPicker(currentGoal());
+  const plan = state.barrierHelpPlan || {};
+  const copy = barrierHelpCopy(plan.intervention);
+  const safety = plan.severity === "EMERGENCY";
+  const reminder = plan.intervention === INTERVENTION_TYPES.REMINDER;
+  // The title names the difficulty; what EMMI proposes is said once, in the panel below it.
+  return `${titleBlock(escapeHtml(barrierPatientSummary(barrier, state.language)), "", L("EMMI is helping", "EMMI está ayudando", "EMMI ap ede"))}
+    ${safety ? `<section class="goal-panel goal-barrier-safety">${icon("info")}<div><strong>${L("If this is an emergency, call 911 now.", "Si es una emergencia, llame al 911 ahora.", "Si se yon ijans, rele 911 kounye a.")}</strong><a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a></div></section>` : ""}
+    <section class="goal-panel goal-barrier-help">${icon(barrierIcon(barrier))}<div><span class="goal-panel-eyebrow">${escapeHtml(copy.title)}</span><p>${escapeHtml(copy.body)}</p></div></section>
+    ${reminder ? `<div class="choice-list goal-reminder-slots">${REMINDER_SLOTS().map(slot => `<button type="button" class="goal-response-button" data-action="set-barrier-reminder" data-reminder-slot="${slot.id}">${icon("bell")}<span>${slot.label}</span></button>`).join("")}</div>
+    <p class="goal-section-support">${L("Reminders appear in ITERA when you open it. We will not send anything to your phone without setting that up with you first.", "Los recordatorios aparecen en ITERA cuando la abre. No enviaremos nada a su teléfono sin configurarlo antes con usted.", "Rapèl yo parèt nan ITERA lè ou louvri l. Nou p ap voye anyen sou telefòn ou san nou pa mete sa anplas avèk ou anvan.")}</p>` : ""}
+    <div class="actions">${cta(L("Not now", "Ahora no", "Pa kounye a"), "decline-barrier-help", true)}${reminder ? "" : cta(copy.cta, "accept-barrier-help")}</div>
+    <button type="button" class="goal-inline-link" data-action="ask-emmi-about-barrier">${L("Ask EMMI about this", "Preguntar a EMMI sobre esto", "Mande EMMI sou sa")} ${icon("arrowRight")}</button>`;
+}
+
+// The follow-up. Three honest answers, and none of them says the patient failed.
+function goalBarrierFollowUp() {
+  const barrier = activeBarrier();
+  if (!barrier) return goalBarrierPicker(currentGoal());
+  const last = (barrier.interventions || []).at(-1);
+  const question = last?.type === INTERVENTION_TYPES.REMINDER
+    ? L("Are the reminders helping you?", "¿Le están ayudando los recordatorios?", "Èske rapèl yo ap ede w?")
+    : last?.type === INTERVENTION_TYPES.EDUCATION
+      ? L("Did that explanation help?", "¿Le ayudó esa explicación?", "Èske eksplikasyon sa a te ede w?")
+      : last?.type === INTERVENTION_TYPES.DEVICE_GUIDANCE
+        ? L("Were you able to take a reading?", "¿Pudo tomar una lectura?", "Èske ou te ka pran yon lekti?")
+        : L("Is this getting easier?", "¿Se le está haciendo más fácil?", "Èske sa vin pi fasil?");
+  const options = last?.type === INTERVENTION_TYPES.DEVICE_GUIDANCE
+    ? [["RESOLVED", L("Yes, it worked", "Sí, funcionó", "Wi, li mache")], ["PARTIALLY_HELPED", L("Almost", "Casi", "Prèske")], ["NOT_HELPED", L("No, it still won’t work", "No, aún no funciona", "Non, li toujou pa mache")]]
+    : [["RESOLVED", L("Yes, a lot", "Sí, mucho", "Wi, anpil")], ["PARTIALLY_HELPED", L("A little", "Un poco", "Yon ti kras")], ["NOT_HELPED", L("I’m still having trouble", "Sigo teniendo dificultad", "Mwen toujou gen difikilte")]];
+  return `${titleBlock(question, escapeHtml(barrierPatientSummary(barrier, state.language)), L("Checking in", "Seguimiento", "Tcheke"))}
+    <div class="choice-list goal-followup-options">${options.map(([value, label]) => `<button type="button" class="goal-response-button" data-action="barrier-follow-up-response" data-outcome="${value}">${label}</button>`).join("")}</div>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+}
+
 function goalDetail() {
   const goal = currentGoal();
   if (!goal) return myGoalsDashboard();
   const title = escapeHtml(goalDisplayName(goal, state.language));
   const health = goal.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+  detectGoalSignalBarriers(goal, health);
   if (state.goalDetailView === "READINGS" && health) return goalReadingHistory(goal, health);
   if (state.goalDetailView === "WHY_EDIT") return `${titleBlock(L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen"), title, L("My goal", "Mi meta", "Objektif mwen"))}<form id="goal-why-form"><label class="field"><textarea name="whyItMatters" rows="5" maxlength="300" placeholder="${L("Share what you want this goal to help you keep doing.", "Cuente qué desea que esta meta le ayude a seguir haciendo.", "Pataje sa ou vle objektif sa a ede w kontinye fè.")}">${escapeHtml(goal.whyItMatters || "")}</textarea></label></form><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-why")}</div>`;
   if (state.goalDetailView === "CHECK_IN") return `${titleBlock(L("How do you feel this goal is going?", "¿Cómo siente que va esta meta?", "Kijan ou santi objektif sa a ap mache?"), title, L("Goal check-in", "Seguimiento de meta", "Tcheke objektif"))}<div class="choice-list goal-checkin-options">${[["GOING_WELL", L("I’m making progress", "Estoy avanzando", "M ap fè pwogrè")], ["ABOUT_THE_SAME", L("About the same", "Más o menos igual", "Prèske menm jan")], ["DIFFICULTY", L("I’m having a hard time", "Me está costando", "Sa difisil pou mwen")], ["NOT_STARTED", L("I haven’t started yet", "Todavía no he empezado", "Mwen poko kòmanse")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-checkin-response" data-response="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
-  if (state.goalDetailView === "BARRIERS") return `${titleBlock(L("What’s getting in the way?", "¿Qué se lo está dificultando?", "Kisa k ap anpeche w?"), L("Choose the answer that fits best.", "Elija la respuesta que mejor corresponda.", "Chwazi repons ki pi byen mache."), L("Barriers", "Dificultades", "Difikilte"))}<form id="goal-barrier-form"><div class="goal-barrier-options">${[["NOT_WELL",L("I don’t feel well", "No me siento bien", "Mwen pa santi m byen")],["FORGET",L("I forget", "Se me olvida", "Mwen bliye")],["NO_TIME",L("I don’t have time", "No tengo tiempo", "Mwen pa gen tan")],["MEDICATION_TROUBLE",L("I have questions about my medications", "Tengo dudas sobre mis medicamentos", "Mwen gen kesyon sou medikaman mwen")],["MONITOR_HELP",L("I don’t know how to use my monitor", "No sé usar el monitor", "Mwen pa konnen kijan pou m sèvi ak monitè a")],["SAFETY_WORRY",L("I’m worried about doing it safely", "Me preocupa hacerlo de forma segura", "Mwen enkyete pou m fè sa an sekirite")],["OTHER",L("Something else", "Algo más", "Yon lòt bagay")]].map(([value,label]) => `<label class="check-row"><input type="radio" name="barrierType" value="${value}"><span class="check-box">✓</span><span>${label}</span></label>`).join("")}</div><label class="field">${L("Tell us more (optional)", "Cuéntenos más (opcional)", "Di nou plis (opsyonèl)")}<textarea name="barrierNotes" rows="3" maxlength="300"></textarea></label></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "save-goal-barrier")}</div>`;
-  if (state.goalDetailView === "SUPPORT") return `${titleBlock(L("How can we help?", "¿Cómo podemos ayudarle?", "Kijan nou ka ede w?"), title, L("Support I need", "Apoyo que necesito", "Sipò mwen bezwen"))}<div class="choice-list goal-support-options">${[["REMINDER",L("Remind me", "Recordármelo", "Fè m sonje")],["EXPLAIN",L("Explain it to me", "Explicármelo", "Eksplike m sa")],["MONITOR_HELP",L("Help me with my monitor", "Ayudarme con el monitor", "Ede m ak monitè mwen")],["ADJUST_PLAN",L("Help me adjust my plan", "Ayudarme a ajustar mi plan", "Ede m ajiste plan mwen")],["CARE_TEAM",L("Talk to my care team", "Hablar con mi equipo de atención", "Pale ak ekip swen mwen")],["UNSURE",L("I’m not sure", "No estoy seguro", "Mwen pa sèten")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-support-request" data-support="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "BARRIERS") return goalBarrierPicker(goal);
+  if (state.goalDetailView === "BARRIER_DESCRIBE") return goalBarrierDescribe();
+  if (state.goalDetailView === "BARRIER_HELP") return goalBarrierHelp();
+  if (state.goalDetailView === "BARRIER_FOLLOW_UP") return goalBarrierFollowUp();
   if (state.goalDetailView === "ACHIEVE_CONFIRM") return `${art("check", true)}${titleBlock(L("Are you ready to mark this goal as achieved?", "¿Está listo para marcar esta meta como lograda?", "Èske ou pare pou make objektif sa a kòm reyalize?"), title)}<p class="lead">${L("This only updates your personal goal. It does not change a clinical target or your care plan.", "Esto solo actualiza su meta personal. No cambia un objetivo clínico ni su plan de cuidado.", "Sa mete ajou objektif pèsonèl ou sèlman. Li pa chanje yon sib klinik ni plan swen ou.")}</p><div class="actions">${cta(L("Not yet", "Todavía no", "Poko"), "goal-detail-back", true)}${cta(L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize"), "confirm-goal-achieved")}</div>`;
   const goalActions = goal.actions || [];
   const actionRows = goalActions.map(action => goalActionRow(action, health || {}, goal)).join("");
@@ -2602,6 +3104,7 @@ function goalDetail() {
       ${actionRows ? `<p class="goal-section-support">${L("Some steps are recorded automatically. You only confirm the ones you do yourself.", "Algunos pasos se registran automáticamente. Usted solo confirma los que realiza personalmente.", "Gen kèk etap ki anrejistre otomatikman. Ou konfime sèlman sa ou fè tèt ou.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
       <button type="button" class="goal-secondary-button" data-action="plan-active-goal">${icon("sliders")}<span>${actionRows ? L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen") : goal.planPersonalizationStatus === "DEFERRED" || goal.planStatus === "DEFERRED" ? L("Continue personalizing my plan", "Continuar personalizando mi plan", "Kontinye pèsonalize plan mwen") : L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen")}</span></button>
     </section>
+    ${goalSupportSection(goal)}
     ${localizedEducation ? `<section class="goal-education-card"><img src="/assets/emmi-assistant.png" alt=""><div><span>${L("Learn with EMMI", "Aprenda con EMMI", "Aprann avèk EMMI")}</span><h2>${escapeHtml(localizedEducation.title)}</h2><p>${escapeHtml(localizedEducation.summary)}</p><button type="button" class="goal-card-action" data-action="learn-goal-topic">${L("Explain it to me", "Explícamelo", "Eksplike m sa")} ${icon("arrowRight")}</button></div></section>` : ""}
     <section class="goal-section goal-progress">
       <h2>${L("My progress", "Mi progreso", "Pwogrè mwen")}</h2>
@@ -3011,7 +3514,7 @@ async function launchPrototype() {
     state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
-  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { barrierType: "", notes: "" }, goalSupportDraft: "", goalNotice: "", goalHistory: [] });
+  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [] });
   const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
@@ -3768,7 +4271,7 @@ async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   try {
     const response = await assistantAnswer(cleaned, assistantContext());
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
-    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "" });
+    state.assistantMessages.push({ role: "assistant", text: response.text, emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "" });
     emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
     if (emmiConversationManager?.greetingAllowed()) emmiConversationManager.markGreeted();
     runtime.audit.transcript("assistant", response.text);
@@ -3856,6 +4359,20 @@ function bindAssistantLayer() {
       state.screen = "CARE_CIRCLE_INVITE";
     }
     if (growthAction === "share-access" && state.enrollmentStatus === "COMPLETED") state.screen = "SHARE_ACCESS";
+    // A difficulty EMMI heard in conversation opens where it can be acted on: the goal it belongs
+    // to, with the help she already proposed.
+    if (growthAction === "goal-barrier") {
+      const barrier = findBarrierById(button.dataset.barrierId || "");
+      if (barrier) {
+        state.activeGoalId = barrier.goalId;
+        state.activeBarrierId = barrier.id;
+        state.screen = "MY_GOALS";
+        state.goalDetailView = "SUMMARY";
+        planNextBarrierHelp(barrier);
+        return;
+      }
+      state.screen = "MY_GOALS";
+    }
     render();
   }));
   layer.querySelectorAll("[data-assistant-action]").forEach(control => control.addEventListener("click", event => {
@@ -4288,7 +4805,7 @@ function bind() {
     if (action === "complete-goal-action") {
       const goal = currentGoal(); const item = goal?.actions?.find(candidate => candidate.id === el.dataset.actionId); if (!item) return;
       if (resolveGoalActionVerification(item) !== "PATIENT_REPORT") return;
-      const today = new Date().toISOString().slice(0,10); item.completionHistory ||= [];
+      const today = localDateKey(); item.completionHistory ||= [];
       if (!item.completionHistory.some(entry => entry.date === today)) item.completionHistory.push({ id: `completion_${Date.now().toString(36)}`, date: today, completedAt: new Date().toISOString(), source: "PATIENT_REPORTED" });
       if (item.actionType === "ONE_TIME") item.status = "COMPLETED";
       item.updatedAt = goalHistoryEvent(goal.id, "ACTION_COMPLETED", { actionId: item.id, actionSource: item.source, completionSource: "PATIENT_REPORT", verificationMethod: item.verificationMethod });
@@ -4326,28 +4843,111 @@ function bind() {
       else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
       draftStore.save(state); render(); return;
     }
-    if (action === "save-goal-barrier") {
-      const goal = currentGoal(); const data = new FormData(document.querySelector("#goal-barrier-form")); const barrierType = String(data.get("barrierType") || ""); const notes = String(data.get("barrierNotes") || "").trim().slice(0,300);
-      if (!barrierType) { state.error = L("Choose what is getting in the way.", "Elija qué se lo está dificultando.", "Chwazi sa k ap anpeche w."); render(); return; }
-      const createdAt = new Date().toISOString(); const barrier = { id: `goal_barrier_${Date.now().toString(36)}`, goalId: goal.id, barrierType, notes, status: "OPEN", createdAt };
-      goal.barriers = [...(goal.barriers || []), barrier]; goalHistoryEvent(goal.id, "BARRIER_REPORTED", { barrierType });
-      const urgent = /(severe chest pain|chest pain|can'?t breathe|cannot breathe|dolor fuerte en el pecho|dolor en el pecho|no puedo respirar|gwo doulè nan pwatrin|pa ka respire)/i.test(notes);
-      if (urgent) {
-        ensureGoalCareTeamTask("CLINICAL_SAFETY_ESCALATION", goal, { barrierId: barrier.id, priority: "URGENT_REVIEW", reason: "POTENTIAL_URGENT_SYMPTOM" });
-        state.goalNotice = L("Your message may describe an urgent symptom. Call 911 now if you have severe chest pain or trouble breathing. Your care team was also notified.", "Su mensaje puede describir un síntoma urgente. Llame al 911 ahora si tiene dolor intenso en el pecho o dificultad para respirar. También avisamos a su equipo.", "Mesaj ou ka dekri yon sentòm ijan. Rele 911 kounye a si ou gen gwo doulè nan pwatrin oswa pwoblèm pou respire. Nou avèti ekip swen ou tou.");
-        state.goalDetailView = "SUMMARY";
-      } else state.goalDetailView = "SUPPORT";
-      state.error = ""; draftStore.save(state); render(); return;
-    }
-    if (action === "goal-support-request") {
+    if (action === "open-goal-barriers") { state.goalDetailView = "BARRIERS"; state.error = ""; state.activeBarrierId = ""; render(); return; }
+    if (action === "select-goal-barrier") {
       const goal = currentGoal(); if (!goal) return;
-      const supportType = el.dataset.support; const createdAt = new Date().toISOString();
-      const taskType = supportType === "ADJUST_PLAN" ? "GOAL_PLAN_REVIEW" : supportType === "CARE_TEAM" || supportType === "UNSURE" ? "GOAL_SUPPORT" : supportType === "EXPLAIN" ? "PATIENT_BARRIER_REVIEW" : "";
-      const task = taskType ? ensureGoalCareTeamTask(taskType, goal, { supportType, priority: "ROUTINE" }) : null;
-      goal.supportRequests = [...(goal.supportRequests || []), { id: `goal_support_${Date.now().toString(36)}`, goalId: goal.id, supportType, careTeamTaskId: task?.id || null, status: task ? "REQUESTED" : "ACTIVE", createdAt }];
-      goalHistoryEvent(goal.id, "SUPPORT_REQUESTED", { supportType, careTeamTaskId: task?.id || null });
-      state.goalNotice = supportType === "REMINDER" ? L("We’ll use your reminder preference for this goal.", "Usaremos su preferencia de recordatorios para esta meta.", "N ap itilize preferans rapèl ou pou objektif sa a.") : L("Your request was shared with your care team.", "Su solicitud fue compartida con su equipo de atención.", "Nou pataje demann ou ak ekip swen ou.");
-      state.goalDetailView = "SUMMARY"; draftStore.save(state); render(); return;
+      const category = el.dataset.barrierCategory || "OTHER";
+      // "Something else" is a question, not a category: the patient describes it and the same
+      // classifier EMMI uses decides what kind of help it needs.
+      if (category === "OTHER") { state.goalBarrierDraft = { category, patientDescription: "" }; state.goalDetailView = "BARRIER_DESCRIBE"; state.error = ""; render(); return; }
+      await startBarrierHelp({ goal, category });
+      return;
+    }
+    if (action === "submit-goal-barrier-description") {
+      const goal = currentGoal(); if (!goal) return;
+      const described = String(new FormData(document.querySelector("#goal-barrier-describe-form")).get("patientDescription") || "").trim();
+      if (!described) { state.error = L("Tell us a little about what is difficult.", "Cuéntenos un poco qué se le hace difícil.", "Di nou yon ti kras sou sa ki difisil."); render(); return; }
+      const classified = classifyBarrierText(described);
+      await startBarrierHelp({ goal, category: classified.category || "OTHER", patientDescription: described });
+      return;
+    }
+    if (action === "describe-barrier-with-emmi") {
+      const goal = currentGoal();
+      state.goalDetailView = "SUMMARY";
+      showHelp(el);
+      await askEmmi(L("Something is making this goal difficult and I want to tell you about it.", "Algo me está dificultando esta meta y quiero contárselo.", "Gen yon bagay ki fè objektif sa a difisil e mwen vle di w sa."), { questionId: "barrier-describe", source: "goal-barrier" });
+      audit(state, "goal_barrier_described_with_emmi", "success", { goalId: goal?.id || "" });
+      return;
+    }
+    if (action === "accept-barrier-help" || action === "set-barrier-reminder") {
+      const barrier = activeBarrier();
+      const type = state.barrierHelpPlan?.intervention;
+      if (!barrier || !type) { state.goalDetailView = "SUMMARY"; render(); return; }
+      const detail = action === "set-barrier-reminder" ? { slot: el.dataset.reminderSlot } : {};
+      const applied = applyBarrierHelp(barrier, type, detail);
+      // Never report success for something that did not happen.
+      if (!applied.ok) {
+        state.error = L("I couldn’t set that up right now. You can try again, or I can ask your care team to help.", "No pude configurarlo ahora. Puede intentar de nuevo o puedo pedir ayuda a su equipo.", "Mwen pa t ka fè sa kounye a. Ou ka eseye ankò oswa mwen ka mande ekip swen ou ede.");
+        render();
+        return;
+      }
+      const updated = applyIntervention(barrier, { type, detail: applied.detail });
+      persistBarrier(updated, { historyEvent: "BARRIER_INTERVENTION_STARTED", historyDetails: { intervention: type } });
+      auditBarrier("goal_barrier_intervention_started", updated, { intervention: type });
+      state.error = "";
+      await runInterventionSideEffect(updated, type, el);
+      return;
+    }
+    if (action === "decline-barrier-help") {
+      const barrier = activeBarrier();
+      const type = state.barrierHelpPlan?.intervention;
+      if (!barrier || !type) { state.goalDetailView = "SUMMARY"; render(); return; }
+      // Declining is a choice on the record. It is never adherence language, and it stops EMMI
+      // from offering the same thing again.
+      const offered = applyIntervention(barrier, { type, detail: { offeredOnly: true } });
+      const declined = recordInterventionOutcome(offered, { outcome: RESOLUTION_OUTCOMES.PATIENT_DECLINED });
+      persistBarrier(declined, { historyEvent: "BARRIER_HELP_DECLINED", historyDetails: { intervention: type } });
+      auditBarrier("goal_barrier_help_declined", declined, { intervention: type });
+      state.goalNotice = L("That’s okay. You can come back to this whenever you want.", "Está bien. Puede volver a esto cuando quiera.", "Sa bon. Ou ka retounen sou sa lè ou vle.");
+      state.goalDetailView = "SUMMARY";
+      state.activeBarrierId = "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "review-goal-barrier") {
+      const barrier = findBarrierById(el.dataset.barrierId || "");
+      if (!barrier) return;
+      state.activeBarrierId = barrier.id;
+      const awaitingOutcome = (barrier.interventions || []).some(item => !item.outcome && item.type !== INTERVENTION_TYPES.SAFETY_ESCALATION);
+      if (barrier.status === BARRIER_STATUS.SUSPECTED) { state.goalDetailView = "BARRIERS"; render(); return; }
+      if (awaitingOutcome) { state.goalDetailView = "BARRIER_FOLLOW_UP"; render(); return; }
+      await planNextBarrierHelp(barrier);
+      return;
+    }
+    if (action === "barrier-follow-up-response") {
+      const barrier = activeBarrier(); if (!barrier) return;
+      const outcome = el.dataset.outcome || RESOLUTION_OUTCOMES.PARTIALLY_HELPED;
+      const updated = recordInterventionOutcome(barrier, { outcome });
+      persistBarrier(updated, { historyEvent: "BARRIER_OUTCOME_RECORDED", historyDetails: { outcome } });
+      auditBarrier("goal_barrier_outcome", updated, { outcome });
+      if (outcome === RESOLUTION_OUTCOMES.RESOLVED) {
+        // Not "problem solved": the patient said it helped, so that is what we say back.
+        state.goalNotice = L("Glad that helped.", "Me alegra que le haya ayudado.", "Mwen kontan sa te ede w.");
+        state.goalDetailView = "SUMMARY";
+        state.activeBarrierId = "";
+        draftStore.save(state); render(); return;
+      }
+      state.goalNotice = L("We’ll keep working on this.", "Seguiremos trabajando en esto.", "N ap kontinye travay sou sa.");
+      await planNextBarrierHelp(updated);
+      return;
+    }
+    if (action === "ask-emmi-about-barrier") {
+      const barrier = activeBarrier();
+      showHelp(el);
+      if (barrier) {
+        await askEmmi(L(`I need help with this: ${barrierPatientSummary(barrier, "en")}.`, `Necesito ayuda con esto: ${barrierPatientSummary(barrier, "es")}.`, `Mwen bezwen èd ak sa: ${barrierPatientSummary(barrier, "ht")}.`), { questionId: `barrier-${barrier.category}`, source: "goal-barrier" });
+      }
+      return;
+    }
+    if (action === "dismiss-suspected-barrier") {
+      const barrier = activeBarrier() || findBarrierById(el.dataset.barrierId || "");
+      if (!barrier) return;
+      const closed = { ...barrier, status: BARRIER_STATUS.CLOSED, resolutionOutcome: RESOLUTION_OUTCOMES.NO_LONGER_RELEVANT, resolvedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      persistBarrier(closed, { historyEvent: "BARRIER_SIGNAL_DISMISSED" });
+      auditBarrier("goal_barrier_signal_dismissed", closed);
+      state.goalNotice = L("Thank you for letting me know.", "Gracias por avisarme.", "Mèsi paske ou fè m konnen.");
+      state.goalDetailView = "SUMMARY";
+      state.activeBarrierId = "";
+      draftStore.save(state); render(); return;
     }
     if (action === "pause-goal" || action === "reactivate-goal") {
       const goal = currentGoal(); if (!goal) return;
@@ -5142,7 +5742,10 @@ async function boot() {
         actions: Array.isArray(goal.actions) ? goal.actions.map(action => ({ ...action, verificationMethod: resolveGoalActionVerification(action), completionHistory: Array.isArray(action.completionHistory) ? action.completionHistory : [] })) : [],
         educationHistory: Array.isArray(goal.educationHistory) ? goal.educationHistory : [],
         progress: Array.isArray(goal.progress) ? goal.progress : [],
-        barriers: Array.isArray(goal.barriers) ? goal.barriers : [],
+        // Barriers restore through the shared normalizer so a draft written before this model, or
+        // by an older build, still renders with a category, a status and its intervention history.
+        barriers: Array.isArray(goal.barriers) ? goal.barriers.map(normalizeBarrierRecord).filter(Boolean) : [],
+        reminderPreference: goal.reminderPreference || null,
         supportRequests: Array.isArray(goal.supportRequests) ? goal.supportRequests : [],
         reviews: Array.isArray(goal.reviews) ? goal.reviews : []
       }));

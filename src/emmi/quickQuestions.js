@@ -6,7 +6,17 @@
 // A question is never an answer: the label is sent through the normal EMMI conversation, and the
 // id is what analytics records, so question text never leaves the device as an event payload.
 
-const pick = (locale, copy) => (locale === "es" ? copy[1] : locale === "ht" ? copy[2] : copy[0]);
+// The app carries two spellings of the same language — the UI key ("es", "ht") and the internal
+// code ("ES", "KR", where KR is ITERA's identifier for Haitian Creole and never Korean). Both
+// resolve here so a caller can hand over whichever one it has.
+const normalizeLocale = locale => {
+  const value = String(locale || "").toLowerCase();
+  if (value === "es") return "es";
+  if (["ht", "kr", "ht-ht", "kreyol"].includes(value)) return "ht";
+  return "en";
+};
+
+const pick = (locale, copy) => ({ es: copy[1], ht: copy[2] }[normalizeLocale(locale)] || copy[0]);
 
 const CATALOG = {
   "access-what-is": { intent: "PROGRAM_EXPLANATION", copy: ["What is ACCESS?", "¿Qué es ACCESS?", "Kisa ACCESS ye?"] },

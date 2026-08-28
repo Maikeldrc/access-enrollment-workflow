@@ -39,13 +39,13 @@ test("multiple goals support priority, planning and longitudinal My Goals", asyn
   // The clinical target is care-team owned; the patient adjusts their own actions instead.
   await expect(page.getByText("Set by your care team")).toBeVisible();
   await expect(page.getByText(/You can adjust the actions in your personal plan/)).toBeVisible();
+  // Saying a goal is hard now leads into the barrier flow: one contextual question, then help.
   await page.getByRole("button", { name: /How is this goal going/ }).click();
   await page.getByRole("button", { name: "I’m having a hard time" }).click();
-  await page.getByLabel("I forget").check();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "How can we help?" })).toBeVisible();
-  await page.getByRole("button", { name: /Talk to my care team/ }).click();
-  await expect(page.getByText("Your request was shared with your care team.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What’s making this difficult?" })).toBeVisible();
+  await page.getByRole("button", { name: "I forget to do it" }).click();
+  await page.getByRole("button", { name: "Morning" }).click();
+  await expect(page.getByText("Your reminder is saved with this goal. EMMI will check back to see if it helps.")).toBeVisible();
   await page.getByText("Review or adjust this goal").click();
   await page.getByRole("button", { name: "Pause this goal" }).click();
   await expect(page.getByText("This goal is paused. You can return to it later.")).toBeVisible();
