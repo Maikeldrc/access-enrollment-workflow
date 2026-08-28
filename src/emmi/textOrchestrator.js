@@ -1,10 +1,11 @@
 import { classifyBarrierText } from "../goalBarriers.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
+import { emmiGuardrailAnswer } from "./guardrails.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
 
-const SCREEN_HELP = /what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran/i;
+const SCREEN_HELP = /what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
 // Phones and speech transcription produce a typographic apostrophe. Every gate below is written
 // with a straight one, so "I can’t breathe" used to fall past the safety gate entirely. The
 // patterns are matched against a folded copy of the question; the patient's own text is
@@ -27,6 +28,11 @@ const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|do
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
+// The two halves can arrive in either order, and both must be present: a patient asking whether to
+// measure again is asking about the baseline counters, not about their last reading.
+const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\b|\bnow\b/i.test(text))
+  || (/presi[oó]n/i.test(text) && /otra vez|ahora/i.test(text))
+  || (/tansyon/i.test(text) && /ank[oò]|kounye a/i.test(text));
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
 // Running out is its own intent, not a barrier and not a medication-list question. It is matched
 // before the difficulty gate so "I keep running out of my pill" reaches the refill engine.
@@ -455,7 +461,7 @@ export class EmmiTextOrchestrator {
     this.onEvent = onEvent;
   }
 
-  async answer(question) {
+  async answer(question, { questionId = "" } = {}) {
     const context = this.getContext();
     const locale = context.locale || "EN";
     const conversation = this.getConversation?.() || {};
@@ -482,6 +488,14 @@ export class EmmiTextOrchestrator {
       trace.intent = "MEDICATION_SAFETY"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED");
       return { text: pick(locale, { EN: "I can’t recommend starting, stopping, or changing a medication or dose. Please contact your clinician or care team for treatment advice.", ES: "No puedo recomendar iniciar, suspender ni cambiar un medicamento o una dosis. Consulte a su profesional clínico o equipo de atención.", KR: "Mwen pa ka rekòmande kòmanse, sispann oswa chanje yon medikaman oswa dòz. Tanpri kontakte klinisyen oswa ekip swen ou." }), trace };
     }
+    // What EMMI cannot do about authority, prescriptions and the clinical record is answered from
+    // approved copy, ahead of retrieval and generation, so a limit is never paraphrased into a
+    // softer one. Clinical safety still runs first: a limit is not an answer to chest pain.
+    const guardrail = emmiGuardrailAnswer({ question: asked, questionId, locale, context });
+    if (guardrail) {
+      trace.intent = guardrail.intent; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
+      return { text: guardrail.text, ...(guardrail.quickAction ? { quickAction: guardrail.quickAction } : {}), trace };
+    }
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
       return { text: this.screenExplanation(context.currentScreen), trace };
@@ -489,6 +503,19 @@ export class EmmiTextOrchestrator {
     if (HUMAN_SUPPORT.test(asked)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
       return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+    }
+    // Whether to measure again is a question about the baseline counters, so it is answered only
+    // when those counters actually say no; anything else falls through to normal routing.
+    if (asksAboutMeasuringAgain(asked)) {
+      trace.intent = "BASELINE_READING"; trace.toolCalls.push("getEnrollmentContext");
+      try {
+        const enrollment = await this.executeTool("getEnrollmentContext", { patientId: context.patientId });
+        const sourceVerified = enrollment.deviceVerificationStatus === "SOURCE_VERIFIED" || enrollment.firstTransmissionVerified === true;
+        if (sourceVerified && enrollment.bpBaselineReadingCount > 0 && enrollment.bpBaselineRemainingReadings > 0) {
+          trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push("getEnrollmentContext"); emit("EMMI_ANSWER_ROUTED");
+          return { text: pick(locale, { EN: "No. Your monitor is connected and we received your first reading. You can take your next readings later, and ITERA will receive them automatically.", ES: "No. Su monitor está conectado y recibimos su primera medición. Puede realizar las próximas más adelante e ITERA las recibirá automáticamente.", KR: "Non. Aparèy ou konekte epi nou resevwa premye mezi ou a. Ou ka pran lòt mezi yo pita, epi ITERA ap resevwa yo otomatikman." }), trace };
+        }
+      } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getEnrollmentContext", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
     // Where a refill stands is a runtime fact, never a guess: EMMI reads the episodes and says what
     // each one is actually waiting on.
