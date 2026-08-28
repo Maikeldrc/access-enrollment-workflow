@@ -1969,7 +1969,10 @@ const OVERRIDE_EXPLANATION = {
   [SECONDARY_COVERAGE_STATUSES.NOT_VERIFIED]: EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE
 };
 function currentAccessCost() {
-  const accessCost = state.offer?.accessCost || config.accessCost || {};
+  // A traditional program has no ACCESS cost on the offer, and this runs for them too when the
+  // consent evidence is recorded, so the fallback is the disclosure configuration rather than a
+  // `config` that only exists inside the ACCESS consent view.
+  const accessCost = state.offer?.accessCost || state.offer?.disclosures?.accessConfig?.accessCost || {};
   const override = accessCost.configuredSecondaryCoverageStatus;
   if (override) return { ...accessCost, explanationCode: OVERRIDE_EXPLANATION[override] || EXPLANATION_CODES.NO_SUPPLEMENTAL_COVERAGE };
   const coverage = emmiDemoCoverage(currentDemoPatientId());
