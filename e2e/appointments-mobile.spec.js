@@ -629,6 +629,38 @@ test("availability opens with at most three slot cards and a see-more control", 
   expect(expanded.tables + expanded.gridRoles + expanded.wideGrids.length, "§154: widening the search must not produce a grid").toBe(0);
 });
 
+test("Need an appointment keeps its icon and title aligned in one compact row at 384px", async ({ page }) => {
+  await openSurface(page, "MY_CARE");
+  await page.setViewportSize(PRIMARY);
+  const card = page.locator(".appointment-need-card");
+  await expect(card).toBeVisible();
+  const geometry = await card.evaluate(node => {
+    const heading = node.querySelector(".appointment-need-heading");
+    const icon = node.querySelector(".appointment-need-icon");
+    const title = node.querySelector(".appointment-need-title");
+    const action = node.querySelector(".appointment-action");
+    const box = element => element.getBoundingClientRect();
+    const style = element => getComputedStyle(element);
+    return {
+      cardWidth: box(node).width,
+      headingDisplay: style(heading).display,
+      headingAligned: Math.abs((box(icon).top + box(icon).height / 2) - (box(title).top + box(title).height / 2)) <= 1,
+      iconShrink: style(icon).flexShrink,
+      titleMinWidth: style(title).minWidth,
+      actionWidth: box(action).width,
+      actionHeight: box(action).height,
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  expect(geometry.headingDisplay).toBe("flex");
+  expect(geometry.headingAligned).toBe(true);
+  expect(geometry.iconShrink).toBe("0");
+  expect(geometry.titleMinWidth).toBe("0px");
+  expect(geometry.actionWidth).toBeGreaterThanOrEqual(geometry.cardWidth - 34);
+  expect(geometry.actionHeight).toBeGreaterThanOrEqual(MIN_TOUCH);
+  expect(geometry.overflow).toBeLessThanOrEqual(1);
+});
+
 // §102 / §103. Identity is never abbreviated, never clipped, and never inside a fixed-height box.
 test("a long provider name and a long practice name wrap instead of truncating", async ({ page }) => {
   test.setTimeout(120000);

@@ -332,6 +332,35 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "IN_PROGRESS", screen: "ACCESS_BASELINE", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } } });
 });
 
+test("Start my health check repairs a stale saved route instead of reopening the same confirmation", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  // Create the same persisted transition record a returning patient has before corrupting it
+  // into the legacy shape that used to loop back to confirmation.
+  await page.getByRole("button", { name: "I’ll do this later" }).click();
+  await page.evaluate(() => {
+    const key = "itera.enrollment.safe-draft.v2";
+    const saved = JSON.parse(localStorage.getItem(key));
+    saved.screen = "ENROLLMENT_CONFIRMED";
+    saved.baselineResumeScreen = "ENROLLMENT_CONFIRMED";
+    saved.flowProgress = {
+      ...(saved.flowProgress || {}),
+      GETTING_STARTED: { flowType: "GETTING_STARTED", status: "DEFERRED", startedAt: "", completedAt: "", deferredAt: new Date().toISOString(), resumeRoute: "ENROLLMENT_CONFIRMED" }
+    };
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload();
+
+  await page.getByRole("button", { name: "Start my health check" }).click();
+  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  const repaired = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(repaired).toMatchObject({
+    screen: "ACCESS_BASELINE",
+    baselineResumeScreen: "ACCESS_BASELINE",
+    flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } }
+  });
+});
+
 test("CCM can defer Getting Started without reopening enrollment and resume from My Care", async ({ page }) => {
   await page.goto("/?scenario=ccm-happy");
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });

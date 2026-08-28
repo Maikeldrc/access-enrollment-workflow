@@ -421,8 +421,10 @@ export function needAnAppointmentCard(props = {}) {
   const t = say(localeOf(props));
   const glyph = iconOf(props);
   return `<section class="appointment-need-card">
-    <div class="appointment-need-icon">${glyph("calendarClock")}</div>
-    <h2 class="appointment-need-title">${t("Need an appointment?", "¿Necesita una cita?", "Ou bezwen yon randevou?")}</h2>
+    <div class="appointment-need-heading">
+      <div class="appointment-need-icon">${glyph("calendarClock")}</div>
+      <h2 class="appointment-need-title">${t("Need an appointment?", "¿Necesita una cita?", "Ou bezwen yon randevou?")}</h2>
+    </div>
     <p class="appointment-need-copy">${t("EMMI can help you coordinate with your care team.", "EMMI puede ayudarle a coordinar con su equipo de cuidado.", "EMMI ka ede w òganize sa ak ekip swen ou.")}</p>
     <button type="button" class="appointment-action secondary" data-action="appointment-ask-emmi"><span>${t("Ask EMMI", "Preguntar a EMMI", "Mande EMMI")}</span>${glyph("arrowRight")}</button>
   </section>`;

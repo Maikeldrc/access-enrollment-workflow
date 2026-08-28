@@ -129,10 +129,11 @@
 
 /* --------------------------------------------------------------------- §39 need card ---- */
 
-.appointment-need-card { display:grid; gap:0.5rem; padding:1.0625rem; border:1px solid var(--primary-300); border-radius:1rem; background:var(--primary-50); }
-.appointment-need-icon { display:grid; place-items:center; width:2.75rem; height:2.75rem; border-radius:0.875rem; color:var(--primary-700); background:var(--surface-primary); }
+.appointment-need-card { display:grid; gap:0.625rem; padding:0.875rem 1rem; border:1px solid var(--primary-300); border-radius:1rem; background:var(--primary-50); }
+.appointment-need-heading { display:flex; gap:0.75rem; align-items:center; min-width:0; }
+.appointment-need-icon { display:grid; flex:0 0 2.75rem; place-items:center; width:2.75rem; height:2.75rem; border-radius:0.875rem; color:var(--primary-700); background:var(--surface-primary); }
 .appointment-need-icon .icon { width:1.5rem; height:1.5rem; color:inherit; background:transparent; }
-.appointment-need-title { margin:0; font-size:1.25rem; line-height:1.35; overflow-wrap:anywhere; }
+.appointment-need-title { flex:1 1 auto; min-width:0; margin:0; font-size:1.25rem; line-height:1.35; overflow-wrap:anywhere; }
 .appointment-need-copy { margin:0; color:var(--text-secondary); font-size:1.0625rem; line-height:1.5; overflow-wrap:anywhere; }
 
 /* -------------------------------------------------------------- confirmed / request ----- */

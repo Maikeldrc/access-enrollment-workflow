@@ -93,3 +93,27 @@ export function resolveEnrollmentTransition({ pathway, nextBestAction } = {}) {
 export function emptyFlowProgress(flowType = "GETTING_STARTED") {
   return { flowType, status: FLOW_STATUS.NOT_STARTED, startedAt: "", completedAt: "", deferredAt: "", resumeRoute: "" };
 }
+
+const GETTING_STARTED_ENTRY_ROUTE = Object.freeze({
+  ACCESS: "ACCESS_BASELINE",
+  RPM: "RPM_DEVICE_PATH",
+  CCM_RPM: "RPM_DEVICE_PATH",
+  PCM_RPM: "RPM_DEVICE_PATH",
+  CCM: "ONBOARDING",
+  PCM: "ONBOARDING",
+  ASM: "ONBOARDING",
+  APCM: "ONBOARDING"
+});
+
+// A legacy draft can point back to ENROLLMENT_CONFIRMED. That makes the CTA render the same
+// screen and look unresponsive, so only post-enrollment screens in the resolved journey qualify.
+export function resolveGettingStartedEntryRoute({ pathway, journey = [], savedResumeRoute = "", configuredRoute = "" } = {}) {
+  const enrollmentCompleteIndex = journey.indexOf("ENROLLMENT_CONFIRMED");
+  const isValid = route => Boolean(route)
+    && enrollmentCompleteIndex >= 0
+    && journey.indexOf(route) > enrollmentCompleteIndex;
+  const fallback = GETTING_STARTED_ENTRY_ROUTE[pathway] || "ONBOARDING";
+  return [savedResumeRoute, configuredRoute, fallback].find(isValid)
+    || journey[enrollmentCompleteIndex + 1]
+    || fallback;
+}

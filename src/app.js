@@ -30,11 +30,12 @@ import { EmmiConversationManager } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
+import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
 import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
 import { resolveNextBestAction } from "./nextBestAction.js";
-import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition } from "./flowTransitions.js";
+import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
@@ -464,15 +465,7 @@ function persistEmmiPreferences() {
 const emmiGuidanceIsBusy = () => ["CONNECTING", "INTERRUPTING", "USER_SPEAKING", "EMMI_THINKING", "EMMI_SPEAKING", "TOOL_RUNNING"].includes(state.assistantVoiceState);
 
 function emmiHomeVoiceStatus() {
-  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return L("Listening…", "Escuchando…", "N ap koute…");
-  if (state.assistantVoiceState === "EMMI_SPEAKING") return state.assistantVoiceDetail === "patient_response"
-    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-    : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…");
-  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return L("Connecting EMMI…", "Conectando con EMMI…", "N ap konekte EMMI…");
-  // A failed connect leaves the client DISCONNECTED, so the error has to be checked too —
-  // otherwise the card claims "Voice guidance is on" while nothing is playing.
-  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return L("Voice guidance is unavailable", "La guía por voz no está disponible", "Gid vwa pa disponib");
-  return L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+  return emmiVisibleStateLabel(emmiGuideState(), languageCode());
 }
 
 // The introduction card is the only EMMI on Home, so it carries both ways in: the voice EMMI is
@@ -1304,20 +1297,10 @@ async function assistantAnswer(question, context, { questionId = "" } = {}) {
 }
 
 const assistantVoiceCopy = () => {
-  const stateCopy = {
-    CONNECTING: L("Connecting…", "Conectando…", "N ap konekte…"),
-    INTERRUPTING: L("Listening…", "Escuchando…", "N ap koute…"),
-    LISTENING: L("Listening…", "Escuchando…", "N ap koute…"),
-    USER_SPEAKING: L("Listening…", "Escuchando…", "N ap koute…"),
-    EMMI_THINKING: L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…"),
-    EMMI_SPEAKING: state.assistantVoiceDetail === "patient_response"
-      ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-      : L("EMMI is explaining…", "EMMI está explicando…", "EMMI ap eksplike…"),
-    TOOL_RUNNING: typeof state.assistantVoiceDetail === "string" && state.assistantVoiceDetail.includes("…") ? state.assistantVoiceDetail : L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…"),
-    ERROR: L("Voice is unavailable", "La voz no está disponible", "Vwa pa disponib"),
-    DISCONNECTED: L("Voice conversation ended", "La conversación por voz terminó", "Konvèsasyon vwa a fini")
-  };
-  return stateCopy[state.assistantVoiceState] || stateCopy.DISCONNECTED;
+  if (state.assistantVoiceState === "ERROR") return L("Voice is unavailable", "La voz no está disponible", "Vwa pa disponib");
+  if (state.assistantVoiceState === "DISCONNECTED") return L("Voice conversation ended", "La conversación por voz terminó", "Konvèsasyon vwa a fini");
+  const visibleState = resolveEmmiVisibleState({ internalState: state.assistantVoiceState });
+  return emmiVisibleStateLabel(visibleState, languageCode());
 };
 const assistantVoiceErrorCopyFor = code => ({
   microphone_denied: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
@@ -1400,29 +1383,17 @@ const emmiGuidancePrompt = message => {
 // status stay visible, one contextual action remains direct, and secondary controls expand
 // only on request. The task stays the visual priority.
 function emmiGuideState() {
-  if (!state.emmiVoiceGuidance) return "OFF";
-  if (!emmiVoiceIsSupported(languageCode())) return "UNSUPPORTED";
-  if (state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && state.assistantVoiceError)) return "ERROR";
-  if (state.emmiVoiceGuidancePaused) return "PAUSED";
-  if (state.emmiTransitionStatus === "UPDATING") return "UPDATING";
-  if (state.assistantVoiceState === "EMMI_SPEAKING") return "SPEAKING";
-  if (["INTERRUPTING", "USER_SPEAKING"].includes(state.assistantVoiceState)) return "LISTENING";
-  if (["CONNECTING", "EMMI_THINKING", "TOOL_RUNNING"].includes(state.assistantVoiceState)) return "THINKING";
-  return "ACTIVE_IDLE";
+  return resolveEmmiVisibleState({
+    internalState: state.assistantVoiceState,
+    transitionStatus: state.emmiTransitionStatus,
+    voiceEnabled: state.emmiVoiceGuidance,
+    voiceSupported: emmiVoiceIsSupported(languageCode()),
+    paused: state.emmiVoiceGuidancePaused,
+    hasError: state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && Boolean(state.assistantVoiceError))
+  });
 }
 
-const emmiGuideStatusLabel = guideState => ({
-  OFF: L("Need help?", "¿Necesita ayuda?", "Bezwen èd?"),
-  UNSUPPORTED: L("Voice guidance is unavailable in this language", "La guía por voz no está disponible en este idioma", "Gid vwa a pa disponib nan lang sa a"),
-  SPEAKING: state.assistantVoiceDetail === "patient_response"
-    ? L("EMMI is responding…", "EMMI está respondiendo…", "EMMI ap reponn…")
-    : L("EMMI is speaking…", "EMMI está hablando…", "EMMI ap pale…"),
-  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
-  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  PAUSED: L("Voice guidance is paused", "La guía por voz está en pausa", "Gid vwa a an poz"),
-  ERROR: L("Voice guidance is temporarily unavailable", "La guía por voz no está disponible por ahora", "Gid vwa a pa disponib pou kounye a")
-})[guideState] || L("Voice guidance is on", "La guía por voz está activa", "Gid vwa a limen");
+const emmiGuideStatusLabel = guideState => emmiVisibleStateLabel(guideState, languageCode());
 
 // One label vocabulary for every EMMI surface. "Voice options" replaces "Controls" because the
 // label itself has to tell a Medicare patient what they will find: Ask EMMI is "I want to say
@@ -1695,12 +1666,12 @@ if (typeof window !== "undefined") {
 
 // The floating pill carries EMMI's name and live state rather than a bare avatar: the patient
 // has to be able to tell at a glance that this is EMMI and what she is doing right now.
-const emmiFloatingStatus = () => ({
-  LISTENING: L("Listening…", "Escuchando…", "M ap koute…"),
-  SPEAKING: L("Speaking…", "Hablando…", "L ap pale…"),
-  THINKING: L("Thinking…", "Pensando…", "M ap reflechi…"),
-  UPDATING: L("Thinking…", "Pensando…", "M ap reflechi…")
-})[emmiGuideState()] || "";
+const emmiFloatingStatus = () => {
+  const visibleState = emmiGuideState();
+  return [EMMI_VISIBLE_STATE.LISTENING, EMMI_VISIBLE_STATE.SPEAKING, EMMI_VISIBLE_STATE.THINKING].includes(visibleState)
+    ? emmiVisibleStateLabel(visibleState, languageCode())
+    : "";
+};
 
 // One close path for the voice options sheet, so dismissal, transcript state, body scroll lock
 // and focus return can never drift apart between the surfaces that open it.
@@ -4629,7 +4600,12 @@ async function ingestSimulatedBpObservation(observation) {
   // only classified and stored, and everything worth watching -- repeated criticals correlating
   // into one alert instead of an alert storm, a worsening reading escalating, a calmer one not
   // closing an open episode -- never ran at all.
-  const ingested = ingestBloodPressureObservation({ observation, history, episode: state.bpMonitoringEpisode || null, rules });
+  const ingested = ingestBloodPressureObservation({
+    observation,
+    history,
+    episode: state.bpMonitoringEpisode || null,
+    rules
+  });
   state.bpMonitoringEpisode = ingested.episode;
   if (ingested.alert) {
     audit(state, "simulated_alert_created", "success", {
@@ -7015,7 +6991,12 @@ function bind() {
       const progress = gettingStartedProgress();
       const now = new Date().toISOString();
       const resumed = action === "resume-next-flow" || [FLOW_STATUS.DEFERRED, FLOW_STATUS.IN_PROGRESS].includes(progress.status);
-      const resumeRoute = progress.resumeRoute || transition.nextRoute;
+      const resumeRoute = resolveGettingStartedEntryRoute({
+        pathway: state.offer.pathway,
+        journey: journeyFor(state),
+        savedResumeRoute: progress.resumeRoute || state.baselineResumeScreen,
+        configuredRoute: transition.nextRoute
+      });
       state.enrollmentConfirmed = true;
       state.enrollmentStatus = "COMPLETED";
       state.enrollmentCompletedAt ||= state.consentTimestamp || now;
@@ -7037,14 +7018,19 @@ function bind() {
     if (action === "defer-next-flow") {
       const transition = currentFlowTransition();
       const now = new Date().toISOString();
+      const resumeRoute = resolveGettingStartedEntryRoute({
+        pathway: state.offer.pathway,
+        journey: journeyFor(state),
+        configuredRoute: transition.nextRoute
+      });
       state.enrollmentConfirmed = true;
       state.enrollmentStatus = "COMPLETED";
       state.enrollmentCompletedAt ||= state.consentTimestamp || now;
-      setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: transition.nextRoute });
+      setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute });
       state.activationStatus = "NOT_STARTED";
       state.baselineDeferredAt = now;
-      state.baselineResumeScreen = transition.nextRoute;
-      audit(state, "next_flow_deferred", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, resumeRoute: transition.nextRoute });
+      state.baselineResumeScreen = resumeRoute;
+      audit(state, "next_flow_deferred", "success", { completedFlow: transition.completedFlow, nextFlowType: transition.nextFlow, resumeRoute });
       state.screen = "FLOW_DEFERRED";
       draftStore.save(state);
       render();

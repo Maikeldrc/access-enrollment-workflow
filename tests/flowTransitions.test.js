@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FLOW_STATUS, FLOW_TRANSITION_CONFIG, FLOW_TRANSITION_TYPE, emptyFlowProgress, resolveEnrollmentTransition } from "../src/flowTransitions.js";
+import { FLOW_STATUS, FLOW_TRANSITION_CONFIG, FLOW_TRANSITION_TYPE, emptyFlowProgress, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "../src/flowTransitions.js";
 import { resolveNextBestAction } from "../src/nextBestAction.js";
 
 const programs = ["ACCESS", "CCM", "RPM", "CCM_RPM", "PCM", "PCM_RPM", "ASM", "APCM"];
@@ -38,5 +38,27 @@ describe("shared flow completion transitions", () => {
 
   it("starts a resumable next flow in NOT_STARTED rather than enrollment state", () => {
     expect(emptyFlowProgress()).toEqual({ flowType: "GETTING_STARTED", status: FLOW_STATUS.NOT_STARTED, startedAt: "", completedAt: "", deferredAt: "", resumeRoute: "" });
+  });
+});
+
+describe("Getting Started entry route", () => {
+  const accessJourney = ["CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", "ONBOARDING_COMPLETE"];
+
+  it("repairs a legacy resume route that points back to enrollment confirmation", () => {
+    expect(resolveGettingStartedEntryRoute({
+      pathway: "ACCESS",
+      journey: accessJourney,
+      savedResumeRoute: "ENROLLMENT_CONFIRMED",
+      configuredRoute: "ACCESS_BASELINE"
+    })).toBe("ACCESS_BASELINE");
+  });
+
+  it("preserves a valid in-progress resume route", () => {
+    expect(resolveGettingStartedEntryRoute({
+      pathway: "ACCESS",
+      journey: accessJourney,
+      savedResumeRoute: "ACCESS_MEASURE",
+      configuredRoute: "ACCESS_BASELINE"
+    })).toBe("ACCESS_MEASURE");
   });
 });

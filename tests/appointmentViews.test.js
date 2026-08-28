@@ -360,6 +360,12 @@ describe("appointment views — three real locales (§en, §es, §ht)", () => {
     expect(ht.requestConfirmationView).toContain("Demann voye");
   });
 
+  it("groups the Need an appointment icon and title in one heading row", () => {
+    const html = needAnAppointmentCard(base);
+    expect(html).toMatch(/appointment-need-heading[\s\S]*appointment-need-icon[\s\S]*appointment-need-title/);
+    expect(html).toContain('class="appointment-action secondary"');
+  });
+
   it("localises dates and times rather than leaving them English", () => {
     expect(bookingConfirmationView({ ...base, locale: "es", appointment: confirmed })).toContain("martes, 8 de septiembre");
     expect(bookingConfirmationView({ ...base, locale: "ht", appointment: confirmed })).toContain("madi, 8 septanm");
