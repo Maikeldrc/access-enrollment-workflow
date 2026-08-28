@@ -194,10 +194,14 @@ test("a medication whose workflow requires a visit hands the need to appointment
   await page.getByRole("button", { name: /Coordinate appointment/ }).click();
 
   const stored = await draft(page);
-  const task = stored.careTeamTasks.find(item => item.type === "APPOINTMENT_REQUEST");
-  // The scheduler does not exist yet, so the need is captured with the context it will need.
-  expect(task.summary).toMatchObject({ medication: "Lisinopril 10 mg", requestedProfessionalType: "PRESCRIBER", reasonSummary: "MEDICATION_RENEWAL", appointmentStatus: "NOT_SCHEDULED" });
-  expect(stored.medicationRefills[0].relatedAppointmentNeedId).toBe(task.id);
+  // The need becomes a real appointment record with the medication context already on it, and the
+  // refill episode points at it, so neither side has to ask the patient again.
+  const need = stored.appointments.at(-1);
+  expect(need.reasonCategory).toBe("MEDICATION_RENEWAL");
+  expect(need.source).toBe("SYSTEM_WORKFLOW");
+  expect(need.relatedRefillId).toBe(stored.medicationRefills[0].id);
+  expect(stored.medicationRefills[0].relatedAppointmentNeedId).toBe(need.id);
+  expect(need.schedulingCapability).toBeTruthy();
 });
 
 test("asking twice does not create two requests", async ({ page }) => {
