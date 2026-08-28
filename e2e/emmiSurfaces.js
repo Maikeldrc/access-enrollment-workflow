@@ -21,6 +21,9 @@ export async function revealFloatingEmmi(page) {
 }
 
 export async function openEmmiConversation(page) {
+  // Wait for EMMI to exist at all before asking which presentation is on screen: count() does not
+  // auto-wait, so a first render still in flight would look like "no card, use the pill".
+  await page.waitForSelector(".emmi-welcome, .emmi-guide, .emmi-assistant", { state: "attached" });
   const compactAsk = page.locator('.emmi-guide [data-action="help"], .emmi-welcome [data-action="help"]');
   if (await compactAsk.count() && await compactAsk.first().isVisible()) {
     await compactAsk.first().click();

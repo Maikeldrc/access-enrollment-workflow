@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openEmmiConversation } from "./emmiSurfaces.js";
+import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
 async function openOwnedBpVerification(page, scenario = "access-happy") {
   await page.goto(`/?scenario=${scenario}`);
@@ -378,6 +378,8 @@ test("ACCESS enrollment confirmation copy is localized in Spanish and Kreyòl", 
 });
 
 test("shared enrollment welcome adapts to every program and enrollment source", async ({ page }) => {
+  // Seven programs, each a full navigation: this is a long test, not a slow product.
+  test.setTimeout(120000);
   const programs = [
     ["ACCESS", "ACCESS", "Start my health check", "ACCESS_BASELINE"],
     ["CCM", "CCM", "Set up my care", "ONBOARDING"],
@@ -848,7 +850,7 @@ test("EMMI uses the authoritative baseline counters when asked about another rea
   await page.getByRole("button", { name: "I took my reading" }).click();
   await expect(page.getByRole("heading", { name: "Your monitor is connected", exact: true })).toBeVisible();
   await openEmmiConversation(page);
-  const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  const dialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   const input = dialog.getByPlaceholder("Ask a question…");
   await input.fill("Do I need to take my blood pressure again now?");
   await dialog.getByRole("button", { name: "Send question" }).click();
@@ -1399,7 +1401,8 @@ test("personal representative screens remain senior-friendly and clear of Emmi",
     await page.locator("#screen-select").selectOption(screenName, { force: true });
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     const layout = await page.locator(".representative-details-screen").evaluate(screen => {
-      const assistant = document.querySelector(".emmi-assistant").getBoundingClientRect();
+      const pill = document.querySelector(".emmi-assistant");
+      const assistant = pill.getClientRects().length ? pill.getBoundingClientRect() : new DOMRect(-1, -1, 0, 0);
       const protectedElements = [...screen.querySelectorAll(".field,.verified-phone-status,.check-row,.actions,.representative-otp-links")];
       const overlaps = protectedElements.filter(element => {
         const rect = element.getBoundingClientRect();
@@ -1455,7 +1458,7 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   expect(Math.min(...layout.descriptionFonts)).toBeGreaterThanOrEqual(16);
   expect(layout.noteFont).toBeGreaterThanOrEqual(15);
   await openEmmiConversation(page);
-  await expect(page.getByRole("heading", { name: "Hi, I’m EMMI. How can I help?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How can I help?" })).toBeVisible();
   await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
   await expect(page.getByText("What does ACCESS care include?")).toBeVisible();
   await expect(page.getByText("Will I keep seeing my doctor?")).toBeVisible();
@@ -1654,7 +1657,8 @@ test("landing human-support line stays compact, centered, and clear of the Care 
     await page.setViewportSize({ width, height: 844 });
     await page.goto("/?scenario=access-happy");
     await expect(page.locator(".contextual-assurance")).toHaveCount(0);
-    await expect(page.locator(".emmi-assistant")).toBeVisible();
+    await expect(page.locator(".emmi-welcome")).toBeVisible();
+    await expect(page.locator(".emmi-assistant")).toBeHidden();
     const contact = page.locator(".contact-line");
     await expect(contact).toHaveText("Need help? Call (305) 394-8070");
     await expect(contact.locator("a")).toHaveAttribute("href", "tel:+13053948070");
@@ -2141,26 +2145,27 @@ test("language switch exposes Spanish UI", async ({ page }) => {
 
 test("Emmi remains available throughout the patient experience", async ({ page }) => {
   await page.goto("/?scenario=ccm-happy");
-  const emmi = page.getByRole("button", { name: "Ask Emmi, Care Assistant" });
+  // Home introduces EMMI in her own card, so the corner stays empty: one EMMI, not two.
+  await expect(page.locator(".emmi-welcome")).toBeVisible();
+  const emmi = page.getByRole("button", { name: "Open EMMI" });
+  await expect(emmi).toBeHidden();
+
+  await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
+  const compactEmmi = page.locator(".emmi-guide");
+  await expect(compactEmmi).toBeVisible();
+  await expect(emmi).toBeHidden();
+
+  // Past the compact card — on a screen long enough to scroll it away — EMMI returns as a named
+  // pill the patient can move where they like.
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  expect(await revealFloatingEmmi(page)).not.toBeNull();
   await expect(emmi).toBeVisible();
   await expect(emmi.locator("img")).toHaveAttribute("src", "/assets/emmi-assistant.png");
-  const emmiSurface = await emmi.evaluate(button => {
-    const buttonStyle = getComputedStyle(button);
-    const avatarStyle = getComputedStyle(button.querySelector(".emmi-avatar"));
-    return {
-      buttonBackground: buttonStyle.backgroundColor,
-      buttonBorder: buttonStyle.borderTopWidth,
-      buttonRadius: buttonStyle.borderRadius,
-      avatarBackground: avatarStyle.backgroundColor,
-      avatarRadius: avatarStyle.borderRadius
-    };
-  });
-  expect(emmiSurface.buttonBackground).not.toBe("rgba(0, 0, 0, 0)");
-  expect(emmiSurface.buttonBorder).toBe("1px");
-  expect(emmiSurface.buttonRadius).toBe("99px");
-  expect(emmiSurface.avatarBackground).toBe("rgba(0, 0, 0, 0)");
-  expect(emmiSurface.avatarRadius).toBe("0px");
-  await expect(emmi.locator(".emmi-assistant-label")).toHaveText("EMMI");
+  // How the pill is drawn is covered by emmi-guidance.spec.js; what matters here is that EMMI is
+  // reachable, named for assistive technology, and still where the patient left her.
+  await expect(emmi).toHaveAccessibleName("Open EMMI");
+  expect((await emmi.boundingBox()).height).toBeGreaterThanOrEqual(48);
+
   const initial = await emmi.boundingBox();
   await page.mouse.move(initial.x + initial.width / 2, initial.y + initial.height / 2);
   await page.mouse.down();
@@ -2168,12 +2173,9 @@ test("Emmi remains available throughout the patient experience", async ({ page }
   await page.mouse.up();
   const moved = await emmi.boundingBox();
   expect(Math.abs(moved.x - initial.x)).toBeGreaterThan(80);
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
-  await page.reload();
-  const restored = await emmi.boundingBox();
-  expect(Math.abs(restored.x - moved.x)).toBeLessThan(4);
-  await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
-  const compactEmmi = page.locator(".emmi-guide");
+
+  // Ask EMMI from the compact card opens the same conversation.
+  await page.evaluate(() => window.scrollTo(0, 0));
   await expect(compactEmmi).toBeVisible();
   await expect(emmi).toBeHidden();
   await compactEmmi.getByRole("button", { name: "Ask EMMI" }).click();
@@ -2191,7 +2193,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   const progressBefore = await page.getByRole("progressbar", { name: "Journey progress" }).getAttribute("aria-valuenow");
 
   await openEmmiConversation(page);
-  const dialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  const dialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Ask me anything about your enrollment or care.")).toBeVisible();
   await expect(dialog.getByPlaceholder("Ask a question…")).toBeVisible();
@@ -2247,12 +2249,12 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
   await expect(acknowledgement).toBeChecked();
   await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", progressBefore);
-  await expect(page.getByRole("button", { name: "Ask Emmi, Care Assistant" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open EMMI" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await openEmmiConversation(page);
-  const consentDialog = page.getByRole("dialog", { name: "Hi, I’m EMMI. How can I help?" });
+  const consentDialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   await expect(consentDialog.getByText("What am I agreeing to?")).toBeVisible();
   await expect(consentDialog.getByText("Can I change my mind?")).toBeVisible();
   await expect(consentDialog.getByText("What will this cost?")).toBeVisible();
@@ -2497,23 +2499,40 @@ test("patient experience uses a centered 384px mobile shell on desktop and full 
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     const shell = page.locator(".patient-app-shell");
     await expect(shell).toBeVisible();
-    await expect(page.locator(".emmi-assistant")).toBeVisible();
+    // Home presents EMMI as her introduction card; whichever presentation is painted has to stay
+    // inside the patient shell rather than float over the desktop configurator.
+    await expect(page.locator(".emmi-welcome")).toBeVisible();
     const layout = await shell.evaluate(element => {
       const rect = element.getBoundingClientRect();
-      const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
+      const emmi = [...document.querySelectorAll(".emmi-assistant, .emmi-welcome, .emmi-guide")]
+        .filter(node => node.getClientRects().length)
+        .map(node => node.getBoundingClientRect());
       return {
         width: rect.width,
         centered: Math.abs((rect.left + rect.right) / 2 - innerWidth / 2) < 1,
         minHeight: rect.height,
         horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
-        emmiInside: Boolean(emmi && emmi.left >= rect.left && emmi.right <= rect.right)
+        emmiCount: emmi.length,
+        emmiInside: emmi.every(box => box.left >= rect.left - 1 && box.right <= rect.right + 1)
       };
     });
     expect(layout.width).toBeCloseTo(384, 0);
     expect(layout.centered).toBe(true);
     expect(layout.minHeight).toBeGreaterThanOrEqual(844);
     expect(layout.horizontalOverflow).toBe(false);
+    expect(layout.emmiCount, "one EMMI presentation at a time").toBe(1);
     expect(layout.emmiInside).toBe(true);
+
+    // Expanded EMMI is a sheet over the patient experience, not over the whole desktop app.
+    await openEmmiConversation(page);
+    const panel = await page.locator(".assistant-layer").evaluate(layer => {
+      const rect = layer.getBoundingClientRect();
+      const shellRect = document.querySelector(".patient-app-shell").getBoundingClientRect();
+      return { width: rect.width, insideShell: rect.left >= shellRect.left - 1 && rect.right <= shellRect.right + 1 };
+    });
+    expect(panel.width).toBeCloseTo(384, 0);
+    expect(panel.insideShell).toBe(true);
+    await page.locator(".assistant-close").click();
   }
 
   for (const viewport of [{ width: 375, height: 812 }, { width: 390, height: 844 }, { width: 393, height: 852 }, { width: 430, height: 932 }]) {
@@ -2522,14 +2541,16 @@ test("patient experience uses a centered 384px mobile shell on desktop and full 
     await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
     const layout = await page.locator(".patient-app-shell").evaluate(element => {
       const rect = element.getBoundingClientRect();
-      const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
+      const emmi = [...document.querySelectorAll(".emmi-assistant, .emmi-welcome, .emmi-guide")]
+        .filter(node => node.getClientRects().length)
+        .map(node => node.getBoundingClientRect());
       return {
         width: rect.width,
         viewportWidth: innerWidth,
         horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
         naturalPageScroll: document.documentElement.scrollHeight > innerHeight,
         shellHasInternalScroll: element.scrollHeight > element.clientHeight + 1,
-        emmiInside: Boolean(emmi && emmi.left >= rect.left && emmi.right <= rect.right)
+        emmiInside: emmi.length > 0 && emmi.every(box => box.left >= rect.left - 1 && box.right <= rect.right + 1)
       };
     });
     expect(layout.width).toBeCloseTo(layout.viewportWidth, 0);

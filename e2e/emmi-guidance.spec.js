@@ -150,6 +150,8 @@ test("shows persistent, accessible guidance controls after opt-in", async ({ pag
 });
 
 test("compact EMMI controls stay aligned and senior-friendly across journey mobile widths", async ({ page }) => {
+  // Seven viewports, each reloading the app and re-seeding preferences.
+  test.setTimeout(120000);
   for (const [width, height] of [[360, 800], [375, 812], [384, 824], [390, 844], [393, 852], [412, 915], [430, 932]]) {
     await page.setViewportSize({ width, height });
     await page.goto("/?scenario=access-happy");
