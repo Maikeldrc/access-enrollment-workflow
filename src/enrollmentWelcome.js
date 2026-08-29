@@ -15,6 +15,7 @@ const common = Object.freeze({
 
 const highlights = Object.freeze({
   stepByStep: Object.freeze({ icon: "check", title: T("Step-by-step support", "Apoyo paso a paso", "Sipò etap pa etap"), description: T("We’ll guide you as you get started.", "Le guiaremos mientras comienza.", "N ap gide w pandan w ap kòmanse.") }),
+  emmiAlongside: Object.freeze({ icon: "chat", title: T("EMMI is here along the way", "EMMI está aquí en todo el camino", "EMMI la avè w pandan tout wout la"), description: T("Ask questions, get guidance, and know what to do next whenever you need help.", "Haga preguntas, reciba orientación y sepa qué hacer después cuando necesite ayuda.", "Poze kesyon, jwenn gid, epi konnen kisa pou w fè apre lè ou bezwen èd.") }),
   connectedDoctors: Object.freeze({ icon: "people", title: T("Connected with your doctors", "Conectado con sus médicos", "Konekte ak doktè ou yo"), description: T("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", "ITERA HEALTH ayuda a mantener su cuidado coordinado con los médicos que ya consulta.", "ITERA HEALTH ede kenbe swen ou kowòdone avèk doktè ou deja wè yo.") }),
   monitoringStart: Object.freeze({ icon: "device", title: T("Help getting started", "Ayuda para comenzar", "Èd pou kòmanse"), description: T("We’ll guide you through setting up your monitoring.", "Le guiaremos durante la configuración de su monitoreo.", "N ap gide w pandan w ap mete siveyans ou an plas.") }),
   monitoringSupport: Object.freeze({ icon: "chart", title: T("Connected monitoring support", "Apoyo de monitoreo conectado", "Sipò siveyans konekte"), description: T("Your care team can securely review readings from home.", "Su equipo de cuidado puede revisar de forma segura sus mediciones desde casa.", "Ekip swen ou ka revize mezi ou pran lakay an sekirite.") }),
@@ -24,18 +25,18 @@ const highlights = Object.freeze({
 
 export const enrollmentWelcomeConfig = Object.freeze({
   ACCESS: Object.freeze({
-    title: T("Welcome to your ACCESS experience", "Bienvenido a su experiencia ACCESS", "Byenveni nan eksperyans ACCESS ou"),
-    supportingCopy: T("You’re starting a new care experience with extra support between doctor visits.", "Está comenzando una nueva experiencia de cuidado con apoyo adicional entre visitas al médico.", "W ap kòmanse yon nouvo eksperyans swen avèk plis sipò ant vizit kay doktè."),
-    supportHighlights: Object.freeze([highlights.stepByStep, highlights.connectedDoctors]),
-    // Prototype workflow value. It stays per-program rather than a global constant so a
-    // different program can state its own contact window (or none at all).
-    careTeamContactWindow: T("within 2 business days", "dentro de 2 días hábiles", "nan 2 jou ouvrab"),
+    title: T("Welcome to your ACCESS care", "Bienvenido a su cuidado ACCESS", "Byenveni nan swen ACCESS ou"),
+    supportingCopy: T("You’re now enrolled in ACCESS. Let’s get your care set up around your health and goals.", "Ya está inscrito en ACCESS. Vamos a configurar su cuidado en torno a su salud y sus metas.", "Kounye a ou enskri nan ACCESS. Ann mete swen ou an plas selon sante ou ak objektif ou."),
+    supportHighlights: Object.freeze([highlights.emmiAlongside, highlights.connectedDoctors]),
+    // Care activation, not a waiting list. The three steps are what the patient is about to do,
+    // in the order they will do it: get the monitor ready, choose goals, build the plan. A call
+    // from the care team still exists for exceptions and support, but it is not what happens next.
     nextSteps: Object.freeze([
-      T("Your care team will call you {careTeamContactWindow}", "Su equipo de cuidado le llamará {careTeamContactWindow}", "Ekip swen ou ap rele w {careTeamContactWindow}"),
-      T("We’ll review your personalized care plan", "Revisaremos su plan de cuidado personalizado", "N ap revize plan swen pèsonalize ou"),
-      T("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo")
+      Object.freeze({ icon: "device", title: T("Your blood pressure monitor", "Su monitor de presión arterial", "Aparèy tansyon ou"), description: T("We’ll get your connected monitor ready so you can track your blood pressure from home.", "Prepararemos su monitor conectado para que pueda controlar su presión arterial desde casa.", "N ap prepare aparèy konekte ou a pou ou ka swiv tansyon ou lakay ou.") }),
+      Object.freeze({ icon: "goals", title: T("Your health goals", "Sus metas de salud", "Objektif sante ou"), description: T("You’ll choose what matters most to you and what you want to work toward.", "Usted elegirá lo que más le importa y hacia qué quiere trabajar.", "Se ou k ap chwazi sa ki pi enpòtan pou ou ak sa ou vle travay pou li.") }),
+      Object.freeze({ icon: "plan", title: T("Your personalized care plan", "Su plan de cuidado personalizado", "Plan swen pèsonalize ou"), description: T("Your health information, goals, and next steps will come together in your ACCESS care plan.", "Su información de salud, sus metas y sus próximos pasos se reúnen en su plan de cuidado ACCESS.", "Enfòmasyon sante ou, objektif ou, ak pwochen etap ou yo ap vin ansanm nan plan swen ACCESS ou.") })
     ]),
-    emmiWelcome: T("Welcome. Your ACCESS enrollment is complete. I’ll stay with you as you get started with your care.", "Bienvenido. Su inscripción en ACCESS está completa. Seguiré con usted mientras comienza su cuidado.", "Byenveni. Enskripsyon ACCESS ou fini. M ap rete avè w pandan w ap kòmanse swen ou.")
+    emmiWelcome: T("Welcome. Your ACCESS enrollment is complete. Next we’ll set up your care: your monitor, your goals, and your care plan. I’ll be with you for all of it.", "Bienvenido. Su inscripción en ACCESS está completa. Ahora configuraremos su cuidado: su monitor, sus metas y su plan de cuidado. Estaré con usted en todo momento.", "Byenveni. Enskripsyon ACCESS ou fini. Kounye a n ap mete swen ou an plas: aparèy ou, objektif ou, ak plan swen ou. M ap la avè w pou tout sa.")
   }),
   CCM: Object.freeze({
     title: T("Welcome to your Chronic Care Management experience", "Bienvenido a su experiencia de Manejo de Cuidados Crónicos", "Byenveni nan eksperyans Jesyon Swen Kwonik ou"),

@@ -28,6 +28,8 @@ test("EMMI contextual mock tools, guardrails, confirmation, and audit work toget
   await ask(dialog, "Can you enroll me?");
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /I cannot consent for you/i })).toBeVisible();
 
+  // Human support sits behind one collapsed row now; the callback is inside it.
+  await dialog.getByRole("button", { name: /Need human help/ }).click();
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /Would you like me to ask/i })).toBeVisible();
   let logs = await page.evaluate(() => JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1")));
@@ -83,8 +85,9 @@ test("EMMI mobile visual states remain readable without horizontal overflow", as
     ["", "emmi-closed.png", "Talk to EMMI"],
     ["LISTENING", "emmi-listening.png", "Listening…"],
     ["USER_SPEAKING", "emmi-listening-active.png", "Listening…"],
-    ["EMMI_THINKING", "emmi-thinking.png", "EMMI is thinking…"],
-    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is explaining…"],
+    // One label vocabulary across every EMMI surface, from src/emmi/presentationState.js.
+    ["EMMI_THINKING", "emmi-thinking.png", "Thinking…"],
+    ["EMMI_SPEAKING", "emmi-speaking.png", "Speaking…"],
     ["TOOL_RUNNING", "emmi-tool-running.png", "Checking your ACCESS cost…"]
   ]) {
     await page.goto(`/?scenario=access-happy${state ? `&emmiState=${state}` : ""}`);

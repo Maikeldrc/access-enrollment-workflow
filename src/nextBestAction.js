@@ -5,22 +5,19 @@
 const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
 const LABELS = Object.freeze({
-  seeHowItWorks: T("See how it works", "Ver cómo funciona", "Gade kijan sa mache"),
+  startCareJourney: T("Start your care journey", "Comience su recorrido de cuidado", "Kòmanse pwosesis swen ou"),
   continue: T("Continue", "Continuar", "Kontinye"),
-  startHealthCheck: T("Start my health check", "Iniciar mi evaluación de salud", "Kòmanse chèk sante mwen"),
   setUpMyCare: T("Set up my care", "Configurar mi cuidado", "Mete swen mwen an plas"),
   continueGettingStarted: T("Continue getting started", "Continuar los primeros pasos", "Kontinye premye etap yo"),
   setUpMyMonitor: T("Set up my monitor", "Configurar mi monitor", "Mete monitè mwen an plas"),
   getMyMonitor: T("Get my monitor", "Obtener mi monitor", "Jwenn monitè mwen"),
   takeFirstReading: T("Take my first reading", "Tomar mi primera medición", "Pran premye mezi mwen")
 });
-// Screens whose CTA belongs to the screen rather than to the programme. The confirmation screen is
-// not one of them: it hands the patient to their own programme, so its CTA has to be the
-// programme's own next step. Naming it here made every non-ACCESS programme read "Start my health
-// check" under a heading that already said "Ready to set up your care?", while still routing to
-// care or device setup.
-const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.seeHowItWorks, actionType: "LEARN_MORE" } });
-const PROGRAM_LED_SCREENS = Object.freeze(["ENROLLMENT_CONFIRMED"]);
+const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.startCareJourney, actionType: "LEARN_MORE" } });
+// Screens whose next step belongs to the program rather than to the screen. Enrollment complete is
+// the one: an RPM patient sets up a monitor and an ACCESS patient sets up their care, each with its
+// own action type, so it must reach the program resolver instead of the generic "Continue".
+const PROGRAM_RESOLVED_SCREENS = new Set(["ENROLLMENT_CONFIRMED"]);
 
 // A device is only "already with the patient" when ITERA assigned one or the patient told us
 // they own one. Anything else means the monitor still has to be arranged.
@@ -41,7 +38,7 @@ function monitoringAction(context) {
 }
 
 const PROGRAM_ACTIONS = Object.freeze({
-  ACCESS: () => ({ label: LABELS.startHealthCheck, route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" }),
+  ACCESS: () => ({ label: LABELS.setUpMyCare, route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" }),
   CCM: () => ({ label: LABELS.setUpMyCare, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   PCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   APCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),
@@ -54,16 +51,10 @@ const PROGRAM_ACTIONS = Object.freeze({
 });
 
 export function resolveNextBestAction(context = {}) {
-  const programAction = () => (PROGRAM_ACTIONS[context.pathway] || PROGRAM_ACTIONS.CCM)(context);
-  // The route still comes from the journey the patient is actually on; only the words are the
-  // programme's to choose.
-  if (PROGRAM_LED_SCREENS.includes(context.currentScreen)) {
-    const action = programAction();
-    return { ...action, route: context.nextRoute || action.route };
-  }
   if (context.currentScreen && SCREEN_ACTIONS[context.currentScreen]) return { ...SCREEN_ACTIONS[context.currentScreen], route: context.nextRoute || context.currentScreen };
-  if (context.currentScreen && context.nextRoute) return { label: LABELS.continue, route: context.nextRoute, actionType: "CONTINUE_CURRENT_JOURNEY" };
-  return programAction();
+  if (context.currentScreen && context.nextRoute && !PROGRAM_RESOLVED_SCREENS.has(context.currentScreen)) return { label: LABELS.continue, route: context.nextRoute, actionType: "CONTINUE_CURRENT_JOURNEY" };
+  const resolve = PROGRAM_ACTIONS[context.pathway] || PROGRAM_ACTIONS.CCM;
+  return resolve(context);
 }
 
 export { LABELS as NEXT_BEST_ACTION_LABELS };

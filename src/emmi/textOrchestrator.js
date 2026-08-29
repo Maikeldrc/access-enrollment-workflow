@@ -9,7 +9,12 @@ const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] ||
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
 
-const SCREEN_HELP = /what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
+// "Why do you need this?" is a question about the screen the patient is looking at, answered by
+// that screen's own explanation. It is deliberately narrow in two directions: asking why the
+// invitation *arrived* is INVITATION_SOURCE below, and asking why something on a record is held
+// — "why do you need my medications" — is a question about that content, not about the screen.
+// So the object has to be the screen itself or the verification it is asking for.
+const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to verify|my (zip|postal|date of birth|birth ?date|identity|information|info))|why are you asking (me )?(for )?(this|that|my (zip|postal|date of birth|birth ?date))|why do i (have to|need to) (give|provide|share|enter) (this|that|my (zip|postal|date of birth|birth ?date))|por qu[eé] (necesitan|necesita|piden|pide) (esto|eso|verificar|mi (c[oó]digo postal|fecha de nacimiento|identidad|informaci[oó]n))|para qu[eé] (necesitan|necesita) (esto|eso|mi (c[oó]digo postal|fecha de nacimiento))|poukisa (ou|nou) bezwen (sa|k[oò]d postal|dat nesans|verifye)|poukisa w ap mande (sa|k[oò]d postal|dat nesans)|what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
 // Phones and speech transcription produce a typographic apostrophe. Every gate below is written
 // with a straight one, so "I can’t breathe" used to fall past the safety gate entirely. The
 // patterns are matched against a folded copy of the question; the patient's own text is
@@ -21,8 +26,10 @@ const SAFETY = { test: detectEmergencyLanguage };
 const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
 // Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
-const COST = /\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
-const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|soy elegible|califico|mi elegibilidad|mwen kalifye|kalifikasyon mwen/i;
+// A question that quotes an amount is a question about money in any language, and "why does it say
+// $0" is the most likely thing a patient asks on the consent screen.
+const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
+const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)/i;
 const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
@@ -30,7 +37,14 @@ const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressu
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
-const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|dokt[eè] mwen/i;
+// Asking whether the doctor stays involved is the same question as asking who the doctor is: both
+// are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
+// rather than replacing them. Naming the physician in the question is the most natural way to ask it.
+const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see my doctor|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|dokt[eè] mwen|toujou (patisipe|enplike)/i;
+// The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
+// which asks whether that doctor stays involved, and from eligibility, which asks whether the
+// patient qualifies. Answering it means repeating the referral facts and adding nothing.
+const INVITATION_SOURCE = /who (invited|referred|sent)|who is this from|why (am i|did i) (receiving|receive|get|getting)|why was i (invited|referred)|how did you get my|qui[eé]n me (invit[oó]|refiri[oó]|envi[oó])|de qui[eé]n es esta invitaci[oó]n|por qu[eé] (recib[ií]|estoy recibiendo|me lleg[oó])|ki moun ki (envite|refere|voye) m|poukisa m (ap resevwa|resevwa|jwenn)/i;
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
@@ -264,6 +278,24 @@ const unavailable = locale => pick(locale, {
   ES: "No tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
   KR: "Mwen pa gen ase enfòmasyon apwouve pou reponn sa san danje. Mwen ka ede w kontakte ekip swen ou."
 });
+// Built only from the referral facts already in the runtime context. No reason, no date, no
+// practice, no diagnosis: the patient is told who invited them and what they were invited to look
+// at, and is reminded that looking is not enrolling.
+const invitationSourceAnswer = (enrollment = {}, locale) => {
+  const physician = enrollment.physicianDisplayName || "";
+  const program = enrollment.program || "ACCESS";
+  const referred = Boolean(physician) && /referral/i.test(String(enrollment.enrollmentSource || ""));
+  if (referred) return pick(locale, {
+    EN: `${physician}’s care team invited you to learn about ${program} care. Looking is voluntary, and you have not enrolled in anything yet.`,
+    ES: `El equipo de ${physician} le invitó a conocer el cuidado ${program}. Informarse es voluntario y todavía no se ha inscrito en nada.`,
+    KR: `Ekip swen ${physician} envite w aprann sou swen ${program}. Gade li se volontè, epi ou poko enskri nan anyen.`
+  });
+  return pick(locale, {
+    EN: `ITERA HEALTH invited you to learn about ${program} care. Looking is voluntary, and you have not enrolled in anything yet.`,
+    ES: `ITERA HEALTH le invitó a conocer el cuidado ${program}. Informarse es voluntario y todavía no se ha inscrito en nada.`,
+    KR: `ITERA HEALTH envite w aprann sou swen ${program}. Gade li se volontè, epi ou poko enskri nan anyen.`
+  });
+};
 const retrievalUnavailable = locale => pick(locale, {
   EN: "I can’t look up that information right now. You can try again, or I can help you contact your care team.",
   ES: "Ahora mismo no puedo consultar esa información. Puede intentar de nuevo o puedo ayudarle a comunicarse con su equipo de atención.",
@@ -420,6 +452,11 @@ const runtimeAnswer = ({ tool, result, locale, context }) => {
     return `${medicare}${supplement}`;
   }
   if (tool === "getEnrollmentContext") {
+    if (result.enrollmentComplete || result.enrollmentStatus === "COMPLETED") return pick(locale, {
+      EN: "Your ACCESS enrollment is complete.",
+      ES: "Su inscripción en ACCESS está completa.",
+      KR: "Enskripsyon ACCESS ou konplè."
+    });
     const eligible = result.eligibilityStatus === "ELIGIBLE";
     return eligible ? pick(locale, { EN: "Your current ACCESS eligibility result shows that you can continue. You are not enrolled until you review the information and agree.", ES: "Su resultado actual de elegibilidad para ACCESS indica que puede continuar. No estará inscrito hasta que revise la información y acepte.", KR: "Rezilta kalifikasyon ACCESS ou montre ou ka kontinye. Ou poko enskri jiskaske ou revize enfòmasyon yo epi dakò." })
       : pick(locale, { EN: "I can’t confirm that you are eligible right now. Your Medicare benefits and regular care do not change because of this check.", ES: "Ahora mismo no puedo confirmar que sea elegible. Sus beneficios de Medicare y su cuidado habitual no cambian por esta verificación.", KR: "Mwen pa ka konfime ou kalifye kounye a. Benefis Medicare ou ak swen nòmal ou pa chanje akoz verifikasyon sa a." });
@@ -508,6 +545,19 @@ export class EmmiTextOrchestrator {
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
       return { text: this.screenExplanation(context.currentScreen), trace };
+    }
+    // "Who invited me?" is a question about the invitation, and it is checked before the care-team
+    // and support routes, which would otherwise read it as a request to be called back.
+    if (INVITATION_SOURCE.test(asked)) {
+      trace.intent = "INVITATION_SOURCE"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getEnrollmentContext");
+      try {
+        const enrollment = await this.executeTool("getEnrollmentContext", { patientId: context.patientId });
+        trace.runtimeFactsUsed.push("getEnrollmentContext"); emit("EMMI_ANSWER_ROUTED");
+        return { text: invitationSourceAnswer(enrollment, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getEnrollmentContext", error: error?.message || "unknown" });
+        return { text: unavailable(locale), trace };
+      }
     }
     // Wanting to reach the clinical team is an action, not a question. Tapping the quick question
     // already goes to the support options; this is the same request typed or spoken. It is checked

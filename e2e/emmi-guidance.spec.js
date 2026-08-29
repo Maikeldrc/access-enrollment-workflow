@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 test("introduces EMMI compactly with voice off by default and preserves opt-out", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Hi, I’m EMMI." })).toBeVisible();
-  await expect(page.getByText(/guide you through each step and answer questions/i)).toBeVisible();
+  await expect(page.getByText(/understand your health information, guide you through each step/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
   await expect(page.getByText("Voice guidance is on", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Repeat$/i })).toHaveCount(0);
@@ -71,7 +71,7 @@ test("Home presents connection setup as Thinking instead of technical copy", asy
 test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", async ({ page }) => {
   await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   const status = page.locator(".emmi-guide-copy span");
   await expect(status).toHaveText("Voice guidance is on");
@@ -92,7 +92,7 @@ test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", 
   const assistant = page.locator(".assistant-layer");
   await expect(assistant).toContainText("Kijan mwen ka ede w?");
   await expect(assistant).not.toContainText("Bonjou, mwen se EMMI");
-  await expect(assistant).toContainText("Mande m nenpòt bagay sou enskripsyon oswa swen ou.");
+  await expect(assistant).toContainText("Mwen ka ede w konprann swen ACCESS ou");
   await expect(assistant).not.toContainText("Ask me anything");
 });
 
@@ -127,7 +127,7 @@ test("voice activation and its controls stay in the language the patient selecte
 test("shows persistent, accessible guidance controls after opt-in", async ({ page }) => {
   await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   const controls = page.locator(".emmi-guide");
   await expect(controls).toBeVisible();
@@ -180,7 +180,7 @@ test("compact EMMI controls stay aligned and senior-friendly across journey mobi
       localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true }));
     });
     await page.reload();
-    await page.getByRole("button", { name: /See how it works/i }).click();
+    await page.getByRole("button", { name: /Start your care journey/i }).click();
     const bar = page.locator(".emmi-guide");
     // The bar re-renders on its own frame after the resize; measure the settled one.
     await settleLayout(page);
@@ -225,13 +225,13 @@ test("Enrollment Complete keeps the compact EMMI bar secondary to the success co
 
 test("Care Circle stays optional support and is scoped to patients completing for themselves", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   const optionalSupport = page.locator("[data-optional-support]");
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await expect(optionalSupport).toBeVisible();
   await expect(optionalSupport).toContainText("Optional support");
-  await expect(optionalSupport).toContainText("Invite someone you trust to help you through this process.");
+  await expect(optionalSupport).toContainText("Invite someone you trust to support you during your care journey.");
   await expect(optionalSupport).not.toContainText("Not now");
   await expect(optionalSupport.locator("input[type='radio']")).toHaveCount(0);
 
@@ -269,7 +269,7 @@ test("uses the Direct Outreach welcome without inventing physician involvement",
     localStorage.removeItem("itera.emmi.preferences.v1");
   });
   await page.reload();
-  await expect(page.getByText(/guide you through each step and answer questions/i)).toBeVisible();
+  await expect(page.getByText(/understand your health information, guide you through each step/i)).toBeVisible();
   await expect(page.locator(".emmi-welcome")).not.toContainText("Dr. Fresner");
 });
 
@@ -292,7 +292,7 @@ test("EMMI actions are real buttons rather than underlined links", async ({ page
     // A draft left by an earlier test would restore a later screen instead of Home.
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await page.getByRole("button", { name: /See how it works/i }).click();
+    await page.getByRole("button", { name: /Start your care journey/i }).click();
     await page.locator('[data-action="language"]').first().click();
 
     const card = page.locator(".emmi-guide-off");
@@ -446,7 +446,7 @@ test("the floating pill never covers the screen's own actions", async ({ page })
 
 test("voice options is offered only when there is voice guidance to adjust", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   // Voice off: the patient is offered the conversation and the voice, never voice settings.
   const compact = page.locator(".emmi-guide");
@@ -467,11 +467,20 @@ test("compact EMMI stays readable and untruncated at 125% and 150% text scaling"
   await page.setViewportSize({ width: 384, height: 824 });
   await enableVoiceGuidance(page);
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   for (const scale of [1, 1.25, 1.5]) {
     await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
-    // The guide re-renders whenever the voice state moves, so measure a settled bar.
+    // The guide re-renders whenever the voice state moves, so measure a settled bar. Waiting for
+    // the first button to be visible is not enough: under parallel load this caught the bar
+    // mid-render and measured a button at zero height. Wait for two frames to report the same
+    // non-zero geometry, so the numbers below are the bar the patient actually sees.
     await expect(page.locator(".emmi-guide-actions button").first()).toBeVisible();
+    await page.waitForFunction(() => {
+      const heights = [...document.querySelectorAll(".emmi-guide-actions button")].map(button => Math.round(button.getBoundingClientRect().height));
+      const previous = window.__guideBarHeights;
+      window.__guideBarHeights = heights.join(",");
+      return heights.length > 0 && heights.every(height => height > 0) && previous === window.__guideBarHeights;
+    }, null, { timeout: 5000 });
     const audit = await page.locator(".emmi-guide").evaluate(node => {
       const buttons = [...node.querySelectorAll(".emmi-guide-actions button")];
       return {
@@ -494,7 +503,7 @@ test("compact EMMI stays readable and untruncated at 125% and 150% text scaling"
 test("idle EMMI does not animate and reduced motion silences the speaking cue", async ({ page }) => {
   await enableVoiceGuidance(page);
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   const idleAnimations = await page.locator(".emmi-guide").evaluate(node =>
     [node, ...node.querySelectorAll("*")].map(element => getComputedStyle(element).animationName).filter(name => name && name !== "none"));
   expect(idleAnimations).toEqual([]);
@@ -624,7 +633,7 @@ test("Talk with my care team takes the patient to the human support options", as
   // Wanting to reach a person is a request, not a question: it goes to the options rather than
   // producing an answer that tells the patient to look further down the panel.
   await expect(support).toBeInViewport();
-  await expect(support.getByRole("link", { name: /Talk to our care team/ })).toBeVisible();
+  await expect(support.getByRole("link", { name: /Call our care team/ })).toBeVisible();
   await expect(support.getByRole("button", { name: /Have someone call me/ })).toBeVisible();
   await expect(page.locator(".assistant-message")).toHaveCount(0);
   // Focus lands on the section so a screen reader hears the heading rather than staying where

@@ -27,7 +27,7 @@ test("Home introduces EMMI once: the card is on screen and the floating pill is 
   await expect(intro).toBeVisible();
   await expect(intro.getByRole("heading", { name: "Hi, I’m EMMI." })).toBeVisible();
   await expect(intro.getByText("Your ITERA Care Assistant")).toBeVisible();
-  await expect(intro.getByText(/guide you through each step and answer questions/i)).toBeVisible();
+  await expect(intro.getByText(/understand your health information, guide you through each step/i)).toBeVisible();
   await expect(intro.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
 
   // The duplicate robot in the corner is gone while EMMI is introducing herself.
@@ -111,7 +111,7 @@ test("opening EMMI is an overlay, and closing it restores the screen exactly", a
 
 test("the conversation, the screen state and the enrollment survive opening and closing EMMI", async ({ page }) => {
   await startHome(page);
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await page.locator('.choice-card:has(input[value="helper"])').click();
 
@@ -136,7 +136,7 @@ test("the conversation, the screen state and the enrollment survive opening and 
 
 test("voice guidance turned on at Home is still on when EMMI is expanded later", async ({ page }) => {
   await startHome(page, { voice: true });
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   const panel = await openEmmiConversation(page);
   // The panel reports the voice the patient already has instead of offering to start it again.
@@ -160,7 +160,7 @@ test("the expanded panel offers one way into the conversation, not two competing
   expect(await panel.locator("img[src*='emmi-assistant']").count()).toBe(1);
 
   const layout = await panel.evaluate(layer => {
-    const send = layer.querySelector(".assistant-question-form button");
+    const send = layer.querySelector(".assistant-send");
     const close = layer.querySelector(".assistant-close");
     const talk = layer.querySelector(".assistant-talk-button");
     const quick = [...layer.querySelectorAll(".assistant-quick button")];
@@ -182,8 +182,10 @@ test("the expanded panel offers one way into the conversation, not two competing
   expect(layout.quickMinFont).toBeGreaterThanOrEqual(17);
   expect(layout.quickClipped).toBe(false);
 
-  // Human support stays one tap away, on a real phone number.
-  await expect(panel.getByRole("link", { name: /Talk to our care team/ })).toHaveAttribute("href", "tel:+13053948070");
+  // Human support stays one tap away, on a real phone number — behind a single collapsed row so it
+  // never competes with the conversation for the screen.
+  await panel.getByRole("button", { name: /Need human help/ }).click();
+  await expect(panel.getByRole("link", { name: /Call our care team/ })).toHaveAttribute("href", "tel:+13053948070");
   await expect(panel.getByText("(305) 394-8070")).toBeVisible();
 });
 
@@ -191,21 +193,20 @@ test("quick questions come from the screen the patient is on", async ({ page }) 
   await startHome(page);
   const home = await openEmmiConversation(page);
   await expect(home.getByRole("button", { name: "What is ACCESS?" })).toBeVisible();
-  await expect(home.getByRole("button", { name: "Do I have to enroll?" })).toBeVisible();
-  await expect(home.getByRole("button", { name: "Talk with someone" })).toBeVisible();
+  await expect(home.getByRole("button", { name: "How can this help me?" })).toBeVisible();
   await home.locator(".assistant-close").click();
 
   await page.locator("#screen-select").selectOption("ACCESS_ELIGIBILITY_RESULT", { force: true });
   const eligibility = await openEmmiConversation(page);
-  await expect(eligibility.getByRole("button", { name: "What is Medicare checking?" })).toBeVisible();
-  await expect(eligibility.getByRole("button", { name: "Do I have to enroll?" })).toHaveCount(0);
+  await expect(eligibility.getByRole("button", { name: "Am I enrolled yet?" })).toBeVisible();
+  await expect(eligibility.getByRole("button", { name: "What is ACCESS?" })).toHaveCount(0);
   await eligibility.locator(".assistant-close").click();
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   const consent = await openEmmiConversation(page);
-  await expect(consent.getByRole("button", { name: "What am I agreeing to?" })).toBeVisible();
-  await expect(consent.getByRole("button", { name: "Can I change my mind?" })).toBeVisible();
-  await expect(consent.getByRole("button", { name: "What is Medicare checking?" })).toHaveCount(0);
+  await expect(consent.getByRole("button", { name: "Why is my expected payment $0?" })).toBeVisible();
+  await expect(consent.getByRole("button", { name: "Can I change my mind later?" })).toBeVisible();
+  await expect(consent.getByRole("button", { name: "Am I enrolled yet?" })).toHaveCount(0);
 });
 
 test("a quick question is asked through the same conversation as anything typed", async ({ page }) => {
@@ -274,16 +275,17 @@ test("the language switch inside EMMI moves the whole experience without restart
   await expect(panel.locator(".assistant-message.user")).toHaveCount(1);
 
   await panel.locator('[data-assistant-action="language"]').click();
-  await expect(panel.getByRole("heading", { name: "¿Cómo puedo ayudarle?" })).toBeVisible();
   await expect(panel.getByPlaceholder("Haga una pregunta…")).toBeVisible();
+  await expect(panel.getByRole("button", { name: /Necesita ayuda de una persona/ })).toBeVisible();
   // The conversation is still there: switching language is not a new EMMI.
+  await expect(panel).toHaveAttribute("data-assistant-mode", "conversation");
   await expect(panel.locator(".assistant-message.user")).toHaveCount(1);
-  await expect(panel.getByRole("button", { name: "¿Qué es ACCESS?" })).toBeVisible();
+  await expect(panel.locator(".assistant-message.user")).toContainText("What is ACCESS?");
 });
 
 test("Back closes EMMI instead of walking the patient out of enrollment", async ({ page }) => {
   await startHome(page);
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
 
   await openEmmiConversation(page);

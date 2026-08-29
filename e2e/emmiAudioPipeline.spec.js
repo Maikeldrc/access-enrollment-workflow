@@ -39,7 +39,21 @@ async function startVoice(page) {
   await expect.poll(() => audit(page).then(value => value.workletNodes), { timeout: 15000 }).toBeGreaterThan(0);
 }
 
-test.beforeEach(async ({ page, context }) => {
+// Every test here needs a live voice session, and the token route cannot mint one without
+// GEMINI_API_KEY. That key lives in .env, which is gitignored, so a git worktree never has one and
+// no commit can make these pass there. Left alone they each spend fifteen seconds timing out on a
+// worklet that was never going to be built, which reads as four broken tests rather than four
+// tests this checkout cannot run. The probe matches the specific reason: the same route also
+// returns 503 for a locale with no voice, and that one is a real failure worth seeing.
+const voiceSessionAvailable = async request => {
+  const response = await request.post("/api/emmi/live-token", { data: { locale: "EN" }, failOnStatusCode: false });
+  if (response.ok()) return true;
+  const body = await response.text().catch(() => "");
+  return !body.includes("gemini_not_configured");
+};
+
+test.beforeEach(async ({ page, context, request }) => {
+  test.skip(!(await voiceSessionAvailable(request)), "EMMI voice needs GEMINI_API_KEY; this checkout has no .env");
   await context.grantPermissions(["microphone"]);
   await instrumentAudio(page);
   await page.goto("/?scenario=access-happy");

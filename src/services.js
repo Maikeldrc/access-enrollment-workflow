@@ -2,6 +2,11 @@ import { BP_FULFILLMENT_DEVICE_MODELS, createOffer, createPrototypeOffer } from 
 import { serializeAppointmentDraft, serializeAppointmentForDraft } from "./appointments.js";
 
 const wait = (ms = 650) => new Promise(resolve => setTimeout(resolve, ms));
+// The identity form submits MM / DD / YYYY; the invitation stores an ISO date.
+const typedIsoDate = value => {
+  const match = /^(\d{2})\s*\/\s*(\d{2})\s*\/\s*(\d{4})$/.exec(String(value || "").trim());
+  return match ? `${match[3]}-${match[1]}-${match[2]}` : "";
+};
 const tx = prefix => `${prefix}_${Date.now().toString(36)}`;
 export const AUTHORITY_VERIFICATION_METHODS = Object.freeze(["SELF_ATTESTATION", "EHR_MATCH", "DOCUMENT", "HUMAN_REVIEW"]);
 
@@ -9,7 +14,18 @@ export class MockEnrollmentService {
   constructor(scenarioId, prototypeConfig = null) { this.scenarioId = scenarioId; this.prototypeConfig = prototypeConfig; this.eligibilityRequests = new Map(); this.representativeOtp = null; this.lastRepresentativeOtpSentAt = 0; this.bpReadingAttempts = new Map(); this.bpObservationStore = new Map(); }
   offer() { return this.prototypeConfig ? createPrototypeOffer(this.prototypeConfig) : createOffer(this.scenarioId); }
   async getOffer() { await wait(350); const offer = this.offer(); if (offer.fixture.tokenState) throw new Error(offer.fixture.tokenState); return offer; }
-  async verifyIdentity(input) { await wait(); return this.offer().fixture.identityFailure || input.zip !== "33176" ? { verified: false, remainingAttempts: 2 } : { verified: true, verificationId: tx("verify") }; }
+  // Verification is the invitation matching the person in front of it: the offer already knows who
+  // it was issued to, and the submitted date of birth and ZIP are checked against that, not against
+  // a literal living in this service. A date that is merely well-formed is not a match.
+  async verifyIdentity(input) {
+    await wait();
+    const offer = this.offer();
+    const expected = offer.patient?.identityMatch || {};
+    const submittedDate = typedIsoDate(input.dob);
+    const matches = Boolean(expected.zip) && input.zip === expected.zip
+      && Boolean(expected.dobIso) && submittedDate === expected.dobIso;
+    return offer.fixture.identityFailure || !matches ? { verified: false, remainingAttempts: 2 } : { verified: true, verificationId: tx("verify") };
+  }
   async sendRepresentativeOtp(phone) {
     const now = Date.now();
     const retryAfterSeconds = Math.max(0, 30 - Math.floor((now - this.lastRepresentativeOtpSentAt) / 1000));

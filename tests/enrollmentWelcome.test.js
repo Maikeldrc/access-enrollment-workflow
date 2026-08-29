@@ -18,20 +18,28 @@ describe("shared enrollment welcome configuration", () => {
         expect(highlight.icon).toBeTruthy();
         for (const entry of [highlight.title, highlight.description]) for (const value of localized(entry)) expect(value).toBeTruthy();
       }
-      for (const entry of [config.supportingCopy, config.emmiWelcome, ...config.nextSteps]) {
+      const stepCopy = config.nextSteps.flatMap(step => step.title ? [step.title, step.description] : [step]);
+      for (const entry of [config.supportingCopy, config.emmiWelcome, ...stepCopy]) {
         for (const value of localized(entry)) expect(value).toBeTruthy();
       }
       if (!config.useProgramDisplayName) for (const value of localized(config.title)) expect(value).toBeTruthy();
     }
   });
 
-  it("keeps the care team contact window configurable per program", () => {
-    expect(enrollmentWelcomeConfig.ACCESS.nextSteps[0].en).toContain("{careTeamContactWindow}");
-    for (const value of localized(enrollmentWelcomeConfig.ACCESS.careTeamContactWindow)) expect(value).toBeTruthy();
-    // Other programs make no contact-window promise, so none is hardcoded for them.
-    for (const program of programs.filter(name => name !== "ACCESS")) {
-      expect(enrollmentWelcomeFor(program).careTeamContactWindow).toBeUndefined();
-      for (const step of enrollmentWelcomeFor(program).nextSteps) expect(step.en).not.toContain("business days");
+  it("promises no call as the next step, and offers ACCESS care activation instead", () => {
+    // ACCESS used to open with "your care team will call you within 2 business days". The patient
+    // can continue on their own now, so neither the promise nor the window it templated remain.
+    expect(enrollmentWelcomeConfig.ACCESS.careTeamContactWindow).toBeUndefined();
+    expect(enrollmentWelcomeConfig.ACCESS.nextSteps.map(step => step.title.en)).toEqual([
+      "Your blood pressure monitor",
+      "Your health goals",
+      "Your personalized care plan"
+    ]);
+    for (const program of programs) {
+      for (const step of enrollmentWelcomeFor(program).nextSteps) {
+        const text = step.title ? `${step.title.en} ${step.description.en}` : step.en;
+        expect(text, `${program} next step`).not.toContain("business days");
+      }
     }
   });
 
@@ -58,9 +66,11 @@ describe("shared enrollment welcome configuration", () => {
 });
 
 describe("next best action", () => {
-  it("sends ACCESS to the health check and care programs to care setup", () => {
+  it("sends ACCESS to care activation and care programs to care setup", () => {
+    // The route is unchanged; only what it is called to the patient. After enrollment the next
+    // thing is care activation, not another questionnaire.
     expect(resolveNextBestAction({ pathway: "ACCESS" })).toMatchObject({ route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" });
-    expect(resolveNextBestAction({ pathway: "ACCESS" }).label.en).toBe("Start my health check");
+    expect(resolveNextBestAction({ pathway: "ACCESS" }).label.en).toBe("Set up my care");
     expect(resolveNextBestAction({ pathway: "CCM" })).toMatchObject({ route: "ONBOARDING", actionType: "CARE_SETUP" });
     expect(resolveNextBestAction({ pathway: "CCM" }).label.en).toBe("Set up my care");
     for (const program of ["PCM", "ASM", "APCM"]) {
@@ -87,13 +97,13 @@ describe("next best action", () => {
     }
   });
 
-  // The app never calls this without a screen, and naming ENROLLMENT_CONFIRMED at screen level once
-  // made every non-ACCESS programme say "Start my health check" under a heading that already read
-  // "Ready to set up your care?". Every case above went on passing, because none of them passed a
-  // screen. These do.
+  // The app never calls this without a screen, and every case above passes none, so none of them
+  // takes the branch the app takes. Naming ENROLLMENT_CONFIRMED at screen level once gave every
+  // programme one fixed call to action under a heading that said something else. These cases hold
+  // the screen to the programme's own next step, whatever that programme decides to call it.
   it("lets the programme name the step on the confirmation screen, whatever the screen is called", () => {
     const onConfirmation = (pathway, nextRoute) => resolveNextBestAction({ pathway, currentScreen: "ENROLLMENT_CONFIRMED", nextRoute });
-    expect(onConfirmation("ACCESS", "ACCESS_BASELINE").label.en).toBe("Start my health check");
+    expect(onConfirmation("ACCESS", "ACCESS_BASELINE").label.en).toBe("Set up my care");
     expect(onConfirmation("CCM", "ONBOARDING").label.en).toBe("Set up my care");
     expect(onConfirmation("RPM", "RPM_DEVICE_PATH").label.en).toBe("Set up my monitor");
     for (const program of ["PCM", "ASM", "APCM", "CCM_RPM", "PCM_RPM"]) {
@@ -107,7 +117,7 @@ describe("next best action", () => {
   it("still lets a screen own its own call to action where that is the point", () => {
     const home = resolveNextBestAction({ pathway: "CCM", currentScreen: "INVITATION", nextRoute: "DECISION_MAKER" });
     expect(home).toMatchObject({ actionType: "LEARN_MORE", route: "DECISION_MAKER" });
-    expect(home.label.en).toBe("See how it works");
+    expect(home.label.en).toBe("Start your care journey");
   });
 
   it("localizes every action label", () => {

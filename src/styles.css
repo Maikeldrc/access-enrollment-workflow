@@ -161,6 +161,12 @@ p { margin:0; }
 .invitation-benefit .icon { width:48px;height:48px;border-radius:50%;background:linear-gradient(145deg,#f1eeff,#e7e2ff); }
 .invitation-benefit .icon svg { width:26px;height:26px;stroke-width:1.7; }
 .invitation-benefit strong { color:var(--navy);font-size:1rem;font-weight:600; }
+/* Voluntariness sits below the three things ACCESS offers, not among them: it is a condition of
+   the offer rather than a fourth benefit. Smaller type, muted colour and a small inline mark keep
+   it plainly readable and plainly subordinate. */
+.invitation-voluntary { display:flex;gap:8px;align-items:center;width:100%;margin:14px 0 0;color:var(--text-muted);font-size:15px;font-weight:500;line-height:1.45;text-align:left; }
+.invitation-voluntary .icon.voluntary-mark { width:24px;height:24px;border-radius:50%;background:transparent; }
+.invitation-voluntary .icon.voluntary-mark svg { width:19px;height:19px;stroke-width:1.7; }
 .screen:has(.invitation-stage) .actions { width:100%;padding-top:12px; }
 .screen:has(.invitation-stage) .button.primary { min-height:58px;font-size:1.08rem;letter-spacing:.01em; }
 .screen:has(.invitation-stage) .contact-line { margin-top:12px;color:#273053;font-size:.9rem; }
@@ -1026,7 +1032,7 @@ p { margin:0; }
 .optional-support-action .icon svg { width:15px;height:15px; }
 .optional-support-card:hover { border-color:var(--primary-300);background:var(--surface-primary); }
 .optional-support-card:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
-.assistant-layer { position:fixed;z-index:40;inset:0 auto 0 50%;display:flex;flex-direction:column;width:var(--patient-shell-width);max-width:100%;color:var(--text-primary);background:var(--surface-secondary);box-shadow:0 0 30px rgba(7,23,68,.12);transform:translateX(-50%);overflow-y:auto;overscroll-behavior:contain; }
+.assistant-layer { position:fixed;z-index:40;inset:0 auto 0 50%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:var(--patient-shell-width);max-width:100%;color:var(--text-primary);background:var(--surface-secondary);box-shadow:0 0 30px rgba(7,23,68,.12);transform:translateX(-50%);overflow:hidden;overscroll-behavior:contain; }
 .assistant-header { position:sticky;z-index:2;top:0;display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;min-height:70px;padding:10px 18px;border-bottom:1px solid var(--border-default);background:rgba(248,251,255,.96);backdrop-filter:blur(12px); }
 .assistant-identity { min-width:0; }
 .assistant-identity strong,.assistant-identity small { display:block; }
@@ -1035,7 +1041,27 @@ p { margin:0; }
 .assistant-header .language { min-width:44px;min-height:44px;padding:0 4px; }
 .assistant-close { display:grid;place-items:center;width:48px;height:48px;padding:0;border:0;border-radius:50%;color:var(--text-primary);background:transparent;font-size:2rem;line-height:1;cursor:pointer; }
 .assistant-close:hover { background:var(--surface-purple); }
-.assistant-content { display:flex;flex:1;flex-direction:column;padding:24px 24px calc(24px + env(safe-area-inset-bottom)); }
+.assistant-content { display:flex;flex-direction:column;min-height:0;padding:24px 24px calc(24px + env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch; }
+/* In conversation the thread is the screen: it takes the space the hero used to, and the composer
+   sits below it on its own row so the keyboard can never cover the last thing EMMI said. */
+.assistant-layer[data-assistant-mode="conversation"] .assistant-content { padding-bottom:16px; }
+.assistant-composer-dock { padding:10px 24px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--border-default);background:rgba(248,251,255,.98);backdrop-filter:blur(12px); }
+.assistant-composer-dock .assistant-question-form { margin-top:0; }
+.assistant-followups { margin-top:14px; }
+.assistant-followups>div { display:flex;flex-wrap:wrap;gap:8px; }
+.assistant-followups button { min-height:44px;padding:10px 14px;border:1px solid var(--border-default);border-radius:999px;color:var(--primary-600);background:var(--surface-primary);font-size:16px;font-weight:600;line-height:1.3;text-align:left;cursor:pointer; }
+.assistant-followups button:hover { border-color:var(--primary-300);background:var(--primary-50); }
+/* Human support is available, not advertised: one row that opens the two ways to reach a person. */
+.assistant-support-toggle { display:flex;gap:10px;align-items:center;width:100%;min-height:48px;padding:10px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--text-primary);background:transparent;font:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer; }
+.assistant-support-toggle>span:not(.icon) { flex:1; }
+.assistant-support-toggle .icon { width:28px;height:28px;border-radius:8px; }
+.assistant-support-toggle .icon svg { width:17px;height:17px; }
+.assistant-support-toggle[aria-expanded="true"] .icon:last-child { transform:rotate(90deg); }
+.assistant-support-toggle:hover { border-color:var(--primary-300);background:var(--primary-50); }
+.assistant-support-options { display:grid;gap:9px;margin-top:9px; }
+.assistant-composer-mic { display:grid;place-items:center;width:48px;height:52px;padding:0;border:0;border-radius:10px;color:var(--primary-600);background:transparent;cursor:pointer; }
+.assistant-composer-mic .icon { width:30px;height:30px;border-radius:9px;background:var(--primary-50); }
+.assistant-composer-mic[aria-pressed="true"] .icon { color:var(--surface-primary);background:var(--primary-600); }
 .assistant-intro { display:grid;grid-template-columns:58px 1fr;gap:13px;align-items:center; }
 .assistant-intro img { display:block;width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 7px 9px rgba(0,78,137,.15)); }
 .assistant-intro h1 { margin:0;font-size:1.72rem;line-height:1.15;letter-spacing:-.035em; }
@@ -1067,12 +1093,12 @@ p { margin:0; }
 @keyframes emmi-pulse { 50% { box-shadow:0 0 0 13px rgba(67,117,217,.05);transform:scale(1.04); } }
 @keyframes emmi-breathe { 50% { opacity:.72;transform:scale(.94); } }
 @keyframes emmi-speaking { to { box-shadow:0 0 0 12px rgba(67,117,217,.05);transform:scale(1.08); } }
-.assistant-question-form { display:grid;grid-template-columns:1fr 52px;gap:8px;margin-top:22px;padding:4px;border:1.5px solid var(--border-strong);border-radius:14px;background:var(--surface-primary);box-shadow:0 7px 20px rgba(7,77,145,.07); }
+.assistant-question-form { display:grid;grid-template-columns:1fr auto 52px;gap:6px;margin-top:22px;padding:4px;border:1.5px solid var(--border-strong);border-radius:14px;background:var(--surface-primary);box-shadow:0 7px 20px rgba(7,77,145,.07); }
 .assistant-question-form:focus-within { border-color:var(--primary-600);box-shadow:0 0 0 4px var(--focus-ring); }
 .assistant-question-form input { min-width:0;min-height:52px;padding:0 13px;border:0;outline:0;color:var(--text-primary);background:transparent;font-size:1.0625rem;line-height:1.4; }
 .assistant-question-form input::placeholder { color:var(--text-placeholder); }
-.assistant-question-form button { display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:10px;color:var(--surface-primary);background:var(--primary-600);cursor:pointer; }
-.assistant-question-form button .icon { color:inherit;background:transparent; }
+.assistant-question-form .assistant-send { display:grid;place-items:center;width:52px;height:52px;padding:0;border:0;border-radius:10px;color:var(--surface-primary);background:var(--primary-600);cursor:pointer; }
+.assistant-question-form .assistant-send .icon { color:inherit;background:transparent; }
 .assistant-conversation { display:grid;gap:10px;margin-top:16px; }
 /* Every turn is an avatar plus a bubble, so the patient can tell at a glance who is speaking.
    EMMI sits on the left behind her brandmark; the patient sits on the right behind their own mark. */
@@ -1106,7 +1132,7 @@ p { margin:0; }
 .assistant-faq-toggle .icon { width:20px;height:20px;color:inherit;background:transparent;transition:transform .15s ease; }
 .assistant-faq-toggle[aria-expanded="true"] .icon { transform:rotate(90deg); }
 .assistant-common-questions { display:grid;gap:8px;margin:0 0 16px; }
-.assistant-human-support { display:grid;gap:9px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border-default);scroll-margin-block:16px; }
+.assistant-human-support { display:grid;gap:9px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border-default);scroll-margin-block:16px; }
 .assistant-human-support:focus { outline:none; }
 /* Brief tint when the patient is brought here from "Talk with my care team", so the eye lands on
    what moved. Colour is not carrying the message: focus moves here and the heading is announced. */
@@ -1119,7 +1145,6 @@ p { margin:0; }
 .assistant-support-action small { margin-top:3px;color:var(--text-muted);font-size:1rem;line-height:1.4; }
 .assistant-layer .emmi-disclaimer { margin-top:18px;border:0;background:transparent;color:var(--text-muted);font-size:.9375rem;line-height:1.45; }
 .assistant-layer .emmi-disclaimer .icon { flex:0 0 22px;width:22px;height:22px; }
-.assistant-back { width:100%;margin-top:16px;min-height:52px;font-size:1.0625rem; }
 .assistant-debug { margin-top:14px;color:var(--text-muted);font-size:.82rem; }
 .assistant-debug summary { min-height:44px;padding:12px 0;cursor:pointer; }
 .assistant-debug pre { max-height:260px;margin:0;padding:10px;border-radius:9px;background:var(--surface-primary);font-size:.7rem;line-height:1.4;white-space:pre-wrap;word-break:break-word;overflow:auto; }
@@ -1240,45 +1265,41 @@ p { margin:0; }
 .trust-hero-badge-layer { position:absolute;z-index:2;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none; }
 .trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-badge-layer { clip-path:circle(6.4% at 36.6% 67.2%); }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-badge-layer { clip-path:circle(6.5% at 37.3% 66.7%); }
-/* The trust hero is one composed image with a fixed aspect ratio: its height is set by the page
-   column, never by the patient text size. Sizing the text over it in rem let the copy grow inside
-   a box that could not grow with it, so at 150% text scaling the headline was cut on the right and
-   the physician attribution, the trust signal for the whole invitation, was pushed out of the card
-   entirely. Every size inside the card is therefore stated in px against the card's own geometry, the
-   same fixed-token approach the rest of the patient screens use. Browser page zoom still enlarges
-   the card and this copy together, because the vw terms scale with it. */
-.trust-hero-overlay { position:absolute;z-index:3;margin:0;color:var(--text-primary);font-size:clamp(9.28px,2.55vw,11.04px);font-weight:600;line-height:1.25;text-align:left;max-height:2.5em;overflow:hidden; }
+.trust-hero-overlay { position:absolute;z-index:3;margin:0;color:var(--text-primary);font-size:clamp(.58rem,2.55vw,.69rem);font-weight:600;line-height:1.25;text-align:left;max-height:2.5em;overflow:hidden; }
 .trust-hero-overlay strong { color:var(--primary-600);font-weight:700; }
-.trust-hero-overlay.long { font-size:clamp(7.2px,1.85vw,8.96px);line-height:1.15;letter-spacing:-.012em; }
-.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"],.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] { aspect-ratio:1672/941; }
-.trust-hero-text-overlay { position:absolute;z-index:3;top:20.5%;left:47.2%;display:flex;flex-direction:column;align-items:stretch;width:51.2%;color:var(--text-primary);text-align:left;user-select:text; }
-.trust-hero-headline { display:grid;gap:0;margin:0;font-size:clamp(17.92px,5.2vw,21.44px);font-weight:800;line-height:1.02;letter-spacing:-.045em; }
-.trust-hero-headline span { display:block;white-space:nowrap; }
+.trust-hero-overlay.long { font-size:clamp(.45rem,1.85vw,.56rem);line-height:1.15;letter-spacing:-.012em; }
+/* The composed hero is one grid cell holding two things: the artwork, which keeps its own fixed box
+   — and with it every percentage the physician photo and the badge clip-path are measured against —
+   and the text, which is a sibling rather than a child so it can be taller. The card takes whichever
+   is taller, so scaled-up text grows the card instead of being cropped by it. The overlay's offsets
+   are percentage margins, which resolve against the card's WIDTH; the old top:20.5% and top:14.5%
+   were percentages of the artwork's HEIGHT, so each is divided by the 1672/941 ratio to land in the
+   same place at every width. */
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"],.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] { display:grid;height:auto;aspect-ratio:auto; }
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-media,
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-media { position:relative;grid-area:1/1;inset:auto;width:100%;aspect-ratio:1672/941;border-radius:inherit; }
+.trust-hero-text-overlay { position:relative;z-index:3;grid-area:1/1;align-self:start;display:flex;flex-direction:column;align-items:stretch;width:51.2%;margin:11.54% 0 2.5% 47.2%;color:var(--text-primary);text-align:left;user-select:text; }
+.trust-hero-headline { display:grid;gap:0;margin:0;font-size:clamp(1.12rem,5.2vw,1.34rem);font-weight:800;line-height:1.02;letter-spacing:-.045em; }
+.trust-hero-headline span { display:block; }
 .trust-hero-headline .accent { color:var(--primary-600); }
-.trust-hero-supporting-copy { display:grid;overflow:hidden;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(13.12px,3.45vw,14.08px);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
-/* These are authored line breaks, not a hard limit. The longest supporting line is not the
-   English one, and "Cuidado mediante el modelo" does not fit this column at any size the patient
-   screens allow: held nowrap it was cut at 360 and 375px, and cleared the column by under half a
-   percent everywhere else. Wrapping keeps the authored break where it fits and gives way where it
-   does not, which is the only behaviour that survives a translation nobody has measured yet. The
-   attribution shares this scale exactly: the suite pins the two together in size and in line
-   height, and holds the supporting copy to a 13px legibility floor. */
+.trust-hero-supporting-copy { display:grid;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
 .trust-hero-supporting-copy span { display:block; }
-.physician-attribution { position:static;display:-webkit-box;overflow:hidden;margin:7px 0 0;max-height:2.36em;color:var(--text-primary);font-size:clamp(13.12px,3.45vw,14.08px);font-weight:600;line-height:1.18;letter-spacing:-.01em;text-align:left;overflow-wrap:normal;word-break:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2; }
+/* No line clamp: the card grows for the attribution rather than truncating the doctor's name, which is the one fact the whole invitation rests on. */
+.physician-attribution { position:static;margin:7px 0 0;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em;text-align:left;overflow-wrap:normal;word-break:normal; }
 .physician-attribution span { font-weight:600; }
 .physician-attribution strong { color:var(--primary-600);font-size:inherit;font-weight:600;line-height:inherit;white-space:nowrap; }
-.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-text-overlay { top:14.5%;left:46.8%;width:48.5%; }
-.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-headline { font-size:clamp(16.32px,4.75vw,20px);line-height:1.04; }
-.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-supporting-copy { margin-top:10px;max-width:84%;font-size:clamp(12.16px,3.25vw,13.76px);font-weight:500;line-height:1.16; }
-.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .physician-attribution { margin-top:8px;font-size:clamp(12.16px,3.25vw,13.76px);font-weight:500;line-height:1.22; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-text-overlay { width:48.5%;margin:8.16% 0 2.5% 46.8%; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-headline { font-size:clamp(1.02rem,4.75vw,1.25rem);line-height:1.04; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-supporting-copy { margin-top:10px;max-width:84%;font-size:clamp(.76rem,3.25vw,.86rem);font-weight:500;line-height:1.16; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .physician-attribution { margin-top:8px;font-size:clamp(.76rem,3.25vw,.86rem);font-weight:500;line-height:1.22; }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .physician-attribution span { font-weight:500; }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .physician-attribution strong { font-weight:600; }
 .generic-trust-hero { display:grid;place-content:center;justify-items:center;height:100%;padding:22px;text-align:center;background:var(--surface-secondary); }
 .generic-trust-hero>.icon { width:64px;height:64px;margin-bottom:12px;border-radius:20px; }
 .generic-trust-hero>.icon svg { width:34px;height:34px; }
 .generic-trust-hero strong,.generic-trust-hero small { display:block; }
-.generic-trust-hero strong { max-width:270px;font-family:"Manrope",sans-serif;font-size:20px;line-height:1.22; }
-.generic-trust-hero small { margin-top:7px;color:var(--text-secondary);font-size:13.28px; }
+.generic-trust-hero strong { max-width:270px;font-family:"Manrope",sans-serif;font-size:1.25rem;line-height:1.22; }
+.generic-trust-hero small { margin-top:7px;color:var(--text-secondary);font-size:.83rem; }
 .invitation-stage::before,.invitation-stage::after { content:none; }
 .portrait-halo { position:absolute; border-radius:50%; }
 .halo-one { width:178px;height:178px;right:-50px;top:-60px;background:var(--primary-50);opacity:.72; }
@@ -1695,9 +1716,8 @@ p { margin:0; }
 body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) h1,.public-growth-page h1 { font-size:var(--font-screen-title);line-height:var(--line-heading); }
 .shell:not(:has(.prototype-console)) h2,.public-growth-page h2 { font-size:var(--font-section-title);line-height:1.3; }
-/* Restated here only to outrank the h1/h2 tokens above: the hero sizes itself against its card. */
-.shell:not(:has(.prototype-console)) .trust-hero-headline { font-size:clamp(17.92px,5.2vw,21.44px);line-height:1.02; }
-.shell:not(:has(.prototype-console)) .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-headline { font-size:clamp(16.32px,4.75vw,20px);line-height:1.04; }
+.shell:not(:has(.prototype-console)) .trust-hero-headline { font-size:clamp(1.12rem,5.2vw,1.34rem);line-height:1.02; }
+.shell:not(:has(.prototype-console)) .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-headline { font-size:clamp(1.02rem,4.75vw,1.25rem);line-height:1.04; }
 .shell:not(:has(.prototype-console)) .lead,.public-growth-page .lead { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .language,.public-growth-page .language,
 .shell:not(:has(.prototype-console)) .progress-meta { font-size:var(--font-helper);line-height:var(--line-helper); }
@@ -1715,6 +1735,11 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .invitation-benefit { height:auto;min-height:78px; }
 .shell:not(:has(.prototype-console)) .invitation-benefit strong { font-size:var(--font-card-title);line-height:1.35; }
 .shell:not(:has(.prototype-console)) .invitation-benefit small { font-size:17px;line-height:1.45; }
+.shell:not(:has(.prototype-console)) .invitation-voluntary { font-size:var(--font-footer);line-height:var(--line-helper); }
+.shell:not(:has(.prototype-console)) .optional-support-label,
+.shell:not(:has(.prototype-console)) .optional-support-card strong { font-size:var(--font-helper);line-height:var(--line-helper); }
+.shell:not(:has(.prototype-console)) .optional-support-copy,
+.shell:not(:has(.prototype-console)) .optional-support-action { font-size:var(--font-footer);line-height:var(--line-helper); }
 .shell:not(:has(.prototype-console)) .contact-line,
 .shell:not(:has(.prototype-console)) .security,
 .shell:not(:has(.prototype-console)) .contextual-assurance { font-size:var(--font-footer);line-height:var(--line-helper); }

@@ -53,7 +53,7 @@ export const SCENARIOS = {
 
 const shared = {
   id: "offer_demo_2026",
-  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" } },
+  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" } },
   referringProvider: { id: "dr-fresner", name: "Dr. Fresner", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
   participantProvider: { id: "itera", legalName: "ITERA HEALTH LLC", displayName: "ITERA HEALTH", supportPhone: "(305) 394-8070" },
   qualifyingCondition: { patientFriendlyName: "high blood pressure" },
@@ -200,6 +200,34 @@ const unique = values => [...new Set(values.filter(Boolean))];
 export const ACCESS_PROVIDER_REFERRAL = "Provider / Practice Referral";
 export const isProviderReferralSource = source => source === "Physician Referral" || source === ACCESS_PROVIDER_REFERRAL;
 export const scenarioRequiresPhysician = (program, source) => isProviderReferralSource(source) || program !== "ACCESS";
+
+// ---------------------------------------------------------------------------------------------
+// The canonical patient invitation
+//
+// The public link is not a configurable demo: it is ONE patient's invitation. Every value the
+// patient experience needs before it can render — program, condition, care track, coverage,
+// referral source and the referring physician — is declared once, here, and read from the offer
+// everywhere else. Nothing downstream hardcodes "Dr. Fresner" or "Hypertension"; they come from
+// this record through createPrototypeOffer, so changing the invited patient means changing this
+// object and nothing else.
+//
+// The scenario console still exists for QA behind its own route, and still builds any other
+// scenario. It just no longer stands between a patient and their invitation.
+// ---------------------------------------------------------------------------------------------
+export const CANONICAL_PATIENT_SCENARIO = Object.freeze({
+  ...DEFAULT_PROTOTYPE_CONFIG,
+  program: "ACCESS",
+  conditions: ["Hypertension"],
+  accessTrack: "eCKM",
+  coverage: "Original Medicare",
+  accessEligibilityResult: "eligible",
+  // Referred and invited by a physician, so the home, the care team and EMMI all resolve to a
+  // named referring provider rather than a generic ITERA campaign.
+  source: ACCESS_PROVIDER_REFERRAL,
+  referralOrigin: "physician",
+  physicianDisplayName: "Dr. Fresner",
+  language: "en"
+});
 export const scenarioUsesBloodPressureMonitoring = config => config.program === "ACCESS" && config.accessTrack === "eCKM" && config.conditions.includes("Hypertension");
 export function normalizePrototypeConfig(input = {}) {
   const merged = { ...DEFAULT_PROTOTYPE_CONFIG, ...input };
