@@ -102,23 +102,38 @@ non-ACCESS programs, which were left on their own copy throughout.
 
 ## Issues
 
-### Medium — pre-existing
+### Medium — pre-existing — **now fixed**
 
-**The trust hero card clips its own text.** In Spanish at 100 % it cuts "Cuidado mediante el
-mode[lo]"; at 384 px / 150 % the overlay runs 32 px past the card and "Recommended by Dr. Fresner"
-disappears entirely — the attribution the whole invitation rests on. Cause: `.trust-hero-headline`
-is sized in `rem` inside a fixed-height stage. Not caused by this work (`git diff` never reaches the
-hero) and Phase 1 forbids changing that card. Same `rem`-outside-the-system pattern this work fixed
-twice elsewhere. **A separate task for it is already running.**
+**The trust hero card clipped its own text.** In Spanish at 100 % it cut "Cuidado mediante el
+mode[lo]"; at 384 px / 150 % the overlay ran 32 px past the card and "Recommended by Dr. Fresner"
+disappeared entirely — the attribution the whole invitation rests on. Cause: text sized in `rem`
+inside a fixed-ratio composition, which cannot grow for it.
 
-### Low — deliberate copy decisions, awaiting a call
+Fixed by letting the card grow instead of cropping. The composed text is now a grid sibling of the
+artwork rather than a child of it, so the artwork keeps its own `1672/941` box — and with it every
+percentage the physician photo and the badge clip-path depend on — while the card's height becomes
+whichever of the two is taller. The hand-broken lines stayed one per line but may now wrap instead
+of being cut, and the two-line clamp on the attribution is gone: a long physician name makes the
+card taller rather than silently losing the doctor's name. At 100 % nothing moves — the card
+measures 12 → 211 px before and after.
+
+Swept at 360/375/384/390/393/412/430 px × 100/125/150 %, for both the ACCESS and the
+`PHYSICIAN_SUPERVISING` variant: no spill, no clipped node, no horizontal page overflow.
+Regression test: `canonical-invitation.spec.js`, "the hero keeps the referring physician readable at
+every supported width and text size".
+
+### Low — deliberate copy decisions, **settled: both kept**
 
 1. **The Home lead does not name Dr. Fresner** (Phase 1). The approved provider-referral Home puts
-   the attribution in the hero and a regression test explicitly forbids "care team invited you" in
-   the lead. The phase allowed keeping approved copy, so it was kept.
+   the attribution in the hero, and a regression test explicitly forbids "care team invited you" in
+   the lead. This was the weaker of the two decisions only because the hero was cutting the name off
+   at 125 % and above — the attribution existed but a patient using large text could not read it.
+   With the hero fixed, the name is legible at every supported width and text size, so the approved
+   split — benefit in the lead, attribution in the hero — holds and the copy stays as approved.
 2. **The consent cost row was not rewritten** (Phase 7). What is there leads with "Expected
    beneficiary payment amount", which is regulated phrasing, and already satisfies every rule the
-   phase states. The shorter requested sentence would have dropped that phrase.
+   phase states. The shorter requested sentence would have dropped that phrase, so it was kept.
+   Changing regulated wording is a compliance call, not a copy edit.
 
 ### Low — prototype affordance with a production requirement
 

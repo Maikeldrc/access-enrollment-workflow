@@ -7,14 +7,17 @@ const T = (en, es, ht) => Object.freeze({ en, es, ht });
 const LABELS = Object.freeze({
   startCareJourney: T("Start your care journey", "Comience su recorrido de cuidado", "Kòmanse pwosesis swen ou"),
   continue: T("Continue", "Continuar", "Kontinye"),
-  setUpMyCareAfterEnrollment: T("Set up my care", "Configurar mi cuidado", "Mete swen mwen an plas"),
   setUpMyCare: T("Set up my care", "Configurar mi cuidado", "Mete swen mwen an plas"),
   continueGettingStarted: T("Continue getting started", "Continuar los primeros pasos", "Kontinye premye etap yo"),
   setUpMyMonitor: T("Set up my monitor", "Configurar mi monitor", "Mete monitè mwen an plas"),
   getMyMonitor: T("Get my monitor", "Obtener mi monitor", "Jwenn monitè mwen"),
   takeFirstReading: T("Take my first reading", "Tomar mi primera medición", "Pran premye mezi mwen")
 });
-const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.startCareJourney, actionType: "LEARN_MORE" }, ENROLLMENT_CONFIRMED: { label: LABELS.setUpMyCareAfterEnrollment, actionType: "HEALTH_CHECK" } });
+const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.startCareJourney, actionType: "LEARN_MORE" } });
+// Screens whose next step belongs to the program rather than to the screen. Enrollment complete is
+// the one: an RPM patient sets up a monitor and an ACCESS patient sets up their care, each with its
+// own action type, so it must reach the program resolver instead of the generic "Continue".
+const PROGRAM_RESOLVED_SCREENS = new Set(["ENROLLMENT_CONFIRMED"]);
 
 // A device is only "already with the patient" when ITERA assigned one or the patient told us
 // they own one. Anything else means the monitor still has to be arranged.
@@ -35,7 +38,7 @@ function monitoringAction(context) {
 }
 
 const PROGRAM_ACTIONS = Object.freeze({
-  ACCESS: () => ({ label: LABELS.setUpMyCareAfterEnrollment, route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" }),
+  ACCESS: () => ({ label: LABELS.setUpMyCare, route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" }),
   CCM: () => ({ label: LABELS.setUpMyCare, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   PCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   APCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),
@@ -49,7 +52,7 @@ const PROGRAM_ACTIONS = Object.freeze({
 
 export function resolveNextBestAction(context = {}) {
   if (context.currentScreen && SCREEN_ACTIONS[context.currentScreen]) return { ...SCREEN_ACTIONS[context.currentScreen], route: context.nextRoute || context.currentScreen };
-  if (context.currentScreen && context.nextRoute) return { label: LABELS.continue, route: context.nextRoute, actionType: "CONTINUE_CURRENT_JOURNEY" };
+  if (context.currentScreen && context.nextRoute && !PROGRAM_RESOLVED_SCREENS.has(context.currentScreen)) return { label: LABELS.continue, route: context.nextRoute, actionType: "CONTINUE_CURRENT_JOURNEY" };
   const resolve = PROGRAM_ACTIONS[context.pathway] || PROGRAM_ACTIONS.CCM;
   return resolve(context);
 }

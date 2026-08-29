@@ -1268,17 +1268,27 @@ p { margin:0; }
 .trust-hero-overlay { position:absolute;z-index:3;margin:0;color:var(--text-primary);font-size:clamp(.58rem,2.55vw,.69rem);font-weight:600;line-height:1.25;text-align:left;max-height:2.5em;overflow:hidden; }
 .trust-hero-overlay strong { color:var(--primary-600);font-weight:700; }
 .trust-hero-overlay.long { font-size:clamp(.45rem,1.85vw,.56rem);line-height:1.15;letter-spacing:-.012em; }
-.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"],.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] { aspect-ratio:1672/941; }
-.trust-hero-text-overlay { position:absolute;z-index:3;top:20.5%;left:47.2%;display:flex;flex-direction:column;align-items:stretch;width:51.2%;color:var(--text-primary);text-align:left;user-select:text; }
+/* The composed hero is one grid cell holding two things: the artwork, which keeps its own fixed box
+   — and with it every percentage the physician photo and the badge clip-path are measured against —
+   and the text, which is a sibling rather than a child so it can be taller. The card takes whichever
+   is taller, so scaled-up text grows the card instead of being cropped by it. The overlay's offsets
+   are percentage margins, which resolve against the card's WIDTH; the old top:20.5% and top:14.5%
+   were percentages of the artwork's HEIGHT, so each is divided by the 1672/941 ratio to land in the
+   same place at every width. */
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"],.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] { display:grid;height:auto;aspect-ratio:auto; }
+.trust-hero-card[data-hero-variant="DOCTOR_RECOMMENDS_ACCESS"] .trust-hero-media,
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-media { position:relative;grid-area:1/1;inset:auto;width:100%;aspect-ratio:1672/941;border-radius:inherit; }
+.trust-hero-text-overlay { position:relative;z-index:3;grid-area:1/1;align-self:start;display:flex;flex-direction:column;align-items:stretch;width:51.2%;margin:11.54% 0 2.5% 47.2%;color:var(--text-primary);text-align:left;user-select:text; }
 .trust-hero-headline { display:grid;gap:0;margin:0;font-size:clamp(1.12rem,5.2vw,1.34rem);font-weight:800;line-height:1.02;letter-spacing:-.045em; }
-.trust-hero-headline span { display:block;white-space:nowrap; }
+.trust-hero-headline span { display:block; }
 .trust-hero-headline .accent { color:var(--primary-600); }
-.trust-hero-supporting-copy { display:grid;overflow:hidden;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
-.trust-hero-supporting-copy span { display:block;white-space:nowrap; }
-.physician-attribution { position:static;display:-webkit-box;overflow:hidden;margin:7px 0 0;max-height:2.36em;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em;text-align:left;overflow-wrap:normal;word-break:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2; }
+.trust-hero-supporting-copy { display:grid;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
+.trust-hero-supporting-copy span { display:block; }
+/* No line clamp: the card grows for the attribution rather than truncating the doctor's name, which is the one fact the whole invitation rests on. */
+.physician-attribution { position:static;margin:7px 0 0;color:var(--text-primary);font-size:clamp(.82rem,3.45vw,.88rem);font-weight:600;line-height:1.18;letter-spacing:-.01em;text-align:left;overflow-wrap:normal;word-break:normal; }
 .physician-attribution span { font-weight:600; }
 .physician-attribution strong { color:var(--primary-600);font-size:inherit;font-weight:600;line-height:inherit;white-space:nowrap; }
-.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-text-overlay { top:14.5%;left:46.8%;width:48.5%; }
+.trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-text-overlay { width:48.5%;margin:8.16% 0 2.5% 46.8%; }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-headline { font-size:clamp(1.02rem,4.75vw,1.25rem);line-height:1.04; }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .trust-hero-supporting-copy { margin-top:10px;max-width:84%;font-size:clamp(.76rem,3.25vw,.86rem);font-weight:500;line-height:1.16; }
 .trust-hero-card[data-hero-variant="PHYSICIAN_SUPERVISING"] .physician-attribution { margin-top:8px;font-size:clamp(.76rem,3.25vw,.86rem);font-weight:500;line-height:1.22; }

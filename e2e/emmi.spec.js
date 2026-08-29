@@ -85,8 +85,9 @@ test("EMMI mobile visual states remain readable without horizontal overflow", as
     ["", "emmi-closed.png", "Talk to EMMI"],
     ["LISTENING", "emmi-listening.png", "Listening…"],
     ["USER_SPEAKING", "emmi-listening-active.png", "Listening…"],
-    ["EMMI_THINKING", "emmi-thinking.png", "EMMI is thinking…"],
-    ["EMMI_SPEAKING", "emmi-speaking.png", "EMMI is explaining…"],
+    // One label vocabulary across every EMMI surface, from src/emmi/presentationState.js.
+    ["EMMI_THINKING", "emmi-thinking.png", "Thinking…"],
+    ["EMMI_SPEAKING", "emmi-speaking.png", "Speaking…"],
     ["TOOL_RUNNING", "emmi-tool-running.png", "Checking your ACCESS cost…"]
   ]) {
     await page.goto(`/?scenario=access-happy${state ? `&emmiState=${state}` : ""}`);

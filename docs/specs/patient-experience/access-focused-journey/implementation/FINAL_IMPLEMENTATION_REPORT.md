@@ -118,10 +118,8 @@ thresholds.
 
 **Blockers:** none.
 
-**Pre-existing:** the four failures listed above, plus the trust hero card clipping its own text at
-150 % text scaling — a `rem`-inside-fixed-height defect outside every phase scope here, already
-being worked separately.
+**Pre-existing:** the four failures listed above and the trust hero clipping were carried out of
+these phases and closed afterwards. See `CLEANUP_REPORT.md` in this directory.
 
-**Deliberate, awaiting a product call:** two copy decisions carried from the earlier journey work —
-the Home lead not naming Dr. Fresner, and the consent cost row keeping its regulated
-"Expected beneficiary payment amount" phrasing. Both are recorded in their own phase reports.
+**Deliberate:** the two copy decisions carried from the earlier journey work are settled — both
+kept. Recorded in `../IMPLEMENTATION_REPORT.md`.

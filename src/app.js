@@ -441,16 +441,22 @@ function resolveTrustHero(offer) {
 function TrustHeroCard() {
   const hero = resolveTrustHero(state.offer);
   const overlayText = hero.overlayLabel && hero.physicianName ? `${hero.overlayLabel} ${hero.physicianName}` : "";
-  const physicianAttribution = hero.headlineLines?.length
+  // The composed headline sits beside the artwork rather than inside it: it is a grid sibling of
+  // the media, so when a patient scales text up the card grows to hold it instead of cropping the
+  // attribution the whole invitation rests on.
+  const textOverlay = hero.headlineLines?.length
     ? `<div class="trust-hero-text-overlay"><h2 class="trust-hero-headline" aria-label="${hero.headlineLines.join(" ")}">${hero.headlineLines.map((line, index) => `<span class="${index === 2 ? "accent" : ""}">${line}</span>`).join("")}</h2><p class="trust-hero-supporting-copy" aria-label="${hero.supportingLines.join(" ")}">${hero.supportingLines.map(line => `<span>${line}</span>`).join("")}</p>${overlayText ? `<p class="physician-attribution ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : ""}</div>`
-    : overlayText ? `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>` : "";
+    : "";
+  const pillOverlay = hero.headlineLines?.length || !overlayText
+    ? ""
+    : `<p class="trust-hero-overlay ${overlayText.length > 34 ? "long" : ""}"><span>${hero.overlayLabel}</span> <strong>${hero.physicianName}</strong></p>`;
   const customPhysicianPhoto = hero.physicianPhotoUrl && hero.physicianPhotoUrl !== DEFAULT_PROTOTYPE_CONFIG.physicianPhotoUrl;
   const media = hero.src
-    ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}" ${hero.alt ? "" : "aria-hidden=\"true\""}>${customPhysicianPhoto ? `<span class="trust-hero-physician-photo custom"><img src="${escapeHtml(hero.physicianPhotoUrl)}" alt=""></span><img class="trust-hero-badge-layer" src="${hero.src}" alt="" aria-hidden="true">` : ""}${physicianAttribution}`
+    ? `<img class="trust-hero-image" src="${hero.src}" alt="${hero.alt}" ${hero.alt ? "" : "aria-hidden=\"true\""}>${customPhysicianPhoto ? `<span class="trust-hero-physician-photo custom"><img src="${escapeHtml(hero.physicianPhotoUrl)}" alt=""></span><img class="trust-hero-badge-layer" src="${hero.src}" alt="" aria-hidden="true">` : ""}${pillOverlay}`
     : `<div class="generic-trust-hero">${icon("shield")}<strong>${L("Connected care with ITERA HEALTH", "Cuidado conectado con ITERA HEALTH", "Swen konekte avèk ITERA HEALTH")}</strong><small>${L("Support designed around your health needs", "Apoyo diseñado según sus necesidades de salud", "Sipò ki fèt selon bezwen sante ou")}</small></div>`;
   return `<section class="invitation-stage trust-hero-card" data-trust-source="${state.offer.enrollmentSource}" data-hero-variant="${hero.variant}">
     <div class="stage-brand-row"><button class="language stage-language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
-    <div class="trust-hero-media">${media}</div>
+    <div class="trust-hero-media">${media}</div>${textOverlay}
   </section>`;
 }
 
@@ -1863,9 +1869,15 @@ function assistantVoiceEntry(guideState) {
   // — the panel reports what is happening rather than what was configured.
   const live = !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState);
   if (!live && ["OFF", "ERROR", "UNSUPPORTED"].includes(guideState)) return `<button class="assistant-talk-button" type="button" data-assistant-action="start-voice">${icon("mic")}<strong>${labels.talk}</strong></button>`;
+  // A running tool has already produced patient-facing words for what EMMI is doing. They were
+  // being computed and then thrown away, so the patient read "speak naturally" while EMMI was busy
+  // looking their cost up.
+  const toolStatus = state.assistantVoiceState === "TOOL_RUNNING" && state.assistantVoiceDetail && state.assistantVoiceDetail !== "prototype_visual_preview"
+    ? state.assistantVoiceDetail
+    : "";
   const detail = state.assistantVoiceDetail === "session_ending_soon"
     ? L("This voice session will end soon, but your enrollment progress is saved.", "Esta sesión terminará pronto, pero su progreso está guardado.", "Sesyon vwa sa a pral fini byento, men pwogrè ou anrejistre.")
-    : L("Speak naturally. You can interrupt EMMI.", "Hable con naturalidad. Puede interrumpir a EMMI.", "Pale nòmalman. Ou ka entèwonp EMMI.");
+    : toolStatus || L("Speak naturally. You can interrupt EMMI.", "Hable con naturalidad. Puede interrumpir a EMMI.", "Pale nòmalman. Ou ka entèwonp EMMI.");
   return `<section class="assistant-voice-state" data-voice-state="${state.assistantVoiceState}">
       <div class="assistant-voice-state-row"><span class="assistant-voice-orb">${icon(state.assistantVoiceMuted ? "micOff" : "mic")}</span><div><strong role="status" aria-live="polite">${live ? assistantVoiceCopy() : emmiGuideStatusLabel(guideState)}</strong><small>${detail}</small></div></div>
       <button type="button" class="assistant-voice-options-toggle" data-assistant-action="voice-options" aria-expanded="${state.assistantVoiceOptionsOpen}" aria-controls="assistant-voice-options">${icon("audioLines")}<span>${labels.voiceOptions}</span></button>

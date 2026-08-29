@@ -438,7 +438,7 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
       await expect(welcome.getByRole("button", { name: ctaLabel })).toBeVisible();
       await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment complete");
       await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
-      if (referral) await expect(welcome.getByText(/works with Dr\. Fresner to help keep your care coordinated\./)).toBeVisible();
+      if (referral) await expect(welcome.getByText(/works with Dr\. Fresner and your care team to help keep your care connected\./)).toBeVisible();
       else {
         await expect(welcome).not.toContainText("Dr. Fresner");
         if (["ACCESS", "CCM"].includes(program)) await expect(welcome.getByText("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", { exact: true })).toBeVisible();
@@ -2246,13 +2246,14 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await openEmmiConversation(page);
   const dialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByText("Ask me anything about your enrollment or care.")).toBeVisible();
+  await expect(dialog.getByText("I can help you understand your ACCESS care, manage your health, and know what to do next.")).toBeVisible();
   await expect(dialog.getByPlaceholder("Ask a question…")).toBeVisible();
-  await expect(dialog.getByText("What is Medicare checking?")).toBeVisible();
-  await expect(dialog.getByText("Will this affect my benefits?")).toBeVisible();
-  await expect(dialog.getByText("Why do you need my information?")).toBeVisible();
-  await expect(dialog.getByText("Prefer to talk with someone?")).toBeVisible();
-  await expect(dialog.getByRole("link", { name: /Talk to our care team/ })).toHaveAttribute("href", "tel:+13053948070");
+  await expect(dialog.getByText("Why does Medicare need to verify me?")).toBeVisible();
+  await expect(dialog.getByText("What is the comparison group?")).toBeVisible();
+  await expect(dialog.getByText("Will this change my Medicare?")).toBeVisible();
+  // Human support is one collapsed row that opens the two ways to reach a person.
+  await dialog.getByRole("button", { name: /Need human help/ }).click();
+  await expect(dialog.getByRole("link", { name: /Call our care team/ })).toHaveAttribute("href", "tel:+13053948070");
   await expect(dialog.getByText("EMMI will confirm before sending the request")).toBeVisible();
   await expect(dialog.locator(".contextual-assurance")).toHaveCount(0);
   await expect(dialog).not.toContainText(/ENROLLMENT\s*QUESTIONS/i);
@@ -2285,16 +2286,23 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.getByText("This screen explains what Medicare needs you to know before checking whether ACCESS is available to you.")).toBeVisible();
 
-  await input.fill("I have chest pain and cannot breathe");
-  await dialog.getByRole("button", { name: "Send question" }).click();
-  await expect(dialog.getByText(/urgent medical attention/i)).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Call 911" })).toHaveAttribute("href", "tel:911");
-
+  // A callback is a normal request, and it is answered normally while nothing urgent is open.
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.getByText("Would you like me to ask the ITERA care team to call you?")).toBeVisible();
   await input.fill("Yes");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.getByText("Done. I sent a callback request to the care team.")).toBeVisible();
+
+  await input.fill("I have chest pain and cannot breathe");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.getByText(/urgent medical attention/i)).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Call 911" })).toHaveAttribute("href", "tel:911");
+
+  // And once something urgent is open, it outranks everything else the patient asks next. Asking
+  // for a callback here is answered by the safety episode, not by a scheduling confirmation.
+  await dialog.getByRole("button", { name: "Have someone call me" }).click();
+  await expect(dialog.locator(".assistant-message.assistant").last()).toContainText(/urgent/i);
+  await expect(dialog.getByRole("link", { name: "Call 911" }).last()).toBeVisible();
   await dialog.locator(".assistant-close").click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
@@ -2309,11 +2317,12 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await openEmmiConversation(page);
   const consentDialog = page.getByRole("dialog", { name: "EMMI – Your ITERA Care Assistant" });
-  await expect(consentDialog.getByText("What am I agreeing to?")).toBeVisible();
-  await expect(consentDialog.getByText("Can I change my mind?")).toBeVisible();
-  await expect(consentDialog.getByText("What will this cost?")).toBeVisible();
-  await expect(consentDialog.getByText("Does this change my Medicare?")).toBeVisible();
-  await expect(consentDialog.getByText("What does signing as a personal representative mean?")).toBeVisible();
+  // Reopening on a different screen continues the same conversation rather than starting a new one,
+  // so what is on screen here is the thread, not the discovery suggestions. Per-screen suggestions
+  // are asserted in emmi-conversation.spec.js, where the panel opens fresh.
+  await expect(consentDialog).toHaveAttribute("data-assistant-mode", "conversation");
+  await expect(consentDialog.getByText("I have chest pain and cannot breathe")).toBeVisible();
+  await expect(consentDialog.getByText("Browse common questions")).toHaveCount(0);
   await consentDialog.locator(".assistant-close").click();
   await expect(page.locator("#screen-select")).toHaveValue("CONSENT_REVIEW");
 });

@@ -206,3 +206,35 @@ test("the QA console and its simulation tools live behind the admin route only",
     await expect(page.locator(`[data-action="${control}"]`)).toHaveCount(0);
   }
 });
+
+// The referral is the reason the patient is here, and on Home it is stated once — in the hero card.
+// That card is a fixed-ratio composition, so text scaled up used to run past it and "Recommended by
+// Dr. Fresner" was cut off entirely at 125 % and above. The card now grows for its own text.
+test("the hero keeps the referring physician readable at every supported width and text size", async ({ page }) => {
+  await page.goto("/");
+  const card = page.locator(".trust-hero-card");
+  await expect(card).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
+  for (const width of [360, 375, 384, 390, 393, 412, 430]) {
+    for (const scale of [1, 1.25, 1.5]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const label = `${width}px / ${scale * 100}%`;
+      const measured = await page.evaluate(() => {
+        const cardBox = document.querySelector(".trust-hero-card").getBoundingClientRect();
+        const overlay = document.querySelector(".trust-hero-text-overlay").getBoundingClientRect();
+        return {
+          spill: Math.round(Math.max(overlay.bottom - cardBox.bottom, overlay.right - cardBox.right)),
+          clipped: [...document.querySelectorAll(".trust-hero-headline, .trust-hero-supporting-copy, .physician-attribution")]
+            .filter(node => getComputedStyle(node).overflow !== "visible" && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1))
+            .map(node => node.className.trim()),
+          pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      });
+      expect(measured.spill, `hero text past the card at ${label}`).toBeLessThanOrEqual(1);
+      expect(measured.clipped, `clipped hero copy at ${label}`).toEqual([]);
+      expect(measured.pageOverflow, `horizontal overflow at ${label}`).toBeLessThanOrEqual(1);
+      await expect(page.locator(".physician-attribution")).toContainText("Dr. Fresner");
+    }
+  }
+});
