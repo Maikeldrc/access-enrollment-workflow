@@ -2268,16 +2268,24 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.getByText("This screen explains what Medicare needs you to know before checking whether ACCESS is available to you.")).toBeVisible();
 
-  await input.fill("I have chest pain and cannot breathe");
-  await dialog.getByRole("button", { name: "Send question" }).click();
-  await expect(dialog.getByText(/urgent medical attention/i)).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Call 911" })).toHaveAttribute("href", "tel:911");
-
+  // Coordination while the conversation is an ordinary one.
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.getByText("Would you like me to ask the ITERA care team to call you?")).toBeVisible();
   await input.fill("Yes");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.getByText("Done. I sent a callback request to the care team.")).toBeVisible();
+
+  // Clinical safety outranks coordination, and it keeps outranking it. Once EMMI has heard an
+  // emergency she goes on directing the patient to emergency care, so a callback asked for after
+  // that point is answered with 911 rather than with the callback prompt. Asserted on the newest
+  // answer, because the transcript still carries the callback exchange from before.
+  const lastAnswer = dialog.locator(".assistant-message.assistant").last();
+  await input.fill("I have chest pain and cannot breathe");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(lastAnswer).toContainText(/urgent medical attention/i);
+  await expect(dialog.getByRole("link", { name: "Call 911" }).first()).toHaveAttribute("href", "tel:911");
+  await dialog.getByRole("button", { name: "Have someone call me" }).click();
+  await expect(lastAnswer).toContainText(/urgent medical attention/i);
   await dialog.locator(".assistant-back").click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
