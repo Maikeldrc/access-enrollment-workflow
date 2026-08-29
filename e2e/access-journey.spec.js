@@ -321,3 +321,98 @@ test("the care overview holds its layout at every supported width and text size"
     }
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// Phase 5 — Medicare / ACCESS eligibility review
+// ---------------------------------------------------------------------------------------------
+
+const openEligibilityReview = async page => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start your care journey" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" })).toBeVisible();
+};
+
+test("the eligibility review explains before it discloses", async ({ page }) => {
+  await openEligibilityReview(page);
+  await expect(page.locator(".lead")).toHaveText("Medicare will review a few details to confirm you can take part in ACCESS. This only takes a moment and does not change your Medicare coverage.");
+
+  const rows = page.locator(".access-precheck-row");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.locator("strong")).toHaveText([
+    "A secure check with Medicare",
+    "How the ACCESS evaluation works",
+    "Your Medicare stays the same"
+  ]);
+  await expect(rows.nth(0).locator("p")).toHaveText("ITERA and Medicare can securely exchange the information needed to confirm your eligibility for ACCESS.");
+});
+
+test("no required disclosure was traded away for a calmer screen", async ({ page }) => {
+  await openEligibilityReview(page);
+  const screen = page.locator("#screen-content");
+  // Each of these is here because a patient must be told it, not because it reads well.
+  await expect(screen).toContainText("securely exchange");
+  await expect(screen).toContainText("may request information for that evaluation");
+  await expect(screen).toContainText("randomly selected");
+  await expect(screen).toContainText("comparison group");
+  await expect(screen).toContainText("12 months");
+  await expect(screen).toContainText("do not change your Medicare benefits, coverage, or rights");
+});
+
+test("the eligibility check does not run until the patient acknowledges it", async ({ page }) => {
+  await openEligibilityReview(page);
+  const acknowledgement = page.getByLabel("I understand this information and want to continue with the Medicare eligibility check");
+  const runCheck = page.getByRole("button", { name: "Check my eligibility" });
+
+  await expect(acknowledgement).not.toBeChecked();
+  await expect(runCheck).toBeDisabled();
+  await acknowledgement.check();
+  await expect(runCheck).toBeEnabled();
+
+  // Unticking it closes the gate again: the acknowledgement is a live condition, not a formality
+  // the screen remembers once.
+  await acknowledgement.uncheck();
+  await expect(runCheck).toBeDisabled();
+});
+
+test("EMMI explains the check, the comparison group and what stays untouched", async ({ page }) => {
+  await openEligibilityReview(page);
+  const dialog = await openEmmiConversation(page);
+  const ask = async question => {
+    await dialog.getByPlaceholder("Ask a question…").fill(question);
+    await dialog.getByRole("button", { name: "Send question" }).click();
+  };
+  const lastAnswer = () => dialog.locator(".assistant-message.assistant").last();
+
+  await ask("Why does Medicare need to verify me?");
+  await expect(lastAnswer()).toContainText(/Medicare|eligib/i);
+  await ask("What is the comparison group?");
+  await expect(lastAnswer()).toBeVisible();
+  await ask("Will this change my Medicare?");
+  await expect(lastAnswer()).toBeVisible();
+  // Whatever route each question takes, none of them may promise an outcome the check has not run.
+  await expect(dialog.locator(".assistant-thinking")).toHaveCount(0);
+  await expect(dialog).not.toContainText(/you are eligible|you're eligible|you qualify/i);
+});
+
+test("the eligibility review holds its layout at every supported width and text size", async ({ page }) => {
+  await openEligibilityReview(page);
+  for (const width of MOBILE_WIDTHS) {
+    for (const scale of TEXT_SCALES) {
+      await page.setViewportSize({ width, height: 844 });
+      await scaleText(page, scale);
+      const label = `${width}px / ${scale * 100}%`;
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `horizontal overflow at ${label}`).toBeLessThanOrEqual(1);
+      const damaged = await page.evaluate(() => [...document.querySelectorAll("#screen-content h1, .lead, .access-precheck-row strong, .access-precheck-row p, .check-row, .actions .button.primary")]
+        .filter(node => getComputedStyle(node).overflow !== "visible" && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1))
+        .map(node => node.className || node.tagName));
+      expect(damaged, `clipped eligibility copy at ${label}`).toEqual([]);
+      // The acknowledgement is the one control on this screen that must never be hard to hit.
+      const checkboxTarget = await page.locator(".check-row").evaluate(node => node.getBoundingClientRect().height);
+      expect(checkboxTarget, `acknowledgement target at ${label}`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});

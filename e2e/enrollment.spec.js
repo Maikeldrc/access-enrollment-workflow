@@ -108,7 +108,7 @@ test("prototype ACCESS eligibility setting drives a terminal not-eligible patien
   await expect(page.locator("#screen-content")).not.toContainText(/ACCESS Eligibility Result|simulation|mock API|Not eligible scenario/i);
 
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
+  await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "This ACCESS care option isn’t available to you right now" })).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Based on the Medicare eligibility check, you can’t continue with ACCESS enrollment at this time.")).toBeVisible();
@@ -1201,8 +1201,8 @@ test("ACCESS patient completes the simplified journey without redundant educatio
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Before Medicare checks your eligibility" })).toBeVisible();
-  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
+  await expect(page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" })).toBeVisible();
+  await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
   await page.getByRole("button", { name: "Continue" }).click();
@@ -1981,8 +1981,8 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
 test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do not fall back to English", async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem("itera.enrollment.language.v1"));
   for (const locale of [
-    { clicks: 1, code: "ES", care: "Manténgase conectado con su equipo de cuidado", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su presión arterial alta entre visitas al médico.", careNote: "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
-    { clicks: 2, code: "KR", care: "Rete konekte ak ekip swen ou", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere tansyon wo ou ant vizit kay doktè.", careNote: "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
+    { clicks: 1, code: "ES", care: "Manténgase conectado con su equipo de cuidado", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su presión arterial alta entre visitas al médico.", careNote: "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", precheck: "Medicare revisará algunos datos para confirmar que puede participar en ACCESS. Esto solo toma un momento y no cambia su cobertura de Medicare.", precheckAck: "Entiendo esta información y deseo continuar con la verificación de elegibilidad de Medicare", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
+    { clicks: 2, code: "KR", care: "Rete konekte ak ekip swen ou", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere tansyon wo ou ant vizit kay doktè.", careNote: "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.", precheck: "Medicare ap revize kèk detay pou konfime ou ka patisipe nan ACCESS. Sa pran yon ti moman sèlman epi li pa chanje kouvèti Medicare ou.", precheckAck: "Mwen konprann enfòmasyon sa a epi mwen vle kontinye ak verifikasyon kalifikasyon Medicare a", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
   ]) {
     await page.goto("/?scenario=access-happy");
     for (let i = 0; i < locale.clicks; i += 1) await page.locator(".stage-language").click();
@@ -2083,7 +2083,7 @@ test("ACCESS eligibility processing uses patient-friendly real status states", a
 test("ACCESS eligibility processing provides a safe retry state", async ({ page }) => {
   await page.goto("/?scenario=access-check-failure");
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  await page.getByLabel("I understand and want Medicare to check my eligibility").check();
+  await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "We couldn’t complete the check right now." })).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Your information is safe. Please try again or contact our care team.")).toBeVisible();
@@ -2100,11 +2100,11 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
 
-  await expect(page.getByRole("heading", { name: "Before Medicare checks your eligibility" })).toBeVisible();
-  await expect(page.getByText("Please review these important details about the ACCESS evaluation.")).toBeVisible();
-  await expect(page.getByText("CMS is evaluating ACCESS. ITERA may securely share health information with CMS, and CMS may request information for this evaluation.")).toBeVisible();
-  await expect(page.getByText("How CMS evaluates ACCESS", { exact: true })).toBeVisible();
-  await expect(page.getByText("As part of CMS’s evaluation of ACCESS, a small number of people may be randomly assigned to a comparison group. If selected, you would not be able to enroll in ACCESS for 12 months.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" })).toBeVisible();
+  await expect(page.getByText("Medicare will review a few details to confirm you can take part in ACCESS. This only takes a moment and does not change your Medicare coverage.")).toBeVisible();
+  await expect(page.getByText("ITERA and Medicare can securely exchange the information needed to confirm your eligibility for ACCESS.")).toBeVisible();
+  await expect(page.getByText("How the ACCESS evaluation works", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare also evaluates how ACCESS works, and may request information for that evaluation. As part of it, some people are randomly selected for a comparison group. If that happens to you, you would not be able to take part in ACCESS for 12 months.")).toBeVisible();
   await expect(page.getByText("This eligibility check and any comparison group assignment do not change your Medicare benefits, coverage, or rights.")).toBeVisible();
   await expect(page.locator(".access-precheck-row")).toHaveCount(3);
   await expect(page.locator(".access-notice-screen details")).toHaveCount(0);
@@ -2112,7 +2112,7 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
   await expect(assurance).toContainText("This check won’t affect your Medicare benefits");
   await expect(assurance.locator(".icon")).toHaveCount(1);
 
-  const acknowledgement = page.getByLabel("I understand and want Medicare to check my eligibility");
+  const acknowledgement = page.getByLabel("I understand this information and want to continue with the Medicare eligibility check");
   const eligibilityCta = page.getByRole("button", { name: "Check my eligibility" });
   await expect(eligibilityCta).toBeDisabled();
   await acknowledgement.check();
@@ -2153,13 +2153,13 @@ test("ACCESS eligibility evaluation explanation is localized in Spanish and Krey
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
 
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
-  await expect(page.getByText("Cómo evalúa CMS a ACCESS", { exact: true })).toBeVisible();
-  await expect(page.getByText("Como parte de la evaluación de ACCESS por parte de CMS, una pequeña cantidad de personas puede ser asignada aleatoriamente a un grupo de comparación. Si le seleccionan, no podrá inscribirse en ACCESS durante 12 meses.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cómo funciona la evaluación de ACCESS", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare también evalúa cómo funciona ACCESS y puede solicitar información para esa evaluación. Como parte de ella, algunas personas son seleccionadas al azar para un grupo de comparación. Si esto le ocurre, no podrá participar en ACCESS durante 12 meses.", { exact: true })).toBeVisible();
   await expect(page.getByText("Esta verificación de elegibilidad y cualquier asignación a un grupo de comparación no cambian sus beneficios, cobertura ni derechos de Medicare.", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
-  await expect(page.getByText("Kijan CMS evalye ACCESS", { exact: true })).toBeVisible();
-  await expect(page.getByText("Nan kad evalyasyon CMS ap fè sou ACCESS, yo ka chwazi yon ti kantite moun o aza pou mete yo nan yon gwoup konparezon. Si yo chwazi ou, ou pa ta kapab enskri nan ACCESS pandan 12 mwa.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Kijan evalyasyon ACCESS la fonksyone", { exact: true })).toBeVisible();
+  await expect(page.getByText("Medicare evalye tou kijan ACCESS fonksyone, epi li ka mande enfòmasyon pou evalyasyon sa a. Nan kad li, yo chwazi kèk moun o aza pou yon gwoup konparezon. Si sa rive ou, ou pa ta kapab patisipe nan ACCESS pandan 12 mwa.", { exact: true })).toBeVisible();
   await expect(page.getByText("Verifikasyon kalifikasyon sa a ak nenpòt plasman nan yon gwoup konparezon pa chanje benefis, kouvèti oswa dwa Medicare ou.", { exact: true })).toBeVisible();
   const layout = await page.locator(".access-notice-screen").evaluate(screen => ({
     horizontalOverflow: document.documentElement.scrollWidth > innerWidth,
@@ -2228,7 +2228,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_PRE_ELIGIBILITY_NOTICE", { force: true });
-  const acknowledgement = page.getByLabel("I understand and want Medicare to check my eligibility");
+  const acknowledgement = page.getByLabel("I understand this information and want to continue with the Medicare eligibility check");
   await acknowledgement.check();
   await page.evaluate(() => window.scrollTo(0, 120));
   const scrollBefore = await page.evaluate(() => window.scrollY);

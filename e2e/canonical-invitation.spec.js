@@ -170,7 +170,7 @@ test("removing the configuration screen did not remove any enrollment step", asy
 
   // The Medicare eligibility check still has to be acknowledged before it runs: an invitation that
   // skips its own configuration screen does not skip the patient's consent to be checked.
-  const eligibilityGate = page.getByRole("heading", { name: "Before Medicare checks your eligibility" });
+  const eligibilityGate = page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" });
   await expect(eligibilityGate).toBeVisible();
   const runCheck = page.getByRole("button", { name: "Check my eligibility" });
   await expect(runCheck).toBeDisabled();
