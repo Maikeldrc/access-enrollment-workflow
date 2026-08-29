@@ -231,7 +231,7 @@ test("Care Circle stays optional support and is scoped to patients completing fo
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await expect(optionalSupport).toBeVisible();
   await expect(optionalSupport).toContainText("Optional support");
-  await expect(optionalSupport).toContainText("Invite someone you trust to help you through this process.");
+  await expect(optionalSupport).toContainText("Invite someone you trust to support you during your care journey.");
   await expect(optionalSupport).not.toContainText("Not now");
   await expect(optionalSupport.locator("input[type='radio']")).toHaveCount(0);
 

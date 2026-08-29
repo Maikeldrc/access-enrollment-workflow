@@ -1289,7 +1289,7 @@ test("role selection branches only personal representatives into representative 
 
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await expect(page.locator(".progress-meta span").last()).toHaveText("Who’s completing");
-  await expect(page.getByText("Choose the option that best describes you.")).toBeVisible();
+  await expect(page.getByText("Choose what best describes you. You can get help at any time.")).toBeVisible();
   await expect(page.getByText("I am the patient.")).toBeVisible();
   await expect(page.getByText("The patient is present and will make the decisions.")).toBeVisible();
   await expect(page.getByText("I’m authorized to make healthcare decisions for the patient.")).toBeVisible();

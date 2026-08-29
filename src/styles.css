@@ -1707,6 +1707,10 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .invitation-benefit strong { font-size:var(--font-card-title);line-height:1.35; }
 .shell:not(:has(.prototype-console)) .invitation-benefit small { font-size:17px;line-height:1.45; }
 .shell:not(:has(.prototype-console)) .invitation-voluntary { font-size:var(--font-footer);line-height:var(--line-helper); }
+.shell:not(:has(.prototype-console)) .optional-support-label,
+.shell:not(:has(.prototype-console)) .optional-support-card strong { font-size:var(--font-helper);line-height:var(--line-helper); }
+.shell:not(:has(.prototype-console)) .optional-support-copy,
+.shell:not(:has(.prototype-console)) .optional-support-action { font-size:var(--font-footer);line-height:var(--line-helper); }
 .shell:not(:has(.prototype-console)) .contact-line,
 .shell:not(:has(.prototype-console)) .security,
 .shell:not(:has(.prototype-console)) .contextual-assurance { font-size:var(--font-footer);line-height:var(--line-helper); }

@@ -509,7 +509,7 @@ function emmiWelcome(providerReferral, physicianName) {
 }
 
 function decisionMaker() {
-  return `${titleBlock(L("Who is completing this?", "¿Quién está completando esto?", "Ki moun ki ap ranpli sa a?"), L("Choose the option that best describes you.", "Elija la opción que mejor lo describa.", "Chwazi opsyon ki pi byen dekri ou."))}
+  return `${titleBlock(L("Who is completing this?", "¿Quién está completando esto?", "Ki moun ki ap ranpli sa a?"), L("Choose what best describes you. You can get help at any time.", "Elija lo que mejor le describa. Puede recibir ayuda en cualquier momento.", "Chwazi sa ki pi byen dekri ou. Ou ka jwenn èd nenpòt lè."))}
     <form id="choice-form" class="choice-list">
       ${choice("patient", "person", L("For myself", "Para mí", "Pou tèt mwen"), L("I am the patient.", "Soy el paciente.", "Mwen se pasyan an."), state.completionRole === "patient")}
       ${choice("helper", "people", L("Helping the patient", "Ayudando al paciente", "Ede pasyan an"), L("The patient is present and will make the decisions.", "El paciente está presente y tomará las decisiones.", "Pasyan an prezan epi l ap pran desizyon yo."), state.completionRole === "helper")}
@@ -531,7 +531,7 @@ function optionalSupportPrompt() {
     return `<section class="optional-support" data-optional-support ${hidden}>${label}<div class="optional-support-card optional-support-status">${icon("check")}<span><strong>${L("Invitation sent", "Invitación enviada", "Envitasyon voye")}</strong><span class="optional-support-copy">${L(`${name} can help you through this process. You still make the decisions about your care.`, `${name} puede ayudarle en este proceso. Usted sigue tomando las decisiones sobre su cuidado.`, `${name} ka ede w nan pwosesis sa a. Se ou menm k ap toujou pran desizyon sou swen ou.`)}</span></span></div></section>`;
   }
   if (!careCirclePromptAllowed()) return "";
-  return `<section class="optional-support" data-optional-support ${hidden}>${label}<button type="button" class="optional-support-card" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="optional-support-copy">${L("Invite someone you trust to help you through this process.", "Invite a alguien de confianza para que le ayude durante este proceso.", "Envite yon moun ou fè konfyans pou ede w pandan pwosesis sa a.")}</span><span class="optional-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button></section>`;
+  return `<section class="optional-support" data-optional-support ${hidden}>${label}<button type="button" class="optional-support-card" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want support along the way?", "¿Quiere apoyo durante el proceso?", "Ou vle sipò pandan wout la?")}</strong><span class="optional-support-copy">${L("Invite someone you trust to support you during your care journey.", "Invite a alguien de confianza para que le apoye durante su recorrido de cuidado.", "Envite yon moun ou fè konfyans pou sipòte w pandan pwosesis swen ou.")}</span><span class="optional-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button></section>`;
 }
 
 const patientFirstName = () => String(state.offer?.patient?.displayName || L("The patient", "El paciente", "Pasyan an")).split(/\s+/)[0].replace(/[^\p{L}'’-]/gu, "") || L("The patient", "El paciente", "Pasyan an");
@@ -539,7 +539,7 @@ const careCirclePromptAllowed = () => !isPersonalRepresentative() && state.careC
 
 function careCircleEarlyPrompt(compact = false) {
   if (!careCirclePromptAllowed()) return "";
-  return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want someone to help you?", "¿Quiere que alguien le ayude?", "Ou vle yon moun ede w?")}</strong><span class="care-circle-support-copy">${L("Invite someone you trust to help you through this process.", "Invite a alguien de confianza para que le ayude durante este proceso.", "Envite yon moun ou fè konfyans pou ede w pandan pwosesis sa a.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
+  return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want support along the way?", "¿Quiere apoyo durante el proceso?", "Ou vle sipò pandan wout la?")}</strong><span class="care-circle-support-copy">${L("Invite someone you trust to support you during your care journey.", "Invite a alguien de confianza para que le apoye durante su recorrido de cuidado.", "Envite yon moun ou fè konfyans pou sipòte w pandan pwosesis swen ou.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
 }
 
 function careCircleInvite() {

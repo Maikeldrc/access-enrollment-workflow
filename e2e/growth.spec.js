@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 test("patient invites a daughter while remaining the decision maker", async ({ page, context }) => {
   await page.getByRole("button", { name: /Start your care journey/i }).click();
-  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Choose from my contacts/i })).toHaveCount(0);
   await expect(page.getByText(/does not allow this person to consent, sign/i)).toBeVisible();
@@ -45,7 +45,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
   await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => { throw new DOMException("Denied", "NotAllowedError"); } } }));
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
-  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
   await page.getByRole("button", { name: /Choose from my contacts/i }).click();
   await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Manual Contact");
@@ -56,7 +56,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
 
 test("EMMI explains Care Circle boundaries without taking an action", async ({ page }) => {
   await page.getByRole("button", { name: /Start your care journey/i }).click();
-  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
   await openEmmiConversation(page);
   await page.getByRole("button", { name: /Can they make decisions for me/i }).click();
   await expect(page.getByText(/They cannot consent, sign, or make healthcare decisions for you/i)).toBeVisible();
@@ -67,7 +67,7 @@ test("Contact Picker is progressive, editable, and never sends automatically", a
   await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => [{ name: ["Maria Sample"], tel: [{ value: "3055550199", type: ["mobile"] }, { value: "7865550102", type: ["home"] }] }] } }));
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
-  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
   await page.getByRole("button", { name: /Choose from my contacts/i }).click();
   await expect(page.getByLabel("Their name")).toHaveValue("Maria Sample");
   await expect(page.getByText(/Which mobile number/i)).toBeVisible();
@@ -132,7 +132,7 @@ test("Care Circle moves from Home to Who is completing and remains optional", as
   const card = page.locator("[data-optional-support]");
   await expect(card).toBeVisible();
   await expect(card).toContainText("Optional support");
-  await expect(card).toContainText("Invite someone you trust to help you through this process.");
+  await expect(card).toContainText("Invite someone you trust to support you during your care journey.");
   await expect(card).toContainText("Invite someone");
   await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);
   await page.reload();
@@ -144,7 +144,7 @@ test("Care Circle moves from Home to Who is completing and remains optional", as
 test("Care Circle remains natural and complete in Spanish and Kreyòl", async ({ page }) => {
   await page.locator('[data-action="language"]').first().click();
   await page.getByRole("button", { name: /Comience su recorrido de cuidado/i }).click();
-  await page.getByRole("button", { name: /¿Quiere que alguien le ayude?/i }).click();
+  await page.getByRole("button", { name: /¿Quiere apoyo durante el proceso\?/i }).click();
   await expect(page.getByRole("heading", { name: "Invite a alguien de confianza" })).toBeVisible();
   await expect(page.getByText(/no permite que esta persona dé consentimiento/i)).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
@@ -262,7 +262,7 @@ for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${w
   await page.setViewportSize({ width, height: 780 });
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
-  await page.getByRole("button", { name: /Want someone to help you/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
   const result = await page.evaluate(() => {
     const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();
     const actions = document.querySelector(".care-circle-sticky-actions")?.getBoundingClientRect();
