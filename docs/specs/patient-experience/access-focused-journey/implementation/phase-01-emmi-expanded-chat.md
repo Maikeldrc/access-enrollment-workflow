@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Surface:** `assistantLayer()` in `src/app.js`, `src/emmi/quickQuestions.js`, expanded-panel styles
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `ac4bcb0` — `feat(emmi): phase-01 expanded conversational experience`
 
 ---
 
