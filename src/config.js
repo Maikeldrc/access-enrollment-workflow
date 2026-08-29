@@ -200,6 +200,17 @@ const unique = values => [...new Set(values.filter(Boolean))];
 export const ACCESS_PROVIDER_REFERRAL = "Provider / Practice Referral";
 export const isProviderReferralSource = source => source === "Physician Referral" || source === ACCESS_PROVIDER_REFERRAL;
 export const scenarioRequiresPhysician = (program, source) => isProviderReferralSource(source) || program !== "ACCESS";
+// One rule for turning a display name into the id the care team directory matches on, so a
+// prescriber, a referring provider and the offer physician cannot drift into three ids.
+export const physicianIdFor = displayName => String(displayName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+// The demo prescriptions were written by the physician who referred the patient, so a prescriber
+// resolves from the same record the offer's physician does. Exported rather than inlined at the
+// call site so a test can hold the two to each other: the medications live in runtime state, and
+// nothing else forces them to name the doctor the invitation names.
+export const prescriberFor = (config = {}) => {
+  const name = config.physicianDisplayName || DEFAULT_PROTOTYPE_CONFIG.physicianDisplayName;
+  return Object.freeze({ id: physicianIdFor(name), name });
+};
 
 // ---------------------------------------------------------------------------------------------
 // The canonical patient invitation
@@ -286,7 +297,7 @@ export function createPrototypeOffer(input = {}) {
   const program = pathways[pathway] || pathways.ACCESS;
   const isAccess = pathway === "ACCESS";
   const physicianRequired = scenarioRequiresPhysician(config.program, config.source);
-  const physician = physicianRequired && config.physicianDisplayName ? { displayName: config.physicianDisplayName, id: config.physicianDisplayName.toLowerCase().replace(/[^a-z0-9]+/g, "-") } : null;
+  const physician = physicianRequired && config.physicianDisplayName ? { displayName: config.physicianDisplayName, id: physicianIdFor(config.physicianDisplayName) } : null;
   const dynamicContent = { ...program, supportTemplate: physician ? program.support : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support, support: physician ? program.support.replaceAll("{physicianDisplayName}", physician.displayName) : isAccess ? "ITERA HEALTH coordinates this care with your existing doctors." : program.support };
   const accessCost = isAccess ? resolveAccessCost(config.accessTrack, config.secondaryCoverageStatus) : undefined;
   const bpDeviceFixture = {
