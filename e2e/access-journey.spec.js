@@ -499,3 +499,128 @@ test("the eligibility milestone holds its layout at every supported width and te
     }
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// Phase 7 — Consent: review and choose
+// ---------------------------------------------------------------------------------------------
+
+const openConsent = async page => {
+  await openEligibilitySuccess(page);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toBeVisible();
+};
+
+test("consent is framed as the patient's decision, not as a signature to collect", async ({ page }) => {
+  await openConsent(page);
+  await expect(page.locator(".lead")).toHaveText("Review the key details below. You decide whether you want to enroll in ACCESS.");
+  await expect(page.locator(".access-consent-summary .consent-disclosure-row strong")).toHaveText([
+    "Participation is voluntary",
+    "Your Medicare benefits stay the same",
+    "Your ACCESS cost",
+    "One ACCESS care provider at a time",
+    "You can change your ACCESS care"
+  ]);
+  // Scoped to the summary: the long-form disclosure below repeats several of these sentences.
+  const summary = page.locator(".access-consent-summary");
+  await expect(summary.getByText("You choose whether to enroll in ACCESS.", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
+  await expect(summary.getByText("You can receive this type of ACCESS care from one participating provider at a time.", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-terms summary")).toContainText("View full ACCESS information");
+});
+
+test("the cost shown is the patient's verified amount, never a promise that care is free", async ({ page }) => {
+  await openConsent(page);
+  const costRow = page.locator(".access-cost-row");
+  // The demo patient's supplemental coverage was verified, so the engine's answer is $0 — and the
+  // row has to say what that $0 is, and what it is not.
+  await expect(costRow).toContainText("$0");
+  await expect(costRow).toContainText(/expected ACCESS payment/i);
+  await expect(costRow).toContainText(/other healthcare services can still have their own costs/i);
+  await expect(page.locator("#screen-content")).not.toContainText(/ACCESS is free|no cost to you|fully covered/i);
+});
+
+test("consent is one unticked box, and the CTA waits for it", async ({ page }) => {
+  await openConsent(page);
+  const consentBox = page.locator("#consent-form input[type=checkbox]");
+  await expect(consentBox).toHaveCount(1);
+  await expect(consentBox).not.toBeChecked();
+  await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
+
+  const cta = page.getByRole("button", { name: "Confirm and continue" });
+  await expect(cta).toBeDisabled();
+  await consentBox.check();
+  await expect(cta).toBeEnabled();
+  // Consent is withdrawable right up to the moment it is given.
+  await consentBox.uncheck();
+  await expect(cta).toBeDisabled();
+});
+
+test("the signer is whoever is actually completing the enrollment", async ({ page }) => {
+  await openConsent(page);
+  await expect(page.locator(".signer-role")).toHaveText("Signing as: Patient");
+  // A representative signs a different sentence, on someone else's behalf, and attests separately.
+  await page.goto("/?scenario=access-representative");
+  await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
+  await expect(page.locator(".signer-role")).toHaveText("Signing as: Personal representative");
+  await expect(page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.")).toBeVisible();
+  await expect(page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.")).toBeVisible();
+});
+
+test("consenting writes an audit trail that says what was shown and who agreed", async ({ page }) => {
+  await openConsent(page);
+  await page.locator("#consent-form input[type=checkbox]").check();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toHaveCount(0);
+
+  const draft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(draft.consentSaved).toBe(true);
+  expect(draft.consentRole).toBeTruthy();
+  expect(draft.consentVersion).toBeTruthy();
+  expect(draft.consentTimestamp).toBeTruthy();
+  expect(draft.disclosureVersion).toBeTruthy();
+  expect(draft.language).toBeTruthy();
+  expect(draft.consentAcknowledgement).toBeTruthy();
+  expect(draft.audit.map(event => event.eventType)).toContain("consent_saved");
+});
+
+test("EMMI explains the choice without ever making it", async ({ page }) => {
+  await openConsent(page);
+  const dialog = await openEmmiConversation(page);
+  const ask = async question => {
+    await dialog.getByPlaceholder("Ask a question…").fill(question);
+    await dialog.getByRole("button", { name: "Send question" }).click();
+  };
+
+  await ask("Do I have to enroll?");
+  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /choice|voluntary|decide/i }).last()).toBeVisible();
+  await ask("Why does it say $0?");
+  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /\$0/ }).last()).toBeVisible();
+  await ask("Can you agree for me?");
+  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /cannot consent for you/i })).toBeVisible();
+
+  await expect(dialog.locator(".assistant-thinking")).toHaveCount(0);
+  // Explaining is allowed. Selling is not, and neither is ticking the box.
+  await expect(dialog).not.toContainText(/you should enroll|I recommend enrolling|it is free|don’t miss/i);
+  await expect(page.locator("#consent-form input[type=checkbox]")).not.toBeChecked();
+});
+
+test("the consent screen holds its layout at every supported width and text size", async ({ page }) => {
+  await openConsent(page);
+  for (const width of MOBILE_WIDTHS) {
+    for (const scale of TEXT_SCALES) {
+      await page.setViewportSize({ width, height: 844 });
+      await scaleText(page, scale);
+      const label = `${width}px / ${scale * 100}%`;
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `horizontal overflow at ${label}`).toBeLessThanOrEqual(1);
+      const damaged = await page.evaluate(() => [...document.querySelectorAll("#screen-content h1, .lead, .consent-disclosure-row strong, .consent-disclosure-row p, .signer-role, .check-row, .actions .button.primary")]
+        .filter(node => getComputedStyle(node).overflow !== "visible" && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1))
+        .map(node => node.className || node.tagName));
+      expect(damaged, `clipped consent copy at ${label}`).toEqual([]);
+      // The one box that carries the decision must always be comfortably reachable.
+      const consentTarget = await page.locator("#consent-form .check-row").evaluate(node => node.getBoundingClientRect().height);
+      expect(consentTarget, `consent target at ${label}`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});

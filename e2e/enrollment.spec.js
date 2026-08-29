@@ -246,7 +246,7 @@ test("direct outreach launches without an individual physician claim", async ({ 
   await expect(page.getByText("Get ongoing support, answers to your questions, and help staying on track between visits.")).toBeVisible();
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Review the key details below. You decide whether you want to enroll in ACCESS.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team .provider-card")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText("Dr. Fresner");
 
@@ -1042,7 +1042,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
 
   await expect(page.locator(".progress-meta span")).toHaveCount(1);
   await expect(page.locator(".progress-meta span")).toHaveText("Consent");
-  await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toBeVisible();
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await expect(page.locator("#screen-select option[value='DISCLOSURE']")).toHaveCount(0);
   await expect(page.locator(".consent-disclosure-row")).toHaveCount(5);
@@ -1054,14 +1054,14 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
   await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-cost-amount")).toHaveCount(0);
-  await expect(page.locator(".access-consent-summary").getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
-  await expect(page.locator(".access-consent-summary").getByText("You can have one ACCESS provider for this type of care at a time.", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-summary").getByText("One ACCESS care provider at a time", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-summary").getByText("You can receive this type of ACCESS care from one participating provider at a time.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("You may stop participating at any time");
   await expect(page.getByText("Medicare claims information", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Connected device information", { exact: true })).toHaveCount(0);
 
-  const continueButton = page.getByRole("button", { name: "Agree and continue" });
+  const continueButton = page.getByRole("button", { name: "Confirm and continue" });
   await expect(continueButton).toBeDisabled();
   await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(continueButton).toBeEnabled();
@@ -1144,24 +1144,27 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
 
   await expect(page.locator(".progress-meta span").last()).toHaveText("Consent");
-  await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
-  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toBeVisible();
+  await expect(page.getByText("Review the key details below. You decide whether you want to enroll in ACCESS.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
-  await expect(page.locator(".access-consent-summary")).not.toContainText("ACCESS care provider");
+  // The summary must not re-list the care team or name a provider — the structural checks above
+  // cover the removed cards, and this covers the copy. It used to look for "ACCESS care provider",
+  // which the one-provider-at-a-time disclosure now legitimately contains.
+  await expect(page.locator(".access-consent-summary")).not.toContainText("Dr. Fresner");
   await expect(page.locator(".access-consent-summary")).not.toContainText("ACCESS care for high blood pressure");
   await expect(page.locator(".consent-disclosure-row")).toHaveCount(5);
   await expect(page.locator(".access-consent-summary").getByText("Participation is voluntary", { exact: true })).toBeVisible();
   await expect(page.getByText("Your Medicare benefits, coverage, and rights do not change.", { exact: true })).toBeVisible();
   await expect(page.getByText("Expected beneficiary payment amount: $0 per month. Your Medicare and verified supplemental coverage are expected to cover this ACCESS cost. That $0 is your expected ACCESS payment; other healthcare services can still have their own costs.", { exact: true })).toBeVisible();
-  await expect(page.locator(".access-consent-summary").getByText("One ACCESS provider for this type of care", { exact: true })).toBeVisible();
+  await expect(page.locator(".access-consent-summary").getByText("One ACCESS care provider at a time", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-summary").getByText("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("Your regular Medicare benefits and cost-sharing continue to apply");
   await expect(page.locator("#screen-content")).not.toContainText("You may stop participating at any time");
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Patient");
   await expect(page.getByLabel(/authorized to make healthcare decisions/)).toHaveCount(0);
 
-  const cta = page.getByRole("button", { name: "Agree and continue" });
+  const cta = page.getByRole("button", { name: "Confirm and continue" });
   await expect(cta).toBeDisabled();
   await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
   await expect(cta).toBeEnabled();
@@ -1206,9 +1209,9 @@ test("ACCESS patient completes the simplified journey without redundant educatio
   await page.getByRole("button", { name: "Check my eligibility" }).click();
   await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 5000 });
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toBeVisible();
   await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
-  await page.getByRole("button", { name: "Agree and continue" }).click();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible({ timeout: 5000 });
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await expect(page.locator("#screen-select option[value='DISCLOSURE']")).toHaveCount(0);
@@ -1221,7 +1224,7 @@ test("ACCESS personal representative must complete the authority attestation", a
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Personal representative");
   const authority = page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.");
   const agreement = page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.");
-  const cta = page.getByRole("button", { name: "Agree and continue" });
+  const cta = page.getByRole("button", { name: "Confirm and continue" });
   await agreement.check();
   // A representative still attests their authority separately: that is a different statement
   // about a different person, not a second confirmation of the same one.
@@ -1352,7 +1355,7 @@ test("role selection branches only personal representatives into representative 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.").check();
   await page.getByLabel("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.").check();
-  await page.getByRole("button", { name: "Agree and continue" }).click();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
   await expect(page.getByRole("heading", { name: "Completing your enrollment with Medicare" })).toBeVisible();
   const consentDraft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(consentDraft).toMatchObject({ consentRole: "PERSONAL_REPRESENTATIVE", consentVersion: "2.1" });
@@ -1545,7 +1548,7 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   expect(layout.horizontalOverflow).toBe(false);
 
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
-  await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Review the key details below. You decide whether you want to enroll in ACCESS.", { exact: true })).toBeVisible();
   await expect(page.locator(".access-consent-care-team")).toHaveCount(0);
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
   await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
@@ -1981,8 +1984,8 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
 test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do not fall back to English", async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem("itera.enrollment.language.v1"));
   for (const locale of [
-    { clicks: 1, code: "ES", care: "Manténgase conectado con su equipo de cuidado", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su presión arterial alta entre visitas al médico.", careNote: "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", precheck: "Medicare revisará algunos datos para confirmar que puede participar en ACCESS. Esto solo toma un momento y no cambia su cobertura de Medicare.", precheckAck: "Entiendo esta información y deseo continuar con la verificación de elegibilidad de Medicare", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
-    { clicks: 2, code: "KR", care: "Rete konekte ak ekip swen ou", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere tansyon wo ou ant vizit kay doktè.", careNote: "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.", precheck: "Medicare ap revize kèk detay pou konfime ou ka patisipe nan ACCESS. Sa pran yon ti moman sèlman epi li pa chanje kouvèti Medicare ou.", precheckAck: "Mwen konprann enfòmasyon sa a epi mwen vle kontinye ak verifikasyon kalifikasyon Medicare a", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
+    { clicks: 1, code: "ES", care: "Manténgase conectado con su equipo de cuidado", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su presión arterial alta entre visitas al médico.", careNote: "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", precheck: "Medicare revisará algunos datos para confirmar que puede participar en ACCESS. Esto solo toma un momento y no cambia su cobertura de Medicare.", precheckAck: "Entiendo esta información y deseo continuar con la verificación de elegibilidad de Medicare", eligibility: "Elegibilidad", consent: "Revise y elija", consentIntro: "Revise los detalles clave a continuación. Usted decide si desea inscribirse en ACCESS.", providerRule: "Un proveedor de cuidado ACCESS a la vez", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
+    { clicks: 2, code: "KR", care: "Rete konekte ak ekip swen ou", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere tansyon wo ou ant vizit kay doktè.", careNote: "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.", precheck: "Medicare ap revize kèk detay pou konfime ou ka patisipe nan ACCESS. Sa pran yon ti moman sèlman epi li pa chanje kouvèti Medicare ou.", precheckAck: "Mwen konprann enfòmasyon sa a epi mwen vle kontinye ak verifikasyon kalifikasyon Medicare a", eligibility: "Elijibilite", consent: "Revize epi chwazi", consentIntro: "Revize detay enpòtan ki anba yo. Se ou ki deside si ou vle enskri nan ACCESS.", providerRule: "Yon sèl founisè swen ACCESS alafwa", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
   ]) {
     await page.goto("/?scenario=access-happy");
     for (let i = 0; i < locale.clicks; i += 1) await page.locator(".stage-language").click();

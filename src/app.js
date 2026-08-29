@@ -2084,15 +2084,17 @@ function consent() {
   const role = representativeRole ? L("Personal representative", "Representante personal", "Reprezantan pèsonèl") : L("Patient", "Paciente", "Pasyan");
   if (state.offer.pathway === "ACCESS") {
     const representative = representativeRole;
-    const intro = L("Review the information below before choosing whether to enroll.", "Revise la información a continuación antes de decidir si desea inscribirse.", "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.");
+    // The screen is a decision, not a signature ceremony: it says so before the disclosures, and the
+    // subject of the sentence is the patient.
+    const intro = L("Review the key details below. You decide whether you want to enroll in ACCESS.", "Revise los detalles clave a continuación. Usted decide si desea inscribirse en ACCESS.", "Revize detay enpòtan ki anba yo. Se ou ki deside si ou vle enskri nan ACCESS.");
     const config = state.offer.disclosures?.accessConfig || {};
     const cost = accessCostSummary(currentAccessCost());
     const summaryRows = [
       ["people", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè."), L("You choose whether to enroll in ACCESS.", "Usted decide si desea inscribirse en ACCESS.", "Se ou ki chwazi si w ap enskri nan ACCESS.")],
       ["shield", L("Your Medicare benefits stay the same", "Sus beneficios de Medicare permanecen iguales", "Benefis Medicare ou yo rete menm jan an"), L("Your Medicare benefits, coverage, and rights do not change.", "Sus beneficios, cobertura y derechos de Medicare no cambian.", "Avantaj, pwoteksyon, ak dwa Medicare ou yo pa chanje.")],
       ["info", L("Your ACCESS cost", "Su costo de ACCESS", "Depans ACCESS ou"), cost.supportingCopy, "cost"],
-      ["doctor", L("One ACCESS provider for this type of care", "Un proveedor ACCESS para este tipo de cuidado", "Yon founisè ACCESS pou kalite swen sa a"), L("You can have one ACCESS provider for this type of care at a time.", "Puede tener un proveedor ACCESS para este tipo de cuidado a la vez.", "Ou ka gen yon sèl founisè ACCESS pou kalite swen sa a alafwa.")],
-      ["clock", L("Changing or ending ACCESS care", "Cambiar o finalizar el cuidado ACCESS", "Chanje oswa mete fen nan swen ACCESS"), L("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.")]
+      ["doctor", L("One ACCESS care provider at a time", "Un proveedor de cuidado ACCESS a la vez", "Yon sèl founisè swen ACCESS alafwa"), L("You can receive this type of ACCESS care from one participating provider at a time.", "Puede recibir este tipo de cuidado ACCESS de un proveedor participante a la vez.", "Ou ka resevwa kalite swen ACCESS sa a nan men yon sèl founisè ki patisipe alafwa.")],
+      ["clock", L("You can change your ACCESS care", "Puede cambiar su cuidado ACCESS", "Ou ka chanje swen ACCESS ou"), L("Starting 90 days after enrollment, you may leave ACCESS or switch to another participating provider.", "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.")]
     ];
     if (config.showClaimsSharing) summaryRows.push(["document", L("Medicare claims information", "Información de reclamaciones de Medicare", "Enfòmasyon sou reklamasyon Medicare"), L("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", "Medicare puede compartir información de reclamaciones con ITERA HEALTH para ayudar a coordinar su cuidado ACCESS.", "Medicare ka pataje enfòmasyon sou reklamasyon avèk ITERA HEALTH pou ede kowòdone swen ACCESS ou.")]);
     if (config.showTempoDisclosure) summaryRows.push(["device", L("Connected device information", "Información del dispositivo conectado", "Enfòmasyon sou aparèy ki konekte"), config.tempoDisclosureText ? offerText(config.tempoDisclosureText) : L("A connected device may be used to support your ACCESS care. Your care team will explain what is required.", "Puede utilizarse un dispositivo conectado para apoyar su cuidado ACCESS. Su equipo le explicará lo necesario.", "Yo ka itilize yon aparèy konekte pou sipòte swen ACCESS ou. Ekip swen ou pral eksplike sa ki nesesè.")]);
@@ -2100,12 +2102,12 @@ function consent() {
     const agreement = representative
       ? L("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto, en nombre del paciente, inscribir al paciente en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò, nan non pasyan an, pou enskri pasyan an nan ACCESS avèk ITERA HEALTH.")
       : L("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto inscribirme en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò pou enskri nan ACCESS avèk ITERA HEALTH.");
-    return `${titleBlock(L("Review and agree", "Revise y acepte", "Revize epi dakò"), intro)}
+    return `${titleBlock(L("Review and choose", "Revise y elija", "Revize epi chwazi"), intro)}
       <section class="consent-summary access-consent-summary">${summaryRows.map(([rowIcon, headline, copy, rowType]) => `<div class="consent-disclosure-row ${rowType === "cost" ? "access-cost-row" : ""}">${icon(rowIcon)}<div><strong>${headline}</strong><p>${copy}</p></div></div>`).join("")}</section>
       <details class="full-terms access-consent-terms"><summary>${L("View full ACCESS information", "Ver información completa de ACCESS", "Gade tout enfòmasyon ACCESS yo")} ${icon("externalLink")}</summary><div class="access-full-content">${accessFullDisclosure(cost, config)}</div></details>
       <p class="signer-role"><strong>${L("Signing as", "Firmando como", "Siyen kòm")}:</strong> ${role}</p>
       <form id="consent-form" data-consent-shape="single">${authorityAttestation}${check("consent", agreement)}</form>
-      <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Agree and continue", "Aceptar y continuar", "Dakò epi kontinye"), true, "", true)}`;
+      <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Confirm and continue", "Confirmar y continuar", "Konfime epi kontinye"), true, "", true)}`;
   }
   const traditionalRepresentative = representativeRole;
   const traditionalIntro = traditionalRepresentative
