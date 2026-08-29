@@ -95,7 +95,14 @@ describe("orthography is orthography, not a second helping for words", () => {
     expect(detectPatientLanguage("Þetta er íslenska")).not.toBe("ht");
   });
 
-  it("still refuses to guess from a shared word", () => {
+  // This is the assertion that actually guards the fix, and it is the only one here that does.
+  // Restoring "ap" and "nan" to the character class was checked against all six cases above and
+  // only this one goes red: the others score Creole either way, so they describe the behaviour
+  // without defending it. A near-tie is where the two extra points changed an outcome —
+  // "I want nan bread and rice" is en=3 ("i", "want", "and") against ht=1, which the defect lifted
+  // to 3 and turned into a tie the margin rule answered with null.
+  it("does not let a shared word tie a language it has no other claim to", () => {
     expect(detectPatientLanguage("I want nan bread and rice")).toBe("en");
+    expect(detectPatientLanguage("I can get that appointment for you")).toBe("en");
   });
 });
