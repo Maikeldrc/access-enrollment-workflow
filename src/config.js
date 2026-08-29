@@ -237,6 +237,10 @@ export const CANONICAL_PATIENT_SCENARIO = Object.freeze({
   source: ACCESS_PROVIDER_REFERRAL,
   referralOrigin: "physician",
   physicianDisplayName: "Dr. Fresner",
+  // The invited patient has no connected monitor yet. Arranging one is the first tangible thing
+  // ACCESS does for them, which is why care activation opens with the device rather than asking a
+  // question whose answer their record already holds.
+  bpDeviceScenario: "none",
   language: "en"
 });
 export const scenarioUsesBloodPressureMonitoring = config => config.program === "ACCESS" && config.accessTrack === "eCKM" && config.conditions.includes("Hypertension");

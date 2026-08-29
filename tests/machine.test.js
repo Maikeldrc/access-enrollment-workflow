@@ -73,32 +73,59 @@ describe("enrollment state machine", () => {
     expect(progressFor(stateFor("access-happy", { screen: "IDENTITY_VERIFICATION" })).label).toBe("Confirm identity");
   });
 
-  it("uses a separate three-part care activation progress after ACCESS enrollment", () => {
-    const baseline = progressFor(stateFor("access-happy", { screen: "ACCESS_BASELINE" }));
-    const measure = progressFor(stateFor("access-happy", { screen: "ACCESS_MEASURE" }));
-    expect(baseline).toMatchObject({ label: "Getting started", current: 1, total: 3 });
-    expect(measure).toMatchObject({ label: "Getting started", current: 2, total: 3 });
-    expect(measure.percent).toBeGreaterThan(baseline.percent);
+  // Care activation is counted in stages the patient recognizes — the monitor, the goals, the
+  // personalizing, the plan — so three taps arranging a monitor stay one step of four rather than
+  // three of eleven. The whole point is that the number means something to the person reading it.
+  it("counts ACCESS care activation in stages rather than in screens", () => {
+    const device = progressFor(stateFor("access-happy", { screen: "ACCESS_BP_DEVICE_INFO" }));
+    const address = progressFor(stateFor("access-happy", { screen: "ACCESS_BP_SHIPPING_ADDRESS" }));
+    const goals = progressFor(stateFor("access-happy", { screen: "GOALS" }));
+    const carePlan = progressFor(stateFor("access-happy", { screen: "ONBOARDING_COMPLETE" }));
+
+    expect(device).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 4 });
+    // Still inside the device stage: the counter does not move for every screen.
+    expect(address).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 4 });
+    expect(goals).toMatchObject({ careActivationStage: "GOALS", current: 2, total: 4 });
+    expect(carePlan).toMatchObject({ careActivationStage: "CARE_PLAN", current: 4, total: 4 });
+    expect(goals.percent).toBeGreaterThan(device.percent);
   });
 
   it("marks ACCESS enrollment confirmation as a completed transition before care activation", () => {
     const confirmation = progressFor(stateFor("access-happy", { screen: "ENROLLMENT_CONFIRMED" }));
     expect(confirmation).toMatchObject({ label: "Enrollment complete", current: 1, total: 1, percent: 100 });
-    expect(progressFor(stateFor("access-happy", { screen: "ACCESS_BASELINE" })).percent).toBeLessThan(100);
+    expect(progressFor(stateFor("access-happy", { screen: "ACCESS_BP_DEVICE_INFO" })).percent).toBeLessThan(100);
+  });
+
+  // The health check is gone as a destination, not merely renamed: nothing routes to it any more.
+  it("no longer routes an ACCESS patient through the generic health check screens", () => {
+    const journey = journeyFor(stateFor("access-happy", {}));
+    expect(journey).not.toContain("ACCESS_BASELINE");
+    expect(journey).not.toContain("ACCESS_MEASURE");
+    expect(journey).not.toContain("ONBOARDING");
+  });
+
+  // Device, then goals, then personalization: the patient sees the care they already have before
+  // being asked for anything, and the goals screen explains what the later questions are for.
+  it("puts the monitor and the assigned goals ahead of the personalization screens", () => {
+    const journey = journeyFor(stateFor("access-happy", {}));
+    expect(journey.indexOf("ACCESS_BP_DEVICE_INFO")).toBeGreaterThan(journey.indexOf("ENROLLMENT_CONFIRMED"));
+    expect(journey.indexOf("GOALS")).toBeGreaterThan(journey.indexOf("ACCESS_BP_FULFILLMENT_CONFIRMED"));
+    expect(journey.indexOf("CLINICAL_VERIFICATION")).toBeGreaterThan(journey.indexOf("GOALS"));
+    expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
   });
 
   it("branches the ACCESS blood-pressure baseline by device path", () => {
     const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", deviceVerificationStatus: "PATIENT_CONFIRMED", bpDeviceVerificationStatus: "PATIENT_CONFIRMED" }));
     const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));
     const needed = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "needed" }));
-    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "CLINICAL_VERIFICATION", "GOALS"]));
     expect(owned).not.toContain("ACCESS_BP_BASELINE_RESULT");
     const completed = journeyFor(stateFor("access-happy", { bpDevicePath: "owned", deviceVerificationStatus: "SOURCE_VERIFIED", bpBaselineStatus: "COMPLETED" }));
     expect(completed).toContain("ACCESS_BP_BASELINE_RESULT");
     expect(help).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
     expect(help).toEqual(expect.arrayContaining(["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"]));
     expect(needed).not.toContain("ACCESS_BP_MEASUREMENT");
-    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "CLINICAL_VERIFICATION", "GOALS"]));
     expect(needed).toContain("ONBOARDING_COMPLETE");
   });
 

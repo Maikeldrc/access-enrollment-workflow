@@ -79,6 +79,18 @@ const PROGRESS_STAGE_BY_SCREEN = {
   OFFER_INVALID: "IMPORTANT_INFORMATION",
   OFFER_EXPIRED: "IMPORTANT_INFORMATION"
 };
+// The patient experiences care activation as four things, not as fourteen screens: the monitor
+// being arranged, the goals they were assigned, the personalizing, and the plan that results.
+// Every activation screen belongs to exactly one of them, in this order.
+const CARE_ACTIVATION_STAGE_BY_SCREEN = {
+  ACCESS_BP_DEVICE_INFO: "DEVICE", ACCESS_BP_SHIPPING_ADDRESS: "DEVICE", ACCESS_BP_FULFILLMENT_CONFIRMED: "DEVICE",
+  ACCESS_BP_DEVICE_VERIFICATION: "DEVICE", ACCESS_BP_DEVICE_RESULT: "DEVICE", ACCESS_BP_GUIDED_SETUP: "DEVICE",
+  ACCESS_BP_MEASUREMENT: "DEVICE", ACCESS_BP_BASELINE_RESULT: "DEVICE", ACCESS_BP_ESCALATION: "DEVICE",
+  GOALS: "GOALS",
+  CLINICAL_VERIFICATION: "PERSONALIZE", MEDICATIONS_REVIEW: "PERSONALIZE", CARE_PREFERENCES: "PERSONALIZE",
+  ONBOARDING_COMPLETE: "CARE_PLAN"
+};
+
 export function journeyFor(s) {
   const p = s.offer?.pathway;
   if (!p) return ["OFFER_LOADING"];
@@ -88,15 +100,20 @@ export function journeyFor(s) {
     if (s.accessOutcome === "notEligible") return eligibility;
     const completedBpDestination = s.bpEscalationState?.status === "ACTIVE" ? ["ACCESS_BP_ESCALATION"] : s.bpBaselineStatus === "COMPLETED" ? ["ACCESS_BP_BASELINE_RESULT"] : [];
     const deviceResultAvailable = ["ASSIGNED", "PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED", "FAILED", "DEVICE_MISMATCH", "SOURCE_MISMATCH", "NEEDS_REVIEW", "INACTIVE", "UNSUPPORTED"].includes(s.deviceVerificationStatus);
-    const remainingCareSetup = ["ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"];
-    const bpPath = s.bpDevicePath === "owned"
+    // Care activation, not a health check. The patient is first shown the care they already have —
+    // the monitor being arranged, then the goals the track assigned them — and only afterwards asked
+    // for what is still missing to personalize it. Goals moved ahead of the personalization screens
+    // for that reason: a patient who has seen their goals understands what the questions are for.
+    const remainingCareSetup = ["GOALS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+    // The patient is never asked whether they own a monitor. Their record already says, and the
+    // default is the canonical patient's situation: no connected monitor yet.
+    const devicePath = s.bpDevicePath || "needed";
+    const bpPath = devicePath === "owned"
       ? ["ACCESS_BP_DEVICE_VERIFICATION", ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []), ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup] : [])]
-      : s.bpDevicePath === "help"
+      : devicePath === "help"
         ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup]
-        : s.bpDevicePath === "needed"
-          ? ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", ...remainingCareSetup]
-          : [];
-    return [...eligibility, "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", ...bpPath, "ONBOARDING_COMPLETE"];
+        : ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", ...remainingCareSetup];
+    return [...eligibility, "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", ...bpPath, "ONBOARDING_COMPLETE"];
   }
   const traditionalStart = [...start, "HOW_CARE_WORKS"];
   if (["RPM", "CCM_RPM", "PCM_RPM"].includes(p)) return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "RPM_DEVICE_PATH", ...(s.devicePath === "ship" ? ["RPM_ADDRESS_CONFIRMATION"] : []), "RPM_DEVICE_SETUP", "RPM_FIRST_READING", "RPM_MONITORING_READY"];
@@ -108,13 +125,19 @@ export function progressFor(s) {
     const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
     return { stage, label: PROGRESS_STAGE_LABELS[stage], current: 1, total: 1, percent: 100 };
   }
-  const careStartIndex = journey.indexOf("ACCESS_BASELINE");
-  const accessCareSetup = careStartIndex >= 0 ? journey.slice(careStartIndex) : [];
+  // Care activation begins the moment enrollment is confirmed, so progress through it is counted
+  // from the first activation screen rather than from a health check that no longer exists.
+  const careStartIndex = journey.indexOf("ENROLLMENT_CONFIRMED") + 1;
+  const accessCareSetup = careStartIndex > 0 ? journey.slice(careStartIndex) : [];
   if (s.offer?.pathway === "ACCESS" && accessCareSetup.includes(s.screen)) {
-    const current = accessCareSetup.indexOf(s.screen) + 1;
-    const total = accessCareSetup.length;
+    // Counted in stages, not screens. Arranging a monitor takes three taps and personalizing takes
+    // three more, but the patient is doing two things, not six: a per-screen counter would make the
+    // bar crawl and turn "how much is left" into a number that means nothing to them.
+    const stagesInJourney = [...new Set(accessCareSetup.map(screen => CARE_ACTIVATION_STAGE_BY_SCREEN[screen]).filter(Boolean))];
+    const current = Math.max(1, stagesInJourney.indexOf(CARE_ACTIVATION_STAGE_BY_SCREEN[s.screen]) + 1);
+    const total = Math.max(1, stagesInJourney.length);
     const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
-    return { stage, label: PROGRESS_STAGE_LABELS[stage], current, total, percent: current / total * 100 };
+    return { stage, careActivationStage: CARE_ACTIVATION_STAGE_BY_SCREEN[s.screen] || null, label: PROGRESS_STAGE_LABELS[stage], current, total, percent: current / total * 100 };
   }
   const progressAnchor = { CALLBACK_CONFIRMED: "ACCESS_ELIGIBILITY_RESULT", OUTCOME_STOPPED: "ACCESS_ELIGIBILITY_RESULT" }[s.screen];
   const fallbackScreen = journey.includes(s.returnScreen) ? s.returnScreen : journey.includes(progressAnchor) ? progressAnchor : journey[0];

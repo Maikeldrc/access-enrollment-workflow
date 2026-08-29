@@ -97,7 +97,7 @@ export function emptyFlowProgress(flowType = "GETTING_STARTED") {
 }
 
 const GETTING_STARTED_ENTRY_ROUTE = Object.freeze({
-  ACCESS: "ACCESS_BASELINE",
+  ACCESS: "ACCESS_BP_DEVICE_INFO",
   RPM: "RPM_DEVICE_PATH",
   CCM_RPM: "RPM_DEVICE_PATH",
   PCM_RPM: "RPM_DEVICE_PATH",

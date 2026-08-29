@@ -38,7 +38,9 @@ function monitoringAction(context) {
 }
 
 const PROGRAM_ACTIONS = Object.freeze({
-  ACCESS: () => ({ label: LABELS.setUpMyCare, route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" }),
+  // Care activation, not a health check: the first thing ACCESS does for the patient is arrange the
+  // connected monitor, so that is where "Set up my care" lands.
+  ACCESS: () => ({ label: LABELS.setUpMyCare, route: "ACCESS_BP_DEVICE_INFO", actionType: "CARE_ACTIVATION" }),
   CCM: () => ({ label: LABELS.setUpMyCare, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   PCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),
   APCM: () => ({ label: LABELS.continueGettingStarted, route: "ONBOARDING", actionType: "CARE_SETUP" }),

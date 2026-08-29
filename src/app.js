@@ -5495,8 +5495,17 @@ async function advance() {
     state.enrollmentCompletedAt ||= new Date().toISOString();
     state.activationStatus = "NOT_STARTED";
     if (state.offer.pathway === "ACCESS") {
+      // The health check used to open the baseline and mark it started. Care activation begins here
+      // instead, so the baseline begins here too — otherwise it would sit at NOT_STARTED with
+      // nothing left in the journey able to move it, and the audit trail would lose the moment.
       state.baselineStatus ||= "NOT_STARTED";
-      state.baselineResumeScreen = "ACCESS_BASELINE";
+      if (state.baselineStatus === "NOT_STARTED") {
+        state.baselineStatus = "IN_PROGRESS";
+        state.baselineStartedAt = new Date().toISOString();
+        audit(state, "baseline_started", "success", { baselineStatus: state.baselineStatus });
+      }
+      state.baselineResumeScreen = "ACCESS_BP_DEVICE_INFO";
+      state.baselineReminderStatus = "NOT_SCHEDULED";
     }
     if (["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway)) state.deviceSetupStatus ||= "NOT_STARTED";
     setGettingStartedProgress(FLOW_STATUS.NOT_STARTED, { resumeRoute: currentNextBestAction().route });
