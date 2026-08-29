@@ -470,8 +470,17 @@ test("compact EMMI stays readable and untruncated at 125% and 150% text scaling"
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   for (const scale of [1, 1.25, 1.5]) {
     await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
-    // The guide re-renders whenever the voice state moves, so measure a settled bar.
+    // The guide re-renders whenever the voice state moves, so measure a settled bar. Waiting for
+    // the first button to be visible is not enough: under parallel load this caught the bar
+    // mid-render and measured a button at zero height. Wait for two frames to report the same
+    // non-zero geometry, so the numbers below are the bar the patient actually sees.
     await expect(page.locator(".emmi-guide-actions button").first()).toBeVisible();
+    await page.waitForFunction(() => {
+      const heights = [...document.querySelectorAll(".emmi-guide-actions button")].map(button => Math.round(button.getBoundingClientRect().height));
+      const previous = window.__guideBarHeights;
+      window.__guideBarHeights = heights.join(",");
+      return heights.length > 0 && heights.every(height => height > 0) && previous === window.__guideBarHeights;
+    }, null, { timeout: 5000 });
     const audit = await page.locator(".emmi-guide").evaluate(node => {
       const buttons = [...node.querySelectorAll(".emmi-guide-actions button")];
       return {
