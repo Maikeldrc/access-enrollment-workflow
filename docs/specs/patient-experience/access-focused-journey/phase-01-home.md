@@ -133,16 +133,25 @@ assertions:
 - Non-ACCESS program subheadlines and the ACCESS direct-outreach participant statement.
 - Hero card, its imagery and its physician attribution.
 
-## Open issues
+## Open issues (resolved)
 
-**Pre-existing — medium — trust hero card overflows at 150 % text scaling.** At 384 px with 150 %
-scaling, `.trust-hero-text-overlay` runs 32 px past the bottom of `.invitation-stage`: "Care through
-Medicare’s ACCESS Model" is cut on the right and "Recommended by Dr. Fresner" is cut off below.
-The cause is that `.trust-hero-headline` is sized in `rem` (`clamp(1.12rem, 5.2vw, 1.34rem)`) inside
-a stage with a fixed 170 px height, so the text scales while its container does not. Not touched
-here: this phase is explicitly forbidden from changing the top card, and `git diff src/styles.css`
-shows nothing in this change reaches the hero. Worth its own fix — the same `rem`-inside-fixed-height
-pattern that this phase corrected in the voluntariness note.
+**Resolved — trust hero card overflowed at 150 % text scaling.** At 384 px with 150 % scaling,
+`.trust-hero-text-overlay` ran 32 px past the bottom of `.invitation-stage`: "Care through
+Medicare’s ACCESS Model" was cut on the right and "Recommended by Dr. Fresner" was cut off below.
+The text was sized in `rem` inside a card whose height did not scale with it.
+
+Fixed in `8572f66`, by the opposite move to the one this entry suggested. Rather than pinning the
+text so it can no longer outgrow the card, the card and the artwork became siblings in one grid
+cell, so the card takes whichever is taller and scaled-up text grows it instead of being cropped by
+it. The patient's text size still does what they set it to do: at 384 px and 150 % the headline goes
+from 19.97 px to 26.88 px and the card from 199 px to 263 px, with every line inside it. The
+attribution also lost its two-line clamp, so a long physician name grows the card rather than being
+truncated.
+
+A second fix for the same defect landed independently on `main` (PR #1) while these phases were
+unmerged. It froze the hero's type in px instead, which stopped the clipping but stopped the hero
+responding to text scaling at all. This merge resolves that in favour of the grid, and supersedes
+it.
 
 Pre-existing e2e failures unrelated to this phase are listed in the regression gate results below
 and were reproduced on the pre-change baseline.
