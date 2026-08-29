@@ -70,3 +70,39 @@ describe("answering the offer in words", () => {
     expect(isLanguageOfferDeclined("no one has called me")).toBe(false);
   });
 });
+
+describe("orthography is orthography, not a second helping for words", () => {
+  // "ap" and "nan" were in the Creole character class as well as the marker list, so each scored
+  // three where the design caps a word at one and orthography at two. English has no character
+  // class to answer with, so a sentence with no Creole in it could win Creole four to nothing —
+  // and the margin rule cannot rescue a language that scored zero.
+  it("does not let a word count as orthography as well as a marker", () => {
+    expect(detectPatientLanguage("nan ap nan ap nan ap")).toBe("ht");
+    // Scores two, not six: still Creole, but on the evidence it actually has.
+    expect(detectPatientLanguage("I can help you with that appointment")).toBe("en");
+    expect(detectPatientLanguage("Can you tell me what my medication costs")).toBe("en");
+  });
+
+  it("keeps Creole detectable without those two words carrying it", () => {
+    expect(detectPatientLanguage("Kisa sa vle di pou mwen")).toBe("ht");
+    expect(detectPatientLanguage("Mwen bezwen ed ak tansyon doktè mwen")).toBe("ht");
+    expect(detectPatientLanguage("Èske mwen oblije enskri nan pwogram sa")).toBe("ht");
+  });
+
+  it("does not read a language it has never spoken as Creole", () => {
+    // "þ" is Icelandic, not Haitian Creole, and had no business in the Creole character class.
+    expect(detectPatientLanguage("þetta er ekki kreyol")).toBeNull();
+    expect(detectPatientLanguage("Þetta er íslenska")).not.toBe("ht");
+  });
+
+  // This is the assertion that actually guards the fix, and it is the only one here that does.
+  // Restoring "ap" and "nan" to the character class was checked against all six cases above and
+  // only this one goes red: the others score Creole either way, so they describe the behaviour
+  // without defending it. A near-tie is where the two extra points changed an outcome —
+  // "I want nan bread and rice" is en=3 ("i", "want", "and") against ht=1, which the defect lifted
+  // to 3 and turned into a tie the margin rule answered with null.
+  it("does not let a shared word tie a language it has no other claim to", () => {
+    expect(detectPatientLanguage("I want nan bread and rice")).toBe("en");
+    expect(detectPatientLanguage("I can get that appointment for you")).toBe("en");
+  });
+});

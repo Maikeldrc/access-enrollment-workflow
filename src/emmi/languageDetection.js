@@ -36,8 +36,15 @@ const MARKERS = {
 
 // Characters that only one of the three writes. A single "ñ" or an inverted question mark settles
 // Spanish; the Creole grave accents settle Creole.
+//
+// Characters only. "ap" and "nan" used to sit here too, and being words they were also in the
+// Creole marker list — so each was worth three points, one as a marker and two more as orthography
+// it is not, against a documented ceiling of two. English has no such class to answer with, so
+// "call nan ap now" scored four to nothing and resolved as Creole outright; the margin rule cannot
+// rescue a language that scored zero. They are still markers, worth one each like every other word.
+// "þ" was here as well and is not a Haitian Creole letter — it made Icelandic read as Creole.
 const SPANISH_CHARACTERS = /[ñ¿¡]|[áíóú]/;
-const CREOLE_CHARACTERS = /[èòàþ]|\bap\b|\bnan\b/;
+const CREOLE_CHARACTERS = /[èòà]/;
 
 const normalize = text => String(text || "")
   .toLowerCase()
