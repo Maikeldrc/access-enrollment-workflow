@@ -582,10 +582,26 @@ test("§35 confirming the provider does not erase who the appointment is with", 
   expect(await screenText(page)).toContain("Dr. Martinez");
   await answer(page, "requestedProfessionalId", STRUCTURED_REQUEST_PROVIDER);
 
-  // The patient said "yes, that's right". The name may not disappear because of it.
-  expect((await storedAppointment(page)).providerDisplayName,
-    "confirming the provider blanks the name unless that id is also in the locally built care team")
-    .toBe("Dr. Martinez");
+  // The patient said "yes, that's right". The name may not disappear because of it. This id is in
+  // the locally built care team, so confirming it adopts that record's own verified name — which is
+  // the opposite of inventing a provider, and never an empty one.
+  const confirmed = (await storedAppointment(page)).providerDisplayName;
+  expect(confirmed, "confirming a provider must never blank the name").toBeTruthy();
+  expect(confirmed, "a care team member is named by their own record").toBe("Dr. Pedro Martinez");
+});
+
+test("§35 a provider the care team does not carry keeps the name the need was created with", async ({ page }) => {
+  test.setTimeout(120000);
+  await openScheduling(page, need({
+    requestedProfessionalId: "dr-not-in-care-team",
+    providerDisplayName: "Dr. Okafor",
+    requestedSpecialty: "Endocrinology"
+  }));
+
+  await stepIs(page, "PROVIDER");
+  await answer(page, "requestedProfessionalId", "dr-not-in-care-team");
+  // Nothing local can confirm this person, so nothing local may overwrite them either.
+  expect((await storedAppointment(page)).providerDisplayName).toBe("Dr. Okafor");
 });
 
 /* ======================================================= §80 / §81 / §127 draft ========== */
