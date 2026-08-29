@@ -87,6 +87,29 @@ describe("next best action", () => {
     }
   });
 
+  // The app never calls this without a screen, and naming ENROLLMENT_CONFIRMED at screen level once
+  // made every non-ACCESS programme say "Start my health check" under a heading that already read
+  // "Ready to set up your care?". Every case above went on passing, because none of them passed a
+  // screen. These do.
+  it("lets the programme name the step on the confirmation screen, whatever the screen is called", () => {
+    const onConfirmation = (pathway, nextRoute) => resolveNextBestAction({ pathway, currentScreen: "ENROLLMENT_CONFIRMED", nextRoute });
+    expect(onConfirmation("ACCESS", "ACCESS_BASELINE").label.en).toBe("Start my health check");
+    expect(onConfirmation("CCM", "ONBOARDING").label.en).toBe("Set up my care");
+    expect(onConfirmation("RPM", "RPM_DEVICE_PATH").label.en).toBe("Set up my monitor");
+    for (const program of ["PCM", "ASM", "APCM", "CCM_RPM", "PCM_RPM"]) {
+      expect(onConfirmation(program, "ONBOARDING").label.en).toBe("Continue getting started");
+    }
+    // The words are the programme's; the route stays the one the journey handed in.
+    expect(onConfirmation("CCM", "ONBOARDING").route).toBe("ONBOARDING");
+    expect(onConfirmation("CCM_RPM", "RPM_DEVICE_PATH").route).toBe("RPM_DEVICE_PATH");
+  });
+
+  it("still lets a screen own its own call to action where that is the point", () => {
+    const home = resolveNextBestAction({ pathway: "CCM", currentScreen: "INVITATION", nextRoute: "DECISION_MAKER" });
+    expect(home).toMatchObject({ actionType: "LEARN_MORE", route: "DECISION_MAKER" });
+    expect(home.label.en).toBe("See how it works");
+  });
+
   it("localizes every action label", () => {
     for (const program of programs) {
       for (const value of localized(resolveNextBestAction({ pathway: program }).label)) expect(value).toBeTruthy();

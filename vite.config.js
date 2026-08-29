@@ -1,9 +1,19 @@
+import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import { handleEmmiLiveToken } from "./server/emmiLiveToken.js";
 import { handleEmmiKnowledge } from "./server/emmiKnowledge.js";
 import { handleEmmiChat } from "./server/emmiChat.js";
 
 const asBoolean = (value, fallback) => value == null ? fallback : String(value).toLowerCase() === "true";
+
+// A git worktree under .claude/worktrees carries no node_modules of its own. Node still finds the
+// packages by walking up to the main checkout, so the app builds and the tests run, but Vite's dev
+// server refuses to serve a file outside its own root: the @fontsource faces come back 403 and every
+// screen silently renders in the fallback system face. Manrope runs about 12% wider than that
+// fallback, so any layout measured in a worktree is quietly wrong. Serve the fonts from wherever the
+// packages actually live.
+const dependencyRoot = resolve(dirname(createRequire(import.meta.url).resolve("@fontsource/manrope/700.css")), "../..");
 
 export default defineConfig(({ mode }) => {
   const env = { ...process.env, ...loadEnv(mode, process.cwd(), "") };
@@ -18,6 +28,7 @@ export default defineConfig(({ mode }) => {
   };
   return {
     define: { __EMMI_PUBLIC_CONFIG__: JSON.stringify(publicConfig) },
+    server: { fs: { allow: [process.cwd(), dependencyRoot] } },
     plugins: [{
       name: "emmi-live-token-dev-route",
       configureServer(server) {
