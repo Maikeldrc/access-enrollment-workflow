@@ -2,7 +2,7 @@
 
 **Status:** complete — verified against the specification, one defect fixed
 **Surface:** `src/appointments.js`, `src/appointmentViews.js`, `src/appointmentSupport.js`, `src/schedulingCapability.js`, `src/careTeamDirectory.js`, `src/emmi/appointmentIntents.js`, `src/emmi/tools.js`
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `947a995` — `feat(emmi): phase-04 appointment coordination orchestration`
 
 ---
 
