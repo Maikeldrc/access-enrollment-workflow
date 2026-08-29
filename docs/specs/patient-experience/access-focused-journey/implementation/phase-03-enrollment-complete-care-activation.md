@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `ENROLLMENT_CONFIRMED` (`EnrollmentWelcomeScreen()`, `src/enrollmentWelcome.js`, `src/flowTransitions.js`, `src/nextBestAction.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `82904c7` — `feat(access): phase-03 post-enrollment care activation`
 
 ---
 
