@@ -2273,11 +2273,13 @@ function EnrollmentWelcomeScreen() {
     if (index !== 1 || !physicianSpecific) return highlight;
     return {
       ...highlight,
-      title: { en: "Connected with your doctor", es: "Conectado con su médico", ht: "Konekte ak doktè ou" },
+      // The invitation named this doctor, so the card names them too rather than saying "your
+      // doctor" about someone the patient could point at.
+      title: { en: `Connected with ${confirmedPhysicianName}`, es: `Conectado con ${confirmedPhysicianName}`, ht: `Konekte ak ${confirmedPhysicianName}` },
       description: {
-        en: `ITERA HEALTH works with ${confirmedPhysicianName} to help keep your care coordinated.`,
-        es: `ITERA HEALTH trabaja con ${confirmedPhysicianName} para ayudar a mantener su cuidado coordinado.`,
-        ht: `ITERA HEALTH travay avèk ${confirmedPhysicianName} pou ede kenbe swen ou kowòdone.`
+        en: `ITERA works with ${confirmedPhysicianName} and your care team to help keep your care connected.`,
+        es: `ITERA trabaja con ${confirmedPhysicianName} y su equipo de cuidado para ayudar a mantener su cuidado conectado.`,
+        ht: `ITERA travay avèk ${confirmedPhysicianName} ak ekip swen ou pou ede kenbe swen ou konekte.`
       }
     };
   });
@@ -2289,7 +2291,12 @@ function EnrollmentWelcomeScreen() {
     : ["RPM", "CCM_RPM", "PCM_RPM"].includes(pathway) ? ["box", "wifi", "people"]
       : ["document", "phone", "people"];
   const contactWindow = welcome.careTeamContactWindow ? localized(welcome.careTeamContactWindow) : "";
-  const nextSteps = welcome.nextSteps.map((step, index) => [stepIcons[index], localized(step).replace("{careTeamContactWindow}", contactWindow).trim(), ""]);
+  // A next step is either a sentence — the shape every program has always used, with its icon
+  // decided by position — or, where a program has something to explain rather than announce, a
+  // titled step that carries its own icon and its own description.
+  const nextSteps = welcome.nextSteps.map((step, index) => step.title
+    ? [step.icon || stepIcons[index], localized(step.title), localized(step.description)]
+    : [stepIcons[index], localized(step).replace("{careTeamContactWindow}", contactWindow).trim(), ""]);
   const nextBestAction = currentNextBestAction();
   const transition = currentFlowTransition();
   return `<div class="enrollment-welcome-screen" data-program="${pathway}" data-next-route="${nextBestAction.route}" data-next-action="${nextBestAction.actionType}">${art("check", true)}

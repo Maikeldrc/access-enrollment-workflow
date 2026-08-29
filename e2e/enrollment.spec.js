@@ -309,12 +309,13 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await expect(page.locator(".progress-meta span")).toHaveCount(1);
   await expect(page.locator(".progress-meta span")).toHaveText("Enrollment complete");
   await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
-  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS experience" })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH works with Dr. Fresner to help keep your care coordinated.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS care" })).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Fresner and your care team to help keep your care connected.", { exact: true })).toBeVisible();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
-  await expect(page.getByText("Your care team will call you within 2 business days", { exact: true })).toBeVisible();
-  await expect(page.getByText("We’ll review your personalized care plan", { exact: true })).toBeVisible();
-  await expect(page.getByText("You’ll continue seeing your regular doctors", { exact: true })).toBeVisible();
+  // Care activation, in the order the patient will do it — not a promise that somebody will call.
+  await expect(page.getByText("Your blood pressure monitor", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your health goals", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your personalized care plan", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("We’ll confirm your personalized care plan");
 
   const details = page.locator(".enrollment-consent-details");
@@ -326,14 +327,14 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await expect(details).toContainText("Signing role: Patient");
   await expect(details).toContainText("Applicable disclosures: Version 2.1");
 
-  await page.getByRole("button", { name: "Start my health check" }).click();
+  await page.getByRole("button", { name: "Set up my care" }).click();
   await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
   await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "IN_PROGRESS", screen: "ACCESS_BASELINE", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } } });
 });
 
-test("Start my health check repairs a stale saved route instead of reopening the same confirmation", async ({ page }) => {
+test("Set up my care repairs a stale saved route instead of reopening the same confirmation", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
   // Create the same persisted transition record a returning patient has before corrupting it
@@ -352,7 +353,7 @@ test("Start my health check repairs a stale saved route instead of reopening the
   });
   await page.reload();
 
-  await page.getByRole("button", { name: "Start my health check" }).click();
+  await page.getByRole("button", { name: "Set up my care" }).click();
   await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
   const repaired = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(repaired).toMatchObject({
@@ -397,13 +398,13 @@ test("ACCESS enrollment confirmation copy is localized in Spanish and Kreyòl", 
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.locator(".progress-meta span").first()).toHaveText("Inscripción completa");
-  await expect(page.getByRole("heading", { name: "Bienvenido a su experiencia ACCESS" })).toBeVisible();
-  await expect(page.getByText("Revisaremos su plan de cuidado personalizado", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Bienvenido a su cuidado ACCESS" })).toBeVisible();
+  await expect(page.getByText("Su plan de cuidado personalizado", { exact: true })).toBeVisible();
   await expect(page.getByText("Ver detalles de inscripción y consentimiento", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
   await expect(page.locator(".progress-meta span").first()).toHaveText("Enskripsyon fini");
-  await expect(page.getByRole("heading", { name: "Byenveni nan eksperyans ACCESS ou" })).toBeVisible();
-  await expect(page.getByText("N ap revize plan swen pèsonalize ou", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Byenveni nan swen ACCESS ou" })).toBeVisible();
+  await expect(page.getByText("Plan swen pèsonalize ou", { exact: true })).toBeVisible();
   await expect(page.getByText("Gade detay enskripsyon ak konsantman", { exact: false })).toBeVisible();
 });
 
@@ -411,7 +412,7 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
   // Seven programs, each a full navigation: this is a long test, not a slow product.
   test.setTimeout(120000);
   const programs = [
-    ["ACCESS", "ACCESS", "Start my health check", "ACCESS_BASELINE"],
+    ["ACCESS", "ACCESS", "Set up my care", "ACCESS_BASELINE"],
     ["CCM", "CCM", "Set up my care", "ONBOARDING"],
     ["RPM", "RPM", "Set up my monitor", "RPM_DEVICE_PATH"],
     ["CCM + RPM", "CCM_RPM", "Continue getting started", "RPM_DEVICE_PATH"],
@@ -474,8 +475,10 @@ test("CCM enrollment welcome uses one primary message and two compact support hi
   await expect(highlights).toHaveCount(2);
   await expect(highlights.nth(0)).toContainText("Step-by-step support");
   await expect(highlights.nth(0)).toContainText("We’ll guide you as you get started.");
-  await expect(highlights.nth(1)).toContainText("Connected with your doctor");
-  await expect(highlights.nth(1)).toContainText("ITERA HEALTH works with Dr. Fresner");
+  // The physician highlight is shared by every program on this screen, so CCM names the referring
+  // doctor in the same words ACCESS does.
+  await expect(highlights.nth(1)).toContainText("Connected with Dr. Fresner");
+  await expect(highlights.nth(1)).toContainText("ITERA works with Dr. Fresner and your care team");
   await expect(welcome.locator(".enrollment-welcome-reassurance, .enrollment-welcome-context")).toHaveCount(0);
   await expect(welcome.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
 });

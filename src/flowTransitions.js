@@ -26,10 +26,12 @@ const SHARED = Object.freeze({
 });
 
 const PROGRAM_COPY = Object.freeze({
+  // What follows enrollment is care activation, not another questionnaire, and the copy says what
+  // will actually happen rather than asking the patient to answer questions.
   ACCESS: {
-    title: T("Ready for the next step?", "¿Listo para el siguiente paso?", "Ou pare pou pwochen etap la?"),
-    nextStepTitle: T("Your first health check", "Su primera evaluación de salud", "Premye chèk sante ou"),
-    description: T("Answer a few questions and share some starting health information so your ACCESS care team can personalize your care.", "Responda algunas preguntas y comparta información inicial de salud para que su equipo de ACCESS pueda personalizar su cuidado.", "Reponn kèk kesyon epi pataje enfòmasyon sante debaz pou ekip ACCESS ou ka pèsonalize swen ou."),
+    title: T("Let’s set up your care", "Configuremos su cuidado", "Ann mete swen ou an plas"),
+    nextStepTitle: T("Start your ACCESS care setup", "Comience la configuración de su cuidado ACCESS", "Kòmanse konfigirasyon swen ACCESS ou"),
+    description: T("Next, we’ll confirm a few health details, arrange your blood pressure monitor, and personalize your ACCESS goals and care plan.", "A continuación, confirmaremos algunos datos de salud, prepararemos su monitor de presión arterial y personalizaremos sus metas y su plan de cuidado ACCESS.", "Apre sa, n ap konfime kèk detay sante, prepare aparèy tansyon ou, epi pèsonalize objektif ak plan swen ACCESS ou."),
     estimatedDuration: T("About 10 minutes", "Aproximadamente 10 minutos", "Apeprè 10 minit")
   },
   CCM: {

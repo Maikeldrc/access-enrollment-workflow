@@ -93,7 +93,7 @@ const seedDraft = (page, screen) => page.evaluate(value => localStorage.setItem(
 test("Share ACCESS waits for a value moment instead of interrupting enrollment completion", async ({ page }) => {
   await seedDraft(page, "ENROLLMENT_CONFIRMED");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS experience" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS care" })).toBeVisible();
   // Just finishing enrollment is not a value moment: the patient has not experienced the service.
   await expect(page.getByRole("button", { name: "Share ACCESS" })).toHaveCount(0);
   await expect(page.locator(".enrollment-welcome-screen")).not.toContainText("Share ACCESS");

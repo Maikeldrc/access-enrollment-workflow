@@ -686,3 +686,90 @@ test("Dr. Fresner's invitation carries the patient from the link to their own de
   expect(draft.consentSaved).toBe(true);
   expect(draft.completionRole).toBe("patient");
 });
+
+// ---------------------------------------------------------------------------------------------
+// Enrollment complete → care activation
+// ---------------------------------------------------------------------------------------------
+
+const openEnrollmentComplete = async page => {
+  await page.goto("/?scenario=access-happy");
+  await page.evaluate(() => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
+    scenarioId: "access-happy", screen: "ENROLLMENT_CONFIRMED", role: "patient", completionRole: "patient",
+    identityVerified: true, consentSaved: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED",
+    accessOutcome: "eligible", accessEligible: true, language: "en",
+    audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: []
+  })));
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS care" })).toBeVisible();
+};
+
+test("enrollment complete hands the patient into care activation, not into a waiting room", async ({ page }) => {
+  await openEnrollmentComplete(page);
+  await expect(page.locator(".success-eyebrow")).toHaveText("Welcome");
+  await expect(page.locator(".lead")).toHaveText("You’re now enrolled in ACCESS. Let’s get your care set up around your health and goals.");
+  await expect(page.locator(".status-pill")).toContainText("Enrollment confirmed");
+
+  // EMMI is the guide from here, and the doctor who referred them is named.
+  const highlights = page.locator(".enrollment-welcome-highlight");
+  await expect(highlights.locator("strong")).toHaveText(["EMMI is here along the way", "Connected with Dr. Fresner"]);
+  await expect(highlights.nth(1).locator("p")).toHaveText("ITERA works with Dr. Fresner and your care team to help keep your care connected.");
+
+  // The three next steps are what the patient is about to do, in order.
+  await expect(page.getByRole("heading", { name: "What happens next?" })).toBeVisible();
+  await expect(page.locator(".next-card .info-row strong")).toHaveText([
+    "Your blood pressure monitor",
+    "Your health goals",
+    "Your personalized care plan"
+  ]);
+});
+
+test("nothing on the screen tells the patient to wait for a call", async ({ page }) => {
+  await openEnrollmentComplete(page);
+  const screen = page.locator("#screen-content");
+  await expect(screen).not.toContainText(/call you within|business days|we will call|wait for/i);
+  // The monitor is a tool, not a billing programme, and no appointment is required to continue.
+  await expect(screen).not.toContainText(/\b(RPM|CPT|99453|99454)\b/);
+  await expect(screen).not.toContainText(/appointment|book a visit|schedule a visit/i);
+});
+
+test("the primary action starts care setup and the deferral stays available", async ({ page }) => {
+  await openEnrollmentComplete(page);
+  const transition = page.locator(".flow-transition-card, .next-step-card").first().or(page.locator("#screen-content"));
+  await expect(transition).toContainText("Let’s set up your care");
+  await expect(transition).toContainText("Start your ACCESS care setup");
+  await expect(transition).toContainText("Next, we’ll confirm a few health details, arrange your blood pressure monitor, and personalize your ACCESS goals and care plan.");
+  await expect(transition).toContainText("You can stop anytime. Your progress will be saved.");
+
+  const primary = page.getByRole("button", { name: "Set up my care" });
+  const later = page.getByRole("button", { name: "I’ll do this later" });
+  await expect(primary).toBeVisible();
+  await expect(later).toBeVisible();
+  // Secondary means quieter, not punished: still a real target the patient can hit.
+  expect(await primary.getAttribute("class")).toContain("primary");
+  expect(await later.getAttribute("class")).toContain("secondary");
+  expect(await later.evaluate(node => node.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+
+  await primary.click();
+  await expect(page.getByRole("heading", { name: "Welcome to your ACCESS care" })).toHaveCount(0);
+});
+
+test("EMMI knows the enrollment is done and what comes after it", async ({ page }) => {
+  await openEnrollmentComplete(page);
+  const dialog = await openEmmiConversation(page);
+
+  // The suggestions on this screen are about activation, not about enrolling.
+  await expect(dialog.locator(".assistant-quick button")).toHaveText([
+    "What happens next?",
+    "How do I get my blood pressure monitor?",
+    "What will my care plan include?",
+    "What goals will I work on?"
+  ]);
+
+  await dialog.getByPlaceholder("Ask a question…").fill("Am I enrolled?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  const answer = dialog.locator(".assistant-message.assistant").last();
+  await expect(answer).toBeVisible();
+  // Unlike the eligibility screen, here EMMI may say the enrollment is complete.
+  await expect(answer).toContainText(/enrollment is complete/i);
+  await expect(dialog).not.toContainText(/someone will call you/i);
+});
