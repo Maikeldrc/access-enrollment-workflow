@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `IDENTITY_VERIFICATION` (`identity()` in `src/app.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `053b171` — `feat(access-patient): phase-03 refine identity verification`
 
 ---
 
