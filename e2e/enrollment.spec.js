@@ -136,7 +136,8 @@ test("prototype ACCESS eligibility setting drives a terminal not-eligible patien
   await expect(page.getByText("Can I still see my doctors?")).toBeVisible();
   await page.getByRole("button", { name: /Browse common questions/ }).click();
   await expect(page.getByText("Are there other care options?")).toBeVisible();
-  await expect(page.locator(".assistant-back")).toBeVisible();
+  await expect(page.locator(".assistant-back")).toHaveCount(0);
+  await expect(page.locator(".assistant-close")).toBeVisible();
 });
 
 test("prototype setup previews and applies a custom physician photo", async ({ page }) => {
@@ -1087,7 +1088,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   expect(disclosureView.accessDisclosureView.viewedAt).toBeTruthy();
   expect(disclosureView.audit.map(event => event.eventType)).toContain("access_full_disclosure_viewed");
   await openEmmiConversation(page);
-  for (const question of ["What am I agreeing to?", "Can I change my mind?", "What will this cost?", "Does this change my Medicare?"]) {
+  for (const question of ["Do I have to enroll?", "Will this change my Medicare?", "Why is my expected payment $0?", "Can I change my mind later?"]) {
     await expect(page.getByRole("button", { name: question })).toBeVisible();
   }
 
@@ -1498,9 +1499,11 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await expect(page.getByRole("heading", { name: "How can I help?" })).toBeVisible();
   await expect(page.getByPlaceholder("Ask a question…")).toBeVisible();
   await expect(page.getByText("What does ACCESS care include?")).toBeVisible();
-  await expect(page.getByText("Will I keep seeing my doctor?")).toBeVisible();
-  await expect(page.getByText("Talk to our care team")).toBeVisible();
-  await expect(page.getByText("Call (305) 394-8070")).toBeVisible();
+  await expect(page.getByText("What is my care plan?")).toBeVisible();
+  // Human support is one collapsed row now, so reaching a person takes one deliberate tap.
+  await page.getByRole("button", { name: /Need human help/ }).click();
+  await expect(page.getByText("Call our care team")).toBeVisible();
+  await expect(page.getByText("(305) 394-8070")).toBeVisible();
   await expect(page.getByText("Have someone call me")).toBeVisible();
 });
 
@@ -2289,7 +2292,7 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await input.fill("Yes");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.getByText("Done. I sent a callback request to the care team.")).toBeVisible();
-  await dialog.locator(".assistant-back").click();
+  await dialog.locator(".assistant-close").click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator("#screen-select")).toHaveValue("ACCESS_PRE_ELIGIBILITY_NOTICE");
   await expect(acknowledgement).toBeChecked();

@@ -77,7 +77,31 @@ const CATALOG = {
   "circle-decisions-for-me": { intent: "CARE_CIRCLE", copy: ["Can they make decisions for me?", "¿Puede tomar decisiones por mí?", "Èske moun nan ka pran desizyon pou mwen?"] },
   "circle-remove-later": { intent: "CARE_CIRCLE", copy: ["Can I remove them later?", "¿Puedo eliminarlo después?", "Èske mwen ka retire moun nan apre?"] },
   "confirmed-invite-someone": { intent: "CARE_CIRCLE", copy: ["Invite someone I trust", "Invitar a alguien de confianza", "Envite yon moun mwen fè konfyans"] },
-  "confirmed-share-access": { intent: "SHARE", copy: ["Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"] }
+  "confirmed-share-access": { intent: "SHARE", copy: ["Share ACCESS", "Compartir ACCESS", "Pataje ACCESS"] },
+  "access-how-helps-me": { intent: "PROGRAM_EXPLANATION", copy: ["How can this help me?", "¿Cómo puede ayudarme esto?", "Kijan sa ka ede m?"] },
+  "identity-why-information": { intent: "SCREEN_PURPOSE", copy: ["Why do you need this information?", "¿Por qué necesitan esta información?", "Poukisa ou bezwen enfòmasyon sa a?"] },
+  "identity-secure": { intent: "SECURITY", copy: ["Is my information secure?", "¿Mi información está segura?", "Èske enfòmasyon mwen an sekirite?"] },
+  "invitation-who-invited": { intent: "INVITATION_SOURCE", copy: ["Who invited me?", "¿Quién me invitó?", "Ki moun ki envite m?"] },
+  "care-monitor-help": { intent: "DEVICE_SUPPORT", copy: ["How will the blood pressure monitor help me?", "¿Cómo me ayudará el monitor de presión arterial?", "Kijan aparèy tansyon an pral ede m?"] },
+  "care-my-plan": { intent: "CARE_PLAN", copy: ["What is my care plan?", "¿Qué es mi plan de cuidado?", "Kisa plan swen mwen ye?"] },
+  "eligibility-why-verify": { intent: "ELIGIBILITY", copy: ["Why does Medicare need to verify me?", "¿Por qué Medicare necesita verificarme?", "Poukisa Medicare bezwen verifye m?"] },
+  "eligibility-change-medicare": { intent: "MEDICARE_IMPACT", copy: ["Will this change my Medicare?", "¿Esto cambiará mi Medicare?", "Èske sa ap chanje Medicare mwen an?"] },
+  "eligibility-comparison-group": { intent: "ELIGIBILITY", copy: ["What is the comparison group?", "¿Qué es el grupo de comparación?", "Kisa gwoup konparezon an ye?"] },
+  "eligibility-enrolled-yet": { intent: "ENROLLMENT_STATUS", copy: ["Am I enrolled yet?", "¿Ya estoy inscrito?", "Èske mwen deja enskri?"] },
+  "eligibility-review-next": { intent: "NEXT_STEP", copy: ["What will I review next?", "¿Qué revisaré después?", "Kisa m ap revize apre?"] },
+  "consent-why-zero-payment": { intent: "COST", copy: ["Why is my expected payment $0?", "¿Por qué mi pago esperado es $0?", "Poukisa peman mwen prevwa a se $0?"] },
+  "consent-change-mind-later": { intent: "VOLUNTARY_PARTICIPATION", copy: ["Can I change my mind later?", "¿Puedo cambiar de opinión después?", "Èske mwen ka chanje lide mwen pita?"] },
+  "device-how-get-monitor": { intent: "DEVICE_SUPPORT", copy: ["How do I get my blood pressure monitor?", "¿Cómo obtengo mi monitor de presión arterial?", "Kijan pou m jwenn aparèy tansyon mwen an?"] },
+  "plan-what-will-include": { intent: "CARE_PLAN", copy: ["What will my care plan include?", "¿Qué incluirá mi plan de cuidado?", "Kisa plan swen mwen an ap gen ladan?"] },
+  "goals-what-work-on": { intent: "GOAL_SUPPORT", copy: ["What goals will I work on?", "¿En qué metas trabajaré?", "Ki objektif m ap travay sou yo?"] },
+  "bp-how-am-i-doing": { intent: "CLINICAL_EDUCATION", copy: ["How is my blood pressure doing?", "¿Cómo va mi presión arterial?", "Kijan tansyon mwen ye?"] },
+  "care-what-should-i-do": { intent: "NEXT_STEP", copy: ["What should I do next?", "¿Qué debo hacer ahora?", "Kisa mwen ta dwe fè apre?"] },
+  "appointment-need-one": { intent: "APPOINTMENT_NEED", copy: ["I need an appointment", "Necesito una cita", "Mwen bezwen yon randevou"] },
+  "care-team-how-contact": { intent: "HUMAN_SUPPORT", copy: ["How can I contact my care team?", "¿Cómo puedo contactar a mi equipo de cuidado?", "Kijan mwen ka kontakte ekip swen mwen an?"] },
+  "monitor-how-often": { intent: "DEVICE_SUPPORT", copy: ["How often should I use it?", "¿Con qué frecuencia debo usarlo?", "Konbyen fwa mwen dwe itilize l?"] },
+  "monitor-readings-where": { intent: "DEVICE_SUPPORT", copy: ["What happens to my readings?", "¿Qué pasa con mis lecturas?", "Kisa k ap pase ak lekti mwen yo?"] },
+  "cost-other-services": { intent: "COST", copy: ["What about other healthcare costs?", "¿Y los otros costos de salud?", "E lòt depans swen sante yo?"] },
+  "coverage-supplemental": { intent: "COVERAGE", copy: ["Do I have supplemental insurance?", "¿Tengo seguro suplementario?", "Èske mwen gen asirans siplemantè?"] }
 };
 
 // A medication question that names the patient's own medication is worth more than a generic one,
@@ -92,15 +116,34 @@ const medicationNameQuestion = (locale, medications = []) => {
   };
 };
 
+// The doctor who referred this patient is the most natural thing to ask about, and their name is
+// runtime data. Built here rather than sitting in the catalog so no screen can name a physician the
+// invitation did not have.
+const physicianQuestion = (locale, physicianDisplayName) => {
+  if (!physicianDisplayName) return null;
+  return {
+    id: "physician-still-involved",
+    intent: "CARE_TEAM_QUESTION",
+    label: pick(locale, [
+      `Will ${physicianDisplayName} still be involved?`,
+      `¿${physicianDisplayName} seguirá involucrado?`,
+      `Èske ${physicianDisplayName} ap toujou patisipe?`
+    ])
+  };
+};
+
 const SCREEN_SETS = {
-  INVITATION: ["access-what-is", "access-someone-help", "access-must-enroll", "human-talk-to-someone"],
-  DECISION_MAKER: ["decision-daughter-help", "decision-what-is-representative", "decision-who-completes", "human-talk-to-someone"],
+  INVITATION: ["access-what-is", "access-how-helps-me", "@physician", "access-must-enroll"],
+  DECISION_MAKER: ["decision-daughter-help", "decision-what-is-representative", "decision-who-completes"],
+  IDENTITY_VERIFICATION: ["identity-why-information", "identity-secure", "invitation-who-invited"],
   PERSONAL_REPRESENTATIVE_DETAILS: ["rep-why-phone", "rep-why-verify", "rep-what-means", "human-talk-to-someone"],
   REPRESENTATIVE_MOBILE_VERIFICATION: ["rep-why-phone", "rep-why-verify", "rep-what-means", "human-talk-to-someone"],
   REPRESENTATIVE_AUTHORITY_ATTESTATION: ["rep-why-phone", "rep-why-verify", "rep-what-means", "human-talk-to-someone"],
   REPRESENTATIVE_AUTHORITY_ESCALATION: ["rep-why-phone", "rep-why-verify", "rep-what-means", "human-talk-to-someone"],
   DISCLOSURE: ["disclosure-voluntary-meaning", "disclosure-benefits-change", "disclosure-cost", "disclosure-change-provider"],
-  CONSENT_REVIEW: ["consent-what-agreeing", "consent-change-mind", "consent-cost", "consent-medicare-change", "consent-representative-signature"],
+  CONSENT_REVIEW: ["access-must-enroll", "eligibility-change-medicare", "consent-why-zero-payment", "consent-change-mind-later"],
+  ENROLLMENT_CONFIRMED: ["access-what-next", "device-how-get-monitor", "plan-what-will-include", "goals-what-work-on"],
+  MY_CARE: ["bp-how-am-i-doing", "care-what-should-i-do", "appointment-need-one", "care-team-how-contact"],
   HEALTH_INFORMATION_REVIEW: ["health-high-bp-meaning", "health-emmi-confirm", "health-not-correct", "human-care-team-help"],
   ACCESS_BP_DEVICE_INFO: ["device-no-tape", "device-measure-arm", "device-which-arm", "human-talk-care-team"],
   ACCESS_MEASURE: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
@@ -110,10 +153,10 @@ const SCREEN_SETS = {
   ACCESS_BP_MEASUREMENT: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
   CARE_CIRCLE_INVITE: ["circle-how-invitation-works", "circle-decisions-for-me", "circle-remove-later"],
   MY_CARE_CIRCLE: ["circle-how-invitation-works", "circle-decisions-for-me", "circle-remove-later"],
-  CARE_CIRCLE_PERMISSIONS: ["circle-how-invitation-works", "circle-decisions-for-me", "circle-remove-later"],
-  ENROLLMENT_CONFIRMED: ["confirmed-invite-someone", "confirmed-share-access", "access-what-next"]
+  CARE_CIRCLE_PERMISSIONS: ["circle-how-invitation-works", "circle-decisions-for-me", "circle-remove-later"]
 };
 
+const MAX_SUGGESTIONS = 4;
 const ELIGIBILITY_SCREENS = ["ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_IDENTIFIER", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT"];
 
 // Screen first, then what the patient's own record says about that screen. The order matters:
@@ -123,11 +166,14 @@ function resolveIds({ currentScreen, program, context }) {
   if (currentScreen === "MY_GOALS" && context.activeGoal?.latestReading) return ["goal-reading-meaning", "goal-week-trend", "goal-monitor-help", "human-talk-care-team"];
   if (currentScreen === "MY_GOALS" && context.activeGoal) return ["goals-trouble", "goal-trend-importance", "goals-change-later", "human-talk-care-team"];
   if (["GOALS", "MY_GOALS"].includes(currentScreen)) return ["goals-why-asking", "goals-change-later", "goals-personalize", "goals-trouble"];
+  if (currentScreen === "ACCESS_ELIGIBILITY_RESULT") return context.eligibilityStatus === "NOT_ELIGIBLE"
+    ? ["eligibility-why-blocked", "access-affects-medicare", "eligibility-still-see-doctors"]
+    : ["access-what-next", "eligibility-enrolled-yet", "eligibility-review-next"];
   if (ELIGIBILITY_SCREENS.includes(currentScreen)) return context.eligibilityStatus === "NOT_ELIGIBLE"
     ? ["eligibility-why-blocked", "access-affects-medicare", "eligibility-still-see-doctors"]
-    : ["eligibility-what-checking", "eligibility-affects-benefits", "eligibility-why-information"];
+    : ["eligibility-why-verify", "eligibility-change-medicare", "eligibility-comparison-group"];
   if (currentScreen === "CARE_RECOMMENDATION") return program === "ACCESS"
-    ? ["care-what-included", "care-keep-seeing-doctor", "access-what-next"]
+    ? ["care-monitor-help", "care-my-plan", "@physician", "care-what-included"]
     : ["care-recommended-meaning", "care-keep-seeing-doctor", "access-what-next"];
   if (SCREEN_SETS[currentScreen]) return SCREEN_SETS[currentScreen];
   return program === "ACCESS"
@@ -139,9 +185,35 @@ export function getEmmiQuickQuestions({ currentScreen = "", program = "", locale
   if (currentScreen === "MEDICATIONS_REVIEW") {
     const named = medicationNameQuestion(locale, context.medications);
     const rest = [named ? "medication-why-review" : "medication-not-sure-taking", "medication-something-changed", "human-talk-care-team"];
-    return [named, ...rest.map(id => toQuestion(id, locale))].filter(Boolean);
+    return [named, ...rest.map(id => toQuestion(id, locale))].filter(Boolean).slice(0, MAX_SUGGESTIONS);
   }
-  return resolveIds({ currentScreen, program, context }).map(id => toQuestion(id, locale)).filter(Boolean);
+  // "@physician" resolves against the runtime referral, and drops out entirely when the invitation
+  // did not name a doctor rather than falling back to a generic stand-in.
+  return resolveIds({ currentScreen, program, context })
+    .map(id => id === "@physician" ? physicianQuestion(locale, context.physicianDisplayName) : toQuestion(id, locale))
+    .filter(Boolean)
+    .slice(0, MAX_SUGGESTIONS);
+}
+
+// After an answer, one to three places the patient plausibly goes next. Keyed on what EMMI actually
+// answered, so a screen never shows the same chips twice in a row regardless of the conversation.
+const FOLLOW_UPS = {
+  DEVICE_QUESTION: ["device-how-get-monitor", "monitor-how-often", "monitor-readings-where"],
+  DEVICE_SUPPORT: ["device-how-get-monitor", "monitor-how-often", "monitor-readings-where"],
+  COST_QUESTION: ["cost-other-services", "coverage-supplemental", "consent-change-mind-later"],
+  ELIGIBILITY_QUESTION: ["eligibility-enrolled-yet", "eligibility-review-next", "eligibility-change-medicare"],
+  INVITATION_SOURCE: ["access-what-is", "access-how-helps-me", "access-must-enroll"],
+  CARE_TEAM_QUESTION: ["care-team-how-contact", "appointment-need-one", "care-my-plan"],
+  PROGRAM_EXPLANATION: ["access-how-helps-me", "care-my-plan", "access-must-enroll"],
+  NEXT_STEP: ["care-what-should-i-do", "device-how-get-monitor", "goals-what-work-on"],
+  GOAL_QUESTION: ["goals-what-work-on", "goals-change-later", "goals-personalize"]
+};
+
+export function getEmmiFollowUps({ intent = "", locale = "en", asked = [] } = {}) {
+  const ids = FOLLOW_UPS[intent];
+  if (!ids) return [];
+  // Never suggest something the patient has already asked in this conversation.
+  return ids.filter(id => !asked.includes(id)).map(id => toQuestion(id, locale)).filter(Boolean).slice(0, 3);
 }
 
 function toQuestion(id, locale) {

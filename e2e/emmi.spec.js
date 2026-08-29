@@ -28,6 +28,8 @@ test("EMMI contextual mock tools, guardrails, confirmation, and audit work toget
   await ask(dialog, "Can you enroll me?");
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /I cannot consent for you/i })).toBeVisible();
 
+  // Human support sits behind one collapsed row now; the callback is inside it.
+  await dialog.getByRole("button", { name: /Need human help/ }).click();
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /Would you like me to ask/i })).toBeVisible();
   let logs = await page.evaluate(() => JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1")));

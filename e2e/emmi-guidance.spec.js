@@ -92,7 +92,7 @@ test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", 
   const assistant = page.locator(".assistant-layer");
   await expect(assistant).toContainText("Kijan mwen ka ede w?");
   await expect(assistant).not.toContainText("Bonjou, mwen se EMMI");
-  await expect(assistant).toContainText("Mande m nenpòt bagay sou enskripsyon oswa swen ou.");
+  await expect(assistant).toContainText("Mwen ka ede w konprann swen ACCESS ou");
   await expect(assistant).not.toContainText("Ask me anything");
 });
 
@@ -624,7 +624,7 @@ test("Talk with my care team takes the patient to the human support options", as
   // Wanting to reach a person is a request, not a question: it goes to the options rather than
   // producing an answer that tells the patient to look further down the panel.
   await expect(support).toBeInViewport();
-  await expect(support.getByRole("link", { name: /Talk to our care team/ })).toBeVisible();
+  await expect(support.getByRole("link", { name: /Call our care team/ })).toBeVisible();
   await expect(support.getByRole("button", { name: /Have someone call me/ })).toBeVisible();
   await expect(page.locator(".assistant-message")).toHaveCount(0);
   // Focus lands on the section so a screen reader hears the heading rather than staying where
