@@ -416,3 +416,86 @@ test("the eligibility review holds its layout at every supported width and text 
     }
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// Phase 6 — Eligibility success milestone
+// ---------------------------------------------------------------------------------------------
+
+const openEligibilitySuccess = async page => {
+  await openEligibilityReview(page);
+  await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
+  await page.getByRole("button", { name: "Check my eligibility" }).click();
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 15000 });
+};
+
+test("clearing the check reads as a milestone, not as a warning about what has not happened", async ({ page }) => {
+  await openEligibilitySuccess(page);
+  await expect(page.getByText("Everything is ready for you to continue. We’ll review the details together before completing your enrollment.")).toBeVisible();
+
+  // The green success mark and the progress indicator both survive the rewrite.
+  await expect(page.locator(".access-eligibility-result-screen .art.art-check.success")).toBeVisible();
+  await expect(page.locator(".progress-meta span").last()).toHaveText("Eligibility");
+
+  await expect(page.getByRole("heading", { name: "What happens next?" })).toBeVisible();
+  await expect(page.locator(".next-card .info-row strong")).toHaveText([
+    "Learn about your ACCESS care",
+    "Confirm that you’d like to enroll with ITERA HEALTH",
+    "We’ll complete your ACCESS enrollment with Medicare"
+  ]);
+  await expect(page.locator('.contextual-assurance[data-assurance-type="NO_COMMITMENT_YET"]')).toContainText("You’ll review all the details before completing your enrollment");
+});
+
+test("a cleared check never reads as an enrollment", async ({ page }) => {
+  await openEligibilitySuccess(page);
+  const screen = page.locator("#screen-content");
+  // Positive without overclaiming: the patient may continue, and has agreed to nothing.
+  await expect(screen).not.toContainText(/you are enrolled|you're enrolled|enrollment is complete|Medicare enrolled you/i);
+  // The action moves them forward; it never asks them to commit here.
+  const cta = page.locator(".actions .button.primary");
+  await expect(cta).toHaveText(/Continue/);
+  await expect(cta).not.toHaveText(/Enroll|Submit|Accept|Complete enrollment/i);
+});
+
+test("the milestone survives a refresh without turning into an enrollment", async ({ page }) => {
+  await openEligibilitySuccess(page);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("#screen-content")).not.toContainText(/you are enrolled|enrollment is complete/i);
+});
+
+test("EMMI keeps eligibility and enrollment apart when asked directly", async ({ page }) => {
+  await openEligibilitySuccess(page);
+  const dialog = await openEmmiConversation(page);
+  const ask = async question => {
+    await dialog.getByPlaceholder("Ask a question…").fill(question);
+    await dialog.getByRole("button", { name: "Send question" }).click();
+  };
+
+  await ask("Am I enrolled now?");
+  const enrolledAnswer = dialog.locator(".assistant-message.assistant p").filter({ hasText: /not enrolled until/i });
+  await expect(enrolledAnswer).toBeVisible();
+  await ask("What happens next?");
+  await expect(dialog.locator(".assistant-thinking")).toHaveCount(0);
+  await expect(dialog).not.toContainText(/you are enrolled|you're enrolled|Medicare enrolled you/i);
+});
+
+test("the eligibility milestone holds its layout at every supported width and text size", async ({ page }) => {
+  await openEligibilitySuccess(page);
+  for (const width of MOBILE_WIDTHS) {
+    for (const scale of TEXT_SCALES) {
+      await page.setViewportSize({ width, height: 844 });
+      await scaleText(page, scale);
+      const label = `${width}px / ${scale * 100}%`;
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `horizontal overflow at ${label}`).toBeLessThanOrEqual(1);
+      // The headline wraps to several lines at 150%; it must wrap, not spill or be cut.
+      const damaged = await page.evaluate(() => [...document.querySelectorAll("#screen-content h1, .lead, .next-card h2, .next-card .info-row strong, .contextual-assurance, .actions .button.primary")]
+        .filter(node => getComputedStyle(node).overflow !== "visible" && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1))
+        .map(node => node.className || node.tagName));
+      expect(damaged, `clipped milestone copy at ${label}`).toEqual([]);
+      const headlineRight = await page.locator("#screen-content h1").evaluate(node => node.getBoundingClientRect().right);
+      const pageWidth = await page.evaluate(() => document.documentElement.clientWidth);
+      expect(headlineRight, `headline within the page at ${label}`).toBeLessThanOrEqual(pageWidth + 1);
+    }
+  }
+});

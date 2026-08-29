@@ -27,7 +27,7 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
 // Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
 const COST = /\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
-const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|soy elegible|califico|mi elegibilidad|mwen kalifye|kalifikasyon mwen/i;
+const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)/i;
 const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
@@ -450,6 +450,11 @@ const runtimeAnswer = ({ tool, result, locale, context }) => {
     return `${medicare}${supplement}`;
   }
   if (tool === "getEnrollmentContext") {
+    if (result.enrollmentComplete || result.enrollmentStatus === "COMPLETED") return pick(locale, {
+      EN: "Your ACCESS enrollment is complete.",
+      ES: "Su inscripción en ACCESS está completa.",
+      KR: "Enskripsyon ACCESS ou konplè."
+    });
     const eligible = result.eligibilityStatus === "ELIGIBLE";
     return eligible ? pick(locale, { EN: "Your current ACCESS eligibility result shows that you can continue. You are not enrolled until you review the information and agree.", ES: "Su resultado actual de elegibilidad para ACCESS indica que puede continuar. No estará inscrito hasta que revise la información y acepte.", KR: "Rezilta kalifikasyon ACCESS ou montre ou ka kontinye. Ou poko enskri jiskaske ou revize enfòmasyon yo epi dakò." })
       : pick(locale, { EN: "I can’t confirm that you are eligible right now. Your Medicare benefits and regular care do not change because of this check.", ES: "Ahora mismo no puedo confirmar que sea elegible. Sus beneficios de Medicare y su cuidado habitual no cambian por esta verificación.", KR: "Mwen pa ka konfime ou kalifye kounye a. Benefis Medicare ou ak swen nòmal ou pa chanje akoz verifikasyon sa a." });

@@ -1204,7 +1204,7 @@ test("ACCESS patient completes the simplified journey without redundant educatio
   await expect(page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" })).toBeVisible();
   await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
   await page.getByRole("button", { name: "Check my eligibility" }).click();
-  await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 5000 });
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Review and agree" })).toBeVisible();
   await page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.").check();
@@ -2014,14 +2014,14 @@ test("ACCESS does not confirm enrollment at eligibility", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("ACCESS_ELIGIBILITY_RESULT", { force: true });
-  await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible();
-  await expect(page.getByText("You’re eligible to continue with this ACCESS care option. Your enrollment is not complete yet.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible();
+  await expect(page.getByText("Everything is ready for you to continue. We’ll review the details together before completing your enrollment.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "What happens next?" })).toBeVisible();
-  await expect(page.getByText("Review important ACCESS information")).toBeVisible();
-  await expect(page.getByText("Agree to enroll with ITERA HEALTH")).toBeVisible();
+  await expect(page.getByText("Learn about your ACCESS care")).toBeVisible();
+  await expect(page.getByText("Confirm that you’d like to enroll with ITERA HEALTH")).toBeVisible();
   await expect(page.getByText("We’ll complete your ACCESS enrollment with Medicare")).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
-  await expect(page.locator('.contextual-assurance[data-assurance-type="NO_COMMITMENT_YET"]')).toContainText("You’ll review the details before you enroll");
+  await expect(page.locator('.contextual-assurance[data-assurance-type="NO_COMMITMENT_YET"]')).toContainText("You’ll review all the details before completing your enrollment");
   await expect(page.getByText("Enrollment confirmed")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText(/coverage is approved|Medicare approved your care|you’re enrolled|enrollment is confirmed/i);
   await expect(page.locator(".emmi-guide")).toBeVisible();
@@ -2049,7 +2049,7 @@ test("non-eligible ACCESS outcomes retain their existing Medicare reassurance", 
   for (const scenario of ["access-control", "access-not-eligible", "access-already-aligned", "access-api-unavailable"]) {
     await page.goto(`/?scenario=${scenario}`);
     await page.locator("#screen-select").selectOption("ACCESS_ELIGIBILITY_RESULT", { force: true });
-    await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toHaveCount(0);
     const assuranceType = scenario === "access-not-eligible" ? "NOT_ELIGIBLE_REASSURANCE" : "MEDICARE_PROTECTION";
     const message = scenario === "access-not-eligible" ? "This does not change your Medicare benefits" : "This check won’t affect your Medicare benefits";
     await expect(page.locator(`.contextual-assurance[data-assurance-type="${assuranceType}"]`)).toContainText(message);
@@ -2142,7 +2142,7 @@ test("ACCESS eligibility disclosure is calm, readable, and requires acknowledgem
   expect(layout.horizontalOverflow).toBe(false);
 
   await eligibilityCta.click();
-  await expect(page.getByRole("heading", { name: "You’re eligible to continue" })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 5000 });
   const noticeEvidence = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(noticeEvidence.accessNoticeAcknowledgedAt).toBeTruthy();
   expect(noticeEvidence.audit.map(event => event.eventType)).toContain("access_eligibility_notice_acknowledged");
@@ -2374,8 +2374,8 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
   const cases = [
     ["DECISION_MAKER", "ROLE_GUIDANCE", "We’ll guide you through the right steps"],
     ["IDENTITY_VERIFICATION", "SECURITY", "Your information is secure"],
-    ["CARE_RECOMMENDATION", "NO_COMMITMENT_YET", "You’ll review the details before you enroll"],
-    ["ACCESS_ELIGIBILITY_RESULT", "NO_COMMITMENT_YET", "You’ll review the details before you enroll"],
+    ["CARE_RECOMMENDATION", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
+    ["ACCESS_ELIGIBILITY_RESULT", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
     ["CONSENT_REVIEW", "ENROLLMENT_CHOICE", "You choose whether to enroll"],
     ["ACCESS_BASELINE", "HEALTH_DATA_SECURITY", "Your health information is secure"]
   ];
