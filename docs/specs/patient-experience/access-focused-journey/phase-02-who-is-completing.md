@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `DECISION_MAKER` (`decisionMaker()` / `optionalSupportPrompt()` in `src/app.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `0b42e35` — `feat(access-patient): phase-02 refine enrollment actor selection`
 
 ---
 
