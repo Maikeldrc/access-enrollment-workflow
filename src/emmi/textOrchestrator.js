@@ -35,7 +35,10 @@ const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressu
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
-const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|dokt[eè] mwen/i;
+// Asking whether the doctor stays involved is the same question as asking who the doctor is: both
+// are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
+// rather than replacing them. Naming the physician in the question is the most natural way to ask it.
+const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see my doctor|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|dokt[eè] mwen|toujou (patisipe|enplike)/i;
 // The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
 // which asks whether that doctor stays involved, and from eligibility, which asks whether the
 // patient qualifies. Answering it means repeating the referral facts and adding nothing.

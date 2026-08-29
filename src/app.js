@@ -679,6 +679,9 @@ function recommendedCareCapabilities(offer) {
   }));
 }
 
+// The condition card is where ACCESS stops describing itself and becomes something the patient will
+// actually do: track something at home so their care team can see how they are doing. Only the
+// blood-pressure pathway names a connected monitor, because only it comes with one.
 function accessConditionCareCard(offer) {
   const primaryCondition = offer.clinicalProfile?.primaryCondition || offer.qualifyingConditions?.[0] || offer.qualifyingCondition || {};
   const condition = `${primaryCondition.name || ""} ${primaryCondition.patientFriendlyName || ""}`.toLowerCase();
@@ -686,55 +689,63 @@ function accessConditionCareCard(offer) {
     {
       matches: ["hypertension", "blood pressure"],
       icon: "heart",
-      title: L("Blood pressure support", "Apoyo para la presión arterial", "Sipò pou tansyon"),
-      description: L("Help monitoring and managing your blood pressure at home.", "Ayuda para monitorear y controlar su presión arterial en casa.", "Èd pou kontwole ak jere tansyon ou lakay ou.")
+      title: L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"),
+      description: L("Use a connected blood pressure monitor to track your readings and help your care team understand how you’re doing.", "Use un monitor de presión arterial conectado para registrar sus lecturas y ayudar a su equipo de cuidado a entender cómo va.", "Sèvi ak yon aparèy tansyon konekte pou anrejistre lekti ou yo epi ede ekip swen ou konprann kijan w ap fè.")
     },
     {
       matches: ["diabetes"],
       icon: "heart",
-      title: L("Diabetes support", "Apoyo para la diabetes", "Sipò pou dyabèt"),
-      description: L("Help monitoring and managing your diabetes at home.", "Ayuda para monitorear y controlar su diabetes en casa.", "Èd pou kontwole ak jere dyabèt ou lakay ou.")
+      title: L("Track your blood sugar from home", "Controle su azúcar en sangre desde casa", "Swiv sik nan san ou lakay ou"),
+      description: L("Track your readings at home so your care team can understand how you’re doing.", "Registre sus lecturas en casa para que su equipo de cuidado entienda cómo va.", "Anrejistre lekti ou yo lakay ou pou ekip swen ou ka konprann kijan w ap fè.")
     },
     {
       matches: ["heart failure"],
       icon: "heart",
-      title: L("Heart health support", "Apoyo para la salud del corazón", "Sipò pou sante kè"),
-      description: L("Help monitoring symptoms and supporting your heart health at home.", "Ayuda para monitorear síntomas y apoyar la salud de su corazón en casa.", "Èd pou kontwole sentòm epi sipòte sante kè ou lakay ou.")
+      title: L("Track your symptoms from home", "Controle sus síntomas desde casa", "Swiv sentòm ou yo lakay ou"),
+      description: L("Track your symptoms and weight at home so your care team can understand how you’re doing.", "Registre sus síntomas y su peso en casa para que su equipo de cuidado entienda cómo va.", "Anrejistre sentòm ou yo ak pwa ou lakay ou pou ekip swen ou ka konprann kijan w ap fè.")
     },
     {
       matches: ["kidney"],
       icon: "heart",
-      title: L("Kidney health support", "Apoyo para la salud renal", "Sipò pou sante ren"),
-      description: L("Help monitoring and supporting your kidney health at home.", "Ayuda para monitorear y apoyar su salud renal en casa.", "Èd pou kontwole ak sipòte sante ren ou lakay ou.")
+      title: L("Track your kidney health from home", "Controle su salud renal desde casa", "Swiv sante ren ou lakay ou"),
+      description: L("Track what your care team asks for at home so they can understand how you’re doing.", "Registre en casa lo que su equipo de cuidado le indique para que entienda cómo va.", "Anrejistre lakay ou sa ekip swen ou mande a pou yo ka konprann kijan w ap fè.")
     }
   ];
   return variants.find(variant => variant.matches.some(match => condition.includes(match))) || {
     icon: "heart",
-    title: L("Health support", "Apoyo para su salud", "Sipò pou sante ou"),
-    description: L("Help managing your health needs at home.", "Ayuda para atender sus necesidades de salud en casa.", "Èd pou jere bezwen sante ou lakay ou.")
+    title: L("Track your health from home", "Controle su salud desde casa", "Swiv sante ou lakay ou"),
+    description: L("Track what matters for your health at home so your care team can understand how you’re doing.", "Registre en casa lo que importa para su salud para que su equipo de cuidado entienda cómo va.", "Anrejistre lakay ou sa ki enpòtan pou sante ou pou ekip swen ou ka konprann kijan w ap fè.")
   };
 }
 
 function accessCareCapabilities(offer) {
   const conditionCard = accessConditionCareCard(offer);
   const physicianName = offer.physician?.displayName;
-  const coordinationCopy = isProviderReferralSource(offer.enrollmentSource) && physicianName
-    ? L(`ITERA works with ${physicianName} to help keep your care coordinated.`, `ITERA trabaja con ${physicianName} para ayudar a mantener su cuidado coordinado.`, `ITERA travay avèk ${physicianName} pou ede kenbe swen ou kowòdone.`)
+  const referredByPhysician = isProviderReferralSource(offer.enrollmentSource) && Boolean(physicianName);
+  // The doctor stays named wherever the invitation named one, and is never invented where it did not.
+  const coordinationTitle = referredByPhysician
+    ? L(`Stay connected with ${physicianName}`, `Siga conectado con ${physicianName}`, `Rete konekte ak ${physicianName}`)
+    : L("Stay connected with your doctors", "Siga conectado con sus médicos", "Rete konekte ak doktè ou yo");
+  const coordinationCopy = referredByPhysician
+    ? L(`ITERA works with ${physicianName} and your care team to help keep your care connected and coordinated.`, `ITERA trabaja con ${physicianName} y su equipo de cuidado para ayudar a mantener su cuidado conectado y coordinado.`, `ITERA travay avèk ${physicianName} ak ekip swen ou pou ede kenbe swen ou konekte ak kowòdone.`)
     : L("ITERA helps keep your care coordinated with the doctors you already see.", "ITERA ayuda a mantener su cuidado coordinado con los médicos que ya consulta.", "ITERA ede kenbe swen ou kowòdone avèk doktè ou deja wè yo.");
   return [
-    { icon: "calendar", title: L("Regular check-ins", "Seguimiento regular", "Tcheke regilyèman"), description: L("Your care team checks in, answers questions, and helps you stay on track.", "Su equipo de cuidado se mantiene en contacto, responde preguntas y le ayuda a seguir su plan.", "Ekip swen ou tcheke sou ou, reponn kesyon, epi li ede w rete sou bon chemen an.") },
+    { icon: "people", title: L("Stay connected with your care team", "Manténgase conectado con su equipo de cuidado", "Rete konekte ak ekip swen ou"), description: L("Get ongoing support, answers to your questions, and help staying on track between visits.", "Reciba apoyo continuo, respuestas a sus preguntas y ayuda para seguir su plan entre visitas.", "Jwenn sipò kontinyèl, repons pou kesyon ou yo, ak èd pou rete sou bon chemen an ant vizit yo.") },
     conditionCard,
-    { icon: "goals", title: L("A care plan built around you", "Un plan de cuidado pensado para usted", "Yon plan swen ki fèt pou ou"), description: L("Goals and next steps based on your health needs.", "Metas y próximos pasos basados en sus necesidades de salud.", "Objektif ak pwochen etap ki baze sou bezwen sante ou.") },
-    { icon: "people", title: L("Connected with your doctors", "Conectado con sus médicos", "Konekte avèk doktè ou yo"), description: coordinationCopy }
+    { icon: "goals", title: L("A care plan built around you", "Un plan de cuidado pensado para usted", "Yon plan swen ki fèt pou ou"), description: L("Your goals, health information, and next steps come together in one personalized care plan.", "Sus metas, su información de salud y sus próximos pasos se reúnen en un plan de cuidado personalizado.", "Objektif ou, enfòmasyon sante ou, ak pwochen etap ou yo vin ansanm nan yon sèl plan swen pèsonalize.") },
+    { icon: "doctor", title: coordinationTitle, description: coordinationCopy }
   ];
 }
 
 function recommendation() {
   if (state.offer.pathway === "ACCESS") {
     const capabilities = accessCareCapabilities(state.offer);
-    return `${titleBlock(L("What your care includes", "Qué incluye su cuidado", "Sa swen ou gen ladan"), L("Your ACCESS care is designed to support you at home and between doctor visits.", "Su cuidado ACCESS está diseñado para apoyarle en casa y entre visitas al médico.", "Swen ACCESS ou fèt pou sipòte w lakay ou ak ant vizit kay doktè."))}
+    // The condition is the patient's, not this screen's: it comes from the offer so the sentence
+    // reads correctly whichever condition the invitation was issued for.
+    const managedCondition = localizedCondition(state.offer.qualifyingCondition?.patientFriendlyName || "") || L("your health", "su salud", "sante ou");
+    return `${titleBlock(L("What your care includes", "Qué incluye su cuidado", "Sa swen ou gen ladan"), L(`Your ACCESS care gives you new tools and ongoing support to help you manage your ${managedCondition} between doctor visits.`, `Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su ${managedCondition} entre visitas al médico.`, `Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere ${managedCondition} ou ant vizit kay doktè.`))}
       ${rows(capabilities.map(x => [x.icon, x.title, x.description]))}
-      <aside class="note">${icon("info")}<span>${L("Your care continues between visits, while your doctors remain part of your care.", "Su cuidado continúa entre visitas, mientras sus médicos siguen siendo parte de su cuidado.", "Swen ou kontinye ant vizit yo, pandan doktè ou yo rete yon pati nan swen ou.")}</span></aside>
+      <aside class="note">${icon("info")}<span>${L("Your care doesn’t stop when you leave the doctor’s office. Your care team stays connected with you along the way.", "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.")}</span></aside>
       ${actions(t().continue)}`;
   }
   const capabilities = recommendedCareCapabilities(state.offer);

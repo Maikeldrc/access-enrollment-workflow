@@ -229,3 +229,95 @@ test("identity verification holds its layout at every supported width and text s
     }
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// Phase 4 — What your care includes
+// ---------------------------------------------------------------------------------------------
+
+const openCareOverview = async page => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start your care journey" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+};
+
+test("the care overview presents ACCESS as four connected things, not a list of services", async ({ page }) => {
+  await openCareOverview(page);
+  await expect(page.locator(".lead")).toHaveText("Your ACCESS care gives you new tools and ongoing support to help you manage your high blood pressure between doctor visits.");
+
+  const cards = page.locator(".info-row");
+  await expect(cards).toHaveCount(4);
+  await expect(cards.locator("strong")).toHaveText([
+    "Stay connected with your care team",
+    "Track your blood pressure from home",
+    "A care plan built around you",
+    "Stay connected with Dr. Fresner"
+  ]);
+  await expect(cards.nth(0).locator("p")).toHaveText("Get ongoing support, answers to your questions, and help staying on track between visits.");
+  await expect(cards.nth(1).locator("p")).toHaveText("Use a connected blood pressure monitor to track your readings and help your care team understand how you’re doing.");
+  await expect(cards.nth(2).locator("p")).toHaveText("Your goals, health information, and next steps come together in one personalized care plan.");
+  await expect(cards.nth(3).locator("p")).toHaveText("ITERA works with Dr. Fresner and your care team to help keep your care connected and coordinated.");
+  await expect(page.locator(".note")).toHaveText("Your care doesn’t stop when you leave the doctor’s office. Your care team stays connected with you along the way.");
+});
+
+test("the monitor is introduced as an idea here, with none of what comes later", async ({ page }) => {
+  await openCareOverview(page);
+  const screen = page.locator("#screen-content");
+  // The patient learns a connected monitor is part of this. Everything operational about it —
+  // getting one, setting it up, what it transmits — belongs to Getting Started, not to a screen
+  // about what ACCESS is.
+  await expect(screen).toContainText("connected blood pressure monitor");
+  await expect(screen).not.toContainText(/ship|shipping|deliver|set ?up|activate|activation|pair|cuff|battery/i);
+  // And none of the billing vocabulary that would turn a care description into a services invoice.
+  await expect(screen).not.toContainText(/\b(?:CCM|RPM|PCM|APCM|ASM|BHI|CoCM|RTM|CPT|billing|bill|claim|reimburse)\b/i);
+});
+
+test("the care overview names the referring physician only where the invitation named one", async ({ page }) => {
+  await openCareOverview(page);
+  await expect(page.locator(".info-row").last()).toContainText("Dr. Fresner");
+
+  // A direct-outreach invitation has no physician to name, so the same card must not invent one.
+  await page.goto("/?admin=1");
+  await page.evaluate(() => localStorage.removeItem("itera.prototype.config.v1"));
+  await page.reload();
+  await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
+  await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
+  await expect(page.locator(".info-row").last().locator("strong")).toHaveText("Stay connected with your doctors");
+  await expect(page.locator(".recommendation-screen")).not.toContainText("Dr. Fresner");
+});
+
+test("EMMI can explain what this care includes and who stays involved", async ({ page }) => {
+  await openCareOverview(page);
+  const dialog = await openEmmiConversation(page);
+  const ask = async question => {
+    await dialog.getByPlaceholder("Ask a question…").fill(question);
+    await dialog.getByRole("button", { name: "Send question" }).click();
+  };
+
+  await ask("How will the blood pressure monitor help me?");
+  await expect(dialog.locator(".assistant-message.assistant").last()).toBeVisible();
+  await ask("Will Dr. Fresner still be involved?");
+  await expect(dialog.locator(".assistant-message.assistant p").filter({ hasText: /Dr\. Fresner/ }).last()).toBeVisible();
+  // ITERA adds support; it never replaces the doctor the patient already has.
+  await expect(dialog.locator(".assistant-message.assistant").last()).toContainText(/does not replace|remains part of your care/i);
+});
+
+test("the care overview holds its layout at every supported width and text size", async ({ page }) => {
+  await openCareOverview(page);
+  for (const width of MOBILE_WIDTHS) {
+    for (const scale of TEXT_SCALES) {
+      await page.setViewportSize({ width, height: 844 });
+      await scaleText(page, scale);
+      const label = `${width}px / ${scale * 100}%`;
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `horizontal overflow at ${label}`).toBeLessThanOrEqual(1);
+      const damaged = await page.evaluate(() => [...document.querySelectorAll("#screen-content h1, .lead, .info-row strong, .info-row p, .note, .actions .button.primary")]
+        .filter(node => getComputedStyle(node).overflow !== "visible" && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1))
+        .map(node => node.className || node.tagName));
+      expect(damaged, `clipped care overview copy at ${label}`).toEqual([]);
+      const bodyFonts = await page.evaluate(() => [...document.querySelectorAll(".info-row p")].map(node => parseFloat(getComputedStyle(node).fontSize)));
+      expect(Math.min(...bodyFonts), `smallest card body at ${label}`).toBeGreaterThanOrEqual(16);
+    }
+  }
+});

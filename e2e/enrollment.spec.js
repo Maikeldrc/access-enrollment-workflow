@@ -219,8 +219,8 @@ test("condition selector supports the four controlled multi-select conditions", 
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
-  await expect(page.getByText("Blood pressure support", { exact: true })).toBeVisible();
-  await expect(page.getByText("Help monitoring and managing your blood pressure at home.")).toBeVisible();
+  await expect(page.getByText("Track your blood pressure from home", { exact: true })).toBeVisible();
+  await expect(page.getByText("Use a connected blood pressure monitor to track your readings and help your care team understand how you’re doing.")).toBeVisible();
 });
 
 test("condition selector requires at least one selection", async ({ page }) => {
@@ -243,7 +243,7 @@ test("direct outreach launches without an individual physician claim", async ({ 
   await expect(page.locator(".invitation-copy")).not.toContainText("at no additional cost to you");
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
   await expect(page.getByText("ITERA helps keep your care coordinated with the doctors you already see.")).toBeVisible();
-  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
+  await expect(page.getByText("Get ongoing support, answers to your questions, and help staying on track between visits.")).toBeVisible();
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await expect(page.getByText("Review the information below before choosing whether to enroll.", { exact: true })).toBeVisible();
@@ -1462,15 +1462,15 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await page.goto("/?scenario=access-happy");
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
   await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
-  await expect(page.getByText("Your ACCESS care is designed to support you at home and between doctor visits.")).toBeVisible();
-  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
-  await expect(page.getByText("Blood pressure support")).toBeVisible();
-  await expect(page.getByText("Help monitoring and managing your blood pressure at home.")).toBeVisible();
+  await expect(page.getByText("Your ACCESS care gives you new tools and ongoing support to help you manage your high blood pressure between doctor visits.")).toBeVisible();
+  await expect(page.getByText("Get ongoing support, answers to your questions, and help staying on track between visits.")).toBeVisible();
+  await expect(page.getByText("Track your blood pressure from home")).toBeVisible();
+  await expect(page.getByText("Use a connected blood pressure monitor to track your readings and help your care team understand how you’re doing.")).toBeVisible();
   await expect(page.getByText("A care plan built around you")).toBeVisible();
-  await expect(page.getByText("Goals and next steps based on your health needs.")).toBeVisible();
-  await expect(page.getByText("Connected with your doctors")).toBeVisible();
-  await expect(page.getByText("ITERA works with Dr. Fresner to help keep your care coordinated.")).toBeVisible();
-  await expect(page.getByText("Your care continues between visits, while your doctors remain part of your care.")).toBeVisible();
+  await expect(page.getByText("Your goals, health information, and next steps come together in one personalized care plan.")).toBeVisible();
+  await expect(page.getByText("Stay connected with Dr. Fresner")).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Fresner and your care team to help keep your care connected and coordinated.")).toBeVisible();
+  await expect(page.getByText("Your care doesn’t stop when you leave the doctor’s office. Your care team stays connected with you along the way.")).toBeVisible();
   await expect(page.locator(".recommendation-screen")).not.toContainText("recommended care");
   await expect(page.locator(".recommendation-screen")).not.toContainText(/\b(?:CCM|RPM|PCM|CPT)\b/);
   await expect(page.locator(".progress-meta span").last()).toHaveText("Your care");
@@ -1520,9 +1520,9 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
 
   await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
-  await expect(page.getByText("Your care team checks in, answers questions, and helps you stay on track.")).toBeVisible();
-  await expect(page.getByText("ITERA works with Dr. Humberto Machado Jr. to help keep your care coordinated.")).toBeVisible();
-  await expect(page.locator(".note")).toContainText("Your care continues between visits, while your doctors remain part of your care.");
+  await expect(page.getByText("Get ongoing support, answers to your questions, and help staying on track between visits.")).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Humberto Machado Jr. and your care team to help keep your care connected and coordinated.")).toBeVisible();
+  await expect(page.locator(".note")).toContainText("Your care doesn’t stop when you leave the doctor’s office. Your care team stays connected with you along the way.");
   await expect(page.locator("#screen-select option[value='HOW_CARE_WORKS']")).toHaveCount(0);
   await expect(page.locator(".recommendation-screen")).not.toContainText("I have questions");
 
@@ -1555,9 +1555,9 @@ test("ACCESS merges care coordination into What your care includes with a dynami
 
 test("ACCESS care inclusions adapt to the configured condition and direct outreach source", async ({ page }) => {
   const cases = [
-    ["Diabetes", "Diabetes support", "Help monitoring and managing your diabetes at home."],
-    ["Heart Failure", "Heart health support", "Help monitoring symptoms and supporting your heart health at home."],
-    ["Chronic Kidney Disease", "Kidney health support", "Help monitoring and supporting your kidney health at home."]
+    ["Diabetes", "Track your blood sugar from home", "Track your readings at home so your care team can understand how you’re doing."],
+    ["Heart Failure", "Track your symptoms from home", "Track your symptoms and weight at home so your care team can understand how you’re doing."],
+    ["Chronic Kidney Disease", "Track your kidney health from home", "Track what your care team asks for at home so they can understand how you’re doing."]
   ];
   for (const [condition, title, description] of cases) {
     await page.goto("/?admin=1");
@@ -1981,8 +1981,8 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
 test("Spanish and Kreyòl dynamic care, eligibility, consent, and Emmi copy do not fall back to English", async ({ page }) => {
   await page.addInitScript(() => localStorage.removeItem("itera.enrollment.language.v1"));
   for (const locale of [
-    { clicks: 1, code: "ES", care: "Seguimiento regular", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS está diseñado para apoyarle en casa y entre visitas al médico.", careNote: "Su cuidado continúa entre visitas, mientras sus médicos siguen siendo parte de su cuidado.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
-    { clicks: 2, code: "KR", care: "Tcheke regilyèman", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou fèt pou sipòte w lakay ou ak ant vizit kay doktè.", careNote: "Swen ou kontinye ant vizit yo, pandan doktè ou yo rete yon pati nan swen ou.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
+    { clicks: 1, code: "ES", care: "Manténgase conectado con su equipo de cuidado", careHeading: "Qué incluye su cuidado", careSupport: "Su cuidado ACCESS le brinda nuevas herramientas y apoyo continuo para ayudarle a controlar su presión arterial alta entre visitas al médico.", careNote: "Su cuidado no termina cuando sale del consultorio. Su equipo de cuidado permanece conectado con usted en todo el proceso.", precheck: "Revise estos detalles importantes sobre la evaluación de ACCESS.", precheckAck: "Entiendo y deseo que Medicare verifique mi elegibilidad", eligibility: "Elegibilidad", consent: "Revise y acepte", consentIntro: "Revise la información a continuación antes de decidir si desea inscribirse.", providerRule: "Un proveedor ACCESS para este tipo de cuidado", changeRule: "A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante.", cost: "Medicare cubre la mayor parte del costo de este cuidado. Su cobertura suplementaria puede reducir este monto.", fullTerms: "Ver información completa de ACCESS", assistant: "Asistente de cuidado" },
+    { clicks: 2, code: "KR", care: "Rete konekte ak ekip swen ou", careHeading: "Sa swen ou gen ladan", careSupport: "Swen ACCESS ou ba ou nouvo zouti ak sipò kontinyèl pou ede w jere tansyon wo ou ant vizit kay doktè.", careNote: "Swen ou pa kanpe lè ou kite biwo doktè a. Ekip swen ou rete konekte avèk ou pandan tout wout la.", precheck: "Tanpri revize detay enpòtan sa yo sou evalyasyon ACCESS la.", precheckAck: "Mwen konprann epi mwen vle Medicare verifye kalifikasyon mwen", eligibility: "Elijibilite", consent: "Revize epi dakò", consentIntro: "Revize enfòmasyon ki anba yo anvan ou chwazi si w ap enskri.", providerRule: "Yon founisè ACCESS pou kalite swen sa a", changeRule: "Apati 90 jou apre enskripsyon an, ou ka kite ACCESS oswa chanje pou yon lòt founisè ki patisipe.", cost: "Se gen yon bon tan depi nou te verifye kouvèti ou, kidonk nou pa vle montre w yon montan ki ka pa ajou.", fullTerms: "Gade tout enfòmasyon ACCESS yo", assistant: "Asistan swen" }
   ]) {
     await page.goto("/?scenario=access-happy");
     for (let i = 0; i < locale.clicks; i += 1) await page.locator(".stage-language").click();
