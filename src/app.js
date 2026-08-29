@@ -1,4 +1,4 @@
-import { BP_FULFILLMENT_DEVICE_MODELS, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
+import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
@@ -58,7 +58,19 @@ claimHistoryScrollRestoration();
 const params = new URLSearchParams(location.search);
 const prototypeMode = params.get("prototype") === "1";
 const patientShareSource = params.get("source") === "patient-share";
-const scenarioId = prototypeMode ? "prototype" : params.get("scenario") || "access-happy";
+// ---------------------------------------------------------------------------------------------
+// How the app was opened
+//
+// A patient opens a bare link. Everything else — the scenario console, a named fixture, a
+// relaunched QA scenario — is a tester deliberately asking for it through the URL. So the plain
+// link means one thing and one thing only: this patient's ACCESS invitation, already configured.
+// There is nothing to choose, so there is no screen on which to choose it.
+// ---------------------------------------------------------------------------------------------
+const adminMode = params.get("admin") === "1" || location.pathname === "/admin";
+const canonicalInvitation = !adminMode && !prototypeMode && !params.has("scenario");
+// The invitation gets its own draft and conversation scope. A QA scenario left half-finished in
+// this browser must never resume inside a patient's invitation, and the reverse is just as wrong.
+const scenarioId = canonicalInvitation ? "access-invitation" : prototypeMode ? "prototype" : params.get("scenario") || "access-happy";
 const DEMO_IDENTITY = { dob: "05/12/1954", dobIso: "1954-05-12", zip: "33176" };
 const draftStore = new DraftStore();
 const growthStore = new GrowthStore();
@@ -73,11 +85,13 @@ const savedEmmiPreferences = (() => {
 })();
 let eligibilityRequest = null;
 const savedPrototypeConfig = (() => { try { return JSON.parse(localStorage.getItem("itera.prototype.config.v1") || "null"); } catch { return null; } })();
-let prototypeConfig = normalizePrototypeConfig(patientShareSource ? DEFAULT_PROTOTYPE_CONFIG : (savedPrototypeConfig || DEFAULT_PROTOTYPE_CONFIG));
-let service = new MockEnrollmentService(scenarioId, prototypeMode ? prototypeConfig : null);
+// A saved console configuration belongs to the console. It never reaches the invitation: the
+// patient's scenario is the canonical one on every visit, including after a refresh.
+let prototypeConfig = normalizePrototypeConfig(canonicalInvitation ? CANONICAL_PATIENT_SCENARIO : patientShareSource ? DEFAULT_PROTOTYPE_CONFIG : (savedPrototypeConfig || DEFAULT_PROTOTYPE_CONFIG));
+let service = new MockEnrollmentService(scenarioId, prototypeMode || canonicalInvitation ? prototypeConfig : null);
 let conditionMenuOpen = false;
 let state = {
-  scenarioId, screen: params.has("scenario") || prototypeMode ? "OFFER_LOADING" : "PROTOTYPE_SETUP", offer: null, language: "en", role: "patient", completionRole: "patient",
+  scenarioId, screen: adminMode ? "PROTOTYPE_SETUP" : "OFFER_LOADING", offer: null, language: "en", role: "patient", completionRole: "patient",
   representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0,
   phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false,
   accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", consentAcknowledgement: null, sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, sessionMetadata: { platform: navigator.userAgentData?.platform || navigator.platform || "unknown" }, ipMetadata: null, identityVerified: false,
@@ -781,7 +795,12 @@ function assistantContext() {
     modelLanguageInstruction: resolveEmmiLanguage(languageCode()).modelLanguageInstruction,
     // EMMI reads the next step from the same resolver the CTA uses instead of inferring it.
     nextBestAction: state.offer ? (({ label, route, actionType }) => ({ label: localized(label), route, actionType }))(currentNextBestAction()) : null,
+    // Who invited this patient, into what, and for which condition are runtime facts EMMI must
+    // have from the first turn — not something inferred from the screen or from a demo fixture.
+    program: state.offer?.program || null,
+    accessTrack: state.offer?.accessTrack || null,
     enrollmentSource: state.offer?.enrollmentSource || null,
+    referralOrigin: state.offer?.referralOrigin || null,
     physicianDisplayName: state.offer?.physician?.displayName || null,
     currentStage: progress.stage,
     currentScreen: emmiCurrentScreen,
@@ -1307,7 +1326,7 @@ const assistantVoiceCopy = () => {
 const assistantVoiceErrorCopyFor = code => ({
   microphone_denied: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
   rate_limited: L("EMMI voice is temporarily busy. You can continue by typing.", "La voz de EMMI está ocupada temporalmente. Puede continuar escribiendo.", "Vwa EMMI okipe pou kounye a. Ou ka kontinye ekri."),
-  gemini_not_configured: L("Voice is not configured for this prototype. You can continue by typing.", "La voz no está configurada para este prototipo. Puede continuar escribiendo.", "Vwa pa konfigire pou pwototip sa a. Ou ka kontinye ekri."),
+  gemini_not_configured: L("EMMI voice isn’t available right now. You can continue by typing.", "La voz de EMMI no está disponible en este momento. Puede continuar escribiendo.", "Vwa EMMI pa disponib kounye a. Ou ka kontinye ekri."),
   VOICE_UNAVAILABLE_ON_DEVICE: L("Voice isn’t available on this device right now. You can continue by typing.", "La voz no está disponible en este dispositivo por ahora. Puede continuar escribiendo.", "Vwa a pa disponib sou aparèy sa a kounye a. Ou ka kontinye ekri."),
   voice_disabled: L("Voice assistance is turned off. You can continue by typing.", "La asistencia por voz está desactivada. Puede continuar escribiendo.", "Asistans vwa etenn. Ou ka kontinye ekri."),
   voice_locale_fallback: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa poko disponib nan lang sa a. Ou ka toujou pale ak EMMI alekri an Kreyòl."),
@@ -2581,7 +2600,7 @@ function eligibilityProcessing() {
 
 function medicareIdentifier() {
   return `${titleBlock(L("Confirm your Medicare information", "Confirme su información de Medicare", "Konfime enfòmasyon Medicare ou yo"), L("We couldn’t verify the Medicare number we have on file.", "No pudimos verificar el número de Medicare registrado.", "Nou pa t kapab verifye nimewo Medicare nou genyen nan dosye a."))}
-    <form id="mbi-form"><label class="field"><span>${L("Medicare number", "Número de Medicare", "Nimewo Medicare")}</span><input name="mbi" type="text" autocomplete="off" maxlength="11" placeholder="${L("From your Medicare card", "De su tarjeta de Medicare", "Sou kat Medicare ou")}" aria-describedby="mbi-note"></label><p id="mbi-note" class="security">${icon("lock")} ${L("For this demo, the full number is validated in memory and is never saved locally.", "En esta demostración, el número se valida en memoria y nunca se guarda localmente.", "Pou demonstrasyon sa a, yo verifye nimewo konplè a nan memwa epi yo pa janm anrejistre li sou aparèy la.")}</p></form>
+    <form id="mbi-form"><label class="field"><span>${L("Medicare number", "Número de Medicare", "Nimewo Medicare")}</span><input name="mbi" type="text" autocomplete="off" maxlength="11" placeholder="${L("From your Medicare card", "De su tarjeta de Medicare", "Sou kat Medicare ou")}" aria-describedby="mbi-note"></label><p id="mbi-note" class="security">${icon("lock")} ${L("The full number is checked securely and is never saved on this device.", "El número completo se verifica de forma segura y nunca se guarda en este dispositivo.", "Yo verifye nimewo konplè a an sekirite epi yo pa janm anrejistre l sou aparèy sa a.")}</p></form>
     <button class="link-card" data-action="help">${icon("question")}<span><strong>${L("I don’t have my card", "No tengo mi tarjeta", "Mwen pa gen kat mwen an")}</strong><small>${L("Get help another way", "Obtenga ayuda de otra forma", "Jwenn èd yon lòt fason")}</small></span><b>›</b></button><p class="form-error" role="alert">${state.error}</p>${actions(t().continue)}`;
 }
 
@@ -4891,6 +4910,9 @@ renderers.APPOINTMENT_SCHEDULING = appointmentSchedulingScreen;
 
 function devPanel() {
   if (import.meta.env.PROD) return "";
+  // Scenario and screen jumping are QA controls. The invitation is not a QA surface, so they are
+  // absent there even in a development build — reachable only from a URL a tester chose.
+  if (canonicalInvitation) return "";
   const voice = emmiLive?.voiceIdentitySnapshot() || emmiVoiceMetadata(languageCode(), { sessionId: state.sessionId, screenId: state.screen });
   return `<aside class="dev-panel ${state.devOpen ? "open" : ""}"><button class="dev-toggle" data-action="dev">Demo</button><div><label>Scenario<select id="scenario-select">${Object.entries(SCENARIOS).map(([id, x]) => `<option value="${id}" ${id === state.scenarioId ? "selected" : ""}>${x.label}</option>`).join("")}</select></label><label>Jump to<select id="screen-select">${journeyFor(state).map(x => `<option value="${x}" ${x === state.screen ? "selected" : ""}>${x}</option>`).join("")}</select></label><section class="emmi-voice-debug" aria-label="EMMI Voice Debug"><strong>EMMI Voice Debug</strong><span>Internal locale: ${voice.locale}</span><span>Resolved language: ${voice.resolvedLanguage}</span><span>Speech locale: ${voice.resolvedSpeechLocale}</span><span>Voice: ${voice.voiceId || "TEXT_ONLY"}</span><span>Voice version: ${voice.voiceVersion}</span><span>Provider: ${voice.provider}</span><span>Model: ${EMMI_CONFIG.model}</span><span>Status: ${state.assistantVoiceState}</span><span>Capability: ${voice.capability}</span><span>Error: ${state.assistantVoiceError || "NONE"}</span><span>Session: ${voice.sessionId || state.sessionId}</span></section><button class="small-action" data-action="clear">Clear saved demo</button></div></aside>`;
 }
@@ -5010,6 +5032,31 @@ function bindPrototypeSetup() {
   });
 }
 
+// What the scenario already knows about this patient's monitor, written into state before the
+// experience renders. The console used to do this on Launch; an invitation has no Launch button,
+// so both entries call the same function and neither can start with an unknown device.
+function applyScenarioDeviceContext() {
+  const deviceContext = service.getScenarioDeviceContext?.();
+  if (!deviceContext) return;
+  Object.assign(state, {
+    patientHasBloodPressureMonitor: Boolean(deviceContext.patientOwnsMonitor),
+    deviceSource: deviceContext.deviceSource || "UNKNOWN",
+    assignedDeviceId: deviceContext.assignedDeviceId || "",
+    last4DeviceId: (deviceContext.assignedDeviceId || "").slice(-4),
+    patientDeviceConfirmationChoice: "",
+    patientDeviceConfirmed: null,
+    patientDeviceConfirmedAt: "",
+    confirmedDeviceId: "",
+    firstTransmissionVerified: null,
+    firstTransmissionDeviceId: "",
+    firstTransmissionAt: "",
+    deviceVendor: deviceContext.deviceVendor || "",
+    deviceStatus: deviceContext.deviceStatus || "",
+    integrationProvider: deviceContext.integrationProvider || "UNKNOWN",
+    integrationStatus: deviceContext.integrationStatus || "UNKNOWN"
+  });
+}
+
 async function launchPrototype() {
   prototypeConfig = normalizePrototypeConfig(prototypeConfig);
   if (!prototypeConfig.conditions.length) { document.querySelector("#prototype-error").textContent = "Select at least one condition."; return; }
@@ -5027,28 +5074,11 @@ async function launchPrototype() {
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [] });
-  const prototypeDeviceContext = service.getScenarioDeviceContext?.();
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
   state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
   state.flowTransitionNotice = "";
-  if (prototypeDeviceContext) Object.assign(state, {
-    patientHasBloodPressureMonitor: Boolean(prototypeDeviceContext.patientOwnsMonitor),
-    deviceSource: prototypeDeviceContext.deviceSource || "UNKNOWN",
-    assignedDeviceId: prototypeDeviceContext.assignedDeviceId || "",
-    last4DeviceId: (prototypeDeviceContext.assignedDeviceId || "").slice(-4),
-    patientDeviceConfirmationChoice: "",
-    patientDeviceConfirmed: null,
-    patientDeviceConfirmedAt: "",
-    confirmedDeviceId: "",
-    firstTransmissionVerified: null,
-    firstTransmissionDeviceId: "",
-    firstTransmissionAt: "",
-    deviceVendor: prototypeDeviceContext.deviceVendor || "",
-    deviceStatus: prototypeDeviceContext.deviceStatus || "",
-    integrationProvider: prototypeDeviceContext.integrationProvider || "UNKNOWN",
-    integrationStatus: prototypeDeviceContext.integrationStatus || "UNKNOWN"
-  });
+  applyScenarioDeviceContext();
   setLanguage(prototypeConfig.language);
   render();
   try {
@@ -7788,6 +7818,10 @@ async function boot() {
   if (location.pathname === "/support/accept" || location.pathname.startsWith("/care-circle/invite/")) { renderSupportAcceptance(); return; }
   try {
     state.offer = await service.getOffer();
+    // The invitation has no Launch step, so the device context the console used to write on Launch
+    // is written here instead — before the first render, and before a saved draft is layered over
+    // it, so a patient who already answered for their monitor keeps that answer.
+    if (canonicalInvitation) applyScenarioDeviceContext();
     const saved = patientShareSource ? null : draftStore.load();
     if (saved?.scenarioId === scenarioId && (saved.identityVerified || saved.completionRole === "personalRepresentative")) {
       state = { ...state, ...saved, offer: state.offer, audit: saved.audit || [] };
@@ -7896,6 +7930,8 @@ async function boot() {
 
 if (["/access/learn", "/support/accept"].includes(location.pathname) || location.pathname.startsWith("/care-circle/invite/")) boot();
 else {
+  // The first paint is either the QA console or the invitation opening. It is never a
+  // configuration screen the patient then has to be moved off, so there is nothing to flash.
   render();
-  if (params.has("scenario") || prototypeMode) boot();
+  if (!adminMode) boot();
 }

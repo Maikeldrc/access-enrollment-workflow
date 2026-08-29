@@ -31,6 +31,10 @@ const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
 const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|dokt[eè] mwen/i;
+// The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
+// which asks whether that doctor stays involved, and from eligibility, which asks whether the
+// patient qualifies. Answering it means repeating the referral facts and adding nothing.
+const INVITATION_SOURCE = /who (invited|referred|sent)|who is this from|why (am i|did i) (receiving|receive|get|getting)|why was i (invited|referred)|how did you get my|qui[eé]n me (invit[oó]|refiri[oó]|envi[oó])|de qui[eé]n es esta invitaci[oó]n|por qu[eé] (recib[ií]|estoy recibiendo|me lleg[oó])|ki moun ki (envite|refere|voye) m|poukisa m (ap resevwa|resevwa|jwenn)/i;
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
@@ -264,6 +268,24 @@ const unavailable = locale => pick(locale, {
   ES: "No tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
   KR: "Mwen pa gen ase enfòmasyon apwouve pou reponn sa san danje. Mwen ka ede w kontakte ekip swen ou."
 });
+// Built only from the referral facts already in the runtime context. No reason, no date, no
+// practice, no diagnosis: the patient is told who invited them and what they were invited to look
+// at, and is reminded that looking is not enrolling.
+const invitationSourceAnswer = (enrollment = {}, locale) => {
+  const physician = enrollment.physicianDisplayName || "";
+  const program = enrollment.program || "ACCESS";
+  const referred = Boolean(physician) && /referral/i.test(String(enrollment.enrollmentSource || ""));
+  if (referred) return pick(locale, {
+    EN: `${physician}’s care team invited you to learn about ${program} care. Looking is voluntary, and you have not enrolled in anything yet.`,
+    ES: `El equipo de ${physician} le invitó a conocer el cuidado ${program}. Informarse es voluntario y todavía no se ha inscrito en nada.`,
+    KR: `Ekip swen ${physician} envite w aprann sou swen ${program}. Gade li se volontè, epi ou poko enskri nan anyen.`
+  });
+  return pick(locale, {
+    EN: `ITERA HEALTH invited you to learn about ${program} care. Looking is voluntary, and you have not enrolled in anything yet.`,
+    ES: `ITERA HEALTH le invitó a conocer el cuidado ${program}. Informarse es voluntario y todavía no se ha inscrito en nada.`,
+    KR: `ITERA HEALTH envite w aprann sou swen ${program}. Gade li se volontè, epi ou poko enskri nan anyen.`
+  });
+};
 const retrievalUnavailable = locale => pick(locale, {
   EN: "I can’t look up that information right now. You can try again, or I can help you contact your care team.",
   ES: "Ahora mismo no puedo consultar esa información. Puede intentar de nuevo o puedo ayudarle a comunicarse con su equipo de atención.",
@@ -508,6 +530,19 @@ export class EmmiTextOrchestrator {
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
       return { text: this.screenExplanation(context.currentScreen), trace };
+    }
+    // "Who invited me?" is a question about the invitation, and it is checked before the care-team
+    // and support routes, which would otherwise read it as a request to be called back.
+    if (INVITATION_SOURCE.test(asked)) {
+      trace.intent = "INVITATION_SOURCE"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getEnrollmentContext");
+      try {
+        const enrollment = await this.executeTool("getEnrollmentContext", { patientId: context.patientId });
+        trace.runtimeFactsUsed.push("getEnrollmentContext"); emit("EMMI_ANSWER_ROUTED");
+        return { text: invitationSourceAnswer(enrollment, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getEnrollmentContext", error: error?.message || "unknown" });
+        return { text: unavailable(locale), trace };
+      }
     }
     // Wanting to reach the clinical team is an action, not a question. Tapping the quick question
     // already goes to the support options; this is the same request typed or spoken. It is checked

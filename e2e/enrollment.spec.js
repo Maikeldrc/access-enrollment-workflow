@@ -26,7 +26,7 @@ async function openNeededMonitorDetails(page) {
 }
 
 test("prototype setup shows defaults and conditional fields", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await expect(page.getByRole("heading", { name: "Configure the patient scenario" })).toBeVisible();
   const eligibilityResult = page.getByRole("combobox", { name: /ACCESS Eligibility Result/ });
   await expect(eligibilityResult).toHaveValue("eligible");
@@ -66,7 +66,7 @@ test("ACCESS consolidates legacy referral sources without changing other program
     accessEligibilityResult: "eligible",
     physicianDisplayName: "Dr. Fresner"
   })));
-  await page.goto("/");
+  await page.goto("/?admin=1");
   const source = page.getByRole("combobox", { name: /Enrollment source/ });
   await expect(source).toHaveValue("Provider / Practice Referral");
   await expect(source.locator("option")).toHaveText(["ITERA Direct Outreach", "Provider / Practice Referral"]);
@@ -81,7 +81,7 @@ test("ACCESS consolidates legacy referral sources without changing other program
 });
 
 test("prototype setup autocorrects ACCESS coverage and validates physician configuration", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "APCM", exact: true }).check({ force: true });
   const coverage = page.getByRole("combobox", { name: /Coverage/ });
   await coverage.selectOption("Medicare Advantage");
@@ -101,7 +101,7 @@ test("prototype setup autocorrects ACCESS coverage and validates physician confi
 
 test("prototype ACCESS eligibility setting drives a terminal not-eligible patient journey", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /ACCESS Eligibility Result/ }).selectOption("notEligible");
   await expect(page.locator(".scenario-summary")).toContainText("Not eligible");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -141,7 +141,7 @@ test("prototype ACCESS eligibility setting drives a terminal not-eligible patien
 
 test("prototype setup previews and applies a custom physician photo", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 });
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   const preview = page.getByAltText("Physician photo preview");
   await expect(preview).toHaveAttribute("src", "/assets/doctor-portrait-v2.png");
@@ -208,7 +208,7 @@ test("prototype setup previews and applies a custom physician photo", async ({ p
 });
 
 test("condition selector supports the four controlled multi-select conditions", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.locator('summary[aria-label="Condition"]').click();
   await page.getByRole("group", { name: /Clinical conditions/ }).getByText("Diabetes", { exact: true }).click();
   await expect(page.locator(".condition-multiselect")).toHaveAttribute("open", "");
@@ -224,7 +224,7 @@ test("condition selector supports the four controlled multi-select conditions", 
 });
 
 test("condition selector requires at least one selection", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.locator('summary[aria-label="Condition"]').click();
   await page.getByRole("group", { name: /Clinical conditions/ }).getByText("Hypertension", { exact: true }).click();
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -232,7 +232,7 @@ test("condition selector requires at least one selection", async ({ page }) => {
 });
 
 test("direct outreach launches without an individual physician claim", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
   await expect(page.locator(".invitation-stage")).toHaveAttribute("data-trust-source", "ITERA Direct Outreach");
@@ -250,7 +250,7 @@ test("direct outreach launches without an individual physician claim", async ({ 
   await expect(page.locator(".access-consent-care-team .provider-card")).toHaveCount(0);
   await expect(page.locator("#screen-content")).not.toContainText("Dr. Fresner");
 
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM", exact: true }).check({ force: true });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.getByText("ITERA HEALTH invites you to learn about additional support available through Medicare.")).toBeVisible();
@@ -258,7 +258,7 @@ test("direct outreach launches without an individual physician claim", async ({ 
 });
 
 test("trust hero cards omit the ITERA logo and keep language near the top edge", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   const hero = page.locator(".trust-hero-card");
   await expect(hero).toBeVisible();
@@ -384,7 +384,7 @@ test("CCM can defer Getting Started without reopening enrollment and resume from
 });
 
 test("ACCESS enrollment confirmation does not invent physician involvement for direct outreach", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
   await expect(page.getByText("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", { exact: true })).toBeVisible();
@@ -421,7 +421,7 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
   ];
   for (const [radioLabel, program, ctaLabel, nextRoute] of programs) {
     for (const referral of [false, true]) {
-      await page.goto("/");
+      await page.goto("/?admin=1");
       await page.getByRole("radio", { name: radioLabel, exact: true }).check({ force: true });
       const source = page.getByRole("combobox", { name: /Enrollment source/ });
       await source.selectOption({ label: referral ? (program === "ACCESS" ? "Provider / Practice Referral" : "Physician Referral") : "ITERA Direct Outreach" });
@@ -774,7 +774,7 @@ test("ACCESS incompatible monitor requests a compatible device without reopening
 });
 
 test("prototype explicitly launches a patient-owned non-ITERA monitor journey", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Blood pressure monitor/ }).selectOption("patient-owned-unsupported");
   await expect(page.locator(".scenario-summary")).toContainText("Eligible · Patient-owned monitor · English");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1129,7 +1129,7 @@ test("ACCESS final review renders configured cost, claims, and device informatio
 });
 
 test("ACCESS full information does not invent physician involvement for direct outreach", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await page.getByText("View full ACCESS information", { exact: false }).click();
@@ -1241,7 +1241,7 @@ test("ACCESS agreement keeps track-based cost guidance with configured claims in
 
 test("ACCESS expected monthly cost follows the configured care track", async ({ page }) => {
   for (const [track, expected] of [["eCKM", "$6 per month"], ["CKM", "$7 per month"], ["BH", "$3 per month"], ["MSK", "$3 per month"]]) {
-    await page.goto("/");
+    await page.goto("/?admin=1");
     // Coverage is pinned so the care track is the only thing moving the amount.
     await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_NOT_VERIFIED" })));
     await page.reload();
@@ -1253,7 +1253,7 @@ test("ACCESS expected monthly cost follows the configured care track", async ({ 
 });
 
 test("ACCESS cost supports supplemental coverage verification states", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.evaluate(() => localStorage.setItem("itera.prototype.config.v1", JSON.stringify({ program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"], coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", secondaryCoverageStatus: "SECONDARY_PRESENT_NOT_CONFIRMED" })));
   await page.goto("/?prototype=1");
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
@@ -1502,7 +1502,7 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
 });
 
 test("recommended care avoids individual physician claims for practice outreach", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM", exact: true }).check({ force: true });
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Practice Outreach" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1513,7 +1513,7 @@ test("recommended care avoids individual physician claims for practice outreach"
 
 test("ACCESS merges care coordination into What your care includes with a dynamic physician", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   await page.getByPlaceholder("Enter physician name").fill("Dr. Humberto Machado Jr.");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1560,7 +1560,7 @@ test("ACCESS care inclusions adapt to the configured condition and direct outrea
     ["Chronic Kidney Disease", "Kidney health support", "Help monitoring and supporting your kidney health at home."]
   ];
   for (const [condition, title, description] of cases) {
-    await page.goto("/");
+    await page.goto("/?admin=1");
     await page.evaluate(() => localStorage.removeItem("itera.prototype.config.v1"));
     await page.reload();
     await page.locator('summary[aria-label="Condition"]').click();
@@ -1578,7 +1578,7 @@ test("ACCESS care inclusions adapt to the configured condition and direct outrea
 
 test("ACCESS provider or practice referral uses doctor recommendation with dynamic physician", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
@@ -1665,7 +1665,7 @@ test("ACCESS provider or practice referral uses doctor recommendation with dynam
 });
 
 test("traditional physician pathway uses supervising care card", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM + RPM", exact: true }).check({ force: true });
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1724,7 +1724,7 @@ test("landing human-support line stays compact, centered, and clear of the Care 
 
 test("every non-ACCESS clinical pathway uses the physician supervising card", async ({ page }) => {
   for (const program of ["CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM", "ASM", "APCM"]) {
-    await page.goto("/");
+    await page.goto("/?admin=1");
     await page.getByRole("radio", { name: program, exact: true }).check({ force: true });
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "PHYSICIAN_SUPERVISING");
@@ -1775,14 +1775,14 @@ test("trust hero cards use one compact premium image surface", async ({ page }) 
     });
   };
 
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   audits.push(await audit());
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   audits.push(await audit());
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM + RPM", exact: true }).check({ force: true });
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1819,7 +1819,7 @@ test("physician supervising copy stays live, aligned, and readable across mobile
   for (const width of [375, 390, 430]) {
     for (const physicianName of ["Dr. Fresner", "Dr. Martinez-Clark", "Dr. Humberto Machado Jr."]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto("/");
+      await page.goto("/?admin=1");
       await page.getByRole("radio", { name: "CCM + RPM", exact: true }).check({ force: true });
       await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
       await page.getByPlaceholder("Enter physician name").fill(physicianName);
@@ -1861,7 +1861,7 @@ test("physician supervising copy stays live, aligned, and readable across mobile
 });
 
 test("long physician names remain contained in the hero overlay", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
   await page.getByPlaceholder("Enter physician name").fill("Dr. Humberto Machado Jr.");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1887,7 +1887,7 @@ test("ACCESS physician attribution stays aligned across mobile widths and physic
   for (const width of [375, 390, 430]) {
     for (const physicianName of ["Dr. Fresner", "Dr. Martinez-Clark", "Dr. Humberto Machado Jr."]) {
       await page.setViewportSize({ width, height: 844 });
-      await page.goto("/");
+      await page.goto("/?admin=1");
       await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Provider / Practice Referral" });
       await page.getByPlaceholder("Enter physician name").fill(physicianName);
       await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -1938,7 +1938,7 @@ test("ACCESS physician attribution stays aligned across mobile widths and physic
 });
 
 test("Creole setup opens the first patient screen in Creole", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Language/ }).selectOption({ label: "Creole" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
   await expect(page.getByRole("heading", { name: "Yon nouvo opsyon swen pou sante ou" })).toBeVisible();
@@ -1952,7 +1952,7 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
     { value: "ht", label: "Creole", code: "KR", html: "ht", heading: "Yon nouvo opsyon swen pou sante ou", identity: "Ann konfime se ou" }
   ];
   for (const locale of locales) {
-    await page.goto("/");
+    await page.goto("/?admin=1");
     await page.getByRole("combobox", { name: /Language/ }).selectOption(locale.value);
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
     await expect(page.getByRole("heading", { name: locale.heading })).toBeVisible();
@@ -2475,7 +2475,7 @@ test("traditional consent keeps a personal representative separate from the pati
 });
 
 test("condition-specific setup never invents hypertension when another condition is selected", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption("Provider / Practice Referral");
   await page.locator('summary[aria-label="Condition"]').click();
   await page.getByRole("group", { name: /Clinical conditions/ }).getByText("Hypertension", { exact: true }).click();
@@ -2485,7 +2485,7 @@ test("condition-specific setup never invents hypertension when another condition
   await expect(page.getByRole("heading", { name: "Your blood sugar starting point" })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText("blood pressure");
 
-  await page.goto("/");
+  await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM", exact: true }).check({ force: true });
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption("Physician Referral");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
@@ -2497,7 +2497,7 @@ test("condition-specific setup never invents hypertension when another condition
 test("prototype cards and scenario summary remain usable across tablet and desktop", async ({ page }) => {
   for (const viewport of [{ width: 768, height: 1024 }, { width: 1366, height: 900 }]) {
     await page.setViewportSize(viewport);
-    await page.goto("/");
+    await page.goto("/?admin=1");
     const audit = await page.evaluate(() => {
       const cards = [...document.querySelectorAll(".program-option>span")];
       const heights = cards.map(card => Math.round(card.getBoundingClientRect().height));
@@ -2528,7 +2528,7 @@ test("prototype cards and scenario summary remain usable across tablet and deskt
 test("patient experience uses a centered 384px mobile shell on desktop and full width on phones", async ({ page }) => {
   for (const width of [1366, 1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await page.goto("/?admin=1");
     const configurator = page.locator(".prototype-console");
     await expect(configurator).toBeVisible();
     const configuratorWidth = await configurator.evaluate(element => element.getBoundingClientRect().width);
@@ -2602,7 +2602,7 @@ test("all traditional programs complete their implemented patient journey", asyn
   test.setTimeout(120000);
   for (const program of ["CCM", "RPM", "CCM + RPM", "PCM", "PCM + RPM", "ASM", "APCM"]) {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
+    await page.goto("/?admin=1");
     await page.getByRole("radio", { name: program, exact: true }).check({ force: true });
     await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption("Physician Referral");
     const coverage = page.getByRole("combobox", { name: /Coverage/ });
