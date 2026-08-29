@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Surface:** `src/emmi/languageDetection.js` (new), `askEmmi()` in `src/app.js`
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `6a0c66a` — `feat(emmi): phase-02 adaptive patient language`
 
 ---
 
