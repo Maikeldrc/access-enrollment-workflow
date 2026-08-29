@@ -2745,6 +2745,103 @@ test("core mobile screens tolerate 125 and 150 percent content scaling", async (
   }
 });
 
+// The invitation's trust hero is one composed image on a fixed aspect ratio: the card's height comes
+// from the page column, so it cannot grow when the patient turns their text size up, and each line of
+// copy over it is one nowrap span that is cut rather than wrapped when it outgrows its column. Sizing
+// that copy in rem let it grow inside a box that could not, and at 150% that cut "Care through
+// Medicare’s" on the right and pushed "Recommended by Dr. Fresner" clean out of the bottom of the card.
+// The longest line is not the English one, so every language is measured: the Spanish supporting copy
+// ran past its column at 360 and 375px at every text size, including the default.
+// Losing the attribution is the serious failure: it is who vouched for the whole invitation.
+const TRUST_HERO_CARDS = [
+  { variant: "DOCTOR_RECOMMENDS_ACCESS", url: "/?scenario=access-happy" },
+  { variant: "PHYSICIAN_SUPERVISING", url: "/?scenario=ccm-happy" },
+  { variant: "ACCESS_PARTICIPANT", url: "/?prototype=1" }
+];
+
+// The stage language button cycles English, Spanish, Creole. The app remembers the choice across
+// loads, so a card never reliably opens in English and the language is dialled in rather than assumed.
+const TRUST_HERO_LANGUAGES = [
+  { code: "EN", attribution: "Recommended by Dr. Fresner" },
+  { code: "ES", attribution: "Recomendado por Dr. Fresner" },
+  { code: "KR", attribution: "Rekòmande pa Dr. Fresner" }
+];
+
+const trustHeroLanguage = async (page, code) => {
+  const button = page.locator(".stage-language");
+  for (let click = 0; click < TRUST_HERO_LANGUAGES.length; click += 1) {
+    if ((await button.innerText()).trim() === code) return;
+    await button.click();
+  }
+  await expect(button).toHaveText(new RegExp(`${code}$`));
+};
+
+// Measure only once the card is settled the way the patient sees it: the webfonts decide how wide a
+// nowrap line runs, and Manrope runs about 12% wider than the fallback face.
+const settledTrustHero = page => page.evaluate(async () => {
+  await document.fonts.ready;
+  const image = document.querySelector(".trust-hero-image");
+  if (image && !image.complete) await new Promise(done => { image.addEventListener("load", done, { once: true }); image.addEventListener("error", done, { once: true }); });
+});
+
+test("the trust hero holds its headline, supporting copy and physician attribution in every language, at every supported width and text size", async ({ page }) => {
+  test.slow();
+  const viewports = [
+    { width: 360, height: 800 }, { width: 375, height: 812 }, { width: 384, height: 824 },
+    { width: 390, height: 844 }, { width: 393, height: 852 }, { width: 412, height: 915 },
+    { width: 430, height: 932 }
+  ];
+  // Read every line of hero copy against the card that clips it. The line-level spans are measured
+  // too: they are nowrap, so a line too wide for its column is cut rather than wrapped.
+  const readHero = () => {
+    const card = document.querySelector(".trust-hero-card");
+    const cardRect = card.getBoundingClientRect();
+    const lines = [".trust-hero-headline", ".trust-hero-headline span", ".trust-hero-supporting-copy", ".trust-hero-supporting-copy span", ".physician-attribution", ".trust-hero-overlay", ".generic-trust-hero strong", ".generic-trust-hero small"];
+    const outside = [];
+    const cut = [];
+    for (const selector of lines) {
+      for (const node of card.querySelectorAll(selector)) {
+        const rect = node.getBoundingClientRect();
+        const label = `${selector} "${node.textContent.trim().slice(0, 30)}"`;
+        if (rect.top < cardRect.top - 0.5 || rect.bottom > cardRect.bottom + 0.5 || rect.left < cardRect.left - 0.5 || rect.right > cardRect.right + 0.5) outside.push(label);
+        // A tight line-height lets descenders reach a fraction past their own box at every text
+        // size, which is the hero's settled rendering; a whole pixel of width is a cut line.
+        if (node.scrollWidth > node.clientWidth + 1) cut.push(label);
+      }
+    }
+    const sizeOf = selector => { const node = card.querySelector(selector); return node ? getComputedStyle(node).fontSize : "-"; };
+    return {
+      outside, cut,
+      language: card.querySelector(".stage-language").textContent.trim(),
+      attribution: card.querySelector(".physician-attribution")?.textContent.trim() || "",
+      // Carried into the failure message: a hero that breaks is either sized wrong or sitting in a
+      // card that never reached its own height, and these two numbers tell those apart at a glance.
+      measured: `card ${cardRect.width.toFixed(0)}x${cardRect.height.toFixed(0)}, headline ${sizeOf(".trust-hero-headline")}, supporting ${sizeOf(".trust-hero-supporting-copy")}`
+    };
+  };
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const heroCard of TRUST_HERO_CARDS) {
+      await page.goto(heroCard.url);
+      await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", heroCard.variant);
+      for (const language of TRUST_HERO_LANGUAGES) {
+        await trustHeroLanguage(page, language.code);
+        await settledTrustHero(page);
+        for (const scale of [1, 1.25, 1.5]) {
+          await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
+          const hero = await page.evaluate(readHero);
+          const where = `${heroCard.variant} @${viewport.width}px ${language.code} ${scale * 100}% (${hero.measured})`;
+          expect(hero.language, `${where}: language did not switch`).toBe(language.code);
+          expect(hero.outside, `${where}: hero copy sits outside the card`).toEqual([]);
+          expect(hero.cut, `${where}: hero copy is cut off`).toEqual([]);
+          if (heroCard.variant === "DOCTOR_RECOMMENDS_ACCESS") expect(hero.attribution, `${where}: the physician attribution`).toBe(language.attribution);
+        }
+        await page.evaluate(() => { document.documentElement.style.fontSize = ""; });
+      }
+    }
+  }
+});
+
 test("patient screens share one page gutter and one content column", async ({ page }) => {
   const viewports = [
     { width: 384, height: 824, gutter: [14, 17] },
