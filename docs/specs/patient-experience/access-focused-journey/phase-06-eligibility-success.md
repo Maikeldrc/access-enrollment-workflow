@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `ACCESS_ELIGIBILITY_RESULT`, eligible outcome (`eligibilityResult()` in `src/app.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `14be552` — `feat(access-patient): phase-06 positive eligibility milestone`
 
 ---
 
