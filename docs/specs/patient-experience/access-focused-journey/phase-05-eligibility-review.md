@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `ACCESS_PRE_ELIGIBILITY_NOTICE` (`accessNotice()` in `src/app.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `9f7cbc4` — `feat(access-patient): phase-05 refine eligibility review`
 
 ---
 
