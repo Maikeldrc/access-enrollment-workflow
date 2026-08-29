@@ -624,3 +624,65 @@ test("the consent screen holds its layout at every supported width and text size
     }
   }
 });
+
+// ---------------------------------------------------------------------------------------------
+// The golden path, walked end to end the way a patient walks it
+// ---------------------------------------------------------------------------------------------
+
+test("Dr. Fresner's invitation carries the patient from the link to their own decision", async ({ page }) => {
+  await page.goto("/");
+
+  // The link is an invitation, and the doctor who sent it is the first thing on the screen.
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
+  await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner");
+  await expect(page.locator(".invitation-voluntary")).toContainText("Participation is voluntary");
+  await page.getByRole("button", { name: "Start your care journey" }).click();
+
+  // The patient chooses how they want to complete this, and support stays a separate offer.
+  await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
+  await expect(page.locator('#choice-form input[value="patient"]')).toBeChecked();
+  await expect(page.locator(".optional-support-card strong")).toHaveText("Want support along the way?");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // Identity is a match against the invitation, not a registration.
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
+  await expect(page.locator("#screen-content")).toContainText("match you to your care invitation");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // What ACCESS actually is, including the monitor and the doctor who stays involved.
+  await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+  await expect(page.locator(".info-row")).toHaveCount(4);
+  await expect(page.locator("#screen-content")).toContainText("connected blood pressure monitor");
+  await expect(page.locator(".info-row").last()).toContainText("Dr. Fresner");
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // The disclosures, acknowledged before anything is checked.
+  await expect(page.getByRole("heading", { name: "Let’s confirm your eligibility with Medicare" })).toBeVisible();
+  await expect(page.locator("#screen-content")).toContainText("comparison group");
+  await page.getByLabel("I understand this information and want to continue with the Medicare eligibility check").check();
+  await page.getByRole("button", { name: "Check my eligibility" }).click();
+
+  // A milestone that is positive and still honest about what has not happened.
+  await expect(page.getByRole("heading", { name: "Great news — you can continue with ACCESS" })).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("#screen-content")).not.toContainText(/you are enrolled|enrollment is complete/i);
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // And finally the patient's own decision, made by them.
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toBeVisible();
+  await expect(page.locator(".signer-role")).toHaveText("Signing as: Patient");
+  const consentBox = page.locator("#consent-form input[type=checkbox]");
+  await expect(consentBox).not.toBeChecked();
+  const confirm = page.getByRole("button", { name: "Confirm and continue" });
+  await expect(confirm).toBeDisabled();
+  await consentBox.check();
+  await confirm.click();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toHaveCount(0);
+
+  // Nothing along the way asked the patient to configure a demo, and the referral context that
+  // started the journey is still the context it ends in.
+  const draft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(draft.identityVerified).toBe(true);
+  expect(draft.accessOutcome).toBe("eligible");
+  expect(draft.consentSaved).toBe(true);
+  expect(draft.completionRole).toBe("patient");
+});

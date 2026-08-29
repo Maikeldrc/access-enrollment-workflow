@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `CONSENT_REVIEW`, ACCESS branch (`consent()` in `src/app.js`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `0691d63` — `feat(access-patient): phase-07 refine informed consent`
 
 ---
 
