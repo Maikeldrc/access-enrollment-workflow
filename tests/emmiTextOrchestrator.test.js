@@ -203,6 +203,13 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(answer.text).toMatch(/ayuda al equipo a entender qué toma/i);
     expect(answer.trace.responseMode).toBe("DETERMINISTIC_GROUNDED_FALLBACK");
   });
+
+  it("answers every part of a combined cost and leaving question", async () => {
+    const answer = await harness().orchestrator.answer("¿Cuánto voy a pagar y puedo salir del programa si cambio de opinión?");
+    expect(answer.text).toMatch(/pago esperado.*\$0/i);
+    expect(answer.text).toMatch(/participación es voluntaria.*terminar su participación/i);
+    expect(answer.trace.toolCalls).toContain("getExpectedAccessCost");
+  });
 });
 
 describe("Ask EMMI appointment coordination", () => {

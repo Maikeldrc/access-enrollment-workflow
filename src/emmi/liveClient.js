@@ -3,6 +3,7 @@ import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
 import { EmmiVoiceIdentityGuard, getEmmiSpeechConfig } from "./voiceIdentity.js";
 import { EmmiBargeInManager } from "./bargeInManager.js";
+import { sanitizeEmmiTranscript } from "./transcript.js";
 
 const bytesToBase64 = bytes => {
   let binary = "";
@@ -27,6 +28,7 @@ export const resample = (input, fromRate, toRate) => {
 export const lowPassForDownsampling = (input, fromRate, toRate, taps = 31) => { if (fromRate <= toRate) return input; const half = taps >> 1, cutoff = (toRate / fromRate) * .45, kernel = new Float32Array(taps); let total=0; for(let i=0;i<taps;i++){const d=i-half,s=d===0?2*cutoff:Math.sin(2*Math.PI*cutoff*d)/(Math.PI*d),w=.54-.46*Math.cos(2*Math.PI*i/(taps-1));kernel[i]=s*w;total+=kernel[i];} for(let i=0;i<taps;i++)kernel[i]/=total; const out=new Float32Array(input.length); for(let i=0;i<input.length;i++){let v=0;for(let k=0;k<taps;k++)v+=input[Math.max(0,Math.min(input.length-1,i+k-half))]*kernel[k];out[i]=v;} return out; };
 // The provider contract this pipeline has to keep: 16 kHz mono PCM16, little endian, base64.
 export const EMMI_PROVIDER_SAMPLE_RATE = 16000;
+export const EMMI_END_OF_SPEECH_SILENCE_MS = 1200;
 // One captured frame at the device rate. At a typical 48 kHz that is ~85 ms of audio, which is
 // the packet cadence the previous pipeline produced.
 export const EMMI_MIC_FRAME_SIZE = 2048;
@@ -182,7 +184,7 @@ export class EmmiLiveClient {
               startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
               endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
               prefixPaddingMs: 300,
-              silenceDurationMs: 800
+              silenceDurationMs: EMMI_END_OF_SPEECH_SILENCE_MS
             },
             activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS
           },
@@ -325,21 +327,32 @@ export class EmmiLiveClient {
     }
     const server = message.serverContent;
     if (server?.inputTranscription?.text) {
-      this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
-      this.onTranscript?.("user", server.inputTranscription.text, true);
-      if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
-        this.patientResponseReady = true;
-        this.setState("EMMI_THINKING", "patient_response");
+      const inputText = sanitizeEmmiTranscript(server.inputTranscription.text);
+      if (!inputText) {
+        this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "user" });
+      } else {
+        this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
+        this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE" });
+        if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
+          this.patientResponseReady = true;
+          this.setState("EMMI_THINKING", "patient_response");
+        }
       }
     }
     const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady);
     if (server?.outputTranscription?.text && acceptsOutputTranscript) {
-      this.lastEmmiUtterance = `${this.lastEmmiUtterance} ${server.outputTranscription.text}`.trim().slice(-1200);
-      if (/(call 911|llame al 911|rele 911)/i.test(server.outputTranscription.text) && this.activeTurn) {
-        this.activeTurn.priority = "CRITICAL_SAFETY";
-        if (this.gracefulHandoff?.timer) { clearTimeout(this.gracefulHandoff.timer); this.gracefulHandoff.timer = null; }
+      const outputText = sanitizeEmmiTranscript(server.outputTranscription.text);
+      if (!outputText) {
+        this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "assistant", generationId: this.activeAudioGenerationId });
+      } else {
+        this.lastEmmiUtterance = `${this.lastEmmiUtterance} ${outputText}`.trim().slice(-1200);
+        if (/(call 911|llame al 911|rele 911)/i.test(outputText) && this.activeTurn) {
+          this.activeTurn.priority = "CRITICAL_SAFETY";
+          if (this.gracefulHandoff?.timer) { clearTimeout(this.gracefulHandoff.timer); this.gracefulHandoff.timer = null; }
+        }
+        const transcriptTurn = this.activeTurn || { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId };
+        this.onTranscript?.("assistant", outputText, true, transcriptTurn);
       }
-      this.onTranscript?.("assistant", server.outputTranscription.text, true);
     } else if (server?.outputTranscription?.text) {
       this.emitVoiceTelemetry("EMMI_STALE_TRANSCRIPT_DISCARDED", { generationId: this.activeAudioGenerationId });
     }

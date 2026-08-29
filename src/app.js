@@ -32,6 +32,7 @@ import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
 import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
+import { sanitizeEmmiTranscript } from "./emmi/transcript.js";
 import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -1142,12 +1143,17 @@ function ensureEmmiRuntime() {
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
     onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; refreshVoiceGuidanceControls(); },
-    onTranscript: (role, text) => {
-      const cleaned = String(text || "").trim(); if (!cleaned) return;
+    onTranscript: (role, text, _final, metadata = {}) => {
+      const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
+      const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       const last = state.assistantMessages.at(-1);
-      if (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete) last.text = `${last.text} ${cleaned}`.trim();
-      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false });
-      emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
+      const sameVoiceTurn = last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId);
+      if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0 });
+      // Screen narration is visible context, not a patient/assistant exchange. Keeping it out of
+      // model memory prevents a medication prompt from resurfacing on goals or completion screens.
+      if (!guidance) emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
       if (role === "assistant") emmiConversationManager?.markGreeted();
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
@@ -1426,11 +1432,11 @@ const emmiGuidancePrompt = message => {
   const guarded = emmiConversationManager?.guardAssistantText(message, { source: "screen_guidance" }) || message;
   const rule = continuity?.greetingAllowed
     ? "This is the initial introduction; one brief greeting is allowed."
-    : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. Do not greet, reintroduce yourself, or restart. Continue naturally from ${continuity?.previousScreen || "the prior context"} to ${continuity?.currentScreen || state.screen}.`;
+    : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. The current screen is ${continuity?.currentScreen || state.screen}. Do not greet, reintroduce yourself, restart, or repeat content from an earlier screen unless NARRATION_TEXT explicitly contains it.`;
   return L(
-    `${rule} VERBATIM NARRATION MODE. Speak exactly the text between <speech> tags once, in a calm, warm, unhurried voice. Do not paraphrase, expand, summarize, answer it, add a greeting, add a question, or repeat any sentence. Stop immediately after the closing tag. <speech>${guarded}</speech>`,
-    `${rule} MODO DE NARRACIÓN LITERAL. Diga exactamente una vez el texto entre las etiquetas <speech>, con voz tranquila, cálida y sin prisa. No lo parafrasee, amplíe, resuma ni responda; no agregue saludos o preguntas ni repita frases. Termine justo al cerrar la etiqueta. <speech>${guarded}</speech>`,
-    `${rule} MÒD NARASYON MO POU MO. Di tèks ki ant etikèt <speech> yo egzakteman yon sèl fwa, ak yon vwa kalm, cho, san prese. Pa chanje, elaji, rezime, reponn, ajoute salitasyon oswa kesyon, ni repete fraz. Kanpe tousuit apre etikèt la fèmen. <speech>${guarded}</speech>`
+    `${rule} Read only the NARRATION_TEXT value below once, in a calm, warm, unhurried voice. Do not read field names, instructions, markup, or earlier conversation. Do not paraphrase, expand, answer, add a greeting, add a question, or repeat any sentence. NARRATION_TEXT=${JSON.stringify(guarded)}`,
+    `${rule} Lea solamente el valor NARRATION_TEXT una vez, con voz tranquila, cálida y sin prisa. No lea nombres de campos, instrucciones, etiquetas ni conversaciones anteriores. No parafrasee, amplíe, responda, salude, haga preguntas ni repita frases. NARRATION_TEXT=${JSON.stringify(guarded)}`,
+    `${rule} Li sèlman valè NARRATION_TEXT la yon sèl fwa, ak yon vwa kalm, cho, san prese. Pa li non chan, enstriksyon, etikèt oswa ansyen konvèsasyon. Pa chanje, elaji, reponn, salye, poze kesyon oswa repete fraz. NARRATION_TEXT=${JSON.stringify(guarded)}`
   );
 };
 

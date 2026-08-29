@@ -57,6 +57,11 @@ const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\
   || (/presi[oó]n/i.test(text) && /otra vez|ahora/i.test(text))
   || (/tansyon/i.test(text) && /ank[oò]|kounye a/i.test(text));
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+const leaveProgramAnswer = locale => pick(locale, {
+  EN: "Participation is voluntary. You can choose whether to enroll, and you can ask to end your participation later. The current program information explains any timing or switching rules that apply, and the ITERA care team can help you review them.",
+  ES: "La participación es voluntaria. Usted decide si desea inscribirse y puede solicitar terminar su participación después. La información vigente del programa explica cualquier regla de tiempo o cambio que aplique, y el equipo de ITERA puede ayudarle a revisarla.",
+  KR: "Patisipasyon an volontè. Se ou ki chwazi si w vle enskri, epi ou ka mande pou fini patisipasyon ou pita. Enfòmasyon aktyèl pwogram nan esplike nenpòt règ sou delè oswa chanjman, epi ekip ITERA a ka ede w revize yo."
+});
 // Running out is its own intent, not a barrier and not a medication-list question. It is matched
 // before the difficulty gate so "I keep running out of my pill" reaches the refill engine.
 const REFILL_NEED = /refill|run(ning)? (out|low)|almost out|need more|out of my (medication|medicine|pill)|resurtir|surtir|receta|se me (acaba|acabó|está acabando)|necesito m[aá]s|me qued[eé] sin|ranplisaj|m ap fini|mwen bezwen plis|pa gen ank[oò]/i;
@@ -364,11 +369,7 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
     KR: "ACCESS se yon modèl Medicare ki konsantre sou plis sipò ak rezilta sante. CCM se yon sèvis jesyon swen kwonik pou moun ki gen plizyè maladi kwonik. Toude ka ede ant vizit, men yo gen règ diferan."
   });
   if (combinedProgram) return pick(locale, programAnswers[combinedProgram]);
-  if (LEAVE_PROGRAM.test(question)) return pick(locale, {
-    EN: "Participation is voluntary. You can choose whether to enroll, and you can ask to end your participation later. The current program information explains any timing or switching rules that apply, and the ITERA care team can help you review them.",
-    ES: "La participación es voluntaria. Usted decide si desea inscribirse y puede solicitar terminar su participación después. La información vigente del programa explica cualquier regla de tiempo o cambio que aplique, y el equipo de ITERA puede ayudarle a revisarla.",
-    KR: "Patisipasyon an volontè. Se ou ki chwazi si w vle enskri, epi ou ka mande pou fini patisipasyon ou pita. Enfòmasyon aktyèl pwogram nan esplike nenpòt règ sou delè oswa chanjman, epi ekip ITERA a ka ede w revize yo."
-  });
+  if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
   const named = explicitPrograms.find(name => programAnswers[name]) || programs.find(name => programAnswers[name]);
   if (named) return pick(locale, programAnswers[named]);
   if (sources.some(item => /medications/.test(item.sourcePath))) return pick(locale, {
@@ -434,7 +435,10 @@ const accessCostAnswer = (result, locale) => {
 };
 
 const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
-  if (tool === "getExpectedAccessCost") return accessCostAnswer(result, locale);
+  if (tool === "getExpectedAccessCost") {
+    const cost = accessCostAnswer(result, locale);
+    return LEAVE_PROGRAM.test(question) ? `${cost} ${leaveProgramAnswer(locale)}` : cost;
+  }
   if (tool === "getPatientCoverage") {
     if (!result.found) return pick(locale, {
       EN: "I could not verify supplemental coverage from the information currently available. Your care team can check this with you.",

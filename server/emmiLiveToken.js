@@ -2,7 +2,10 @@ import { GoogleGenAI } from "@google/genai";
 import { getEmmiSpeechConfig, getEmmiVoiceIdentity } from "../src/emmi/voiceIdentity.js";
 
 const DEFAULT_MODEL = "gemini-3.1-flash-live-preview";
-const buckets = new Map(), LIMIT=10, WINDOW=60000;
+// A single patient can legitimately reconnect several times while changing voice settings, and
+// clinics commonly share a public IP. Keep abuse bounded without turning normal recovery into a
+// misleading "voice is busy" state for the eleventh token request behind the same NAT.
+const buckets = new Map(), LIMIT=30, WINDOW=60000;
 const header=(req,name)=>req.headers?.[name]||req.headers?.[name.toLowerCase()]||"";
 const originAllowed=(req,env)=>!(env.VERCEL_URL||env.EMMI_ALLOWED_ORIGINS)||new Set([...(String(env.EMMI_ALLOWED_ORIGINS||"").split(",").filter(Boolean)),...(env.VERCEL_URL?[`https://${env.VERCEL_URL}`]:[]),"http://localhost:5173","http://127.0.0.1:5173"]).has(String(header(req,"origin")));
 const rateAllowed=req=>{const key=String(header(req,"x-forwarded-for")||req.socket?.remoteAddress||"unknown").split(",")[0],now=Date.now(),items=(buckets.get(key)||[]).filter(t=>now-t<WINDOW);if(items.length>=LIMIT)return false;items.push(now);buckets.set(key,items);return true;};
@@ -36,7 +39,7 @@ export const buildEmmiLiveTokenConfig = ({ model, expireTime, newSessionExpireTi
           startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
           endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
           prefixPaddingMs: 300,
-          silenceDurationMs: 800
+          silenceDurationMs: 1200
         },
         activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
       },

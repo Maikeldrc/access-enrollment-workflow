@@ -62,11 +62,13 @@ async function startVoice(page, { silentMic = false } = {}) {
 // worklet that was never going to be built, which reads as four broken tests rather than four
 // tests this checkout cannot run. The probe matches the specific reason: the same route also
 // returns 503 for a locale with no voice, and that one is a real failure worth seeing.
+let cachedVoiceSessionAvailability;
 const voiceSessionAvailable = async request => {
+  if (cachedVoiceSessionAvailability !== undefined) return cachedVoiceSessionAvailability;
   const response = await request.post("/api/emmi/live-token", { data: { locale: "EN" }, failOnStatusCode: false });
-  if (response.ok()) return true;
+  if (response.ok()) return (cachedVoiceSessionAvailability = true);
   const body = await response.text().catch(() => "");
-  return !body.includes("gemini_not_configured");
+  return (cachedVoiceSessionAvailability = !body.includes("gemini_not_configured"));
 };
 
 test.beforeEach(async ({ page, context, request }) => {

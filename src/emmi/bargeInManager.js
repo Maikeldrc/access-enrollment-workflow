@@ -11,7 +11,7 @@ export class EmmiBargeInManager {
     onTelemetry = () => {},
     minimumStartRms = 0.025,
     startFrames = 2,
-    silenceDurationMs = 800
+    silenceDurationMs = 1200
   } = {}) {
     this.onSpeechStart = onSpeechStart;
     this.onSpeechEnd = onSpeechEnd;

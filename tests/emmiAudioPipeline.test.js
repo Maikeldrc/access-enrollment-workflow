@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
+import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
 
 // The worklet runs on the audio thread and cannot be imported here, so its accumulator is
 // reproduced exactly: this is the part of the migration that decides the packet cadence.
@@ -28,6 +28,7 @@ describe("EMMI audio pipeline", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
     expect(EMMI_MIC_FRAME_SIZE).toBe(2048);
     expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v3");
+    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
   });
 
   it("aggregates render quanta into one provider-sized frame instead of sending each one", () => {
@@ -162,5 +163,26 @@ describe("EMMI audio pipeline", () => {
 
     expect(transcripts).toEqual([]);
     expect(telemetry).toContain("EMMI_STALE_TRANSCRIPT_DISCARDED");
+  });
+
+  it("sanitizes provider transcript payloads and carries turn metadata to the UI", async () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES", currentScreen: "GOALS" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata })
+    });
+    client.activeContextVersion = 4;
+    client.activeAudioGenerationId = 8;
+    client.activeTurn = { generationId: 8, contextVersion: 4, screenId: "GOALS", priority: "SCREEN_GUIDANCE" };
+
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "<speech>Elija una meta.</speech>" } } });
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "[object Object]" } } });
+
+    expect(transcripts).toEqual([expect.objectContaining({
+      role: "assistant",
+      text: "Elija una meta.",
+      final: true,
+      metadata: expect.objectContaining({ generationId: 8, screenId: "GOALS", priority: "SCREEN_GUIDANCE" })
+    })]);
   });
 });
