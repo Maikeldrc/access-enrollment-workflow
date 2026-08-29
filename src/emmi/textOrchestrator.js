@@ -9,7 +9,12 @@ const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] ||
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
 
-const SCREEN_HELP = /what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
+// "Why do you need this?" is a question about the screen the patient is looking at, answered by
+// that screen's own explanation. It is deliberately narrow in two directions: asking why the
+// invitation *arrived* is INVITATION_SOURCE below, and asking why something on a record is held
+// — "why do you need my medications" — is a question about that content, not about the screen.
+// So the object has to be the screen itself or the verification it is asking for.
+const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to verify|my (zip|postal|date of birth|birth ?date|identity|information|info))|why are you asking (me )?(for )?(this|that|my (zip|postal|date of birth|birth ?date))|why do i (have to|need to) (give|provide|share|enter) (this|that|my (zip|postal|date of birth|birth ?date))|por qu[eé] (necesitan|necesita|piden|pide) (esto|eso|verificar|mi (c[oó]digo postal|fecha de nacimiento|identidad|informaci[oó]n))|para qu[eé] (necesitan|necesita) (esto|eso|mi (c[oó]digo postal|fecha de nacimiento))|poukisa (ou|nou) bezwen (sa|k[oò]d postal|dat nesans|verifye)|poukisa w ap mande (sa|k[oò]d postal|dat nesans)|what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
 // Phones and speech transcription produce a typographic apostrophe. Every gate below is written
 // with a straight one, so "I can’t breathe" used to fall past the safety gate entirely. The
 // patterns are matched against a folded copy of the question; the patient's own text is

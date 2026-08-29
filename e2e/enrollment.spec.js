@@ -1341,7 +1341,7 @@ test("role selection branches only personal representatives into representative 
   await expect(page.getByLabel("I confirm that I’m authorized to make healthcare decisions for the patient.")).toBeChecked();
   await expect(authorityCta).toBeEnabled();
   await authorityCta.click();
-  await expect(page.getByRole("heading", { name: "Let’s confirm the patient’s identity" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm the patient’s identity" })).toBeVisible();
   const representativeDraft = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(representativeDraft).toMatchObject({ completionRole: "personalRepresentative", representativeFullName: "Maria Fresner", representativeRelationship: "child", representativeAuthorityType: "healthcarePowerOfAttorney", representativePhone: "3055550123", phoneVerified: true, phoneVerificationMethod: "SMS_OTP", representativeAuthorityAttested: true, authorityAttestation: true, authorityVerificationMethod: "SELF_ATTESTATION" });
   expect(representativeDraft.phoneVerifiedAt).toBeTruthy();
@@ -1370,7 +1370,7 @@ test("role selection branches only personal representatives into representative 
   expect(consentDraft.consentAcknowledgement.displayedExpectedPatientPayment).toBeTruthy();
   expect(consentDraft.audit.map(event => event.eventType)).toContain("consent_saved");
   await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
-  await expect(page.getByText("Please enter the patient’s date of birth and ZIP code.")).toBeVisible();
+  await expect(page.getByText("Confirm the patient’s date of birth and ZIP code so we can match them to their care invitation.")).toBeVisible();
   await expect(page.locator(".progress-meta span").last()).toHaveText("Confirm identity");
   await page.locator(".identity-screen .actions").getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("heading", { name: "Confirm your authority" })).toBeVisible();
@@ -1390,7 +1390,7 @@ test("role selection branches only personal representatives into representative 
   await page.getByRole("button", { name: "Start your care journey" }).click();
   await page.getByText("Helping the patient", { exact: true }).locator("..").locator("..").click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "About you" })).toHaveCount(0);
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await expect(page.locator(".signer-role")).toContainText("Signing as: Patient");
@@ -1400,7 +1400,7 @@ test("role selection branches only personal representatives into representative 
   await page.getByRole("button", { name: "Start your care journey" }).click();
   await page.getByText("For myself", { exact: true }).locator("..").locator("..").click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "About you" })).toHaveCount(0);
   await page.locator("#screen-select").selectOption("CONSENT_REVIEW", { force: true });
   await expect(page.locator(".signer-role")).toContainText("Signing as: Patient");
@@ -1955,9 +1955,9 @@ test("Creole setup opens the first patient screen in Creole", async ({ page }) =
 
 test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", async ({ page }) => {
   const locales = [
-    { value: "en", label: "English", code: "EN", html: "en", heading: "A smarter way to manage your health", identity: "Let’s confirm it’s you" },
-    { value: "es", label: "Spanish", code: "ES", html: "es", heading: "Una forma más inteligente de cuidar su salud", identity: "Confirmemos su identidad" },
-    { value: "ht", label: "Creole", code: "KR", html: "ht", heading: "Yon fason pi entelijan pou jere sante ou", identity: "Ann konfime se ou" }
+    { value: "en", label: "English", code: "EN", html: "en", heading: "A smarter way to manage your health", identity: "Let’s securely confirm it’s you" },
+    { value: "es", label: "Spanish", code: "ES", html: "es", heading: "Una forma más inteligente de cuidar su salud", identity: "Confirmemos su identidad de forma segura" },
+    { value: "ht", label: "Creole", code: "KR", html: "ht", heading: "Yon fason pi entelijan pou jere sante ou", identity: "Ann konfime se ou an sekirite" }
   ];
   for (const locale of locales) {
     await page.goto("/?admin=1");
@@ -2315,8 +2315,8 @@ test("date of birth supports typing and calendar selection", async ({ page }) =>
 
   const dateText = page.getByLabel("Date of birth", { exact: true });
   const zip = page.getByLabel("ZIP code", { exact: true });
-  await expect(page.getByText("Please confirm your date of birth and ZIP code.")).toBeVisible();
-  await expect(page.getByText("We use this information to securely verify your identity.")).toBeVisible();
+  await expect(page.getByText("Confirm your date of birth and ZIP code so we can match you to your care invitation.")).toBeVisible();
+  await expect(page.getByText("Your information is protected and used only to securely verify your identity.")).toBeVisible();
   await expect(page.getByText("Use MM / DD / YYYY.", { exact: true })).toBeVisible();
   await expect(page.getByText("Enter your home ZIP code.", { exact: true })).toBeVisible();
   const helperStyles = await page.locator(".field-helper").evaluateAll(helpers => helpers.map(helper => ({
@@ -2464,7 +2464,7 @@ test("identity rejects impossible calendar dates instead of accepting format alo
   await page.locator('[name="dob"]').fill("02 / 30 / 1954");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("alert")).toHaveText("Enter a valid date as MM / DD / YYYY and a 5-digit ZIP code.");
-  await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
 });
 
 test("traditional consent keeps a personal representative separate from the patient", async ({ page }) => {

@@ -160,7 +160,7 @@ test("removing the configuration screen did not remove any enrollment step", asy
   await page.getByRole("button", { name: "Continue" }).click();
 
   // Identity verification still stands between the link and the rest of the journey.
-  await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
   await page.locator('input[name="dob"]').fill("05/12/1954");
   await page.locator('input[name="zip"]').fill("33176");
   await page.getByRole("button", { name: "Continue" }).click();
