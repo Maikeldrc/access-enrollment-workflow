@@ -1255,13 +1255,15 @@ p { margin:0; }
 .trust-hero-headline { display:grid;gap:0;margin:0;font-size:clamp(17.92px,5.2vw,21.44px);font-weight:800;line-height:1.02;letter-spacing:-.045em; }
 .trust-hero-headline span { display:block;white-space:nowrap; }
 .trust-hero-headline .accent { color:var(--primary-600); }
-/* Each supporting line is one nowrap span, so a line too long for this column is cut rather than
-   wrapped, and the longest one is not English: "Cuidado mediante el modelo" ran past the column at
-   360 and 375px and cleared it by under half a percent everywhere else. The scale below leaves the
-   widest line of every language about six percent of room at every supported width, which is the
-   headroom the PHYSICIAN_SUPERVISING variant already had. */
-.trust-hero-supporting-copy { display:grid;overflow:hidden;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(11.9px,3.28vw,14.08px);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
-.trust-hero-supporting-copy span { display:block;white-space:nowrap; }
+.trust-hero-supporting-copy { display:grid;overflow:hidden;margin:8px 0 0;max-width:100%;color:var(--text-primary);font-size:clamp(13.12px,3.45vw,14.08px);font-weight:600;line-height:1.18;letter-spacing:-.01em; }
+/* These are authored line breaks, not a hard limit. The longest supporting line is not the
+   English one, and "Cuidado mediante el modelo" does not fit this column at any size the patient
+   screens allow: held nowrap it was cut at 360 and 375px, and cleared the column by under half a
+   percent everywhere else. Wrapping keeps the authored break where it fits and gives way where it
+   does not, which is the only behaviour that survives a translation nobody has measured yet. The
+   attribution shares this scale exactly: the suite pins the two together in size and in line
+   height, and holds the supporting copy to a 13px legibility floor. */
+.trust-hero-supporting-copy span { display:block; }
 .physician-attribution { position:static;display:-webkit-box;overflow:hidden;margin:7px 0 0;max-height:2.36em;color:var(--text-primary);font-size:clamp(13.12px,3.45vw,14.08px);font-weight:600;line-height:1.18;letter-spacing:-.01em;text-align:left;overflow-wrap:normal;word-break:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2; }
 .physician-attribution span { font-weight:600; }
 .physician-attribution strong { color:var(--primary-600);font-size:inherit;font-weight:600;line-height:inherit;white-space:nowrap; }
