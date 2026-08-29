@@ -5,7 +5,7 @@
 const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
 const LABELS = Object.freeze({
-  seeHowItWorks: T("See how it works", "Ver cómo funciona", "Gade kijan sa mache"),
+  startCareJourney: T("Start your care journey", "Comience su recorrido de cuidado", "Kòmanse pwosesis swen ou"),
   continue: T("Continue", "Continuar", "Kontinye"),
   startHealthCheck: T("Start my health check", "Iniciar mi evaluación de salud", "Kòmanse chèk sante mwen"),
   setUpMyCare: T("Set up my care", "Configurar mi cuidado", "Mete swen mwen an plas"),
@@ -14,7 +14,7 @@ const LABELS = Object.freeze({
   getMyMonitor: T("Get my monitor", "Obtener mi monitor", "Jwenn monitè mwen"),
   takeFirstReading: T("Take my first reading", "Tomar mi primera medición", "Pran premye mezi mwen")
 });
-const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.seeHowItWorks, actionType: "LEARN_MORE" }, ENROLLMENT_CONFIRMED: { label: LABELS.startHealthCheck, actionType: "HEALTH_CHECK" } });
+const SCREEN_ACTIONS = Object.freeze({ INVITATION: { label: LABELS.startCareJourney, actionType: "LEARN_MORE" }, ENROLLMENT_CONFIRMED: { label: LABELS.startHealthCheck, actionType: "HEALTH_CHECK" } });
 
 // A device is only "already with the patient" when ITERA assigned one or the patient told us
 // they own one. Anything else means the monitor still has to be arranged.

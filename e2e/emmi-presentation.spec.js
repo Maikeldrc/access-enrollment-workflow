@@ -27,7 +27,7 @@ test("Home introduces EMMI once: the card is on screen and the floating pill is 
   await expect(intro).toBeVisible();
   await expect(intro.getByRole("heading", { name: "Hi, I’m EMMI." })).toBeVisible();
   await expect(intro.getByText("Your ITERA Care Assistant")).toBeVisible();
-  await expect(intro.getByText(/guide you through each step and answer questions/i)).toBeVisible();
+  await expect(intro.getByText(/understand your health information, guide you through each step/i)).toBeVisible();
   await expect(intro.getByRole("button", { name: /Guide by voice/i })).toBeVisible();
 
   // The duplicate robot in the corner is gone while EMMI is introducing herself.
@@ -111,7 +111,7 @@ test("opening EMMI is an overlay, and closing it restores the screen exactly", a
 
 test("the conversation, the screen state and the enrollment survive opening and closing EMMI", async ({ page }) => {
   await startHome(page);
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await page.locator('.choice-card:has(input[value="helper"])').click();
 
@@ -136,7 +136,7 @@ test("the conversation, the screen state and the enrollment survive opening and 
 
 test("voice guidance turned on at Home is still on when EMMI is expanded later", async ({ page }) => {
   await startHome(page, { voice: true });
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
 
   const panel = await openEmmiConversation(page);
   // The panel reports the voice the patient already has instead of offering to start it again.
@@ -283,7 +283,7 @@ test("the language switch inside EMMI moves the whole experience without restart
 
 test("Back closes EMMI instead of walking the patient out of enrollment", async ({ page }) => {
   await startHome(page);
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
 
   await openEmmiConversation(page);

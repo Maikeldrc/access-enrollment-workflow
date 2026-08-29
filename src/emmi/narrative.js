@@ -675,9 +675,9 @@ const HOME_PHYSICIAN = physician => T(
 );
 
 const HOME_CLOSING = T(
-  "Taking part is your choice, and I will explain each step in simple terms before you decide. When you're ready, choose 'See how it works.'",
-  "Participar es su decisión, y le explicaré cada paso en palabras sencillas antes de que decida. Cuando esté listo, elija 'Vea cómo funciona'.",
-  "Patisipe se chwa ou, epi m ap eksplike chak etap an mo senp anvan ou deside. Lè ou pare, chwazi 'Gade kijan sa fonksyone'."
+  "Taking part is your choice, and I will explain each step in simple terms before you decide. When you're ready, choose 'Start your care journey.'",
+  "Participar es su decisión, y le explicaré cada paso en palabras sencillas antes de que decida. Cuando esté listo, elija 'Comience su recorrido de cuidado'.",
+  "Patisipe se chwa ou, epi m ap eksplike chak etap an mo senp anvan ou deside. Lè ou pare, chwazi 'Kòmanse pwosesis swen ou'."
 );
 
 const pick = (entry, locale) => {

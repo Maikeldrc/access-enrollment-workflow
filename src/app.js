@@ -458,16 +458,17 @@ function invitation() {
   const accessDirectOutreach = state.offer.pathway === "ACCESS" && source === "ITERA Direct Outreach";
   const practiceOutreach = source === "Practice Outreach";
   const physicianName = state.offer.physician?.displayName || state.offer.referringProvider?.name || L("your physician", "su médico", "doktè ou");
-  const intro = accessPhysicianReferral ? L("Get extra support between your doctor visits.", "Reciba apoyo adicional entre sus visitas al médico.", "Jwenn sipò anplis ant vizit kay doktè ou.") : accessDirectOutreach ? L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre sus visitas al médico.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay sipò anplis ant vizit kay doktè ou.") : physicianReferral ? L(`${physicianName}’s care team invited you to learn about additional support available through Medicare.`, `El equipo de ${physicianName} le invita a conocer apoyo adicional disponible a través de Medicare.`, `Ekip swen ${physicianName} envite w aprann sou sipò anplis ki disponib atravè Medicare.`) : practiceOutreach ? L("Fresner Medical Group and ITERA HEALTH invite you to learn about additional support available through Medicare.", "Fresner Medical Group e ITERA HEALTH le invitan a conocer apoyo adicional disponible a través de Medicare.", "Fresner Medical Group ak ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.") : L("ITERA HEALTH invites you to learn about additional support available through Medicare.", "ITERA HEALTH le invita a conocer apoyo adicional disponible a través de Medicare.", "ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.");
+  const intro = accessPhysicianReferral ? L("Stay connected with your care team, keep track of your health, and get support when you need it.", "Manténgase conectado con su equipo de cuidado, lleve el control de su salud y reciba apoyo cuando lo necesite.", "Rete konekte ak ekip swen ou, swiv sante ou, epi jwenn sipò lè ou bezwen l.") : accessDirectOutreach ? L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between your doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre sus visitas al médico.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay sipò anplis ant vizit kay doktè ou.") : physicianReferral ? L(`${physicianName}’s care team invited you to learn about additional support available through Medicare.`, `El equipo de ${physicianName} le invita a conocer apoyo adicional disponible a través de Medicare.`, `Ekip swen ${physicianName} envite w aprann sou sipò anplis ki disponib atravè Medicare.`) : practiceOutreach ? L("Fresner Medical Group and ITERA HEALTH invite you to learn about additional support available through Medicare.", "Fresner Medical Group e ITERA HEALTH le invitan a conocer apoyo adicional disponible a través de Medicare.", "Fresner Medical Group ak ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.") : L("ITERA HEALTH invites you to learn about additional support available through Medicare.", "ITERA HEALTH le invita a conocer apoyo adicional disponible a través de Medicare.", "ITERA HEALTH envite w aprann sou sipò anplis ki disponib atravè Medicare.");
   return `${TrustHeroCard()}
-    <div class="invitation-copy">${titleBlock(L("A new care option for your health", "Una nueva opción de cuidado para su salud", "Yon nouvo opsyon swen pou sante ou"), intro)}</div>
+    <div class="invitation-copy">${titleBlock(L("A smarter way to manage your health", "Una forma más inteligente de cuidar su salud", "Yon fason pi entelijan pou jere sante ou"), intro)}</div>
     ${emmiWelcome(physicianReferral, physicianName)}
     <section class="invitation-benefits" aria-label="${L("What this means for you", "Qué significa esto para usted", "Sa sa vle di pou ou")}">${[
-      ["physician", L("Keep your doctors", "Mantenga sus médicos", "Kenbe doktè ou yo"), L("Continue seeing the doctors you know", "Continúe viendo a los médicos que conoce", "Kontinye wè doktè ou konnen yo")],
-      ["home", L("Get support from home", "Reciba apoyo desde casa", "Jwenn sipò lakay ou"), L("Ongoing support between office visits", "Apoyo continuo entre sus consultas", "Sipò kontinyèl ant vizit nan klinik")],
-      ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You’ll review the details before you enroll", "Revisará los detalles antes de inscribirse", "W ap revize detay yo anvan ou enskri")]
+      ["people", L("Stay connected with your care team", "Manténgase conectado con su equipo de cuidado", "Rete konekte ak ekip swen ou"), L("Stay connected with the doctors and care team you already know.", "Siga conectado con los médicos y el equipo de cuidado que ya conoce.", "Rete konekte ak doktè ak ekip swen ou deja konnen yo.")],
+      ["home", L("Get support from home", "Reciba apoyo desde casa", "Jwenn sipò lakay ou"), L("Track your health and get ongoing support between office visits.", "Lleve el control de su salud y reciba apoyo continuo entre sus consultas.", "Swiv sante ou epi jwenn sipò kontinyèl ant vizit nan klinik.")],
+      ["chart", L("Understand your health better", "Entienda mejor su salud", "Konprann sante ou pi byen"), L("Use your health information and connected tools to see how you’re doing.", "Use su información de salud y sus herramientas conectadas para ver cómo va.", "Sèvi ak enfòmasyon sante ou ak zouti konekte yo pou wè kijan w ap fè.")]
     ].map(([i,label,detail]) => `<div class="invitation-benefit">${icon(i)}<span><strong>${label}</strong><small>${detail}</small></span></div>`).join("")}</section>
-    ${actions(L("See how it works", "Vea cómo funciona", "Gade kijan sa fonksyone"), false)}
+    <p class="invitation-voluntary">${icon("shield", "voluntary-mark")}<span>${L("Participation is voluntary. You’ll review all the details before you decide.", "La participación es voluntaria. Revisará todos los detalles antes de decidir.", "Patisipasyon an volontè. W ap revize tout detay yo anvan ou deside.")}</span></p>
+    ${actions(L("Start your care journey", "Comience su recorrido de cuidado", "Kòmanse pwosesis swen ou"), false)}
     <p class="contact-line"><span class="contact-label">${icon("phone", "contact-phone")}<span>${L("Need help? Call", "¿Necesita ayuda? Llame al", "Bezwen èd? Rele")}</span></span> <a href="tel:+13053948070">${state.offer.participantProvider.supportPhone}</a></p>`;
 }
 
@@ -502,7 +503,7 @@ function emmiWelcome(providerReferral, physicianName) {
     : L("Hi, I’m EMMI.", "Hola, soy EMMI.", "Bonjou, mwen se EMMI.");
   return `<section class="emmi-welcome" aria-labelledby="emmi-welcome-title">
     <div class="emmi-welcome-identity"><img src="/assets/emmi-assistant.png" alt=""><div><h2 id="emmi-welcome-title">${welcomeTitle}</h2><strong>${L("Your ITERA Care Assistant", "Su Asistente de cuidado de ITERA", "Asistan swen ITERA ou")}</strong></div></div>
-    <div class="emmi-welcome-copy"><p>${L("I can guide you through each step and answer questions along the way.", "Puedo guiarle en cada paso y responder sus preguntas durante el proceso.", "Mwen ka gide w nan chak etap epi reponn kesyon ou pandan pwosesis la.")}</p></div>
+    <div class="emmi-welcome-copy"><p>${L("I can help you understand your health information, guide you through each step, and connect you with your care team when you need help.", "Puedo ayudarle a entender su información de salud, guiarle en cada paso y comunicarle con su equipo de cuidado cuando necesite ayuda.", "Mwen ka ede w konprann enfòmasyon sante ou, gide w nan chak etap, epi konekte w ak ekip swen ou lè ou bezwen èd.")}</p></div>
     ${emmiWelcomeVoiceControls()}
   </section>`;
 }
@@ -7910,7 +7911,11 @@ async function boot() {
     }
     else {
       state.screen = "INVITATION";
-      const preferredLanguage = state.offer.selectedLanguage || (() => { try { return localStorage.getItem("itera.enrollment.language.v1"); } catch { return null; } })();
+      // The offer carries the language the invitation was prepared in, which is a default. A
+      // language the patient picked themselves is a later and stronger signal than that default,
+      // so it outranks it — otherwise the language toggle cannot survive a reload.
+      const chosenLanguage = (() => { try { return localStorage.getItem("itera.enrollment.language.v1"); } catch { return null; } })();
+      const preferredLanguage = chosenLanguage || state.offer.selectedLanguage;
       if (["en", "es", "ht"].includes(preferredLanguage)) state.language = preferredLanguage;
       if (state.offer.fixture.representative) { state.role = "representative"; state.completionRole = "personalRepresentative"; }
     }

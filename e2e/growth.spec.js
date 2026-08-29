@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("patient invites a daughter while remaining the decision maker", async ({ page, context }) => {
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Choose from my contacts/i })).toHaveCount(0);
@@ -44,7 +44,7 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
 test("Contact Picker denial keeps the manual fallback fully usable", async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => { throw new DOMException("Denied", "NotAllowedError"); } } }));
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   await page.getByRole("button", { name: /Choose from my contacts/i }).click();
   await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
@@ -55,7 +55,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
 });
 
 test("EMMI explains Care Circle boundaries without taking an action", async ({ page }) => {
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   await openEmmiConversation(page);
   await page.getByRole("button", { name: /Can they make decisions for me/i }).click();
@@ -66,7 +66,7 @@ test("EMMI explains Care Circle boundaries without taking an action", async ({ p
 test("Contact Picker is progressive, editable, and never sends automatically", async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, "contacts", { configurable: true, value: { select: async () => [{ name: ["Maria Sample"], tel: [{ value: "3055550199", type: ["mobile"] }, { value: "7865550102", type: ["home"] }] }] } }));
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   await page.getByRole("button", { name: /Choose from my contacts/i }).click();
   await expect(page.getByLabel("Their name")).toHaveValue("Maria Sample");
@@ -83,7 +83,7 @@ test("Personal Representative remains distinct from Care Circle", async ({ page 
   await page.goto("/?scenario=access-representative");
   await clearGrowthState(page);
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.locator("#choice-form strong", { hasText: "Personal representative" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Invite someone to help" })).toHaveCount(0);
 });
@@ -120,7 +120,7 @@ test("Share ACCESS opens a public, unpersonalized landing after Getting Started 
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("itera.access-share.prototype.v1")).shares.at(-1))).clicked).toBe(true);
   await recipient.getByRole("button", { name: /See if ACCESS may be available/i }).click();
   await expect(recipient).toHaveURL(/prototype=1.*source=patient-share/);
-  await expect(recipient.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(recipient.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await expect(recipient.getByText("Enrollment confirmed", { exact: true })).toHaveCount(0);
   expect((await page.evaluate(() => JSON.parse(localStorage.getItem("itera.access-share.prototype.v1")).shares.at(-1))).eligibilityStarted).toBe(true);
 });
@@ -128,7 +128,7 @@ test("Share ACCESS opens a public, unpersonalized landing after Getting Started 
 test("Care Circle moves from Home to Who is completing and remains optional", async ({ page }) => {
   await expect(page.locator("[data-optional-support]")).toHaveCount(0);
   await expect(page.locator(".contact-line")).toContainText("Need help? Call");
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   const card = page.locator("[data-optional-support]");
   await expect(card).toBeVisible();
   await expect(card).toContainText("Optional support");
@@ -136,14 +136,14 @@ test("Care Circle moves from Home to Who is completing and remains optional", as
   await expect(card).toContainText("Invite someone");
   await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await expect(page.locator("[data-optional-support]")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
 test("Care Circle remains natural and complete in Spanish and Kreyòl", async ({ page }) => {
   await page.locator('[data-action="language"]').first().click();
-  await page.getByRole("button", { name: /Vea cómo funciona/i }).click();
+  await page.getByRole("button", { name: /Comience su recorrido de cuidado/i }).click();
   await page.getByRole("button", { name: /¿Quiere que alguien le ayude?/i }).click();
   await expect(page.getByRole("heading", { name: "Invite a alguien de confianza" })).toBeVisible();
   await expect(page.getByText(/no permite que esta persona dé consentimiento/i)).toBeVisible();
@@ -261,7 +261,7 @@ for (const width of [320, 375, 384, 430]) test(`My Care Team remains readable an
 for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${width}px without EMMI overlap`, async ({ page }) => {
   await page.setViewportSize({ width, height: 780 });
   await page.reload();
-  await page.getByRole("button", { name: /See how it works/i }).click();
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want someone to help you/i }).click();
   const result = await page.evaluate(() => {
     const emmi = document.querySelector(".emmi-assistant")?.getBoundingClientRect();

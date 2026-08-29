@@ -20,7 +20,7 @@ const sawConfigurationScreen = page => page.evaluate(() => window.__configuratio
 test("the public link opens the ACCESS invitation directly, with no scenario to configure", async ({ page }) => {
   await watchForConfigurationScreen(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   expect(await sawConfigurationScreen(page)).toBe(false);
   await expect(page.locator(".prototype-console")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Launch Patient Experience/ })).toHaveCount(0);
@@ -42,12 +42,99 @@ test("the invitation is the one canonical scenario and the patient cannot change
   for (const condition of ["Diabetes", "Heart Failure", "Chronic Kidney Disease"]) await expect(body).not.toContainText(condition);
 });
 
+// Phase 1. The Home has to read as a smarter way to manage your health rather than as a form,
+// and it has to keep saying that taking part is the patient's choice while it does so.
+test("the Home offers a modern way to manage health without dropping voluntariness", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
+  await expect(page.locator(".invitation-copy .lead")).toHaveText("Stay connected with your care team, keep track of your health, and get support when you need it.");
+  await expect(page.locator(".invitation-benefit strong")).toHaveText(["Stay connected with your care team", "Get support from home", "Understand your health better"]);
+  await expect(page.locator(".invitation-voluntary")).toHaveText("Participation is voluntary. You’ll review all the details before you decide.");
+  await expect(page.getByRole("button", { name: "Start your care journey" })).toBeVisible();
+
+  // The trust card and its attribution are untouched by the copy work below it.
+  await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
+  await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner");
+
+  // EMMI keeps its name and role, and says more about what it can actually do.
+  await expect(page.locator(".emmi-welcome-identity")).toContainText("Your ITERA Care Assistant");
+  await expect(page.locator(".emmi-welcome-copy")).toHaveText("I can help you understand your health information, guide you through each step, and connect you with your care team when you need help.");
+  await expect(page.getByRole("button", { name: /Ask EMMI/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Guide by voice/ })).toBeVisible();
+});
+
+test("the Home reads in every language, and the patient’s choice of language survives a reload", async ({ page }) => {
+  const homeCopy = {
+    en: { heading: "A smarter way to manage your health", cta: "Start your care journey", voluntary: /Participation is voluntary/ },
+    es: { heading: "Una forma más inteligente de cuidar su salud", cta: "Comience su recorrido de cuidado", voluntary: /La participación es voluntaria/ },
+    ht: { heading: "Yon fason pi entelijan pou jere sante ou", cta: "Kòmanse pwosesis swen ou", voluntary: /Patisipasyon an volontè/ }
+  };
+  // Walked the way a patient walks it, through the toggle on the card. A locale is only done when
+  // its own words are on screen: an English fallback is a failure, not a graceful degradation.
+  await page.goto("/");
+  for (const language of ["en", "es", "ht"]) {
+    const copy = homeCopy[language];
+    await expect(page.getByRole("heading", { name: copy.heading })).toBeVisible();
+    await expect(page.getByRole("button", { name: copy.cta })).toBeVisible();
+    await expect(page.locator(".invitation-voluntary")).toHaveText(copy.voluntary);
+    if (language !== "en") await expect(page.locator("#screen-content")).not.toContainText(homeCopy.en.heading);
+    await page.locator(".stage-language").click();
+  }
+
+  // Switching language is the patient's decision, so it has to outlive a reload. The invitation
+  // carries a default language, and a default must not overwrite a choice.
+  await expect(page.getByRole("heading", { name: homeCopy.en.heading })).toBeVisible();
+  await page.locator(".stage-language").click();
+  await expect(page.getByRole("heading", { name: homeCopy.es.heading })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: homeCopy.es.heading })).toBeVisible();
+  await page.locator(".stage-language").click();
+  await page.locator(".stage-language").click();
+});
+
+// 384px is the primary target; the rest are the widths patients actually arrive on. Text scaling
+// is the setting a senior is most likely to have turned up, and the first thing to break a layout.
+test("the Home holds its layout at every supported width and text size", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
+  for (const width of [360, 375, 384, 390, 393, 412, 430]) {
+    for (const scale of [1, 1.25, 1.5]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, `horizontal overflow at ${width}px / ${scale * 100}%`).toBeLessThanOrEqual(1);
+      // Clipped copy is unreadable copy, and at 150% it is the first thing to break. Only a box
+      // that actually cuts content counts: on an overflow:visible heading, scrollHeight includes
+      // the glyphs' own ink beyond the line box, which is not clipping and must not fail the run.
+      const damaged = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll(".invitation-copy h1, .invitation-copy .lead, .invitation-benefit strong, .invitation-benefit small, .invitation-voluntary, .actions .button.primary")];
+        const cut = nodes.filter(node => getComputedStyle(node).overflow !== "visible"
+          && (node.scrollHeight - node.clientHeight > 1 || node.scrollWidth - node.clientWidth > 1));
+        const offscreen = nodes.filter(node => {
+          const rect = node.getBoundingClientRect();
+          return rect.left < -1 || rect.right > document.documentElement.clientWidth + 1;
+        });
+        return [...cut, ...offscreen].map(node => node.className || node.tagName);
+      });
+      expect(damaged, `clipped or off-screen Home copy at ${width}px / ${scale * 100}%`).toEqual([]);
+      // Voluntariness must stay one step below a benefit title at every text size, not overtake it.
+      const [voluntarySize, benefitSize] = await page.evaluate(() => [".invitation-voluntary", ".invitation-benefit strong"]
+        .map(selector => parseFloat(getComputedStyle(document.querySelector(selector)).fontSize)));
+      expect(voluntarySize, `voluntariness hierarchy at ${width}px / ${scale * 100}%`).toBeLessThan(benefitSize);
+      // Senior-friendly means reachable: the primary action keeps a real touch target.
+      const ctaHeight = await page.locator(".actions .button.primary").evaluate(node => node.getBoundingClientRect().height);
+      expect(ctaHeight, `CTA touch target at ${width}px / ${scale * 100}%`).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
 test("a refresh reopens the invitation, never the configuration screen", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await watchForConfigurationScreen(page);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   expect(await sawConfigurationScreen(page)).toBe(false);
 });
 
@@ -59,14 +146,14 @@ test("a scenario left behind by QA never leaks into a patient's invitation", asy
     localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({ scenarioId: "prototype", screen: "CONSENT_REVIEW", identityVerified: true, language: "es" }));
   });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "DOCTOR_RECOMMENDS_ACCESS");
   await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner");
 });
 
 test("removing the configuration screen did not remove any enrollment step", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
 
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await page.locator('.choice-card:has(input[value="patient"])').click();

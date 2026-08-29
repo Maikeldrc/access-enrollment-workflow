@@ -217,7 +217,7 @@ test("condition selector supports the four controlled multi-select conditions", 
   await expect(page.getByText("Other", { exact: true })).toHaveCount(0);
   await expect(page.getByPlaceholder("Enter condition")).toHaveCount(0);
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await page.locator("#screen-select").selectOption("CARE_RECOMMENDATION", { force: true });
   await expect(page.getByText("Blood pressure support", { exact: true })).toBeVisible();
   await expect(page.getByText("Help monitoring and managing your blood pressure at home.")).toBeVisible();
@@ -234,7 +234,7 @@ test("condition selector requires at least one selection", async ({ page }) => {
 test("direct outreach launches without an individual physician claim", async ({ page }) => {
   await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await expect(page.getByRole("heading", { name: "A new care option for your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
   await expect(page.locator(".invitation-stage")).toHaveAttribute("data-trust-source", "ITERA Direct Outreach");
   await expect(page.locator(".trust-hero-card")).toHaveAttribute("data-hero-variant", "ACCESS_PARTICIPANT");
   await expect(page.getByAltText("ITERA HEALTH connected Medicare ACCESS care")).toBeVisible();
@@ -280,7 +280,7 @@ test("trust hero cards omit the ITERA logo and keep language near the top edge",
 
 test("progress header uses contextual stages without exposing step counts", async ({ page }) => {
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
   const checks = [
     ["DECISION_MAKER", "Who’s completing"],
     ["CARE_RECOMMENDATION", "Your care"],
@@ -1195,7 +1195,7 @@ test("ACCESS patient agreement is role-aware, readable, and continues through CM
 test("ACCESS patient completes the simplified journey without redundant education or disclosure screens", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
   await page.getByRole("radio", { name: /For myself/ }).check();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -1285,7 +1285,7 @@ test("ACCESS expected cost copy is localized in Spanish and Kreyòl", async ({ p
 test("role selection branches only personal representatives into representative details", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
 
   await expect(page.getByRole("heading", { name: "Who is completing this?" })).toBeVisible();
   await expect(page.locator(".progress-meta span").last()).toHaveText("Who’s completing");
@@ -1387,7 +1387,7 @@ test("role selection branches only personal representatives into representative 
 
   await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
   await page.getByText("Helping the patient", { exact: true }).locator("..").locator("..").click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
@@ -1397,7 +1397,7 @@ test("role selection branches only personal representatives into representative 
 
   await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
   await page.getByText("For myself", { exact: true }).locator("..").locator("..").click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Let’s confirm it’s you" })).toBeVisible();
@@ -1590,10 +1590,18 @@ test("ACCESS provider or practice referral uses doctor recommendation with dynam
   await expect(page.locator(".trust-hero-physician-photo")).toHaveCount(0);
   await expect(page.locator(".trust-hero-badge-layer")).toHaveCount(0);
   await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner");
-  await expect(page.locator(".invitation-copy .lead")).toHaveText("Get extra support between your doctor visits.");
+  await expect(page.locator(".invitation-copy .lead")).toHaveText("Stay connected with your care team, keep track of your health, and get support when you need it.");
+  // The hero already attributes the invitation to Dr. Fresner; the lead does not repeat it.
   await expect(page.locator(".invitation-copy")).not.toContainText("care team invited you");
-  await expect(page.locator(".invitation-benefit strong")).toHaveText(["Keep your doctors", "Get support from home", "Participation is voluntary"]);
-  await expect(page.getByRole("button", { name: "See how it works" })).toBeVisible();
+  await expect(page.locator(".invitation-benefit strong")).toHaveText(["Stay connected with your care team", "Get support from home", "Understand your health better"]);
+  // Voluntariness stays on the Home, below the three benefits rather than posing as one of them.
+  const voluntary = page.locator(".invitation-voluntary");
+  await expect(voluntary).toHaveText("Participation is voluntary. You’ll review all the details before you decide.");
+  await expect(page.locator(".invitation-benefits")).not.toContainText("voluntary");
+  const benefitTitleSize = await page.locator(".invitation-benefit strong").first().evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+  const voluntarySize = await voluntary.evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+  expect(voluntarySize).toBeLessThan(benefitTitleSize);
+  await expect(page.getByRole("button", { name: "Start your care journey" })).toBeVisible();
   await expect(page.locator(".contextual-assurance")).toHaveCount(0);
   const contactLine = page.locator(".contact-line");
   await expect(contactLine).toHaveText("Need help? Call (305) 394-8070");
@@ -1941,15 +1949,15 @@ test("Creole setup opens the first patient screen in Creole", async ({ page }) =
   await page.goto("/?admin=1");
   await page.getByRole("combobox", { name: /Language/ }).selectOption({ label: "Creole" });
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await expect(page.getByRole("heading", { name: "Yon nouvo opsyon swen pou sante ou" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Yon fason pi entelijan pou jere sante ou" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "ht");
 });
 
 test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", async ({ page }) => {
   const locales = [
-    { value: "en", label: "English", code: "EN", html: "en", heading: "A new care option for your health", identity: "Let’s confirm it’s you" },
-    { value: "es", label: "Spanish", code: "ES", html: "es", heading: "Una nueva opción de cuidado para su salud", identity: "Confirmemos su identidad" },
-    { value: "ht", label: "Creole", code: "KR", html: "ht", heading: "Yon nouvo opsyon swen pou sante ou", identity: "Ann konfime se ou" }
+    { value: "en", label: "English", code: "EN", html: "en", heading: "A smarter way to manage your health", identity: "Let’s confirm it’s you" },
+    { value: "es", label: "Spanish", code: "ES", html: "es", heading: "Una forma más inteligente de cuidar su salud", identity: "Confirmemos su identidad" },
+    { value: "ht", label: "Creole", code: "KR", html: "ht", heading: "Yon fason pi entelijan pou jere sante ou", identity: "Ann konfime se ou" }
   ];
   for (const locale of locales) {
     await page.goto("/?admin=1");
@@ -1960,7 +1968,7 @@ test("ACCESS patient experience stays complete and unmixed in EN, ES, and KR", a
     await expect(page.locator(".stage-language")).toContainText(locale.code);
     await expect(page.locator("#app")).not.toContainText("⟦");
 
-    await page.getByRole("button", { name: locale.value === "en" ? "See how it works" : locale.value === "es" ? "Vea cómo funciona" : "Gade kijan sa fonksyone" }).click();
+    await page.getByRole("button", { name: locale.value === "en" ? "Start your care journey" : locale.value === "es" ? "Comience su recorrido de cuidado" : "Kòmanse pwosesis swen ou" }).click();
     await page.getByLabel(locale.value === "en" ? "For myself" : locale.value === "es" ? "Para mí" : "Pou tèt mwen").check();
     await page.getByRole("button", { name: locale.value === "en" ? "Continue" : locale.value === "es" ? "Continuar" : "Kontinye" }).click();
     await expect(page.getByRole("heading", { name: locale.identity })).toBeVisible();
@@ -2173,7 +2181,7 @@ test("RPM shipping branch exposes address confirmation", async ({ page }) => {
 test("language switch exposes Spanish UI", async ({ page }) => {
   await page.goto("/?scenario=ccm-happy");
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
-  await expect(page.getByRole("heading", { name: /nueva opción de cuidado/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /forma más inteligente de cuidar su salud/i })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
 });
 
@@ -2609,7 +2617,7 @@ test("all traditional programs complete their implemented patient journey", asyn
     await coverage.selectOption("Medicare Advantage");
     await expect(coverage).toHaveValue("Medicare Advantage");
     await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-    await page.getByRole("button", { name: "See how it works" }).click();
+    await page.getByRole("button", { name: "Start your care journey" }).click();
     await page.getByRole("radio", { name: /For myself/ }).check();
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("button", { name: "Continue" }).click();

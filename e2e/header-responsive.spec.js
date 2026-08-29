@@ -75,7 +75,7 @@ test("global patient header remains balanced across supported mobile viewports",
 test("language icon and code stay in one horizontal control for EN, ES, and KR", async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 915 });
   await page.goto("/?scenario=access-happy");
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Start your care journey" }).click();
   for (const expected of ["EN", "ES", "KR"]) {
     const language = page.locator(".app-header .language");
     await expect(language).toContainText(expected);

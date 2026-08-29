@@ -161,6 +161,12 @@ p { margin:0; }
 .invitation-benefit .icon { width:48px;height:48px;border-radius:50%;background:linear-gradient(145deg,#f1eeff,#e7e2ff); }
 .invitation-benefit .icon svg { width:26px;height:26px;stroke-width:1.7; }
 .invitation-benefit strong { color:var(--navy);font-size:1rem;font-weight:600; }
+/* Voluntariness sits below the three things ACCESS offers, not among them: it is a condition of
+   the offer rather than a fourth benefit. Smaller type, muted colour and a small inline mark keep
+   it plainly readable and plainly subordinate. */
+.invitation-voluntary { display:flex;gap:8px;align-items:center;width:100%;margin:14px 0 0;color:var(--text-muted);font-size:15px;font-weight:500;line-height:1.45;text-align:left; }
+.invitation-voluntary .icon.voluntary-mark { width:24px;height:24px;border-radius:50%;background:transparent; }
+.invitation-voluntary .icon.voluntary-mark svg { width:19px;height:19px;stroke-width:1.7; }
 .screen:has(.invitation-stage) .actions { width:100%;padding-top:12px; }
 .screen:has(.invitation-stage) .button.primary { min-height:58px;font-size:1.08rem;letter-spacing:.01em; }
 .screen:has(.invitation-stage) .contact-line { margin-top:12px;color:#273053;font-size:.9rem; }
@@ -1700,6 +1706,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .invitation-benefit { height:auto;min-height:78px; }
 .shell:not(:has(.prototype-console)) .invitation-benefit strong { font-size:var(--font-card-title);line-height:1.35; }
 .shell:not(:has(.prototype-console)) .invitation-benefit small { font-size:17px;line-height:1.45; }
+.shell:not(:has(.prototype-console)) .invitation-voluntary { font-size:var(--font-footer);line-height:var(--line-helper); }
 .shell:not(:has(.prototype-console)) .contact-line,
 .shell:not(:has(.prototype-console)) .security,
 .shell:not(:has(.prototype-console)) .contextual-assurance { font-size:var(--font-footer);line-height:var(--line-helper); }
