@@ -166,6 +166,17 @@ test("removing the configuration screen did not remove any enrollment step", asy
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByRole("heading", { name: "What your care includes" })).toBeVisible();
+
+  // The unit tests hold the prescriber helper to the offer physician. This holds the app to the
+  // helper, which is the half they cannot reach: the demo medications live in runtime state rather
+  // than in the offer, so only a running app proves they name the doctor the invitation names.
+  // Asserted here because the draft is only written once identity is verified.
+  const prescribers = await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2") || "null");
+    return (draft?.careMedications || []).map(medication => medication.prescriber);
+  });
+  expect(prescribers.length).toBeGreaterThan(0);
+  for (const prescriber of prescribers) expect(prescriber).toEqual({ id: "dr-fresner", name: "Dr. Fresner" });
   await page.getByRole("button", { name: "Continue" }).click();
 
   // The Medicare eligibility check still has to be acknowledged before it runs: an invitation that

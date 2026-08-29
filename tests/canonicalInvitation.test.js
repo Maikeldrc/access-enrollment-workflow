@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CANONICAL_PATIENT_SCENARIO, PROTOTYPE_OPTIONS, createPrototypeOffer, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "../src/config.js";
+import { CANONICAL_PATIENT_SCENARIO, PROTOTYPE_OPTIONS, createPrototypeOffer, isProviderReferralSource, normalizePrototypeConfig, prescriberFor, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "../src/config.js";
 
 // The public link no longer asks anyone to configure a scenario, which means nothing checks these
 // values at runtime any more. They are the invitation, so they are asserted here instead: a change
@@ -50,6 +50,22 @@ describe("the canonical patient invitation", () => {
     expect(offer.fixture.deviceSource).toBe("ITERA_ASSIGNED");
     expect(offer.fixture.integrationStatus).toBe("CONNECTED");
     expect(offer.onboardingModules).toContain("blood-pressure");
+  });
+
+  // The demo medications live in runtime state, not in the offer, so agreeing with the offer's
+  // physician today is not the same as being unable to disagree tomorrow. These two hold them
+  // together: the first fails if the prescriber drifts, the second fails if a literal comes back.
+  it("writes the demo prescriptions under the physician the invitation names", () => {
+    const offer = createPrototypeOffer(CANONICAL_PATIENT_SCENARIO);
+    expect(prescriberFor(CANONICAL_PATIENT_SCENARIO)).toEqual({ id: offer.physician.id, name: offer.physician.displayName });
+    expect(prescriberFor(CANONICAL_PATIENT_SCENARIO).name).toBe("Dr. Fresner");
+  });
+
+  it("moves the prescriber with the invited physician instead of pinning one name", () => {
+    const invited = { ...CANONICAL_PATIENT_SCENARIO, physicianDisplayName: "Dr. Okonkwo" };
+    const offer = createPrototypeOffer(invited);
+    expect(prescriberFor(invited)).toEqual({ id: offer.physician.id, name: "Dr. Okonkwo" });
+    expect(prescriberFor(invited).id).toBe("dr-okonkwo");
   });
 
   it("still requires the enrollment steps the patient has not completed yet", () => {

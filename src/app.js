@@ -1,4 +1,4 @@
-import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
+import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, prescriberFor, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
@@ -91,6 +91,7 @@ const savedPrototypeConfig = (() => { try { return JSON.parse(localStorage.getIt
 // A saved console configuration belongs to the console. It never reaches the invitation: the
 // patient's scenario is the canonical one on every visit, including after a refresh.
 let prototypeConfig = normalizePrototypeConfig(canonicalInvitation ? CANONICAL_PATIENT_SCENARIO : patientShareSource ? DEFAULT_PROTOTYPE_CONFIG : (savedPrototypeConfig || DEFAULT_PROTOTYPE_CONFIG));
+const prototypePrescriber = prescriberFor(prototypeConfig);
 let service = new MockEnrollmentService(scenarioId, prototypeMode || canonicalInvitation ? prototypeConfig : null);
 let conditionMenuOpen = false;
 let state = {
@@ -112,7 +113,7 @@ let state = {
   medicationsReviewStatus: "NOT_STARTED", careMedications: [
     {
       id: "med-lisinopril", name: "Lisinopril", strength: "10 mg", details: "10 mg · Once daily", sig: "Take once daily", active: true,
-      medicationRequestId: "rx-lisinopril-2026", prescriber: { id: "dr-fresner", name: "Dr. Fresner" },
+      medicationRequestId: "rx-lisinopril-2026", prescriber: prototypePrescriber,
       pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
       refillsRemaining: 0, prescriptionExpiresOn: "2027-02-01",
       lastDispense: { date: PROTOTYPE_DISPENSE_DATES.lisinopril, daysSupply: 30, quantity: 30, source: "PHARMACY_DISPENSE" },
@@ -120,7 +121,7 @@ let state = {
     },
     {
       id: "med-atorvastatin", name: "Atorvastatin", strength: "20 mg", details: "20 mg · Once daily", sig: "Take once daily at bedtime", active: true,
-      medicationRequestId: "rx-atorvastatin-2026", prescriber: { id: "dr-fresner", name: "Dr. Fresner" },
+      medicationRequestId: "rx-atorvastatin-2026", prescriber: prototypePrescriber,
       pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
       refillsRemaining: 3, prescriptionExpiresOn: "2027-02-01",
       lastDispense: { date: PROTOTYPE_DISPENSE_DATES.atorvastatin, daysSupply: 90, quantity: 90, source: "PHARMACY_DISPENSE" },
