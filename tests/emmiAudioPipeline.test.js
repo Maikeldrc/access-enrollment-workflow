@@ -185,4 +185,87 @@ describe("EMMI audio pipeline", () => {
       metadata: expect.objectContaining({ generationId: 8, screenId: "GOALS", priority: "SCREEN_GUIDANCE" })
     })]);
   });
+
+  it("allocates one generation before voice-response transcript fragments arrive", async () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata })
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.awaitingPatientResponse = true;
+    client.state = "USER_SPEAKING";
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "What would I have to pay for this program?" } } });
+    const generationId = client.activeTurn.generationId;
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "I cannot confirm your exact cost." } } });
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "Your care team can review it with you." } } });
+
+    expect(generationId).toBeGreaterThan(0);
+    expect(transcripts.map(item => item.metadata.generationId)).toEqual([generationId, generationId, generationId]);
+    expect(client.state).toBe("EMMI_THINKING");
+  });
+
+  it("recovers to listening when a barge-in produces no transcript", () => {
+    vi.useFakeTimers();
+    const states = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN" }),
+      onState: (state, detail) => states.push({ state, detail }),
+      onVoiceTelemetry: type => telemetry.push(type),
+      transcriptWaitTimeoutMs: 50
+    });
+    client.awaitingPatientResponse = true;
+    client.state = "USER_SPEAKING";
+
+    client.handlePatientSpeechEnd({ source: "local_vad", durationMs: 400 });
+    vi.advanceTimersByTime(50);
+
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(states.at(-1)).toEqual({ state: "LISTENING", detail: "transcript_not_received" });
+    expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
+    vi.useRealTimers();
+  });
+
+  it("turns a stalled provider turn into a recoverable timeout instead of permanent Thinking", () => {
+    vi.useFakeTimers();
+    const errors = [];
+    const states = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onError: code => errors.push(code),
+      onState: state => states.push(state),
+      onVoiceTelemetry: type => telemetry.push(type),
+      turnStallTimeoutMs: 75
+    });
+    client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+
+    expect(client.sendText("Explain ACCESS", { id: "welcome" })).toBe(true);
+    vi.advanceTimersByTime(75);
+
+    expect(errors).toEqual(["VOICE_RESPONSE_TIMEOUT"]);
+    expect(telemetry).toContain("EMMI_VOICE_TURN_TIMEOUT");
+    expect(client.activeTurn).toBeNull();
+    expect(states.at(-1)).toBe("DISCONNECTED");
+    vi.useRealTimers();
+  });
+
+  it("asks for clarification when ASR reports an unexpected language", async () => {
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
+    });
+    client.session = { sendClientContent: vi.fn() };
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "Necesito ayuda con mi presión y mi médico." } } });
+
+    expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("TRUSTED ASR SAFETY OVERRIDE"),
+      turnComplete: false
+    }));
+  });
 });

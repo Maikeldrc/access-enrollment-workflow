@@ -3,7 +3,7 @@ import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
 import { EmmiVoiceIdentityGuard, getEmmiSpeechConfig } from "./voiceIdentity.js";
 import { EmmiBargeInManager } from "./bargeInManager.js";
-import { sanitizeEmmiTranscript } from "./transcript.js";
+import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiTranscript } from "./transcript.js";
 
 const bytesToBase64 = bytes => {
   let binary = "";
@@ -33,6 +33,8 @@ export const EMMI_END_OF_SPEECH_SILENCE_MS = 1200;
 // the packet cadence the previous pipeline produced.
 export const EMMI_MIC_FRAME_SIZE = 2048;
 export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v3";
+export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
+export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=3";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
 // the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
@@ -57,7 +59,7 @@ export const normalizeEmmiVoiceError = code => ({
 })[code] || code;
 
 export class EmmiLiveClient {
-  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity, onBargeIn, onVoiceTelemetry, onSessionResumption, onReconnectNeeded }) {
+  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity, onBargeIn, onVoiceTelemetry, onSessionResumption, onReconnectNeeded, turnStallTimeoutMs = EMMI_TURN_STALL_TIMEOUT_MS, transcriptWaitTimeoutMs = EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS }) {
     this.getContext = getContext;
     this.executeTool = executeTool;
     this.onState = onState;
@@ -96,6 +98,10 @@ export class EmmiLiveClient {
     this.gracefulHandoff = null;
     this.warningTimer = null;
     this.endTimer = null;
+    this.turnWatchdogTimer = null;
+    this.patientTranscriptTimer = null;
+    this.turnStallTimeoutMs = turnStallTimeoutMs;
+    this.transcriptWaitTimeoutMs = transcriptWaitTimeoutMs;
     this.connectionSequence = 0;
     this.sessionResumptionHandle = this.getContext()?.emmiConversation?.sessionResumptionHandle || "";
     this.intentionalClose = false;
@@ -113,6 +119,36 @@ export class EmmiLiveClient {
     });
   }
   setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
+  clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
+  touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
+    this.clearTurnWatchdog();
+    if (!generationId || !Number.isFinite(this.turnStallTimeoutMs) || this.turnStallTimeoutMs <= 0) return;
+    this.turnWatchdogTimer = setTimeout(() => {
+      if (this.activeTurn?.generationId !== generationId) return;
+      const timedOut = this.activeTurn;
+      this.emitVoiceTelemetry("EMMI_VOICE_TURN_TIMEOUT", { turnId: timedOut.id, generationId, state: this.state });
+      this.stopPlayback({ fadeMs: 80 });
+      this.activeTurn = null;
+      this.activeAudioGenerationId = 0;
+      this.awaitingPatientResponse = false;
+      this.patientResponseReady = false;
+      this.onError?.("VOICE_RESPONSE_TIMEOUT");
+      this.disconnect("VOICE_RESPONSE_TIMEOUT");
+    }, this.turnStallTimeoutMs);
+  }
+  clearPatientTranscriptWatchdog() { clearTimeout(this.patientTranscriptTimer); this.patientTranscriptTimer = null; }
+  waitForPatientTranscript() {
+    this.clearPatientTranscriptWatchdog();
+    if (!Number.isFinite(this.transcriptWaitTimeoutMs) || this.transcriptWaitTimeoutMs <= 0) return;
+    this.patientTranscriptTimer = setTimeout(() => {
+      if (!this.awaitingPatientResponse || this.patientResponseReady || this.activeTurn) return;
+      this.awaitingPatientResponse = false;
+      this.patientResponseReady = false;
+      this.currentInterruption = null;
+      this.setState("LISTENING", "transcript_not_received");
+      this.emitVoiceTelemetry("EMMI_MISSING_TRANSCRIPT_RECOVERED", { waitMs: this.transcriptWaitTimeoutMs });
+    }, this.transcriptWaitTimeoutMs);
+  }
   isActive() { return !["DISCONNECTED", "ERROR"].includes(this.state); }
   voiceIdentitySnapshot() { return this.voiceIdentity.snapshot(); }
   // Must be called synchronously from the click that starts voice. An AudioContext created
@@ -327,12 +363,37 @@ export class EmmiLiveClient {
     }
     const server = message.serverContent;
     if (server?.inputTranscription?.text) {
-      const inputText = sanitizeEmmiTranscript(server.inputTranscription.text);
+      const assessment = assessEmmiTranscriptReliability(server.inputTranscription.text, { locale: this.getContext?.()?.locale });
+      const inputText = assessment.text;
       if (!inputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "user" });
       } else {
+        this.clearPatientTranscriptWatchdog();
+        if (!this.activeTurn) {
+          const responseToInterruption = this.awaitingPatientResponse;
+          this.activeAudioGenerationId = ++this.generationSequence;
+          this.activeTurn = {
+            id: `patient_response_${Date.now().toString(36)}`,
+            contextVersion: this.activeContextVersion,
+            generationId: this.activeAudioGenerationId,
+            priority: "PATIENT_RESPONSE",
+            contextIndependent: true,
+            responseToInterruption,
+            providerTurnComplete: false
+          };
+          this.awaitingPatientResponse = false;
+          this.patientResponseReady = true;
+          this.setState("EMMI_THINKING", "patient_response");
+          this.touchTurnWatchdog(this.activeAudioGenerationId);
+        }
         this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
-        this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE" });
+        if (!assessment.reliable) {
+          this.emitVoiceTelemetry("EMMI_ASR_CLARIFICATION_REQUIRED", { reason: assessment.reason, expectedLanguage: assessment.expectedLanguage, detectedLanguage: assessment.detectedLanguage });
+          // Append the guard to the audio turn already in flight. Marking this as another complete
+          // client turn can produce a duplicate assistant response on some Live API versions.
+          this.session?.sendClientContent?.({ turns: emmiAsrClarificationInstruction(assessment), turnComplete: false });
+        }
+        this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId, transcriptReliability: assessment.reliable ? "RELIABLE" : "CLARIFICATION_REQUIRED", transcriptReliabilityReason: assessment.reason });
         if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
           this.patientResponseReady = true;
           this.setState("EMMI_THINKING", "patient_response");
@@ -345,12 +406,13 @@ export class EmmiLiveClient {
       if (!outputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "assistant", generationId: this.activeAudioGenerationId });
       } else {
+        const transcriptTurn = this.activeTurn || { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId };
+        this.touchTurnWatchdog(transcriptTurn.generationId);
         this.lastEmmiUtterance = `${this.lastEmmiUtterance} ${outputText}`.trim().slice(-1200);
         if (/(call 911|llame al 911|rele 911)/i.test(outputText) && this.activeTurn) {
           this.activeTurn.priority = "CRITICAL_SAFETY";
           if (this.gracefulHandoff?.timer) { clearTimeout(this.gracefulHandoff.timer); this.gracefulHandoff.timer = null; }
         }
-        const transcriptTurn = this.activeTurn || { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId };
         this.onTranscript?.("assistant", outputText, true, transcriptTurn);
       }
     } else if (server?.outputTranscription?.text) {
@@ -378,6 +440,7 @@ export class EmmiLiveClient {
     let playedAudio = false;
     for (const part of audioParts) playedAudio = this.playAudio(part.inlineData.data, this.activeTurn) || playedAudio;
     if (playedAudio) {
+      this.touchTurnWatchdog(this.activeTurn?.generationId);
       if (this.currentInterruption && this.currentInterruption.responseStartedAt == null) {
         this.currentInterruption.responseStartedAt = performance.now();
         this.emitVoiceTelemetry("EMMI_BARGE_IN_RECOVERY", {
@@ -449,6 +512,7 @@ export class EmmiLiveClient {
     if (pending) return false;
     this.activeTurn = null;
     this.activeAudioGenerationId = 0;
+    this.clearTurnWatchdog();
     const drainedAt = performance.now();
     this.emitVoiceTelemetry("EMMI_AUDIO_TURN_DRAINED", {
       turnId: completed.id,
@@ -497,6 +561,7 @@ export class EmmiLiveClient {
       return false;
     }
     const interruptedTurn = this.activeTurn;
+    this.clearTurnWatchdog();
     const priority = interruptedTurn?.priority || "";
     if (priority === "CRITICAL_SAFETY" && !providerConfirmed) {
       this.emitVoiceTelemetry("EMMI_BARGE_IN_DEFERRED_FOR_CRITICAL_SAFETY", { source: details.source || "local_vad", priority });
@@ -550,8 +615,9 @@ export class EmmiLiveClient {
   handlePatientSpeechEnd(details = {}) {
     if (this.awaitingPatientResponse) {
       this.lastEmmiUtterance = "";
-      this.patientResponseReady = true;
+      this.patientResponseReady = false;
       this.setState("EMMI_THINKING", "patient_response");
+      this.waitForPatientTranscript();
       this.emitVoiceTelemetry("EMMI_BARGE_IN_RESPONSE_PENDING", { source: details.source || "local_vad", speechDurationMs: Math.round(details.durationMs || 0) });
     } else if (this.state === "USER_SPEAKING") this.setState("LISTENING");
   }
@@ -622,6 +688,7 @@ export class EmmiLiveClient {
     };
     const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
     this.session.sendClientContent({ turns: contextualTurn, turnComplete: true });
+    this.touchTurnWatchdog(generationId);
     this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "" });
     return true;
   }
@@ -630,7 +697,7 @@ export class EmmiLiveClient {
   scheduleReconnect(reason,{proactive=false}={}){if(!this.sessionResumptionHandle||this.reconnectAttempts>=this.maxReconnectAttempts)return false;clearTimeout(this.reconnectTimer);const attempt=++this.reconnectAttempts,delay=proactive?100:Math.min(2000,250*(2**(attempt-1))),handle=this.sessionResumptionHandle,recovery=this.onReconnectNeeded?.({reason,handle,attempt})||"";this.setState("CONNECTING","VOICE_RECONNECTING");this.reconnectTimer=setTimeout(()=>{if(proactive&&this.isActive())this.disconnect("go_away_handoff");this.goAwayReconnectScheduled=false;this.connect(recovery,{priority:"TRANSITION_GUIDANCE"}).catch(()=>{});},delay);return true;}
   disconnect(reason = "ended") {
     this.intentionalClose = true;
-    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.stabilityTimer); this.stopPlayback();
+    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.stabilityTimer); this.clearTurnWatchdog(); this.clearPatientTranscriptWatchdog(); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
     this.session = null; this.stopAudioCapture();
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;

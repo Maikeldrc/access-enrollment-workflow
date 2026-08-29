@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeEmmiTranscript } from "../src/emmi/transcript.js";
+import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiTranscript } from "../src/emmi/transcript.js";
 
 describe("EMMI transcript boundary", () => {
   it("never renders stringified SDK objects", () => {
@@ -20,5 +20,28 @@ describe("EMMI transcript boundary", () => {
   it("removes trusted internal context envelopes", () => {
     expect(sanitizeEmmiTranscript('[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {"currentScreen":"GOALS"}] Continúe.'))
       .toBe("Continúe.");
+  });
+
+  it("flags the multilingual corruption reproduced in the English live audit", () => {
+    const result = assessEmmiTranscriptReliability(
+      "Sí, lo bueno. Avanti, tu sei un grande dottore, Fresnedin Baez, il me. Vuoi dire che sei un bravo e un bravo dottore?",
+      { locale: "en" }
+    );
+    expect(result.reliable).toBe(false);
+    expect(["unexpected_language", "low_locale_evidence"]).toContain(result.reason);
+  });
+
+  it("flags a clear language mismatch but leaves short clinical phrases alone", () => {
+    expect(assessEmmiTranscriptReliability("Necesito ayuda con mi presión y mi médico.", { locale: "en" }))
+      .toMatchObject({ reliable: false, detectedLanguage: "es", reason: "unexpected_language" });
+    expect(assessEmmiTranscriptReliability("Lisinopril twenty milligrams", { locale: "en" }).reliable).toBe(true);
+    expect(assessEmmiTranscriptReliability("Please explain ACCESS in one short sentence.", { locale: "en" }).reliable).toBe(true);
+  });
+
+  it("builds a trusted clarification override without presenting it as patient speech", () => {
+    const instruction = emmiAsrClarificationInstruction({ expectedLanguage: "en", detectedLanguage: "es" });
+    expect(instruction).toContain("TRUSTED ASR SAFETY OVERRIDE");
+    expect(instruction).toContain("Do not infer or execute");
+    expect(sanitizeEmmiTranscript(instruction)).toBe("");
   });
 });
