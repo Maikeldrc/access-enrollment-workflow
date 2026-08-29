@@ -30,6 +30,7 @@ import { EmmiConversationManager } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
+import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
 import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
 import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
@@ -135,7 +136,7 @@ let state = {
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantSupportOpen: false, assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantSupportOpen: false, emmiOfferedLocale: "", emmiLanguageStreak: 0, emmiDeclinedLocales: [], assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
   emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
 };
@@ -5901,6 +5902,81 @@ function refreshAssistantLayer({ focusInput = false } = {}) {
   if (focusInput || activeSelection) input?.focus({ preventScroll: true });
 }
 
+// The language the patient is actually using, handled inside the conversation they are already
+// having. Nothing here restarts EMMI, clears the thread or re-greets: switching language changes
+// which words come back, not who the patient is talking to.
+const EMMI_LOCALE_KEYS = { en: "en", es: "es", ht: "ht" };
+const languageOfferCopy = locale => ({
+  es: "Veo que prefiere hablar en español. ¿Quiere que continuemos en español?",
+  ht: "Mwen wè ou pale kreyòl. Èske ou vle nou kontinye an kreyòl?",
+  en: "I noticed you’re writing in English. Would you like me to continue in English?"
+})[locale];
+const languageSwitchCopy = locale => ({
+  es: "Perfecto, seguimos en español.",
+  ht: "Dakò, n ap kontinye an kreyòl.",
+  en: "Of course — I’ll continue in English."
+})[locale];
+
+// Returns true when the turn was answered by the language flow and must not also go to the
+// orchestrator: an accepted offer is an answer about language, not a question about care.
+function handlePatientLanguage(text) {
+  const activeLocale = EMMI_LOCALE_KEYS[state.language] || "en";
+  const offered = state.emmiOfferedLocale;
+
+  // A standing offer the patient answered in words rather than by carrying on.
+  if (offered && offered !== activeLocale) {
+    if (isLanguageOfferAccepted(text)) {
+      applyEmmiLanguage(offered);
+      return true;
+    }
+    if (isLanguageOfferDeclined(text)) {
+      state.emmiDeclinedLocales = [...new Set([...state.emmiDeclinedLocales, offered])];
+      state.emmiOfferedLocale = "";
+      return false;
+    }
+  }
+
+  const { detected, action } = resolveLanguageIntent({
+    text,
+    activeLocale,
+    offeredLocale: offered,
+    consecutiveMatches: state.emmiLanguageStreak
+  });
+  if (!detected || detected === activeLocale) { state.emmiLanguageStreak = 0; return false; }
+  // Declining is remembered, so the same offer is never made twice in one session.
+  if (state.emmiDeclinedLocales.includes(detected)) return false;
+
+  if (action === "switch") { applyEmmiLanguage(detected); return false; }
+  if (action === "offer") {
+    state.emmiOfferedLocale = detected;
+    state.emmiLanguageStreak = 1;
+    state.assistantMessages.push({ role: "assistant", text: languageOfferCopy(detected), intent: "LANGUAGE_OFFER" });
+    emmiConversationManager?.recordTurn("assistant", languageOfferCopy(detected), { screen: state.screen });
+    refreshAssistantLayer();
+    return true;
+  }
+  return false;
+}
+
+// One activeLocale for text and voice. setLanguage already rebuilds the live voice session in the
+// new language, so this is the single switch both modalities follow.
+function applyEmmiLanguage(locale) {
+  state.emmiOfferedLocale = "";
+  state.emmiLanguageStreak = 0;
+  const confirmation = languageSwitchCopy(locale);
+  state.assistantVoiceError = "";
+  // setLanguage rebuilds the live voice session in the new language, so text and voice stay one
+  // conversation. The screen behind the panel is not re-rendered here: render() tears the panel
+  // down, which would close EMMI in the middle of the turn that asked for the switch.
+  setLanguage(locale);
+  state.assistantLanguageChanged = true;
+  document.documentElement.lang = htmlLanguage(state.language);
+  state.assistantMessages.push({ role: "assistant", text: confirmation, intent: "LANGUAGE_SWITCH" });
+  emmiConversationManager?.recordTurn("assistant", confirmation, { screen: state.screen, localeChanged: true });
+  audit(state, "emmi_language_adapted", "success", { screen: state.screen, locale });
+  refreshAssistantLayer();
+}
+
 async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   const cleaned = question.trim();
   if (!cleaned || state.assistantBusy) return;
@@ -5909,6 +5985,9 @@ async function askEmmi(question, { questionId = "", source = "input" } = {}) {
   state.assistantRetryQuestion = "";
   state.assistantMessages.push({ role: "user", text: cleaned, questionId });
   emmiConversationManager?.recordTurn("user", cleaned, { screen: state.screen });
+  // A quick question is EMMI's own words in EMMI's own language, so it is never evidence about
+  // which language the patient prefers. Only what they wrote or said themselves counts.
+  if (source !== "quick-question" && handlePatientLanguage(cleaned)) return;
   runtime.audit.transcript("user", cleaned);
   // Analytics record that a question was asked and where it came from, never what was asked.
   audit(state, source === "quick-question" ? "emmi_quick_question_selected" : "emmi_question_submitted", "success", { screen: state.screen, source, questionId });

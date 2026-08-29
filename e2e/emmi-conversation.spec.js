@@ -355,3 +355,92 @@ test("the panel is a dialog that hands focus over and gives it back", async ({ p
   await expect(page.locator(".assistant-layer")).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
+
+// ---------------------------------------------------------------------------------------------
+// Phase 2 — the patient's own language
+// ---------------------------------------------------------------------------------------------
+
+test("writing in another language is offered, not imposed", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await ask(dialog, "What is ACCESS?");
+  const before = await dialog.locator(".assistant-message").count();
+
+  // The first Spanish message asks once, in Spanish, and answers nothing else yet.
+  await dialog.getByPlaceholder("Ask a question…").fill("¿Qué es ACCESS y cómo me ayuda?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
+  expect(await dialog.locator(".assistant-message").count()).toBe(before + 2);
+  // Offering is not switching: the panel is still English until the patient says so.
+  await expect(dialog.getByPlaceholder("Ask a question…")).toBeVisible();
+});
+
+test("saying yes moves the whole conversation without starting a new one", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await ask(dialog, "What is ACCESS?");
+  await dialog.getByPlaceholder("Ask a question…").fill("¿Qué es ACCESS y cómo me ayuda?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
+
+  await dialog.getByPlaceholder("Ask a question…").fill("sí");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(page.locator(".assistant-layer").locator(".assistant-conversation")).toContainText("seguimos en español");
+
+  const panel = page.locator(".assistant-layer");
+  // Text and voice share one activeLocale, so the whole surface moves at once.
+  await expect(panel.getByPlaceholder("Haga una pregunta…")).toBeVisible();
+  await expect(panel.locator(".language")).toContainText("ES");
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  // Same conversation: the English turns are still there and EMMI does not say hello again.
+  await expect(panel.locator(".assistant-message.user").first()).toContainText("What is ACCESS?");
+  await expect(panel).not.toContainText("Hola, soy EMMI");
+  await expect(panel).toHaveAttribute("data-assistant-mode", "conversation");
+});
+
+test("carrying on in a language is a clearer answer than any confirmation", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await dialog.getByPlaceholder("Ask a question…").fill("Mwen bezwen èd ak tansyon mwen");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("Èske ou vle nou kontinye an kreyòl?");
+
+  // No yes, no no — just another message in the same language.
+  await dialog.getByPlaceholder("Ask a question…").fill("Kisa ACCESS ye epi kijan li ede m?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  const panel = page.locator(".assistant-layer");
+  await expect(panel.locator(".assistant-conversation")).toContainText("n ap kontinye an kreyòl");
+  await expect(panel.locator(".language")).toContainText("KR");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ht");
+  // KR is Haitian Creole in this product, and nothing Korean may appear.
+  await expect(panel).not.toContainText(/[가-힯]/);
+});
+
+test("the offer is made once, not on every turn", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await dialog.getByPlaceholder("Ask a question…").fill("¿Qué es ACCESS y cómo me ayuda?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
+
+  await dialog.getByPlaceholder("Ask a question…").fill("no");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)")).toHaveCount(2);
+
+  // Declining is remembered: another Spanish message is answered, not re-interrogated.
+  await dialog.getByPlaceholder("Ask a question…").fill("Necesito ayuda con mi presión arterial");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)")).toHaveCount(3);
+  const offers = await dialog.locator(".assistant-message", { hasText: "¿Quiere que continuemos en español?" }).count();
+  expect(offers, "the language question is asked once").toBe(1);
+});
+
+test("a quick question in EMMI's own words never triggers a language offer", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".stage-language").click();
+  await page.getByRole("button", { name: "Comience su recorrido de cuidado" }).click();
+  await page.locator(".back-button").click();
+  const dialog = await openEmmiConversation(page);
+
+  // The panel is in Spanish; its own Spanish suggestions must not read as the patient switching.
+  await dialog.locator(".assistant-quick button").first().click();
+  await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)")).toHaveCount(1);
+  await expect(dialog).not.toContainText("Would you like me to continue");
+  await expect(dialog.locator(".language")).toContainText("ES");
+});
