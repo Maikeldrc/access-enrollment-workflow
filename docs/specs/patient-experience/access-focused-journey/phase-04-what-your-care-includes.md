@@ -2,7 +2,7 @@
 
 **Status:** complete
 **Screen:** `CARE_RECOMMENDATION`, ACCESS branch (`recommendation()` / `accessCareCapabilities()` / `accessConditionCareCard()`)
-**Commit:** _recorded in the follow-up docs commit_
+**Commit:** `44d0184` — `feat(access-patient): phase-04 modernize care overview`
 
 ---
 
