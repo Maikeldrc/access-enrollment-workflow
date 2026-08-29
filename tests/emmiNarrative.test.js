@@ -56,6 +56,15 @@ describe("narrative quality", () => {
     expect(buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "EN" }).estimatedSeconds).toEqual(NARRATION_SECONDS.TRANSITION);
     expect(buildHomeNarration({ locale: "EN", program: "ACCESS" }).estimatedSeconds).toEqual(NARRATION_SECONDS.PROGRAM_INTRODUCTION);
   });
+
+  it("keeps the welcome to one bounded provider turn", () => {
+    for (const locale of LOCALES) {
+      const welcome = buildHomeNarration({ locale, program: "ACCESS" });
+      expect(welcome.segments).toEqual([welcome.narrationText]);
+      expect(words(welcome.narrationText), locale).toBeLessThanOrEqual(70);
+      expect(welcome.narrationText.match(/\?/g) || [], locale).toHaveLength(0);
+    }
+  });
 });
 
 describe("program-aware home narration", () => {

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
+import { describe, expect, it, vi } from "vitest";
+import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
 
 // The worklet runs on the audio thread and cannot be imported here, so its accumulator is
 // reproduced exactly: this is the part of the migration that decides the packet cadence.
@@ -102,5 +102,65 @@ describe("EMMI audio pipeline", () => {
     const hostile = {};
     Object.defineProperty(hostile, "audioWorklet", { get() { throw new TypeError("Illegal invocation"); } });
     expect(() => supportsAudioWorklet(hostile, scope)).toThrow();
+  });
+
+  it("does not complete a provider turn until every scheduled audio source has ended", () => {
+    const states = [];
+    const completions = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ currentScreen: "INVITATION", sessionId: "test" }),
+      executeTool: async () => ({}),
+      onState: state => states.push(state),
+      onTurnComplete: turn => completions.push(turn),
+      onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
+    });
+    const turn = { id: "turn-1", generationId: 4, providerTurnComplete: true, providerTurnCompleteAt: performance.now(), firstAudioReceivedAt: performance.now() };
+    client.activeTurn = turn;
+    client.activeAudioGenerationId = 4;
+    const source = {};
+    client.sources.set(source, { metadata: turn });
+    expect(client.finishTurnIfDrained(4)).toBe(false);
+    expect(completions).toHaveLength(0);
+    expect(states).not.toContain("LISTENING");
+    client.sources.delete(source);
+    expect(client.finishTurnIfDrained(4)).toBe(true);
+    expect(completions).toEqual([turn]);
+    expect(states.at(-1)).toBe("LISTENING");
+    expect(telemetry.at(-1).type).toBe("EMMI_AUDIO_TURN_DRAINED");
+  });
+
+  it("does not let local microphone energy cancel a turn before audio is audible", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.inputContext = { sampleRate: 48000 };
+    client.state = "EMMI_THINKING";
+    client.activeTurn = { id: "welcome", generationId: 1, contextVersion: 1, priority: "SCREEN_GUIDANCE" };
+    client.activeAudioGenerationId = 1;
+    client.bargeIn.observeFrame = vi.fn();
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+
+    expect(client.bargeIn.observeFrame).not.toHaveBeenCalled();
+    expect(client.activeTurn?.id).toBe("welcome");
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledOnce();
+  });
+
+  it("discards provider transcript fragments from an interrupted generation", async () => {
+    const transcripts = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN" }),
+      onTranscript: (role, text) => transcripts.push({ role, text }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.awaitingPatientResponse = true;
+    client.patientResponseReady = false;
+    client.activeTurn = null;
+
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "late canceled words" } } });
+
+    expect(transcripts).toEqual([]);
+    expect(telemetry).toContain("EMMI_STALE_TRANSCRIPT_DISCARDED");
   });
 });

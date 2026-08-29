@@ -268,7 +268,13 @@ export class EmmiLiveClient {
       sumOfSquares += value * value;
       peak = Math.max(peak, Math.abs(value));
     }
-    this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: this.isOutputActive() });
+    // Local VAD exists only to stop audio that is already audible a little faster than the
+    // provider can. Treating an active request that is still THINKING as audible caused ambient
+    // microphone energy to cancel the welcome before its first PCM chunk arrived.
+    const audibleOutputActive = this.sources.size > 0 || this.state === "EMMI_SPEAKING";
+    if (audibleOutputActive || this.bargeIn.speechActive) {
+      this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
+    }
     const data = pcm16(resample(samples, this.inputContext.sampleRate, EMMI_PROVIDER_SAMPLE_RATE));
     this.session.sendRealtimeInput({ audio: { data: bytesToBase64(data), mimeType: `audio/pcm;rate=${EMMI_PROVIDER_SAMPLE_RATE}` } });
   }
@@ -319,19 +325,23 @@ export class EmmiLiveClient {
     }
     const server = message.serverContent;
     if (server?.inputTranscription?.text) {
+      this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
       this.onTranscript?.("user", server.inputTranscription.text, true);
       if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
         this.patientResponseReady = true;
         this.setState("EMMI_THINKING", "patient_response");
       }
     }
-    if (server?.outputTranscription?.text) {
+    const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady);
+    if (server?.outputTranscription?.text && acceptsOutputTranscript) {
       this.lastEmmiUtterance = `${this.lastEmmiUtterance} ${server.outputTranscription.text}`.trim().slice(-1200);
       if (/(call 911|llame al 911|rele 911)/i.test(server.outputTranscription.text) && this.activeTurn) {
         this.activeTurn.priority = "CRITICAL_SAFETY";
         if (this.gracefulHandoff?.timer) { clearTimeout(this.gracefulHandoff.timer); this.gracefulHandoff.timer = null; }
       }
       this.onTranscript?.("assistant", server.outputTranscription.text, true);
+    } else if (server?.outputTranscription?.text) {
+      this.emitVoiceTelemetry("EMMI_STALE_TRANSCRIPT_DISCARDED", { generationId: this.activeAudioGenerationId });
     }
     if (server?.interrupted) {
       const details = this.bargeIn.confirmProviderInterruption();
@@ -367,13 +377,13 @@ export class EmmiLiveClient {
     }
     if (server?.turnComplete) {
       const completed = this.activeTurn;
-      this.activeTurn = null;
-      this.activeAudioGenerationId = 0;
-      if (!this.awaitingPatientResponse) {
+      if (completed) {
+        completed.providerTurnComplete = true;
+        completed.providerTurnCompleteAt = performance.now();
+        this.finishTurnIfDrained(completed.generationId);
+      } else if (!this.awaitingPatientResponse) {
         this.setState("LISTENING");
         this.finishGracefulHandoff("semantic_boundary");
-        if (completed) this.onTurnComplete?.(completed);
-        if (completed?.responseToInterruption) this.currentInterruption = null;
       }
     }
     const calls = message.toolCall?.functionCalls || [];
@@ -405,8 +415,40 @@ export class EmmiLiveClient {
     const source = this.outputContext.createBufferSource();
     source.buffer = buffer; source.connect(this.outputGain || this.outputContext.destination);
     const startAt = Math.max(this.outputContext.currentTime, this.nextPlaybackAt);
+    if (!metadata.firstAudioReceivedAt) {
+      metadata.firstAudioReceivedAt = performance.now();
+      this.emitVoiceTelemetry("EMMI_FIRST_AUDIO_CHUNK", {
+        turnId: metadata.id,
+        generationId: metadata.generationId,
+        firstAudioReceivedAt: Math.round(metadata.firstAudioReceivedAt),
+        turnToFirstAudioMs: metadata.clientTurnSentAt ? Math.round(metadata.firstAudioReceivedAt - metadata.clientTurnSentAt) : null,
+        scheduledPlaybackDelayMs: Math.round(Math.max(0, startAt - this.outputContext.currentTime) * 1000)
+      });
+    }
     source.start(startAt); this.nextPlaybackAt = startAt + buffer.duration; this.sources.set(source, { startAt, endAt: this.nextPlaybackAt, metadata });
-    source.onended = () => this.sources.delete(source);
+    source.onended = () => { this.sources.delete(source); this.finishTurnIfDrained(metadata.generationId); };
+    return true;
+  }
+  finishTurnIfDrained(generationId) {
+    const completed = this.activeTurn;
+    if (!completed || completed.generationId !== generationId || !completed.providerTurnComplete) return false;
+    const pending = [...this.sources.values()].some(source => source.metadata?.generationId === generationId);
+    if (pending) return false;
+    this.activeTurn = null;
+    this.activeAudioGenerationId = 0;
+    const drainedAt = performance.now();
+    this.emitVoiceTelemetry("EMMI_AUDIO_TURN_DRAINED", {
+      turnId: completed.id,
+      generationId,
+      providerToDrainMs: Math.round(drainedAt - completed.providerTurnCompleteAt),
+      firstAudioToDrainMs: completed.firstAudioReceivedAt ? Math.round(drainedAt - completed.firstAudioReceivedAt) : null
+    });
+    if (!this.awaitingPatientResponse) {
+      this.setState("LISTENING");
+      this.finishGracefulHandoff("audio_drained");
+      this.onTurnComplete?.(completed);
+      if (completed.responseToInterruption) this.currentInterruption = null;
+    }
     return true;
   }
   stopPlayback({ fadeMs = 0 } = {}) {
@@ -545,7 +587,7 @@ export class EmmiLiveClient {
   sendText(text, metadata = {}) {
     if (!this.session) return false;
     const generationId = ++this.generationSequence;
-    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId };
+    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false };
     if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;
     this.activeTurn = turn;
     this.lastEmmiUtterance = "";
@@ -567,6 +609,7 @@ export class EmmiLiveClient {
     };
     const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
     this.session.sendClientContent({ turns: contextualTurn, turnComplete: true });
+    this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "" });
     return true;
   }
   async setMuted(value) { this.muted=Boolean(value); if(this.muted){this.stopAudioCapture();this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED",{reason:"paused"});} else if(this.session&&!this.stream){try{this.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});await this.startAudioCapture();}catch{this.muted=true;this.onError?.("VOICE_PERMISSION_DENIED");}} this.onState?.(this.state,this.muted?"muted":"unmuted");return !this.muted; }

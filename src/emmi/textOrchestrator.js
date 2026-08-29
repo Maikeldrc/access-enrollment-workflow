@@ -31,7 +31,8 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
 const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
-const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)/i;
+const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
+const DEVICE_FULFILLMENT = /ship|sent|arrive|deliver|env[ií]o|enviar|llegar|recibir|entregar|voye|rive|resevwa/i;
 const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
 const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|d[eè]nye lekti|tansyon mwen.*jodi/i;
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
@@ -40,12 +41,14 @@ const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]m
 // Asking whether the doctor stays involved is the same question as asking who the doctor is: both
 // are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
 // rather than replacing them. Naming the physician in the question is the most natural way to ask it.
-const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see my doctor|mi m[eé]dico|seguir viendo a mi m[eé]dico|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|dokt[eè] mwen|toujou (patisipe|enplike)/i;
+const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see (?:my doctor|dr\.?\s+[a-z'-]+)|mi m[eé]dico|seguir viendo a mi m[eé]dico|seguir viendo (?:al|a la)?\s*(?:dr\.?|doctor|doctora)|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|dokt[eè] mwen|toujou (patisipe|enplike)/i;
 // The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
 // which asks whether that doctor stays involved, and from eligibility, which asks whether the
 // patient qualifies. Answering it means repeating the referral facts and adding nothing.
 const INVITATION_SOURCE = /who (invited|referred|sent)|who is this from|why (am i|did i) (receiving|receive|get|getting)|why was i (invited|referred)|how did you get my|qui[eé]n me (invit[oó]|refiri[oó]|envi[oó])|de qui[eé]n es esta invitaci[oó]n|por qu[eé] (recib[ií]|estoy recibiendo|me lleg[oó])|ki moun ki (envite|refere|voye) m|poukisa m (ap resevwa|resevwa|jwenn)/i;
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
+const REPEAT_FOLLOW_UP = /^(can you |could you |please )?(repeat|say that again|repeat that)|^(repita|puede repetir|d[ií]galo otra vez)|^(repete|di sa ank[oò])/i;
+const SIMPLIFY_FOLLOW_UP = /explain (that|it) (more )?simply|simpler|i (did not|didn'?t|don'?t) understand (that|it)|no entend[ií] (eso|esto)|expl[ií]quelo m[aá]s (f[aá]cil|sencillo)|mwen pa konprann|esplike sa pi senp/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
 const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
 // The two halves can arrive in either order, and both must be present: a patient asking whether to
@@ -430,7 +433,7 @@ const accessCostAnswer = (result, locale) => {
   });
 };
 
-const runtimeAnswer = ({ tool, result, locale, context }) => {
+const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
   if (tool === "getExpectedAccessCost") return accessCostAnswer(result, locale);
   if (tool === "getPatientCoverage") {
     if (!result.found) return pick(locale, {
@@ -462,6 +465,25 @@ const runtimeAnswer = ({ tool, result, locale, context }) => {
       : pick(locale, { EN: "I can’t confirm that you are eligible right now. Your Medicare benefits and regular care do not change because of this check.", ES: "Ahora mismo no puedo confirmar que sea elegible. Sus beneficios de Medicare y su cuidado habitual no cambian por esta verificación.", KR: "Mwen pa ka konfime ou kalifye kounye a. Benefis Medicare ou ak swen nòmal ou pa chanje akoz verifikasyon sa a." });
   }
   if (tool === "getAssignedDevice") {
+    if (DEVICE_FULFILLMENT.test(question)) {
+      const fulfillment = String(result.fulfillmentStatus || "NOT_REQUESTED").toUpperCase();
+      const shipment = String(result.shipmentStatus || "").toUpperCase();
+      if (shipment === "SHIPPED" || fulfillment === "SHIPPED") return pick(locale, {
+        EN: "Your monitor is marked as shipped. I don’t have a confirmed delivery date unless one appears in your care record.",
+        ES: "Su monitor aparece como enviado. No tengo una fecha de entrega confirmada a menos que figure en su registro de cuidado.",
+        KR: "Dosye a montre yo voye aparèy ou a. Mwen pa gen yon dat livrezon konfime sof si li parèt nan dosye swen ou."
+      });
+      if (["REQUESTED", "PROCESSING", "READY_TO_SHIP"].includes(fulfillment)) return pick(locale, {
+        EN: "Your monitor request is recorded, but I don’t see a shipped status or a confirmed delivery date yet.",
+        ES: "La solicitud de su monitor está registrada, pero todavía no veo que haya sido enviado ni una fecha de entrega confirmada.",
+        KR: "Demann aparèy ou a anrejistre, men mwen poko wè yo voye li ni yon dat livrezon konfime."
+      });
+      return pick(locale, {
+        EN: "I don’t see a monitor shipment request in your care record yet, so I can’t give you a shipping or delivery date.",
+        ES: "Todavía no veo una solicitud de envío del monitor en su registro de cuidado, así que no puedo darle una fecha de envío o entrega.",
+        KR: "Mwen poko wè yon demann pou voye aparèy la nan dosye swen ou, kidonk mwen pa ka bay yon dat yo pral voye oswa livre li."
+      });
+    }
     if (result.found) return pick(locale, { EN: `The monitor assigned to your care is the ${result.displayName || result.model || result.vendor} and its device number ends in ${String(result.deviceId || "").slice(-4)}. Its current ITERA connection status is ${result.integrationStatus === "CONNECTED" ? "connected" : "not connected"}.`, ES: `El monitor asignado a su cuidado es ${result.displayName || result.model || result.vendor} y su número termina en ${String(result.deviceId || "").slice(-4)}. Su estado actual con ITERA es ${result.integrationStatus === "CONNECTED" ? "conectado" : "no conectado"}.`, KR: `Aparèy ki asiyen pou swen ou se ${result.displayName || result.model || result.vendor}, epi nimewo li fini ak ${String(result.deviceId || "").slice(-4)}. Eta koneksyon li ak ITERA se ${result.integrationStatus === "CONNECTED" ? "konekte" : "pa konekte"}.` });
     return result.patientOwnsMonitor ? pick(locale, { EN: "Your information shows that you have your own monitor, but it is not connected to ITERA.", ES: "Su información indica que tiene su propio monitor, pero no está conectado a ITERA.", KR: "Enfòmasyon ou montre ou gen pwòp aparèy ou, men li pa konekte ak ITERA." }) : pick(locale, { EN: "I don’t see a monitor assigned to your care yet.", ES: "Todavía no veo un monitor asignado a su cuidado.", KR: "Mwen poko wè yon aparèy ki asiyen pou swen ou." });
   }
@@ -541,6 +563,27 @@ export class EmmiTextOrchestrator {
     if (guardrail) {
       trace.intent = guardrail.intent; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
       return { text: guardrail.text, ...(guardrail.quickAction ? { quickAction: guardrail.quickAction } : {}), trace };
+    }
+    if (REPEAT_FOLLOW_UP.test(asked) || SIMPLIFY_FOLLOW_UP.test(asked)) {
+      const prior = clean(conversation.lastEmmiTurn || [...(conversation.recentTurns || [])].reverse().find(turn => turn?.role === "assistant")?.text || "");
+      if (prior) {
+        trace.intent = REPEAT_FOLLOW_UP.test(asked) ? "REPEAT_PRIOR_ANSWER" : "SIMPLIFY_PRIOR_ANSWER";
+        trace.responseMode = "DETERMINISTIC_CONVERSATION_CONTEXT";
+        emit("EMMI_ANSWER_ROUTED");
+        if (REPEAT_FOLLOW_UP.test(asked)) return { text: prior, trace };
+        if (/next step|start your care journey|pr[oó]ximo paso|comience su recorrido|pwochen etap/i.test(prior)) return { text: pick(locale, {
+          EN: "In simple terms: when you’re ready, tap “Start your care journey” to continue.",
+          ES: "En palabras sencillas: cuando esté listo, pulse “Comience su recorrido de cuidado” para continuar.",
+          KR: "An mo senp: lè ou pare, peze “Kòmanse pwosesis swen ou” pou kontinye."
+        }), trace };
+        if (/\bACCESS\b/i.test(prior)) return { text: pick(locale, {
+          EN: "In simple terms: ACCESS gives you extra support between doctor visits. Your doctors still care for you, and joining is your choice.",
+          ES: "En palabras sencillas: ACCESS le brinda apoyo adicional entre sus visitas médicas. Sus médicos siguen atendiéndole y participar es su decisión.",
+          KR: "An mo senp: ACCESS ba ou plis sipò ant vizit doktè. Doktè ou kontinye pran swen ou, epi se ou ki chwazi patisipe."
+        }), trace };
+        const firstSentence = prior.match(/[^.!?]+[.!?]+|[^.!?]+/)?.[0]?.trim() || prior;
+        return { text: pick(locale, { EN: `In simple terms: ${firstSentence}`, ES: `En palabras sencillas: ${firstSentence}`, KR: `An mo senp: ${firstSentence}` }), trace };
+      }
     }
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
@@ -749,7 +792,7 @@ export class EmmiTextOrchestrator {
               : ["getEnrollmentContext", "getMedicationList", "getAssignedDevice", "getPatientGoals", "getCareTeam", "getNextBestAction"].includes(tool) ? { patientId: context.patientId } : {};
         const result = await this.executeTool(tool, args);
         trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push(tool); emit("EMMI_ANSWER_ROUTED");
-        return { text: runtimeAnswer({ tool, result, locale, context }), trace };
+        return { text: runtimeAnswer({ tool, result, locale, context, question: asked }), trace };
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool, error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
 

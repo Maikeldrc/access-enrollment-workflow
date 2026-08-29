@@ -840,6 +840,10 @@ function assistantContext() {
     bpBaselineRemainingReadings: state.bpBaselineRemainingReadings ?? 3,
     deviceVerificationStatus: state.deviceVerificationStatus,
     firstTransmissionVerified: state.firstTransmissionVerified,
+    deviceFulfillmentStatus: state.deviceFulfillmentStatus || state.bpDeviceFulfillmentStatus || "NOT_REQUESTED",
+    deviceFulfillmentRequestedAt: state.bpDeviceFulfillmentRequestedAt || null,
+    deviceShipmentStatus: null,
+    deviceDeliveryDate: null,
     careCircleStatus: state.careCircleStatus,
     supportRole: state.supportRole,
     // A patient and a representative are agreeing to different things on the consent screen, so the
@@ -1141,13 +1145,17 @@ function ensureEmmiRuntime() {
     onTranscript: (role, text) => {
       const cleaned = String(text || "").trim(); if (!cleaned) return;
       const last = state.assistantMessages.at(-1);
-      if (last?.role === role && last.voice && !last.interrupted) last.text = `${last.text} ${cleaned}`.trim();
-      else state.assistantMessages.push({ role, text: cleaned, voice: true });
+      if (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete) last.text = `${last.text} ${cleaned}`.trim();
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false });
       emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
       if (role === "assistant") emmiConversationManager?.markGreeted();
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
-    onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
+    onTurnComplete: metadata => {
+      const lastMessage = state.assistantMessages.at(-1);
+      if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.voiceComplete = true;
+      emmiTransitionManager?.onTurnComplete(metadata);
+    },
     onBargeIn: details => {
       const lastMessage = state.assistantMessages.at(-1);
       if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.interrupted = true;
@@ -1420,9 +1428,9 @@ const emmiGuidancePrompt = message => {
     ? "This is the initial introduction; one brief greeting is allowed."
     : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. Do not greet, reintroduce yourself, or restart. Continue naturally from ${continuity?.previousScreen || "the prior context"} to ${continuity?.currentScreen || state.screen}.`;
   return L(
-    `${rule} Say the following in a calm, warm, unhurried voice, as the patient's continuing care guide. Keep the meaning and reassurance intact, use natural spoken English, and add no facts: ${guarded}`,
-    `${rule} Diga lo siguiente con una voz tranquila, cálida y sin prisa, como la guía de cuidado que continúa acompañando al paciente. No salude ni se presente otra vez salvo que la regla anterior lo permita. Conserve el significado y no agregue datos: ${guarded}`,
-    `${rule} Di sa ki annapre a avèk yon vwa kalm, cho e san prese, tankou gid swen ki kontinye ak pasyan an. Pa salye ni prezante tèt ou ankò sof si règ anlè a pèmèt sa. Kenbe sans lan epi pa ajoute enfòmasyon: ${guarded}`
+    `${rule} VERBATIM NARRATION MODE. Speak exactly the text between <speech> tags once, in a calm, warm, unhurried voice. Do not paraphrase, expand, summarize, answer it, add a greeting, add a question, or repeat any sentence. Stop immediately after the closing tag. <speech>${guarded}</speech>`,
+    `${rule} MODO DE NARRACIÓN LITERAL. Diga exactamente una vez el texto entre las etiquetas <speech>, con voz tranquila, cálida y sin prisa. No lo parafrasee, amplíe, resuma ni responda; no agregue saludos o preguntas ni repita frases. Termine justo al cerrar la etiqueta. <speech>${guarded}</speech>`,
+    `${rule} MÒD NARASYON MO POU MO. Di tèks ki ant etikèt <speech> yo egzakteman yon sèl fwa, ak yon vwa kalm, cho, san prese. Pa chanje, elaji, rezime, reponn, ajoute salitasyon oswa kesyon, ni repete fraz. Kanpe tousuit apre etikèt la fèmen. <speech>${guarded}</speech>`
   );
 };
 
@@ -1801,7 +1809,10 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   manager.setPaused(false);
   if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
   if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
-  manager.speak({ narrationText: message, segments: semanticSpeechSegments(message) }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
+  // The home welcome is one provider turn. Splitting its sentences into separate generative
+  // prompts invited the model to elaborate and re-open the conversation after every clause.
+  const segments = screen === "INVITATION" ? [message] : semanticSpeechSegments(message);
+  manager.speak({ narrationText: message, segments }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
 }

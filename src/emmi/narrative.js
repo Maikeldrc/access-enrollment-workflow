@@ -18,7 +18,7 @@ const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
 // Narration length is matched to the weight of the screen, not to one global limit.
 export const NARRATION_SECONDS = Object.freeze({
-  PROGRAM_INTRODUCTION: [25, 40],
+  PROGRAM_INTRODUCTION: [12, 22],
   CONCEPTUAL: [15, 25],
   SIMPLE_TASK: [7, 15],
   TRANSITION: [15, 20]
@@ -668,6 +668,15 @@ const PROGRAM_INTRODUCTION_FALLBACK = displayName => T(
 
 const HOME_OPENING = T("Hi, I'm EMMI, your ITERA Care Assistant.", "Hola, soy EMMI, su Asistente de cuidado de ITERA.", "Bonjou, mwen se EMMI, Asistan swen ITERA ou.");
 
+const HOME_PROGRAM_SUMMARY = {
+  ACCESS: T("ACCESS is a Medicare care option that gives you extra support between doctor visits, not to replace your doctors.", "ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos.", "ACCESS se yon opsyon swen Medicare ki ba ou plis sipò ant vizit, li pa la pou ranplase doktè ou."),
+  CCM: T("This care gives people with ongoing health conditions extra support between visits.", "Este cuidado brinda apoyo adicional entre visitas a personas con condiciones de salud continuas.", "Swen sa a bay moun ki gen pwoblèm sante kontinyèl plis sipò ant vizit yo."),
+  RPM: T("Remote Patient Monitoring uses a connected monitor to share health readings with your care team between visits.", "El monitoreo remoto utiliza un monitor conectado para compartir mediciones con su equipo entre visitas.", "Siveyans a distans sèvi ak yon aparèy konekte pou pataje mezi ak ekip swen ou ant vizit yo."),
+  PCM: T("Principal Care Management gives focused support between visits for the health condition needing the most attention.", "El manejo de cuidado principal brinda apoyo enfocado entre visitas para la condición que requiere más atención.", "Jesyon swen prensipal bay sipò espesyal ant vizit pou pwoblèm sante ki bezwen plis atansyon a."),
+  CCM_RPM: T("This care brings together two kinds of support that work as one: ongoing care and readings from a connected monitor.", "Este cuidado reúne dos tipos de apoyo que funcionan como uno: cuidado continuo y mediciones de un monitor conectado.", "Swen sa a mete ansanm de kalite sipò ki travay kòm youn: swen regilye ak mezi yon aparèy konekte."),
+  PCM_RPM: T("This care brings together two kinds of support that work as one: focused care for one condition and readings from a connected monitor.", "Este cuidado reúne dos tipos de apoyo que funcionan como uno: apoyo enfocado para una condición y mediciones de un monitor conectado.", "Swen sa a mete ansanm de kalite sipò ki travay kòm youn: sipò pou yon pwoblèm ak mezi yon aparèy konekte.")
+};
+
 const HOME_PHYSICIAN = physician => T(
   `${physician}'s care team invited you to learn about additional support available through Medicare. Your doctor remains part of your care, while ITERA can support you between visits.`,
   `El equipo de ${physician} le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas.`,
@@ -689,12 +698,15 @@ const sentences = parts => parts.filter(Boolean).map(part => part.trim()).filter
 const spokenSegments = parts => parts.filter(Boolean).flatMap(part => semanticSpeechSegments(part));
 
 export function buildHomeNarration({ locale = "EN", program, programDisplayName = "", providerReferral = false, physicianDisplayName = "", allowGreeting = true } = {}) {
-  const introduction = PROGRAM_INTRODUCTION[program] || PROGRAM_INTRODUCTION_FALLBACK(programDisplayName || program || "this care");
+  const introduction = HOME_PROGRAM_SUMMARY[program] || PROGRAM_INTRODUCTION_FALLBACK(programDisplayName || program || "this care");
   // A physician is only mentioned when the referral source and a real name both support it.
   const referral = providerReferral && physicianDisplayName ? pick(HOME_PHYSICIAN(physicianDisplayName), locale) : "";
-  const segments = spokenSegments([allowGreeting ? pick(HOME_OPENING, locale) : "", referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]);
+  const narrationText = sentences([allowGreeting ? pick(HOME_OPENING, locale) : "", referral, pick(introduction, locale), pick(HOME_CLOSING, locale)]);
+  // Home is deliberately one bounded provider turn. Sending each sentence as a separate
+  // generative turn caused the live model to elaborate and ask a new question after every clause.
+  const segments = narrationText ? [narrationText] : [];
   return {
-    narrationText: sentences(segments),
+    narrationText,
     segments,
     narrationPurpose: "PROGRAM_INTRODUCTION",
     estimatedSeconds: NARRATION_SECONDS.PROGRAM_INTRODUCTION
