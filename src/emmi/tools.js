@@ -11,6 +11,13 @@ const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const clone = value => JSON.parse(JSON.stringify(value));
 let memoryLogs = []; const store = () => globalThis.sessionStorage;
+// The tool audit is a record of what EMMI did for one patient — which cost it quoted, which device
+// it looked up. It resets with the enrollment, and the in-memory copy goes with it: clearing only
+// the storage would leave this tab still holding the previous patient's calls.
+export function clearEmmiAuditLog() {
+  memoryLogs = [];
+  try { store()?.removeItem(LOG_KEY); } catch { /* best effort */ }
+}
 const readLogs = () => { try { return store() ? JSON.parse(store().getItem(LOG_KEY) || "[]") : memoryLogs; } catch { return memoryLogs; } };
 const writeLogs = logs => { memoryLogs = logs.slice(-25); try { store()?.setItem(LOG_KEY, JSON.stringify(memoryLogs)); } catch {} };
 const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey/i;

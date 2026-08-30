@@ -200,6 +200,14 @@ export class GrowthStore {
 
   allSupportInvites() { return clone(this.readCareCircle().invites.map(invite => ({ ...invite, status: currentStatus(invite) }))); }
   allShares() { return clone(this.readShares().shares); }
+
+  // Everything this store holds that belongs to one enrollment. The Care Circle was invited during
+  // it and the shares were sent from it, so both start empty for the next one; the prompt
+  // preferences are the person saying "stop asking me this", which is theirs and survives.
+  clearEnrollmentData() {
+    this.storage?.removeItem(CARE_CIRCLE_KEY);
+    this.storage?.removeItem(ACCESS_SHARE_KEY);
+  }
 }
 
 export const growthPromptAvailable = (dismissedAt, now = Date.now()) => !dismissedAt || now - new Date(dismissedAt).getTime() >= GROWTH_PROMPT_COOLDOWN_MS;
