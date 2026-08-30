@@ -1139,6 +1139,7 @@ function ensureEmmiRuntime() {
     executeTool: (name, args) => emmiTools.execute(name, args),
     screenExplanation: assistantScreenExplanation,
     onSafetyEpisode: episode => emmiConversationManager?.activateSafetyEpisode(episode),
+    onSafetyResolved: resolution => emmiConversationManager?.resolveSafetyEpisode(resolution),
     onEvent: (type, details) => {
       emmiAuditLog?.voiceEvent(type, details);
       if (type === "EMMI_ANSWER_ROUTED") emmiAuditLog?.answerTurn({ ...details, promptVersion: "emmi-answer-first-v1" });

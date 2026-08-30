@@ -1,6 +1,6 @@
 import { classifyBarrierText } from "../goalBarriers.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
-import { createSafetyEpisode, detectEmergencyLanguage, safetyResponseFor } from "./safetyPolicy.js";
+import { createSafetyEpisode, detectEmergencyLanguage, detectSafetyResolution, safetyEpisodeIsActive, safetyResolutionCopy, safetyResponseFor } from "./safetyPolicy.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
@@ -532,7 +532,7 @@ const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
 };
 
 export class EmmiTextOrchestrator {
-  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {} }) {
+  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {}, onSafetyResolved = () => {} }) {
     this.getContext = getContext;
     this.getConversation = getConversation;
     this.executeTool = executeTool;
@@ -540,6 +540,7 @@ export class EmmiTextOrchestrator {
     this.fetch = fetchImpl;
     this.onEvent = onEvent;
     this.onSafetyEpisode = onSafetyEpisode;
+    this.onSafetyResolved = onSafetyResolved;
   }
 
   async answer(question, { questionId = "" } = {}) {
@@ -551,7 +552,19 @@ export class EmmiTextOrchestrator {
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
-    if (conversation.activeSafetyEpisode?.active && !SAFETY.test(asked)) { trace.intent = "CLINICAL_SAFETY_FOLLOW_UP"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED"); return { ...safetyResponseFor({ locale, episode: conversation.activeSafetyEpisode, question }), trace }; }
+    const openEpisode = safetyEpisodeIsActive(conversation.activeSafetyEpisode) ? conversation.activeSafetyEpisode : null;
+    if (openEpisode) {
+      // Resolution is read before the emergency gate. A patient saying "I called 911" or "the
+      // emergency team is with me now" uses the words that raise an emergency, so the gate treated
+      // every attempt to close the episode as a new one and re-armed it. Nothing could end it.
+      const resolution = detectSafetyResolution(asked);
+      if (resolution) {
+        this.onSafetyResolved(resolution);
+        trace.intent = "CLINICAL_SAFETY_RESOLVED"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED", { resolution });
+        return { text: safetyResolutionCopy(resolution, locale), priority: "CRITICAL_SAFETY", deterministic: true, pendingAction: "clinical-task", trace };
+      }
+      if (!SAFETY.test(asked)) { trace.intent = "CLINICAL_SAFETY_FOLLOW_UP"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED"); return { ...safetyResponseFor({ locale, episode: openEpisode, question }), trace }; }
+    }
     const policy = conversationPolicyResponse(question, locale); if (policy) { trace.intent = policy.intent; trace.responseMode = policy.responseMode; emit("EMMI_ANSWER_ROUTED"); return { text: policy.text, deterministic: true, trace }; }
     const bp = asked.match(BP_READING);
     if (SAFETY.test(asked) || bp) {

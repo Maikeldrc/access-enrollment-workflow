@@ -1,3 +1,5 @@
+import { safetyEpisodeIsActive } from "./safetyPolicy.js";
+
 export const EMMI_CONVERSATION_MODES = Object.freeze({
   INITIAL: "INITIAL",
   CONTINUATION: "CONTINUATION",
@@ -62,7 +64,9 @@ export class EmmiConversationManager {
       contextVersion: Number(saved?.contextVersion) || 0,
       sessionResumptionHandle: saved?.sessionResumptionHandle || "",
       sessionResumable: Boolean(saved?.sessionResumable),
-      activeSafetyEpisode: saved?.activeSafetyEpisode?.active ? saved.activeSafetyEpisode : null,
+      // A resolved episode does not come back, and neither does one that has simply aged out: a
+      // patient returning the next day must not be met with "call 911" for something that is over.
+      activeSafetyEpisode: safetyEpisodeIsActive(saved?.activeSafetyEpisode, this.now()) ? saved.activeSafetyEpisode : null,
       lastInteractionAt: saved?.lastInteractionAt || this.now()
     };
     this.persist();
