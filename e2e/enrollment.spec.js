@@ -284,7 +284,7 @@ test("progress header uses contextual stages without exposing step counts", asyn
     ["CARE_RECOMMENDATION", "Your care"],
     ["ACCESS_ELIGIBILITY_RESULT", "Eligibility"],
     ["CONSENT_REVIEW", "Consent"],
-    ["ACCESS_BASELINE", "Getting started"]
+    ["ACCESS_BP_DEVICE_INFO", "Getting started"]
   ];
   for (const [screen, stage] of checks) {
     await page.locator("#screen-select").selectOption(screen, { force: true });
@@ -324,11 +324,12 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await expect(details).toContainText("Signing role: Patient");
   await expect(details).toContainText("Applicable disclosures: Version 2.1");
 
+  // Care activation now opens on the connected monitor. The health check it used to open is gone.
   await page.getByRole("button", { name: "Set up my care" }).click();
-  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
   await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
-  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "IN_PROGRESS", screen: "ACCESS_BASELINE", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } } });
+  expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", activationStatus: "IN_PROGRESS", baselineStatus: "IN_PROGRESS", screen: "ACCESS_BP_DEVICE_INFO", flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BP_DEVICE_INFO" } } });
 });
 
 test("Set up my care repairs a stale saved route instead of reopening the same confirmation", async ({ page }) => {
@@ -351,12 +352,12 @@ test("Set up my care repairs a stale saved route instead of reopening the same c
   await page.reload();
 
   await page.getByRole("button", { name: "Set up my care" }).click();
-  await expect(page.getByRole("heading", { name: "Your first health check" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
   const repaired = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(repaired).toMatchObject({
-    screen: "ACCESS_BASELINE",
-    baselineResumeScreen: "ACCESS_BASELINE",
-    flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BASELINE" } }
+    screen: "ACCESS_BP_DEVICE_INFO",
+    baselineResumeScreen: "ACCESS_BP_DEVICE_INFO",
+    flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "ACCESS_BP_DEVICE_INFO" } }
   });
 });
 
@@ -409,7 +410,7 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
   // Seven programs, each a full navigation: this is a long test, not a slow product.
   test.setTimeout(120000);
   const programs = [
-    ["ACCESS", "ACCESS", "Set up my care", "ACCESS_BASELINE"],
+    ["ACCESS", "ACCESS", "Set up my care", "ACCESS_BP_DEVICE_INFO"],
     ["CCM", "CCM", "Set up my care", "ONBOARDING"],
     ["RPM", "RPM", "Set up my monitor", "RPM_DEVICE_PATH"],
     ["CCM + RPM", "CCM_RPM", "Continue getting started", "RPM_DEVICE_PATH"],
@@ -2250,7 +2251,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     ["CARE_RECOMMENDATION", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
     ["ACCESS_ELIGIBILITY_RESULT", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
     ["CONSENT_REVIEW", "ENROLLMENT_CHOICE", "You choose whether to enroll"],
-    ["ACCESS_BASELINE", "HEALTH_DATA_SECURITY", "Your health information is secure"]
+    ["ACCESS_BP_DEVICE_INFO", "BP_HEALTH_DATA_SECURITY", "Your health information is secure"]
   ];
 
   for (const [screen, type, message] of cases) {
