@@ -170,6 +170,15 @@ against it and can reverse it in one edit.
 safety above. I said yes; a clinician may well say no. It is the single decision in this work I
 would most like reviewed.
 
+**Which of the remaining enrollment tests to delete rather than rewrite.** Twenty still fail. Most
+assert copy or controls that moved, and I am rewriting those. A few test things the care activation
+refactor removed on purpose — the health-check screen that asked whether the patient owned a
+monitor, and the "I'm not sure" cuff option that raised a care-team task. Those cannot be rewritten
+because their subject is gone. You made this call last time, so I am not making it alone: **say
+delete and I will remove them and record the lost coverage in the QA report, or say keep and I will
+leave them failing as a visible reminder of what was dropped.** I recommend deleting, with the
+coverage loss written down.
+
 **Whether to translate the knowledge corpus.** It is written in English and read by patients in
 three languages. Keywords per page close the retrieval half of that, and the model translates the
 answer when it is reachable — but when it is not, a Spanish or Creole patient gets a general answer
