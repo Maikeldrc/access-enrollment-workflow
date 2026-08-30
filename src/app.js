@@ -8096,7 +8096,11 @@ function renderSupportAcceptance() {
   if (invite?.status === "PENDING" && !invite.openedAt) growthStore.updateSupportInvite(invite.inviteId, { openedAt: new Date().toISOString() });
   const activeInvite = growthStore.findSupportInvite(token);
   const available = activeInvite && !["EXPIRED", "CANCELED"].includes(activeInvite.status) && new Date(activeInvite.expiresAt).getTime() >= Date.now();
-  const accepted = activeInvite?.status === "ACCEPTED";
+  // "Accepted" is no longer the same as "in". Membership waits on the code sent to the phone the
+  // patient named, so this screen has three states, not two: the invitation, the code, and done.
+  const membership = activeInvite?.membership || null;
+  const awaitingCode = activeInvite?.status === "ACCEPTED" && membership?.status !== "ACTIVE";
+  const accepted = membership?.status === "ACTIVE";
   const patient = activeInvite?.patientFirstName || L("The patient", "El paciente", "Pasyan an");
   // The invitee is a stranger to this product and often an older adult reading on a phone. Four
   // questions, in order: who invited me, what am I being asked to do, what am I not allowed to do,
@@ -8119,9 +8123,23 @@ function renderSupportAcceptance() {
         L(`You’ve been invited to join ${patient}’s Care Circle`, `Le han invitado al Círculo de cuidado de ${patient}`, `Yo envite w antre nan Sèk swen ${patient}`),
         L(`${patient} invited you to provide basic support during their care experience.`, `${patient} le invitó a brindar apoyo básico durante su experiencia de cuidado.`, `${patient} envite w bay sipò debaz pandan eksperyans swen li.`)
       );
-  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art(available ? "people" : "lock", accepted)}${available ? heading : titleBlock(L("This invitation is no longer available", "Esta invitación ya no está disponible", "Envitasyon sa a pa disponib ankò"), L("Ask the patient to send a new secure invitation.", "Pida al paciente que envíe una nueva invitación segura.", "Mande pasyan an voye yon nouvo envitasyon an sekirite."))}${boundaries}${available ? (accepted ? `<p class="growth-success-note">${icon("check")} ${L("Care Circle invitation accepted", "Invitación al Círculo de cuidado aceptada", "Envitasyon Sèk swen aksepte")}</p>` : `<button type="button" class="button primary" data-public-action="accept-support">${L("Accept invitation", "Aceptar invitación", "Aksepte envitasyon")} ${icon("arrowRight")}</button>`) : ""}</section></main>`;
+  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art(available ? "people" : "lock", accepted)}${available ? heading : titleBlock(L("This invitation is no longer available", "Esta invitación ya no está disponible", "Envitasyon sa a pa disponib ankò"), L("Ask the patient to send a new secure invitation.", "Pida al paciente que envíe una nueva invitación segura.", "Mande pasyan an voye yon nouvo envitasyon an sekirite."))}${boundaries}${available && awaitingCode ? `<section class="care-circle-verify"><h2>${L("Confirm your phone number", "Confirme su número de teléfono", "Konfime nimewo telefòn ou")}</h2><p>${L("We sent a 6-digit code to the number the patient invited. Enter it to finish joining.", "Enviamos un código de 6 dígitos al número que el paciente invitó. Ingréselo para terminar.", "Nou voye yon kòd 6 chif nan nimewo pasyan an te envite a. Antre l pou fini.")}</p><label class="field" for="care-circle-otp">${L("Verification code", "Código de verificación", "Kòd verifikasyon")}<input id="care-circle-otp" name="careCircleOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value=""></label><p class="form-error" role="alert">${escapeHtml(state.careCircleVerifyError || "")}</p><button type="button" class="button primary" data-public-action="verify-support">${L("Verify and join", "Verificar y unirme", "Verifye epi antre")} ${icon("arrowRight")}</button><button type="button" class="text-button" data-public-action="resend-support-otp">${L("Send the code again", "Enviar el código otra vez", "Voye kòd la ankò")}</button></section>` : ""}${available && !awaitingCode ? (accepted ? `<p class="growth-success-note">${icon("check")} ${L("Care Circle invitation accepted", "Invitación al Círculo de cuidado aceptada", "Envitasyon Sèk swen aksepte")}</p>` : `<div class="care-circle-accept-actions"><button type="button" class="button primary" data-public-action="accept-support">${L("Accept invitation", "Aceptar invitación", "Aksepte envitasyon")} ${icon("arrowRight")}</button><button type="button" class="button secondary" data-public-action="decline-support">${L("Decline", "Rechazar", "Refize")}</button></div>`) : ""}</section></main>`;
   app.querySelector('[data-public-action="language"]')?.addEventListener("click", () => { setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"); renderSupportAcceptance(); });
-  app.querySelector('[data-public-action="accept-support"]')?.addEventListener("click", () => { growthStore.acceptSupportInvite(token); renderSupportAcceptance(); });
+  app.querySelector('[data-public-action="accept-support"]')?.addEventListener("click", () => { state.careCircleVerifyError = ""; growthStore.acceptSupportInvite(token); renderSupportAcceptance(); });
+  app.querySelector('[data-public-action="decline-support"]')?.addEventListener("click", () => { growthStore.declineSupportInvite(token); renderSupportAcceptance(); });
+  app.querySelector('[data-public-action="resend-support-otp"]')?.addEventListener("click", () => { growthStore.resendSupportOtp(token); state.careCircleVerifyError = ""; renderSupportAcceptance(); });
+  app.querySelector('[data-public-action="verify-support"]')?.addEventListener("click", () => {
+    const result = growthStore.verifySupportOtp(token, app.querySelector("#care-circle-otp")?.value);
+    // Each failure says which one it was: a wrong code, an expired one and a locked one need
+    // different things from the person holding the phone.
+    state.careCircleVerifyError = result.verified ? "" : ({
+      mismatch: L("That code did not match. Check the message and try again.", "Ese código no coincide. Revise el mensaje e inténtelo de nuevo.", "Kòd sa a pa koresponn. Gade mesaj la epi eseye ankò."),
+      expired: L("That code has expired. Send a new one.", "Ese código expiró. Envíe uno nuevo.", "Kòd sa a ekspire. Voye yon nouvo."),
+      locked: L("Too many attempts. Send a new code to continue.", "Demasiados intentos. Envíe un código nuevo para continuar.", "Twòp tantativ. Voye yon nouvo kòd pou kontinye."),
+      not_found: L("This invitation is no longer available.", "Esta invitación ya no está disponible.", "Envitasyon sa a pa disponib ankò.")
+    })[result.reason] || L("We could not verify that code.", "No pudimos verificar ese código.", "Nou pa t ka verifye kòd sa a.");
+    renderSupportAcceptance();
+  });
 }
 
 async function boot() {

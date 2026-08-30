@@ -2107,3 +2107,18 @@ a.goal-secondary-button { text-decoration:none; }
 .contact-picker-unavailable {
   margin: 1.25rem 0 0; color: var(--text-muted); font-size: .9375rem; line-height: 1.5;
 }
+
+/* Care Circle acceptance: the code step and the two answers to an invitation.
+   Accept leads, Decline is present without competing — declining is a legitimate answer and
+   hiding it would push someone into joining. Both stay full-width and comfortably tappable. */
+.care-circle-accept-actions { display: grid; gap: .625rem; margin-top: 1.25rem; }
+.care-circle-accept-actions .button { width: 100%; min-height: 48px; }
+.care-circle-verify { display: grid; gap: .75rem; margin-top: 1.25rem; }
+.care-circle-verify h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.care-circle-verify p { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+/* Wide, spaced digits: this is read off a text message and typed by someone who may be older. */
+.care-circle-verify input {
+  width: 100%; min-height: 52px; font-size: 1.375rem; letter-spacing: .32em; text-align: center;
+}
+.care-circle-verify .button { width: 100%; min-height: 48px; }
+.care-circle-verify .text-button { min-height: 44px; }
