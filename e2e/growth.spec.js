@@ -15,7 +15,7 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Choose from my contacts/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Add from contacts/i })).toHaveCount(0);
   await expect(page.getByText(/does not allow this person to consent, sign/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Angela Demo");
   await page.getByLabel("Mobile number").fill("3055550199");
@@ -46,7 +46,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
-  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await page.getByRole("button", { name: /Add from contacts/i }).click();
   await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Manual Contact");
   await page.getByLabel("Mobile number").fill("3055550199");
@@ -68,7 +68,7 @@ test("Contact Picker is progressive, editable, and never sends automatically", a
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
-  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await page.getByRole("button", { name: /Add from contacts/i }).click();
   await expect(page.getByLabel("Their name")).toHaveValue("Maria Sample");
   await expect(page.getByText(/Which mobile number/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);
@@ -189,8 +189,10 @@ test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or
   await expect(page.getByText("Dr. Fresner", { exact: true })).toBeVisible();
   await expect(page.getByText("Dr. Pedro Martinez", { exact: true })).toBeVisible();
   await expect(page.getByText("Cardiologist", { exact: false })).toBeVisible();
-  await expect(page.getByText("Care Manager", { exact: true })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH", { exact: true })).toHaveCount(0);
+  // The care manager is a person now, not the organization. ITERA HEALTH still appears, but as the
+  // practice behind her rather than as a card standing in for a human being.
+  await expect(page.getByText("Alicia Ramírez, RN", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Care coordination · ITERA HEALTH/)).toBeVisible();
   await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -230,7 +232,7 @@ test("My Care Team keeps patient-facing copy localized in Spanish and Kreyòl", 
   await expect(page.getByRole("heading", { name: "Mi equipo de cuidado" })).toBeVisible();
   await expect(page.getByText("Médico de atención primaria", { exact: false })).toBeVisible();
   await expect(page.getByText("Cardiólogo", { exact: false })).toBeVisible();
-  await expect(page.getByText("Coordinador de cuidado", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Coordinación de cuidado/)).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Ekip swen mwen" })).toBeVisible();
   await expect(page.getByText("Doktè prensipal", { exact: false })).toBeVisible();

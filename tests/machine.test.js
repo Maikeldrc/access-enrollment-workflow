@@ -114,6 +114,17 @@ describe("enrollment state machine", () => {
     expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
   });
 
+  // The patient is never asked whether they own a monitor, so the answer has to come from their
+  // record. Hardcoding one path sent somebody who already had a device to request a second, and
+  // left the verification path unreachable for everybody.
+  it("takes the device path from the record rather than from a question", () => {
+    expect(journeyFor(stateFor("access-bp-incompatible", {}))).toContain("ACCESS_BP_DEVICE_VERIFICATION");
+    expect(journeyFor(stateFor("access-bp-none", {}))).toContain("ACCESS_BP_DEVICE_INFO");
+    expect(journeyFor(stateFor("access-bp-none", {}))).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
+    // An explicit path still wins, so the existing branches stay reachable.
+    expect(journeyFor(stateFor("access-bp-none", { bpDevicePath: "owned" }))).toContain("ACCESS_BP_DEVICE_VERIFICATION");
+  });
+
   it("branches the ACCESS blood-pressure baseline by device path", () => {
     const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", deviceVerificationStatus: "PATIENT_CONFIRMED", bpDeviceVerificationStatus: "PATIENT_CONFIRMED" }));
     const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));

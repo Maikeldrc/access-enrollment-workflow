@@ -105,9 +105,14 @@ export function journeyFor(s) {
     // for what is still missing to personalize it. Goals moved ahead of the personalization screens
     // for that reason: a patient who has seen their goals understands what the questions are for.
     const remainingCareSetup = ["GOALS", "ACCESS_SUPPORT_NEEDS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
-    // The patient is never asked whether they own a monitor. Their record already says, and the
-    // default is the canonical patient's situation: no connected monitor yet.
-    const devicePath = s.bpDevicePath || "needed";
+    // The patient is never asked whether they own a monitor: their record already says. A patient
+    // with a connected device goes down the path that verifies it, and one with none goes to the
+    // path that arranges one. Hardcoding "needed" here sent a patient who already had a monitor to
+    // request a second, and made the verification path unreachable for anybody.
+    const fixture = s.offer?.fixture || {};
+    const noDeviceOnRecord = fixture.deviceSource === "NONE" || fixture.bpDeviceScenario === "none" || fixture.bpDeviceAssignment === "none";
+    const deviceOnRecord = !noDeviceOnRecord && Boolean(fixture.deviceSource || fixture.bpDeviceScenario || fixture.bpDeviceAssignment);
+    const devicePath = s.bpDevicePath || (deviceOnRecord ? "owned" : "needed");
     const bpPath = devicePath === "owned"
       ? ["ACCESS_BP_DEVICE_VERIFICATION", ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []), ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup] : [])]
       : devicePath === "help"

@@ -1,11 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
-async function openOwnedBpVerification(page, scenario = "access-happy") {
+async function openOwnedBpVerification(page, scenario = "access-bp-incompatible") {
   await page.goto(`/?scenario=${scenario}`);
-  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
-  await page.locator('.choice-card:has(input[value="owned"])').click();
-  await page.getByRole("button", { name: "Continue" }).click();
+  // No monitor question exists any more: a record holding a device routes straight to verification.
+  await page.locator("#screen-select").selectOption("ACCESS_BP_DEVICE_VERIFICATION", { force: true });
   await expect(page.getByRole("heading", { name: /Your monitor is connected to ITERA|We don’t see a monitor connected to your care yet\.|We need to check your monitor|Let’s get you a connected monitor/ })).toBeVisible({ timeout: 5000 });
 }
 
@@ -19,10 +18,8 @@ async function reachBpReadings(page, scenario = "access-happy") {
 
 async function openNeededMonitorDetails(page) {
   await page.goto("/?scenario=access-happy");
-  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
-  await page.locator('.choice-card:has(input[value="needed"])').click();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Let’s find the right monitor for you" })).toBeVisible();
+  await page.locator("#screen-select").selectOption("ACCESS_BP_DEVICE_INFO", { force: true });
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
 }
 
 test("prototype setup shows defaults and conditional fields", async ({ page }) => {
