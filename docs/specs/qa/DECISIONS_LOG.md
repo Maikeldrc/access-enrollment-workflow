@@ -170,14 +170,24 @@ against it and can reverse it in one edit.
 safety above. I said yes; a clinician may well say no. It is the single decision in this work I
 would most like reviewed.
 
-**Which of the remaining enrollment tests to delete rather than rewrite.** Twenty still fail. Most
-assert copy or controls that moved, and I am rewriting those. A few test things the care activation
-refactor removed on purpose — the health-check screen that asked whether the patient owned a
-monitor, and the "I'm not sure" cuff option that raised a care-team task. Those cannot be rewritten
-because their subject is gone. You made this call last time, so I am not making it alone: **say
-delete and I will remove them and record the lost coverage in the QA report, or say keep and I will
-leave them failing as a visible reminder of what was dropped.** I recommend deleting, with the
-coverage loss written down.
+**Which enrollment tests to delete rather than rewrite** — *yours.* You said to delete them if this
+flow no longer needs them. Two went: the health-check screen that asked whether the patient owned a
+monitor, and its localisation. Care activation removed that question on purpose.
+
+The rest turned out not to be deletable. Cuff-selection assistance is still a live path — only the
+"I'm not sure" card went, and an arm measurement that fits no stocked cuff still reaches it. The
+calm automatic lookup and the patient-owned monitor journey both still exist; only their entry point
+had to change.
+
+One thing the deleted tests held was worth more than they were: a patient must never type a blood
+pressure, and that assertion existed nowhere else in the suite. It is now its own test.
+
+**Whether "we don't see a monitor connected to your care yet" is still a state anyone reaches.**
+Three tests assert it using the no-monitor scenario, but a record that says no monitor now routes
+straight to arranging one — which is right. The screen still has the choices (own monitor, need one
+from ITERA, not sure), reachable only when a record claims a device the lookup cannot find. Either
+that is a real stale-record case worth a scenario, or the state is dead and the three tests go with
+it. **I did not invent a scenario to make the tests pass; that would be a fixture asserting itself.**
 
 **Whether to translate the knowledge corpus.** It is written in English and read by patients in
 three languages. Keywords per page close the retrieval half of that, and the model translates the
