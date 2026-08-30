@@ -4771,7 +4771,49 @@ function monitoringReady() {
   return `${art("check", true)}${titleBlock(L("Home monitoring is ready", "El monitoreo en casa está listo", "Siveyans lakay ou pare"), L("We securely received your first connected reading.", "Recibimos de forma segura su primera lectura conectada.", "Nou te resevwa san danje premye lekti ou konekte."))}<section class="reading-card"><small>${L("Your first reading", "Su primera lectura", "Premye lekti ou")}</small><strong>${state.reading?.systolic || 120} / ${state.reading?.diastolic || 80} <em>mmHg</em></strong></section><section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["calendar", L("Take readings as directed by your care team", "Tome lecturas según le indiquen", "Pran lekti jan ekip swen w la mande sa"), ""], ["chart", L("ITERA reviews your transmitted readings", "ITERA revisa sus lecturas transmitidas", "ITERA revize lekti transmèt ou yo"), ""], ["shield", L("This service is not for emergencies", "Este servicio no es para emergencias", "Sèvis sa a se pa pou ijans"), ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>${shareAccessPrompt(GROWTH_MOMENTS.FIRST_READING_RECEIVED)}`;
 }
 
+// The ACCESS care plan. Not a document: the same records the patient has been building, shown
+// together — the goals the track assigned, where each one starts, how ACCESS will judge it, the
+// monitor being arranged and the people involved. Everything here is read from runtime, so a plan
+// can only ever claim what actually happened.
+function accessCarePlanReady() {
+  const runtime = careActivationRuntime();
+  const goals = assignedAccessGoals(state.offer).map(goalType => {
+    const point = patientStartingPoint(goalType, runtime);
+    const measure = accessProgressMeasure(goalType, point);
+    const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+    const nextSteps = suggestedActionsFor(goalType).slice(0, 3)
+      .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
+    return `<article class="care-plan-goal">
+      <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
+      <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
+      <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
+      <section class="access-goal-plan"><h4>${L("Next steps", "Próximos pasos", "Pwochen etap yo")}</h4><ul>${nextSteps}</ul></section>
+    </article>`;
+  }).join("");
+
+  // Only the two states the runtime can actually be in. Shipped, delivered and connected are real
+  // milestones, and claiming one before a fulfillment response says so is the kind of promise a
+  // patient plans their week around.
+  const requested = state.deviceFulfillmentStatus === "REQUESTED";
+  const deviceStatus = requested
+    ? L("Requested — we’ll keep you updated", "Solicitado: le mantendremos informado", "Mande — n ap kenbe w enfòme")
+    : L("Not requested yet", "Aún no solicitado", "Poko mande");
+  const deviceCard = `<section class="care-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="care-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
+
+  const team = patientCareTeam().slice(0, 4).map(member =>
+    `<li>${careTeamMemberAvatar(member)}<span><strong>${escapeHtml(member.displayName)}</strong><small>${escapeHtml(careTeamRoleLabel(member))}</small></span></li>`).join("");
+  const teamCard = team ? `<section class="care-plan-block"><h2>${L("Connected with your care team", "Conectado con su equipo de cuidado", "Konekte ak ekip swen ou")}</h2><ul class="care-plan-team">${team}</ul></section>` : "";
+
+  return `${art("check", true)}${titleBlock(L("Your ACCESS care plan is ready", "Su plan de cuidado ACCESS está listo", "Plan swen ACCESS ou a pare"), L("Your goals, health information, connected monitor, and next steps are now organized in one place.", "Sus objetivos, su información de salud, su monitor conectado y los próximos pasos están ahora en un solo lugar.", "Objektif ou yo, enfòmasyon sante ou, aparèy konekte ou a ak pwochen etap yo kounye a nan yon sèl kote."))}
+    <section class="care-plan-block"><h2>${L("Your health goals", "Sus objetivos de salud", "Objektif sante ou yo")}</h2><div class="care-plan-goals">${goals}</div></section>
+    ${deviceCard}${teamCard}
+    ${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "finish")}`;
+}
+
 function onboardingComplete() {
+  // ACCESS ends on a care plan; every other program still ends on this screen, which is right for
+  // them because they did not just build one.
+  if (state.offer?.pathway === "ACCESS") return accessCarePlanReady();
   const doctorCopy = state.offer?.physician?.displayName ? L(`You continue working with ${state.offer.physician.displayName}`, `Continúa trabajando con ${state.offer.physician.displayName}`, `Ou kontinye travay avèk ${state.offer.physician.displayName}`) : L("You continue working with your doctors", "Continúa trabajando con sus médicos", "Ou kontinye travay avèk doktè ou yo");
   return `${art("check", true)}${titleBlock(L("You’re off to a great start", "Ha comenzado muy bien", "Ou ap ale nan yon gwo kòmanse"), L("We saved your information and will use it to personalize your care.", "Guardamos su información y la usaremos para personalizar su cuidado.", "Nou sove enfòmasyon ou yo epi nou pral itilize li pou pèsonalize swen ou yo."))}<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["people", L("Your ITERA care team reviews your information", "Su equipo ITERA revisa su información", "Ekip swen ITERA w la revize enfòmasyon w yo"), ""], ["phone", L("We contact you with any follow-up questions", "Le contactaremos si hay preguntas", "Nou kontakte ou ak nenpòt kesyon swivi"), ""], ["doctor", doctorCopy, ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>${shareAccessPrompt(GROWTH_MOMENTS.GETTING_STARTED_COMPLETED)}`;
 }
