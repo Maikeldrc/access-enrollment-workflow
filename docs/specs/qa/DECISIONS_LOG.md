@@ -192,8 +192,14 @@ monitor, which routes straight to arranging one. Writing it found a third defect
 outcome of that lookup records that the baseline is waiting on the device, and this one did not, so
 the patient looked like they had never started while sitting on the screen asking them about it.
 
-**Whether to translate the knowledge corpus.** It is written in English and read by patients in
-three languages. Keywords per page close the retrieval half of that, and the model translates the
-answer when it is reachable — but when it is not, a Spanish or Creole patient gets a general answer
-where an English speaker gets a specific one. Translating the corpus is the real fix and is a
-sizeable piece of work.
+**The knowledge corpus answers in three languages** — *yours.* Not by translating 49 documents:
+what reaches a patient is the answer, not the page, so each page carries its own answer per
+language. Twenty-two have one, covering what patients actually ask; a page without one falls back to
+the trilingual canned answer exactly as before, so coverage can grow a page at a time.
+
+Proving it exposed four faults in ranking that only a non-English question could show, all fixed:
+the runtime programme name was scored as if the patient had said it, the category and programme
+boosts manufactured relevance rather than breaking ties, keywords applied per chunk instead of per
+document, and repeated words counted repeatedly. The general page for a programme now sits in its
+own tier — it takes the questions that name only the programme and stands aside for a page that
+claimed the question's own words.
