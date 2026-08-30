@@ -179,5 +179,16 @@ Stated plainly, because a certification cannot be issued over them:
   built here; the 7 widths × 3 scales matrix has not been run.
 - **Accessibility** — touch targets and semantics were designed for and checked in places, not
   audited.
-- **e2e** — a full run finished at 392 passed / 19 failed / 1 flaky / 5 skipped. Three spec files
-  assert removed screens; two have been updated, the rest is in progress.
+- **e2e** — a full run against `8dec649` finished at **396 passed / 49 failed / 5 skipped**.
+  Forty-four of the forty-nine are in `enrollment.spec.js`, concentrated in the ACCESS device and
+  baseline block that this refactor rewrote. Seven of those tested features deliberately removed —
+  the arm restriction questions and the health check screens — and have been deleted rather than
+  rewritten: a test for a feature that no longer exists is not coverage. The rest need rewriting to
+  the new flow and are in progress.
+
+  Two earlier numbers I reported were wrong and are corrected here. The first run appeared to pass
+  because `EXIT=$?` after a pipeline reads the exit code of `tail`, not of Playwright. A later
+  targeted run showed 52 failures including most of `emmi-guidance.spec.js`; those did not
+  reproduce — the run had started before the helper fixes, and running three heavy spec files
+  together contends for one dev server, which is the failure mode `playwright.config.js` already
+  documents.
