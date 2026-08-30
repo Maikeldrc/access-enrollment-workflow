@@ -2099,3 +2099,11 @@ a.goal-secondary-button { text-decoration:none; }
   border: 2px solid var(--surface-primary); box-shadow: 0 0 0 1px var(--border-default);
 }
 @media (max-width: 360px) { .care-team-member-initials { width: 44px; height: 44px; font-size: .9375rem; } }
+
+/* Contacts unavailable.
+   A note, not an error: nothing has gone wrong, this browser simply has no Contact Picker. Muted
+   and unboxed so it reads as an aside rather than as a problem the patient has to solve, and it
+   sits where the button would have been so the manual fields still look like the intended path. */
+.contact-picker-unavailable {
+  margin: 1.25rem 0 0; color: var(--text-muted); font-size: .9375rem; line-height: 1.5;
+}
