@@ -5370,6 +5370,14 @@ document.addEventListener("click", event => {
   document.querySelector(".condition-multiselect")?.removeAttribute("open");
 });
 
+// Landing on the verification screen is what starts the lookup, however the patient got there. The
+// advance path only started one that was already in flight, and the enrollment-confirmation route
+// — the ordinary way in for someone whose record already holds a monitor — started none at all, so
+// a patient with a connected monitor was told "we don't see a monitor connected to your care yet".
+const startAssignedDeviceLookupIfPending = () => {
+  if (state.screen === "ACCESS_BP_DEVICE_VERIFICATION" && ["NOT_STARTED", "CHECKING"].includes(state.deviceVerificationStatus)) runAssignedDeviceLookup();
+};
+
 async function runAssignedDeviceLookup() {
   if (state.screen !== "ACCESS_BP_DEVICE_VERIFICATION" || state.busy) return;
   state.busy = true;
@@ -5978,7 +5986,7 @@ async function advance() {
   if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING") runEligibility();
   if (state.screen === "ENROLLMENT_PROCESSING") runEnrollment();
   if (state.screen === "ACCESS_ALIGNMENT_PROCESSING") runAlignment();
-  if (state.screen === "ACCESS_BP_DEVICE_VERIFICATION" && state.deviceVerificationStatus === "CHECKING") runAssignedDeviceLookup();
+  startAssignedDeviceLookupIfPending();
   if (["ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE"].includes(state.screen) && state.bpBaselineStatus === "IN_PROGRESS") syncPendingAccessBpObservations();
 }
 
@@ -7551,6 +7559,7 @@ function bind() {
       state.screen = resumeRoute;
       draftStore.save(state);
       render();
+      startAssignedDeviceLookupIfPending();
       return;
     }
     if (action === "defer-next-flow") {
@@ -8341,7 +8350,7 @@ async function boot() {
     state.accessShares = patientShareSource ? [] : growthStore.allShares();
     document.documentElement.lang = htmlLanguage(state.language); render();
     if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING" && !state.eligibilityError) runEligibility();
-    if (state.screen === "ACCESS_BP_DEVICE_VERIFICATION" && ["NOT_STARTED", "CHECKING"].includes(state.deviceVerificationStatus)) runAssignedDeviceLookup();
+    startAssignedDeviceLookupIfPending();
   } catch (error) { state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID"; render(); }
 }
 

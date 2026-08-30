@@ -326,3 +326,35 @@ describe("enrollment state machine", () => {
     expect(referral.referringProvider.verifiedPhotoUrl).toBe("/doctor-rivera.jpg");
   });
 });
+
+// Care setup does not depend on how the monitor turned out.
+//
+// The owned-device path appended goals, barriers, the clinical check, medications and preferences
+// only once verification had reached PATIENT_CONFIRMED, WAITING_FOR_READING or SOURCE_VERIFIED.
+// Anyone whose monitor failed, needed review, or was simply not finished went from the device
+// screen straight to "your ACCESS care is ready" with none of it. The path that arranges a new
+// monitor always carried them, which is what made the asymmetry easy to miss.
+describe("the care setup survives whatever the monitor does", () => {
+  const CARE_SETUP = ["GOALS", "ACCESS_SUPPORT_NEEDS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+  const withDevice = deviceVerificationStatus => ({
+    offer: { pathway: "ACCESS", payer: { mbiAvailable: true }, fixture: { bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" } },
+    accessOutcome: "eligible",
+    deviceVerificationStatus
+  });
+
+  for (const status of ["NOT_STARTED", "CHECKING", "FAILED", "NEEDS_REVIEW", "INACTIVE", "DEVICE_MISMATCH", "SOURCE_MISMATCH", "PATIENT_CONFIRMED", "SOURCE_VERIFIED"]) {
+    it(`keeps every care setup screen when verification is ${status}`, () => {
+      const journey = journeyFor(withDevice(status));
+      for (const screen of CARE_SETUP) expect(journey, `${status} lost ${screen}`).toContain(screen);
+      // And they come after the device, not before it.
+      expect(journey.indexOf("GOALS")).toBeGreaterThan(journey.indexOf("ACCESS_BP_DEVICE_VERIFICATION"));
+      expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
+    });
+  }
+
+  it("gives a patient who owns a monitor the same care setup as one who needs one", () => {
+    const owned = journeyFor(withDevice("NOT_STARTED")).filter(screen => CARE_SETUP.includes(screen));
+    const needed = journeyFor({ offer: { pathway: "ACCESS", payer: { mbiAvailable: true }, fixture: { bpDeviceScenario: "none" } }, accessOutcome: "eligible" }).filter(screen => CARE_SETUP.includes(screen));
+    expect(owned).toEqual(needed);
+  });
+});

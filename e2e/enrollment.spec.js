@@ -4,11 +4,16 @@ import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 async function openOwnedBpVerification(page, scenario = "access-bp-assigned") {
   await page.goto(`/?scenario=${scenario}`);
   // No monitor question exists any more: a record holding a device routes straight to verification.
-  await page.locator("#screen-select").selectOption("ACCESS_BP_DEVICE_VERIFICATION", { force: true });
+  // Arrived at through the confirmation screen rather than jumped to, because landing on it is what
+  // starts the assigned-device lookup — a jump shows the screen before it has looked anything up.
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await page.getByRole("button", { name: /Set up my care/i }).click();
   await expect(page.getByRole("heading", { name: /Your monitor is connected to ITERA|We don’t see a monitor connected to your care yet\.|We need to check your monitor|Let’s get you a connected monitor/ })).toBeVisible({ timeout: 5000 });
 }
 
-async function reachBpReadings(page, scenario = "access-happy") {
+// The readings only exist once a monitor is connected, and it is the record holding a device that
+// routes there now. access-happy has no monitor on its record, so it never reaches this screen.
+async function reachBpReadings(page, scenario = "access-bp-assigned") {
   await openOwnedBpVerification(page, scenario);
   await page.locator('.choice-card:has(input[value="yes"])').click();
   await page.getByRole("button", { name: "Continue" }).click();

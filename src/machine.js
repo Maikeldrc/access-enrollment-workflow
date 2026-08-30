@@ -113,8 +113,17 @@ export function journeyFor(s) {
     const noDeviceOnRecord = fixture.deviceSource === "NONE" || fixture.bpDeviceScenario === "none" || fixture.bpDeviceAssignment === "none";
     const deviceOnRecord = !noDeviceOnRecord && Boolean(fixture.deviceSource || fixture.bpDeviceScenario || fixture.bpDeviceAssignment);
     const devicePath = s.bpDevicePath || (deviceOnRecord ? "owned" : "needed");
+    // The device steps grow as verification progresses, but the care setup after them does not
+    // depend on how the monitor turned out. It used to: a patient whose verification failed, needed
+    // review, or simply had not finished yet went from the device screen straight to "your ACCESS
+    // care is ready", losing their goals, the barriers question, the clinical check, medications
+    // and preferences without anything saying so. The path that arranges a monitor never had that
+    // problem, which is what made the asymmetry easy to miss.
+    const ownedDeviceSteps = ["ACCESS_BP_DEVICE_VERIFICATION",
+      ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []),
+      ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination] : [])];
     const bpPath = devicePath === "owned"
-      ? ["ACCESS_BP_DEVICE_VERIFICATION", ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []), ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup] : [])]
+      ? [...ownedDeviceSteps, ...remainingCareSetup]
       : devicePath === "help"
         ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination, ...remainingCareSetup]
         : ["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", ...remainingCareSetup];
