@@ -30,13 +30,26 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
 
   const supportPage = await context.newPage();
   await supportPage.goto(supportLink);
-  await expect(supportPage.getByRole("heading", { name: "You’ve been invited to join a Care Circle" })).toBeVisible();
+  // The heading names who invited them. An invitation from nobody in particular is what this page
+  // used to be, and the first thing an invitee needs to know is whose Care Circle this is. Only the
+  // first name: the page is reachable by anyone holding the link.
+  await expect(supportPage.getByRole("heading", { name: /You’ve been invited to join .+’s Care Circle/ })).toBeVisible();
   await expect(supportPage.getByText(/does not make you a Personal Representative/i)).toBeVisible();
   await supportPage.getByRole("button", { name: /Accept invitation/i }).click();
+
+  // Accepting is not the same as being in. Membership waits on a code sent to the number the
+  // patient named, so someone who was forwarded the link cannot join by pressing accept.
+  await expect(supportPage.getByRole("heading", { name: /Confirm your phone number/i })).toBeVisible();
+  await expect(supportPage.getByRole("heading", { name: "You’re ready to help" })).toHaveCount(0);
+  await supportPage.locator("#care-circle-otp").fill("123456");
+  await supportPage.locator('[data-public-action="verify-support"]').click();
   await expect(supportPage.getByRole("heading", { name: "You’re ready to help" })).toBeVisible();
 
   const invite = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.care-circle.prototype.v1")).invites.at(-1));
   expect(invite.status).toBe("ACCEPTED");
+  // In, with no authority and nothing granted that the patient did not choose.
+  expect(invite.membership.status).toBe("ACTIVE");
+  expect(invite.membership.authority).toBe("NONE");
   expect(invite.supportRole).toBe("CARE_CIRCLE_MEMBER");
   expect(invite.completionRole).toBe("PATIENT");
 });
