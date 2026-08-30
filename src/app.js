@@ -4231,8 +4231,12 @@ function accessStartingPointBody(goalType, point) {
         : `${point.value} mmHg <span>${L("starting systolic", "sistólica inicial", "sistolik nan konmansman")}</span>`;
       return `<p class="access-goal-value">${value}</p>${confirmed}`;
     }
-    const bmi = point.bmi ? `<p class="access-goal-detail">${L("BMI", "IMC", "BMI")} ${formatBmi(point.bmi)}</p>` : "";
-    return `<p class="access-goal-value">${point.value} <span>lb</span></p>${bmi}${confirmed}`;
+    // Weight and BMI are two readings of the same confirmed baseline, so they sit on one row as
+    // peers. Stacked, the BMI read as a footnote to the weight and cost the card a whole line for
+    // one short number. Weight stays first in the source, which is the order it is read in whether
+    // the row holds both or wraps them.
+    const bmi = point.bmi ? `<p class="access-goal-detail"><span>${L("BMI", "IMC", "BMI")}</span> ${formatBmi(point.bmi)}</p>` : "";
+    return `<div class="access-goal-metrics"><p class="access-goal-value">${point.value} <span>lb</span></p>${bmi}</div>${confirmed}`;
   }
   const pending = goalType === "BLOOD_PRESSURE_CONTROL"
     ? L("We’ll confirm your starting blood pressure as part of setting up your care.", "Confirmaremos su presión arterial inicial como parte de la configuración de su cuidado.", "N ap konfime tansyon ou nan konmansman an antan n ap mete swen ou anplas.")
