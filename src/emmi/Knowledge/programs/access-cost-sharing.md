@@ -11,6 +11,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH participant configuration
 owner: ITERA HEALTH
+keywords: cost, costo, coste, pagar, pago, pay, payment, kou, peye, cost sharing, coseguro, coinsurance, cuanto, cuánto, konbyen, amount, monto, montan
 ---
 
 # ACCESS cost sharing

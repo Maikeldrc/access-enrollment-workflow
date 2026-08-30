@@ -11,6 +11,7 @@ version: 1.1
 last_reviewed: 2026-08-30
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH consent terms
 owner: ITERA HEALTH
+keywords: leave, leaving, dejar, salir, terminar, finalizar, kite, end participation, terminar participacion, terminar participación, switch provider, cambiar de proveedor, chanje founise, chanje founisè, 90 days, 90 dias, 90 días, 90 jou, voluntary, voluntaria, volonte, disenroll, darse de baja
 ---
 
 # Leaving ACCESS, ending participation or changing provider: the 90 day term

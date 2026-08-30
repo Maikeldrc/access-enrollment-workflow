@@ -11,6 +11,7 @@ version: 1.1
 last_reviewed: 2026-08-30
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH pre-eligibility notice
 owner: ITERA HEALTH
+keywords: comparison group, comparacion, comparación, grupo de comparacion, grupo de comparación, gwoup konparezon, random, azar, aleatorio, aza, evaluation, evaluacion, evaluación, evalyasyon, control group, grupo de control
 ---
 
 # The ACCESS evaluation, random selection and the comparison group

@@ -253,3 +253,43 @@ describe("the facts a patient is entitled to before agreeing", () => {
     expect(strays).toEqual([]);
   });
 });
+
+// The 2026-08-30 production validation called this "generic ACCESS fallback ignores focused
+// knowledge": five focused questions all came back with the same general ACCESS pages. Three of
+// them had no page at all — eCKM and A1c existed only in the demoted master file, and the ACCESS
+// outcome targets existed only in application code and nowhere in the corpus.
+describe("focused questions reach focused knowledge", () => {
+  const retrievedText = query =>
+    retrieveKnowledge({ query, runtime: { program: "ACCESS" }, index }).chunks.map(chunk => chunk.text).join("\n\n");
+
+  for (const [question, expected] of [
+    ["What does eCKM mean?", /Early Cardio-Kidney-Metabolic/i],
+    ["¿Qué es eCKM?", /Early Cardio-Kidney-Metabolic/i],
+    ["What is the ACCESS blood pressure target?", /below 130 mmHg/i],
+    ["¿Cuál es la meta de presión arterial de ACCESS?", /below 130 mmHg/i],
+    ["Why do you need A1c if I'm not diabetic?", /A1c is asked of everyone in the track/i],
+    ["¿Por qué necesitan A1c si no soy diabético?", /A1c is asked of everyone in the track/i]
+  ]) {
+    it(`answers from the page written for it: ${question.slice(0, 44)}`, () => {
+      expect(retrievedText(question)).toMatch(expected);
+    });
+  }
+
+  it("keeps the control target and the improvement milestone apart", () => {
+    const text = retrievedText("What is the ACCESS blood pressure target?");
+    expect(text).toMatch(/below 130 mmHg/i);
+    expect(text).toMatch(/at least 15 mmHg below/i);
+  });
+
+  it("sends the patient's own target back to the runtime rather than answering it from a page", () => {
+    expect(retrievedText("What is the ACCESS blood pressure target?")).toMatch(/getClinicalTarget/);
+  });
+
+  // The master file lists a monthly figure per track. The tracks page deliberately does not carry
+  // it across: what a patient pays comes from the engine, for them and their track.
+  it("does not let the tracks page quote an amount", () => {
+    const tracks = index.chunks.filter(chunk => chunk.sourcePath === "programs/access-tracks.md");
+    expect(tracks.length).toBeGreaterThan(0);
+    expect(tracks.filter(chunk => /\$\d/.test(chunk.text)).map(chunk => chunk.heading)).toEqual([]);
+  });
+});

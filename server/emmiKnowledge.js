@@ -239,6 +239,11 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
     heading: chunk.heading,
     text: chunk.text,
     tokens: tokenize(`${chunk.heading} ${chunk.text}`),
+    // The corpus is written in English and the patients ask in three languages, so token overlap
+    // alone cannot tell one ACCESS page from another for a Spanish or Creole question: every page
+    // scores the same category and programme boost and the winner is whatever the tie-break lands
+    // on. A page declares the words a patient would actually use to ask for it, in each language.
+    keywordTokens: tokenize(String(metadata.keywords || "").replace(/,/g, " ")),
     metadata: {
       id: metadata.id || sourcePath,
       title: metadata.title || sourcePath,
@@ -302,6 +307,9 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     for (const token of chunk.tokens) if (queryTokens.has(token)) score += 1;
     // Heading matches are the strongest signal that a section is on-topic.
     for (const token of tokenize(chunk.heading)) if (queryTokens.has(token)) score += 2;
+    // A declared keyword is the page saying "this is the question I answer", and it is the only
+    // signal a non-English question has to go on, so it outweighs an incidental body match.
+    for (const token of chunk.keywordTokens || []) if (queryTokens.has(token)) score += 4;
     if (wantedCategories.has(chunk.metadata.category)) score += 3;
     if (chunk.metadata.program && wantedPrograms.has(chunk.metadata.program)) score += 4;
     // A program document for a program the patient is not in is noise (§45).
