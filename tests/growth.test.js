@@ -57,3 +57,55 @@ describe("Share ACCESS prototype attribution", () => {
     expect(growthPromptAvailable(new Date(now - GROWTH_PROMPT_COOLDOWN_MS).toISOString(), now)).toBe(true);
   });
 });
+
+describe("Care Circle acceptance requires the phone, not just the link", () => {
+  const seed = () => {
+    const store = new GrowthStore(memoryStorage());
+    const invite = store.createSupportInvite({ inviterPatientId: "P1", patientFirstName: "Margaret", supportPersonName: "Ana Rodriguez", phone: "305-555-0199", relationship: "child", sessionId: "s1", origin: "https://example.test" });
+    return { store, invite };
+  };
+
+  // Opening a link proves somebody opened a link. Until the code sent to the patient's named number
+  // comes back, nobody has joined anything.
+  it("creates a membership that can do nothing until the code is entered", () => {
+    const { store, invite } = seed();
+    const accepted = store.acceptSupportInvite(invite.token);
+    expect(accepted.status).toBe("ACCEPTED");
+    expect(accepted.membership.status).toBe("PENDING_VERIFICATION");
+    expect(accepted.membership.permissions).toEqual([]);
+    expect(accepted.membership.authority).toBe("NONE");
+    // The patient does not see "Active" while this is true.
+    expect(store.careCircleMemberStatus(store.findSupportInvite(invite.token))).toBe("PENDING_VERIFICATION");
+  });
+
+  it("activates only on the right code, and counts the wrong ones", () => {
+    const { store, invite } = seed();
+    store.acceptSupportInvite(invite.token);
+    const wrong = store.verifySupportOtp(invite.token, "000000");
+    expect(wrong).toMatchObject({ verified: false, reason: "mismatch", attemptsRemaining: 4 });
+    expect(store.supportMembership(invite.token).status).toBe("PENDING_VERIFICATION");
+
+    const right = store.verifySupportOtp(invite.token, "123456");
+    expect(right.verified).toBe(true);
+    expect(right.membership).toMatchObject({ status: "ACTIVE", authority: "NONE", permissions: [] });
+  });
+
+  it("declines without leaving a membership behind", () => {
+    const { store, invite } = seed();
+    const declined = store.declineSupportInvite(invite.token);
+    expect(declined.status).toBe("DECLINED");
+    expect(declined.membership).toBeUndefined();
+    expect(store.supportMembership(invite.token)).toBeNull();
+  });
+
+  // A removed member whose membership stayed ACTIVE is precisely the stale grant a later request
+  // would be checked against.
+  it("revokes the membership when the patient removes the member", () => {
+    const { store, invite } = seed();
+    store.acceptSupportInvite(invite.token);
+    store.verifySupportOtp(invite.token, "123456");
+    store.removeCareCircleMember(invite.inviteId);
+    expect(store.supportMembership(invite.token)).toMatchObject({ status: "REVOKED", permissions: [] });
+    expect(store.careCircleMemberStatus(store.findSupportInvite(invite.token))).toBe("REMOVED");
+  });
+});
