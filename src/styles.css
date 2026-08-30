@@ -784,10 +784,7 @@ p { margin:0; }
 .emmi-avatar { display:grid;place-items:center;width:var(--emmi-avatar-compact);height:var(--emmi-avatar-compact);overflow:visible;border-radius:0;background:transparent;flex:0 0 var(--emmi-avatar-compact); }
 .emmi-assistant .emmi-avatar { width:var(--emmi-avatar-floating);height:var(--emmi-avatar-floating);flex-basis:var(--emmi-avatar-floating); }
 .emmi-avatar img { display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
-.emmi-assistant img { pointer-events:none;user-select:none; }
-.emmi-contextual-nudge { position:fixed;z-index:9;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(136px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
-.emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
-@keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
+.emmi-assistant img { pointer-events:none;user-select:none; }@keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
 .assistant-open { overflow:hidden; }
 .emmi-sheet-open { overflow:hidden; }
 .emmi-sheet-icon { width:22px;height:22px;flex:0 0 22px;border-radius:0;color:inherit;background:transparent; }
@@ -848,7 +845,7 @@ p { margin:0; }
 @keyframes emmi-guide-pulse { 50% { opacity:.55; } }
 @keyframes emmi-audio-wave { to { transform:scaleY(.45);opacity:.55; } }
 .emmi-assistant .emmi-audio-activity { margin-left:0; }
-@media (prefers-reduced-motion:reduce) { .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar,.emmi-audio-activity b,.emmi-contextual-nudge { animation:none; } }
+@media (prefers-reduced-motion:reduce) {}
 
 /* Secondary voice actions live in one senior-friendly bottom sheet. Opening it changes only
    presentation; the existing EMMI session, state machine and conversation stay untouched. */
@@ -1721,9 +1718,7 @@ p { margin:0; }
   .emmi-assistant { right:calc(var(--emmi-shell-right-inset,0px) + var(--patient-page-gutter));bottom:calc(var(--patient-emmi-overlay-offset) + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 }
 @media (max-width:374px) { body { font-size:17px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.stage-brand-row{padding-right:7px} }
-@media (max-width:599px) {
-  .emmi-contextual-nudge { right:58px;bottom:18px;max-width:205px; }
-  .emmi-welcome { padding:16px; }
+@media (max-width:599px) {.emmi-welcome { padding:16px; }
   .emmi-welcome-identity { grid-template-columns:66px 1fr;gap:11px; }
   .emmi-welcome-identity img { width:66px;height:66px; }
   .emmi-welcome-identity h2 { font-size:1.12rem; }
@@ -1911,12 +1906,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .assistant-layer .assistant-common-questions button,
 .assistant-layer .assistant-faq-toggle,
 .assistant-layer .assistant-voice-options-toggle,
-.assistant-layer .assistant-voice-options button { min-height:48px;font-size:var(--emmi-panel-action);line-height:1.4; }
-.shell:not(:has(.prototype-console)) .emmi-contextual-nudge,
-.shell:not(:has(.prototype-console)) .emmi-guide-transcript,
-.shell:not(:has(.prototype-console)) .emmi-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
-
-/* Configurator fields that preview patient data use the same readable form scale. */
+.assistant-layer .assistant-voice-options button { min-height:48px;font-size:var(--emmi-panel-action);line-height:1.4; }/* Configurator fields that preview patient data use the same readable form scale. */
 .prototype-field>span,.physician-configuration>legend { font-size:var(--font-helper);line-height:var(--line-helper); }
 .prototype-field select,.prototype-field>input,.other-condition input { min-height:54px;font-size:17px;line-height:1.4; }
 .prototype-helper { font-size:var(--font-helper);line-height:var(--line-helper); }

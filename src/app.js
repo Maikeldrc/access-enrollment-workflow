@@ -141,7 +141,7 @@ let state = {
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
   assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantSupportOpen: false, emmiOfferedLocale: "", emmiLanguageStreak: 0, emmiDeclinedLocales: [], assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
-  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiContextualNudgeVisible: false, emmiTransitionStatus: "IDLE"
+  emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiTransitionStatus: "IDLE"
 };
 let emmiAuditLog = null;
 let emmiTools = null;
@@ -157,8 +157,6 @@ let emmiSheetReturnAction = "open-emmi-voice-options";
 let emmiExpandedReturnFocus = null;
 let emmiExpandedSource = "screen-action";
 let emmiOverlayHistoryEntry = false;
-let emmiHesitationTimer = null;
-let emmiHesitationCleanup = null;
 
 const iconMap = {
   lock: LockKeyhole,
@@ -411,11 +409,10 @@ const contextualAssuranceFooter = (screen, typeOverride = "") => {
 // every screen — the patient never lands on an intermediate menu about EMMI instead of EMMI.
 // The nudge is its own markup rather than a slice of the pill's, because slicing the assistant's
 // HTML on a literal tag put a second floating EMMI on screen the moment an attribute order changed.
-const emmiContextualNudge = () => `<button type="button" class="emmi-contextual-nudge" data-action="help">${L("Need help with this step?", "¿Necesita ayuda con este paso?", "Bezwen èd ak etap sa a?")}</button>`;
 
 const emmiAssistant = () => {
   const guideState = emmiGuideState();
-  return `${state.emmiContextualNudgeVisible ? emmiContextualNudge() : ""}<button type="button" class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
+  return `<button type="button" class="emmi-assistant" data-guide-state="${guideState}" data-action="help" data-emmi-source="floating" aria-haspopup="dialog" aria-label="${L("Open EMMI", "Abrir EMMI", "Louvri EMMI")}" title="${L("Drag Emmi to move it", "Arrastre a Emmi para moverla", "Trennen Emmi pou deplase li")}"><span class="emmi-avatar"><img src="/assets/emmi-assistant.png" alt=""></span></button>`;
 };
 
 function header() {
@@ -1844,28 +1841,6 @@ function scheduleEmmiGuidance() {
   emmiGuidanceTimer = setTimeout(() => attempt(0), 700);
 }
 
-function scheduleEmmiHesitationSupport() {
-  clearTimeout(emmiHesitationTimer);
-  emmiHesitationCleanup?.();
-  emmiHesitationCleanup = null;
-  state.emmiContextualNudgeVisible = false;
-  const important = ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_IDENTIFIER", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"];
-  if (!important.includes(state.screen) || state.assistantOpen) return;
-  const showNudge = () => {
-    if (state.assistantOpen) return;
-    state.emmiContextualNudgeVisible = true;
-    const bot = document.querySelector(".emmi-assistant");
-    if (bot && !document.querySelector(".emmi-contextual-nudge")) bot.insertAdjacentHTML("beforebegin", emmiContextualNudge());
-    document.querySelector(".emmi-contextual-nudge")?.addEventListener("click", showHelp);
-    emmiHesitationCleanup?.();
-    emmiHesitationCleanup = null;
-  };
-  const armTimer = () => { clearTimeout(emmiHesitationTimer); emmiHesitationTimer = setTimeout(showNudge, 25000); };
-  const activityEvents = ["pointerdown", "keydown", "input"];
-  activityEvents.forEach(type => app.addEventListener(type, armTimer));
-  emmiHesitationCleanup = () => activityEvents.forEach(type => app.removeEventListener(type, armTimer));
-  armTimer();
-}
 
 // The expanded panel is EMMI in full, opened over the screen the patient is already on. It is a
 // presentation of the same assistant — same session, same voice, same conversation — never a
@@ -5144,10 +5119,6 @@ function render() {
   const newScreen = paintedScreen !== scrollViewKey();
   const errorAppeared = Boolean(state.error) && state.error !== paintedError;
   clearTimeout(emmiGuidanceTimer);
-  clearTimeout(emmiHesitationTimer);
-  emmiHesitationCleanup?.();
-  emmiHesitationCleanup = null;
-  state.emmiContextualNudgeVisible = false;
   state.emmiVoiceOptionsOpen = false;
   document.body.classList.remove("emmi-sheet-open");
   state.assistantOpen = false;
@@ -5162,7 +5133,6 @@ function render() {
   bind();
   const emmiTransitioned = syncEmmiNavigationContext();
   if (!emmiTransitioned) scheduleEmmiGuidance();
-  scheduleEmmiHesitationSupport();
   // Only a genuinely new screen hands focus to its heading. Re-focusing the h1 after an in-place
   // update drags a screen reader back to the title the patient already heard.
   if (newScreen) requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
