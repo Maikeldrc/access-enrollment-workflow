@@ -379,8 +379,6 @@ const ASSURANCE_BY_SCREEN = {
   CARE_PREFERENCES: "HEALTH_DATA_SECURITY",
   GOALS: "HEALTH_DATA_SECURITY",
   MY_GOALS: "HEALTH_DATA_SECURITY",
-  ACCESS_BASELINE: "HEALTH_DATA_SECURITY",
-  ACCESS_MEASURE: "HEALTH_DATA_SECURITY",
   ACCESS_BP_DEVICE_VERIFICATION: "DEVICE_SUPPORT",
   ACCESS_BP_DEVICE_RESULT: "DEVICE_SUPPORT",
   ACCESS_BP_DEVICE_INFO: "BP_HEALTH_DATA_SECURITY",
@@ -560,7 +558,7 @@ function careCircleInvite() {
     : L("They can help you through enrollment, but you’ll still make the decisions about your care.", "Puede ayudarle durante la inscripción, pero usted seguirá tomando las decisiones sobre su cuidado.", "Moun nan ka ede w pandan enskripsyon an, men se ou menm k ap toujou pran desizyon sou swen ou.");
   const pickerSupported = Boolean(globalThis.navigator?.contacts?.select);
   const ready = state.supportPersonName.trim() && phoneDigits(state.supportPersonPhone).length === 10 && state.supportPersonRelationship && (state.supportPersonRelationship !== "other" || state.supportPersonRelationshipOther.trim());
-  const numberChoices = state.careCircleContactNumbers?.length > 1 ? `<fieldset class="contact-number-choices"><legend>${L("Which mobile number should we use?", "¿Qué número celular debemos usar?", "Ki nimewo mobil nou dwe itilize?")}</legend>${state.careCircleContactNumbers.map((item, index) => `<label><input type="radio" name="careCircleContactPhone" value="${escapeHtml(item.value)}" ${phoneDigits(state.supportPersonPhone) === phoneDigits(item.value) ? "checked" : ""}><span><strong>${escapeHtml(item.label || L("Mobile", "Celular", "Mobil"))}</strong><small>${maskPhone(item.value)}</small></span></label>`).join("")}</fieldset>` : "";
+  const numberChoices = state.careCircleContactNumbers?.length > 1 ? `<fieldset class="contact-number-choices"><legend>${L("Which mobile number should we use?", "¿Qué número celular debemos usar?", "Ki nimewo mobil nou dwe itilize?")}</legend>${state.careCircleContactNumbers.map((item, index) => `<label><input type="radio" name="careCircleContactPhone" value="${escapeHtml(item.value)}" ${phoneDigits(state.supportPersonPhone) === phoneDigits(item.value) ? "checked" : ""}><span><strong>${escapeHtml(item.label || L("Mobile", "Celular", "Mobil"))}</strong><small>${formatPhone(item.value)}</small></span></label>`).join("")}</fieldset>` : "";
   return `${titleBlock(title, supporting, L("Care Circle", "Círculo de cuidado", "Sèk swen"))}
     ${pickerSupported ? `<button type="button" class="contact-picker-button" data-action="choose-care-circle-contact">${icon("people")}<span><strong>${L("Add from contacts", "Agregar desde contactos", "Ajoute nan kontak yo")}</strong><small>${L("You choose which contact to share.", "Usted elige qué contacto compartir.", "Se ou ki chwazi ki kontak pou pataje.")}</small></span></button><div class="growth-divider"><span>${L("or enter manually", "o ingrese manualmente", "oswa antre manyèlman")}</span></div>` : `<p class="contact-picker-unavailable">${L("Contacts aren’t available on this device. You can enter the information below.", "Los contactos no están disponibles en este dispositivo. Puede ingresar la información abajo.", "Kontak yo pa disponib sou aparèy sa a. Ou ka antre enfòmasyon an anba a.")}</p>`}
     ${numberChoices}<form id="care-circle-invite-form" class="growth-form" novalidate><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="name" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="14" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")}<select name="supportPersonRelationship" required><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>${state.supportPersonRelationship === "other" ? `<label class="field">${L("Relationship", "Relación", "Relasyon")}<input name="supportPersonRelationshipOther" value="${escapeHtml(state.supportPersonRelationshipOther)}" required></label>` : ""}</form>
@@ -4137,7 +4135,7 @@ function careActivationRuntime() {
 }
 
 const accessGoalSupportCopy = goalType => ({
-  BLOOD_PRESSURE_CONTROL: L("Track your blood pressure, stay on top of your medications, and work toward better blood pressure control.", "Registre su presión arterial, mantenga sus medicamentos al día y avance hacia un mejor control de la presión.", "Swiv tansyon ou, kenbe medikaman ou yo ajou, epi travay pou pi bon kontwòl tansyon."),
+  BLOOD_PRESSURE_CONTROL: L("Check your blood pressure, stay on top of your medications, and work toward better blood pressure control.", "Revise su presión arterial, mantenga sus medicamentos al día y avance hacia un mejor control de la presión.", "Tcheke tansyon ou, kenbe medikaman ou yo ajou, epi travay pou pi bon kontwòl tansyon."),
   WEIGHT_MANAGEMENT: L("Work toward a healthy weight through monitoring, nutrition, activity, and ongoing support.", "Avance hacia un peso saludable con seguimiento, nutrición, actividad y apoyo continuo.", "Travay pou yon pwa ki an sante ak swivi, nitrisyon, aktivite ak sipò kontinyèl.")
 })[goalType] || "";
 
@@ -4621,46 +4619,6 @@ function myGoals() {
   return state.activeGoalId ? `${notice}${goalDetail()}` : myGoalsDashboard();
 }
 
-function accessBaseline() {
-  return `${art("shield")}${titleBlock(L("Your first health check", "Su primera evaluación de salud", "Premye tchekòp sante ou"), L("This helps your ACCESS care team understand your starting point and personalize your care.", "Esto ayuda a su equipo de cuidado ACCESS a conocer su punto de partida y personalizar su cuidado.", "Sa ede ekip swen ACCESS ou konprann pwen depa ou epi pèsonalize swen ou."), L("ACCESS health check", "Evaluación de salud ACCESS", "Tchekòp sante ACCESS"))}${rows([["chart", L("Your health measures", "Sus mediciones de salud", "Mezi sante ou yo"), ""], ["question", L("Questions about your health", "Preguntas sobre su salud", "Kesyon sou sante ou"), ""], ["pill", L("Your medications", "Sus medicamentos", "Medikaman ou yo"), ""], ["goals", L("Your health goals", "Sus objetivos de salud", "Objektif sante ou"), ""]])}<div class="meta-list"><span>${icon("clock")} ${L("Usually takes about 10 minutes", "Generalmente toma unos 10 minutos", "Anjeneral li pran anviwon 10 minit")}</span><span>${icon("shield")} ${L("Your progress is saved if you finish later.", "Su progreso queda guardado si termina más tarde.", "Pwogrè ou anrejistre si ou fini pita.")}</span></div>${actions(L("Start health check", "Iniciar evaluación", "Kòmanse tchekòp sante a"), false, L("I’ll do this later", "Lo haré después", "M ap fè sa pita"))}`;
-}
-
-function accessPrimaryCondition() {
-  const primary = state.offer.qualifyingConditions?.[0] || state.offer.qualifyingCondition || {};
-  return `${primary.name || ""} ${primary.patientFriendlyName || ""}`.toLowerCase();
-}
-
-function isBloodPressureAccessBaseline() {
-  const condition = accessPrimaryCondition();
-  return !condition.includes("diabetes") && !condition.includes("heart failure") && !condition.includes("kidney");
-}
-
-function accessMeasure() {
-  const condition = accessPrimaryCondition();
-  const measure = condition.includes("diabetes")
-    ? [L("Your blood sugar starting point", "Su punto de partida de glucosa", "Mezi sik nan san ou kòm pwen depa"), L("This measure is part of your ACCESS care for diabetes.", "Esta medición es parte de su cuidado ACCESS para la diabetes.", "Mezi sa a fè pati swen ACCESS ou pou dyabèt.")]
-    : condition.includes("heart failure")
-      ? [L("Your heart health starting point", "Su punto de partida de salud cardíaca", "Sante kè ou kòm pwen depa"), L("This measure is part of your ACCESS care for heart failure.", "Esta medición es parte de su cuidado ACCESS para la insuficiencia cardíaca.", "Mezi sa a fè pati swen ACCESS ou pou ensifizans kadyak.")]
-      : condition.includes("kidney")
-        ? [L("Your kidney health starting point", "Su punto de partida de salud renal", "Sante ren ou kòm pwen depa"), L("This measure is part of your ACCESS care for kidney health.", "Esta medición es parte de su cuidado ACCESS para la salud renal.", "Mezi sa a fè pati swen ACCESS ou pou sante ren.")]
-        : [L("Your blood pressure starting point", "Su presión arterial inicial", "Pwen depa tansyon ou"), L("This helps your care team understand your blood pressure today and personalize your care.", "Esto ayuda a su equipo de atención a conocer su presión arterial actual y personalizar su cuidado.", "Sa ede ekip swen ou konprann tansyon ou jodi a epi pèsonalize swen ou.")];
-  const bloodPressureMeasure = isBloodPressureAccessBaseline();
-  const options = bloodPressureMeasure
-    ? [
-        ["owned", "device", L("I already have a blood pressure monitor", "Ya tengo un monitor de presión arterial", "Mwen deja gen yon aparèy pou mezire tansyon"), L("We’ll check whether your monitor can be used for your ACCESS care.", "Verificaremos si su monitor puede utilizarse para sus mediciones de ACCESS.", "N ap verifye si aparèy ou a ka itilize pou swen ACCESS ou.")],
-        ["help", "question", L("I have a monitor but need help", "Tengo un monitor, pero necesito ayuda", "Mwen gen yon aparèy, men mwen bezwen èd"), L("We’ll help you set it up and take your readings correctly.", "Le ayudaremos a configurarlo y a tomar sus mediciones correctamente.", "N ap ede w mete l anplas epi pran mezi ou yo kòrèkteman.")],
-        ["needed", "device", L("I need a blood pressure monitor", "Necesito un monitor de presión arterial", "Mwen bezwen yon aparèy pou mezire tansyon"), L("ITERA can help arrange one for you.", "ITERA puede ayudarle a obtener uno.", "ITERA ka ede fè aranjman pou ou jwenn youn.")]
-      ]
-    : [
-        ["recent", "heart", L("I have a recent health measure", "Tengo una medición de salud reciente", "Mwen gen yon mezi sante resan"), L("Enter the date and result", "Ingrese la fecha y el resultado", "Antre dat ak rezilta a")],
-        ["help", "question", L("I need help reviewing my information", "Necesito ayuda para revisar mi información", "Mwen bezwen èd revize enfòmasyon mwen yo"), L("We can guide you", "Podemos guiarle", "Nou ka gide ou")],
-        ["support", "people", L("I need support from ITERA", "Necesito apoyo de ITERA", "Mwen bezwen sipò ITERA"), L("We’ll help with the next step", "Le ayudaremos con el próximo paso", "Nou pral ede ak pwochen etap la")]
-      ];
-  const eyebrow = bloodPressureMeasure ? (state.language === "es" ? "" : L("Blood pressure health check", "", "Tchekòp tansyon")) : `${state.offer.accessTrack || "ACCESS"} ${L("health check", "evaluación de salud", "tchekòp sante")}`;
-  return `${art(bloodPressureMeasure ? "device" : "shield")}${titleBlock(measure[0], measure[1], eyebrow)}
-    <form class="choice-list">${options.map(([value, itemIcon, title, body]) => choice(value, itemIcon, title, body)).join("")}</form>${actions(t().continue)}`;
-}
-
 function accessBpDeviceVerification() {
   const title = L("Let’s check your monitor", "Revisemos su monitor", "Ann verifye aparèy ou a");
   const support = L("We’ll check whether you already have a monitor connected to ITERA HEALTH.", "Verificaremos si ya tiene un monitor conectado a ITERA HEALTH.", "N ap verifye si ou deja gen yon aparèy ki konekte ak ITERA HEALTH.");
@@ -5076,7 +5034,7 @@ function prototypeSetup() {
   </main>`;
 }
 
-const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BASELINE: accessBaseline, ACCESS_MEASURE: accessMeasure, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
+const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
 renderers.MY_CARE_TEAM = myCareTeamScreen;
@@ -5128,7 +5086,7 @@ function render() {
   if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; finishRender(scrollSnapshot, errorAppeared); return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
   const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
-  const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : state.screen === "ACCESS_MEASURE" && isBloodPressureAccessBaseline() ? "BP_HEALTH_DATA_SECURITY" : "";
+  const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : "";
   app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
   const emmiTransitioned = syncEmmiNavigationContext();
@@ -5576,66 +5534,6 @@ async function advance() {
     if (["RPM", "CCM_RPM", "PCM_RPM"].includes(state.offer.pathway)) state.deviceSetupStatus ||= "NOT_STARTED";
     setGettingStartedProgress(FLOW_STATUS.NOT_STARTED, { resumeRoute: currentNextBestAction().route });
     audit(state, "next_flow_presented", "success", { enrollmentStatus: state.enrollmentStatus, nextFlowType: "GETTING_STARTED", pathway: state.offer.pathway });
-  }
-  if (state.screen === "ACCESS_BASELINE") {
-    state.enrollmentStatus = "COMPLETED";
-    state.enrollmentCompletedAt ||= state.consentTimestamp || new Date().toISOString();
-    if (state.baselineStatus === "NOT_STARTED") {
-      state.baselineStatus = "IN_PROGRESS";
-      state.baselineStartedAt = new Date().toISOString();
-      audit(state, "baseline_started", "success", { baselineStatus: state.baselineStatus });
-    }
-    state.baselineResumeScreen = "ACCESS_MEASURE";
-    state.baselineReminderStatus = "NOT_SCHEDULED";
-  }
-  if (state.screen === "ACCESS_MEASURE") {
-    state.enrollmentStatus = "COMPLETED";
-    if (isBloodPressureAccessBaseline()) {
-      const path = new FormData(document.querySelector("form")).get("choice");
-      if (!path) { state.error = L("Choose the option that best describes your monitor.", "Elija la opción que mejor describa su monitor.", "Chwazi opsyon ki pi byen dekri aparèy ou a."); render(); return; }
-      state.bpDevicePath = path;
-      state.baselineStatus = "IN_PROGRESS";
-      state.bpReadings = [];
-      state.bpReadingCount = 0;
-      state.bpBaselineRequiredReadings = 3;
-      state.bpBaselineReadingCount = 0;
-      state.bpBaselineRemainingReadings = 3;
-      state.bpReadingReceipts = [];
-      state.bpMeasurementPhase = "WAITING";
-      state.bpBaseline = null;
-      state.bpEscalationState = null;
-      state.firstTransmissionVerified = null;
-      state.firstTransmissionDeviceId = "";
-      state.firstTransmissionAt = "";
-      state.firstTransmissionSystolic = null;
-      state.firstTransmissionDiastolic = null;
-      if (path === "needed") {
-        state.bpBaselineStatus = "DEVICE_VERIFICATION";
-        state.bpDeviceVerificationStatus = "NOT_STARTED";
-        state.deviceSource = "UNKNOWN";
-        state.deviceVerificationStatus = "PENDING_DEVICE";
-        state.deviceFulfillmentStatus = "NOT_REQUESTED";
-        state.bpDeviceFulfillmentStatus = "NOT_STARTED";
-        state.baselineResumeScreen = "ACCESS_BP_DEVICE_INFO";
-        state.baselineReminderStatus = "NOT_SCHEDULED";
-        audit(state, "bp_device_information_started", "success", { bpBaselineStatus: state.bpBaselineStatus });
-      } else {
-        state.bpBaselineStatus = "DEVICE_VERIFICATION";
-        state.bpDeviceVerificationStatus = path === "owned" ? "PENDING" : "ASSISTED_SETUP_REQUIRED";
-        state.deviceSource = path === "owned" ? "UNKNOWN" : "PATIENT_OWNED";
-        state.deviceVerificationStatus = path === "owned" ? "CHECKING" : "PATIENT_CONFIRMED";
-        state.deviceUncertaintyStep = false;
-        state.baselineResumeScreen = path === "owned" ? "ACCESS_BP_DEVICE_VERIFICATION" : "ACCESS_BP_GUIDED_SETUP";
-        state.baselineReminderStatus = "NOT_SCHEDULED";
-        audit(state, "bp_device_path_selected", "success", { path, bpBaselineStatus: state.bpBaselineStatus });
-      }
-    } else if (state.baselineStatus !== "COMPLETED") {
-      state.baselineStatus = "COMPLETED";
-      state.baselineCompletedAt = new Date().toISOString();
-      state.baselineResumeScreen = "";
-      state.baselineReminderStatus = "NOT_NEEDED";
-      audit(state, "baseline_completed", "success", { baselineStatus: state.baselineStatus });
-    }
   }
   if (state.screen === "ACCESS_BP_DEVICE_INFO") {
     const form = document.querySelector("#bp-device-info-form");
@@ -7826,18 +7724,7 @@ function bind() {
     }
     if (action === "restart") { state.screen = "INVITATION"; render(); }
     if (action === "secondary") {
-      if (state.screen === "ACCESS_BASELINE") {
-        state.enrollmentStatus = "COMPLETED";
-        state.enrollmentCompletedAt ||= state.consentTimestamp || new Date().toISOString();
-        state.baselineStatus = state.baselineStatus === "IN_PROGRESS" ? "IN_PROGRESS" : "NOT_STARTED";
-        state.baselineDeferredAt = new Date().toISOString();
-        state.baselineResumeScreen = state.screen;
-        state.baselineReminderStatus = "PENDING";
-        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: state.baselineDeferredAt, resumeRoute: state.screen });
-        audit(state, "baseline_deferred", "success", { baselineStatus: state.baselineStatus, reminderStatus: state.baselineReminderStatus });
-        draftStore.save(state);
-        document.querySelector(".save-status").textContent = L("Your care setup is saved for later.", "La configuración de su cuidado quedó guardada para después.", "Konfigirasyon swen ou anrejistre pou pita.");
-      } else if (state.screen === "ONBOARDING") {
+      if (state.screen === "ONBOARDING") {
         state.enrollmentStatus = "COMPLETED";
         state.baselineDeferredAt = new Date().toISOString();
         state.baselineResumeScreen = "ONBOARDING";

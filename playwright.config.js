@@ -1,4 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
+// Several sessions share this repository through git worktrees, and each one starting its own dev
+// server on the same fixed port means whoever runs second silently drives the first one's build.
+// The default is unchanged, so nothing anybody already runs behaves differently; E2E_PORT gives a
+// concurrent run somewhere to go.
+const port = Number(process.env.E2E_PORT) || 4174;
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -14,9 +20,9 @@ export default defineConfig({
   // attempt as flaky, separately from what failed both times.
   retries: 1,
   use: {
-    baseURL: "http://127.0.0.1:4174",
+    baseURL: `http://127.0.0.1:${port}`,
     trace: "retain-on-failure",
     // EMMI voice guidance calls getUserMedia before requesting a live token, so the browser
     // needs a fake capture device or the connect attempt never reaches the network.
     launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] }
-  }, webServer: { command: "npm run dev -- --port 4174", port: 4174, reuseExistingServer: false }, projects: [{ name: "mobile-chrome", use: { ...devices["Pixel 5"] } }] });
+  }, webServer: { command: `npm run dev -- --port ${port}`, port, reuseExistingServer: false }, projects: [{ name: "mobile-chrome", use: { ...devices["Pixel 5"] } }] });
