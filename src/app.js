@@ -2642,6 +2642,24 @@ function careTeamAddForm() {
   </section>`;
 }
 
+// "Alicia Ramírez, RN" becomes AR; "Dr. Fresner" becomes F. Honorifics and trailing credentials are
+// dropped because they are shared by half the list and initials that all read DR distinguish nobody.
+const careTeamInitials = name => String(name || "")
+  .split(",")[0]
+  .replace(/\b(dr|dra|mr|mrs|ms|prof)\.?\s+/gi, "")
+  .trim().split(/\s+/).filter(Boolean).slice(0, 2)
+  .map(word => [...word][0]).join("").toUpperCase();
+
+// A photo when the record holds one, initials when it does not, and an icon for the entries that are
+// not people at all. A pharmacy given initials would read as a person who does not exist, which is
+// the same invention this file spends its comments refusing to make.
+function careTeamMemberAvatar(member) {
+  const initials = member.professionalType === PROFESSIONAL_TYPES.PHARMACIST ? "" : careTeamInitials(member.displayName);
+  return initials
+    ? `<span class="care-team-member-initials" aria-hidden="true">${escapeHtml(initials)}</span>`
+    : `<span class="care-team-member-icon" aria-hidden="true">${icon(careTeamMemberIcon(member))}</span>`;
+}
+
 function myCareTeamScreen() {
   const team = visibleCareTeam();
   const verifiedLabel = L("Verified", "Verificado", "Verifye");
@@ -2649,7 +2667,7 @@ function myCareTeamScreen() {
     const detail = [careTeamRoleLabel(member), member.practiceName].filter(Boolean).join(" · ");
     const physicianPhoto = member.displayName === state.offer?.referringProvider?.name ? state.offer.referringProvider.verifiedPhotoUrl || "" : "";
     return `<article class="care-team-member-card">
-      ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : `<span class="care-team-member-icon" aria-hidden="true">${icon(careTeamMemberIcon(member))}</span>`}
+      ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : careTeamMemberAvatar(member)}
       <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p></div>
     </article>`;
   }).join("") : `<div class="care-team-empty">${icon("people")}<strong>${L("Your care team details are not available yet", "Los detalles de su equipo de cuidado aún no están disponibles", "Detay ekip swen ou poko disponib")}</strong><p>${L("ITERA can help you review who supports your care.", "ITERA puede ayudarle a revisar quién apoya su cuidado.", "ITERA ka ede w revize kiyès k ap sipòte swen ou.")}</p></div>`;

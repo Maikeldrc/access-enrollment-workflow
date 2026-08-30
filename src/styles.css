@@ -2064,3 +2064,15 @@ a.goal-secondary-button { text-decoration:none; }
    disclosure the first one would double it against the summary. */
 .access-goal-details .access-goal-measure { border-top: 0; padding-top: .5rem; }
 @media (prefers-reduced-motion: reduce) { .access-goal-details > summary svg { transition: none; } }
+
+/* Care team initials.
+   Circular like the photo rather than rounded-square like the icon: it stands in for a person's
+   face, so it should occupy the same shape a face would and keep the column aligned whether a
+   member has a photo, initials, or an icon. */
+.care-team-member-initials {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--primary-50); color: var(--primary-600);
+  font-weight: 600; font-size: 1.0625rem; letter-spacing: .01em;
+  border: 2px solid var(--surface-primary); box-shadow: 0 0 0 1px var(--border-default);
+}
+@media (max-width: 360px) { .care-team-member-initials { width: 44px; height: 44px; font-size: .9375rem; } }
