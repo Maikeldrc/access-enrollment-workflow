@@ -114,6 +114,12 @@ const round = value => Math.round(value * 10) / 10;
 //
 // Both come back tagged. `control` and `improvementMilestone` are separate keys with separate
 // labels precisely so that no caller can render a bare "target" and pick whichever it found first.
+//
+// Every milestone also carries reductionFromBaseline: how far below the baseline it sits, in the
+// baseline's own units. The improvement RULE is stated differently per goal — 15 mmHg for blood
+// pressure, 5 percent for weight — and a patient asking "how much is that for me" wants the
+// absolute answer either way. Deriving it here is what stops a card, a care plan and EMMI from
+// each doing the subtraction themselves and rounding it three different ways.
 export function accessProgressMeasure(goalType, startingPoint = { status: "PENDING" }) {
   const outcome = ACCESS_OUTCOME_TARGETS[goalType];
   if (!outcome) return null;
@@ -125,15 +131,16 @@ export function accessProgressMeasure(goalType, startingPoint = { status: "PENDI
       ...base,
       status: "RESOLVED",
       startingValue: startingPoint.value,
-      improvementMilestone: Object.freeze({ comparator: "AT_OR_BELOW", value: startingPoint.value - outcome.improvement.value, derivedFromBaseline: startingPoint.value, improvementRequired: outcome.improvement.value, unit: outcome.unit })
+      improvementMilestone: Object.freeze({ comparator: "AT_OR_BELOW", value: startingPoint.value - outcome.improvement.value, derivedFromBaseline: startingPoint.value, improvementRequired: outcome.improvement.value, reductionFromBaseline: outcome.improvement.value, unit: outcome.unit })
     });
   }
+  const milestoneWeight = round(startingPoint.value * (1 - outcome.improvement.value / 100));
   return Object.freeze({
     ...base,
     status: "RESOLVED",
     startingValue: startingPoint.value,
     startingBmi: startingPoint.bmi,
-    improvementMilestone: Object.freeze({ comparator: "AT_OR_BELOW", value: round(startingPoint.value * (1 - outcome.improvement.value / 100)), derivedFromBaseline: startingPoint.value, improvementRequired: outcome.improvement.value, unit: "lb", percent: true })
+    improvementMilestone: Object.freeze({ comparator: "AT_OR_BELOW", value: milestoneWeight, derivedFromBaseline: startingPoint.value, improvementRequired: outcome.improvement.value, reductionFromBaseline: round(startingPoint.value - milestoneWeight), unit: "lb", percent: true })
   });
 }
 

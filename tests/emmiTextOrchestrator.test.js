@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiTextOrchestrator, expandEmmiQuery } from "../src/emmi/textOrchestrator.js";
 import { EMMI_TOOL_DECLARATIONS, EmmiToolOrchestrator } from "../src/emmi/tools.js";
+import { DEMO_BASELINE_OBSERVATIONS } from "../src/config.js";
+import { accessProgressMeasure, patientStartingPoint } from "../src/accessCareActivation.js";
+
+// The demo patient's baselines, resolved by the same functions the goals screen uses. Built rather
+// than typed out, so a test that says EMMI answers "152 over 88" is asserting that EMMI and the
+// card are reading one record — not that two literals happen to agree today.
+const demoAccessBaselines = ["BLOOD_PRESSURE_CONTROL", "WEIGHT_MANAGEMENT"].map(goalType => {
+  const startingPoint = patientStartingPoint(goalType, { BLOOD_PRESSURE_CONTROL: DEMO_BASELINE_OBSERVATIONS.bloodPressure, WEIGHT_MANAGEMENT: DEMO_BASELINE_OBSERVATIONS.weight });
+  return { goalType, startingPoint, measure: accessProgressMeasure(goalType, startingPoint) };
+});
 
 const passage = (program, text = "Approved patient-facing concepts") => ({ sourceId: `program-${program.toLowerCase()}`, sourcePath: `programs/${program.toLowerCase()}.md`, heading: program, text });
 
@@ -8,7 +18,7 @@ const passage = (program, text = "Approved patient-facing concepts") => ({ sourc
 // string, never an internal one, and only the fields the tool contract promises.
 const upcoming = (overrides = {}) => ({ id: "APPT-1", patientStatus: "Cita confirmada", providerDisplayName: "Dr. Martinez", specialty: "Cardiology", scheduledAt: "2026-09-08T14:00:00.000Z", modality: "IN_PERSON", ...overrides });
 
-function harness({ locale = "ES", program = "ACCESS", conversation = {}, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false } = {}) {
+function harness({ locale = "ES", program = "ACCESS", conversation = {}, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
   const calls = [];
   const events = [];
   const executeTool = vi.fn(async (name, args) => {
@@ -48,6 +58,10 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
     if (name === "getReadingTrend") return { trend: { periodDays: 7, count: 5, averageSystolic: 124, averageDiastolic: 81, direction: "STABLE" } };
     if (name === "getClinicalTarget") return { target: { systolicMaximum: 139, diastolicMaximum: 89 } };
     if (name === "getGoalProgress") return { progress: { readingCountThisWeek: 5 } };
+    if (name === "getAccessBaseline") {
+      const baselines = accessBaselines === null ? [] : args.goalType ? accessBaselines.filter(item => item.goalType === args.goalType) : accessBaselines;
+      return { baselines, source: baselines.length ? "PATIENT_RUNTIME" : "UNAVAILABLE" };
+    }
     if (name === "getCareTeam") return { physicianDisplayName: "Dr. Fresner" };
     if (name === "getNextBestAction") return { label: "Continuar" };
     if (name === "evaluateClinicalEscalation") return { instruction: "CALL_911" };
@@ -505,5 +519,78 @@ describe("typographic apostrophes reach the same gates as straight ones", () => 
 describe("follow-up query expansion", () => {
   it("adds the two recent programs to a pronoun-like comparison", () => {
     expect(expandEmmiQuery({ question: "y cual es la diferencia", conversation: { conversationSummary: "ACCESS then CCM" }, program: "ACCESS" })).toMatch(/ACCESS CCM/);
+  });
+});
+
+// Where this patient started, and what ACCESS will recognise as improvement for them. Every number
+// in these answers is a fact about one person, so the knowledge base is the wrong place for all of
+// them: it can say what a baseline is and never that this patient's is 152 over 88.
+describe("ACCESS starting points and improvement milestones", () => {
+  const answerIn = async (question, options = {}) => {
+    const { orchestrator, calls } = harness({ locale: "EN", ...options });
+    const response = await orchestrator.answer(question);
+    return { text: response.text, intent: response.trace.intent, mode: response.trace.responseMode, tools: calls.map(call => call.name) };
+  };
+
+  it("says the starting blood pressure the record holds, and does not go to the knowledge base for it", async () => {
+    const asked = await answerIn("What was my starting blood pressure?");
+    expect(asked.text).toContain("Your starting blood pressure is 152 over 88.");
+    expect(asked.tools).toContain("getAccessBaseline");
+    expect(asked.tools).not.toContain("searchKnowledge");
+    expect(asked.mode).toBe("RUNTIME_GROUNDED");
+  });
+
+  it("says the starting weight and the BMI recorded with it", async () => {
+    const asked = await answerIn("What was my starting weight?");
+    expect(asked.text).toContain("Your starting weight is 204 pounds.");
+    expect(asked.text).toContain("31.0");
+    expect(asked.tools).not.toContain("searchKnowledge");
+  });
+
+  // "137" on its own tells a patient who started at 152 that 137 is where they are trying to land.
+  // The baseline it came from and the separate control target both have to be in the sentence.
+  it("derives the blood pressure milestone from this patient's baseline and keeps the control target distinct", async () => {
+    const asked = await answerIn("What does 15 points lower mean for me?");
+    expect(asked.text).toContain("Based on your starting systolic blood pressure of 152");
+    expect(asked.text).toContain("137 mmHg or lower");
+    expect(asked.text).toMatch(/below 130 mmHg systolic/i);
+    expect(asked.intent).toBe("ACCESS_IMPROVEMENT_MILESTONE");
+  });
+
+  // "How much" is the cost engine's word. A percentage asked about a weight goal is not a question
+  // about what the patient pays, and answering it with an amount of money would be absurd.
+  it("answers what five percent is in pounds instead of routing the word 'how much' to cost", async () => {
+    const asked = await answerIn("How much is 5% for me?");
+    expect(asked.text).toContain("Based on your starting weight of 204 pounds");
+    expect(asked.text).toContain("10.2 pounds");
+    expect(asked.text).toContain("193.8 pounds or lower");
+    expect(asked.tools).not.toContain("getExpectedAccessCost");
+  });
+
+  it("answers in the patient's own language from the same runtime numbers", async () => {
+    const spanish = harness({ locale: "ES" });
+    const asked = await spanish.orchestrator.answer("¿Cuál fue mi presión arterial inicial?");
+    expect(asked.text).toContain("152 sobre 88");
+
+    const creole = harness({ locale: "KR" });
+    const weight = await creole.orchestrator.answer("Ki pwa mwen te genyen nan konmansman?");
+    expect(weight.text).toContain("204 liv");
+  });
+
+  // A pending baseline is a real state. Inventing one would silently become the number every
+  // milestone below it is derived from.
+  it("refuses to state a milestone when no baseline is confirmed", async () => {
+    const pending = [{ goalType: "BLOOD_PRESSURE_CONTROL", startingPoint: { goalType: "BLOOD_PRESSURE_CONTROL", status: "PENDING" }, measure: { goalType: "BLOOD_PRESSURE_CONTROL", status: "PENDING_BASELINE", control: { value: 130 }, improvementMilestone: null } }];
+    const asked = await answerIn("What does 15 points lower mean for me?", { accessBaselines: pending });
+    expect(asked.text).toMatch(/don’t have a confirmed starting blood pressure/i);
+    expect(asked.text).not.toMatch(/\b137\b/);
+  });
+
+  // A patient with no ACCESS baselines at all is not answered about somebody else's: the block
+  // claims nothing and lets the normal routing take the turn.
+  it("falls through to normal routing when this patient has no ACCESS baselines", async () => {
+    const asked = await answerIn("What was my starting blood pressure?", { accessBaselines: null, program: "CCM" });
+    expect(asked.tools).toContain("getAccessBaseline");
+    expect(asked.tools).toContain("searchKnowledge");
   });
 });
