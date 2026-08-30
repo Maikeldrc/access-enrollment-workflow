@@ -5872,7 +5872,7 @@ async function advance() {
       // contradiction the patient did not mean, so an explicit difficulty wins.
       const picked = data.getAll(`barrier:${goal.id}`).filter(value => value !== "NONE");
       picked.forEach(category => {
-        if (findReusableBarrier(goal, category)) return;
+        if (findReusableBarrier(goal.barriers || [], { category, goalId: goal.id })) return;
         const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
         goal.barriers = [...(goal.barriers || []), barrier];
         created.push({ goalType: goal.goalType, category });
