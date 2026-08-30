@@ -401,6 +401,17 @@ const ASSURANCE_BY_SCREEN = {
   CALLBACK_CONFIRMED: "SUPPORT",
   OUTCOME_STOPPED: "MEDICARE_PROTECTION"
 };
+
+// Where Back goes from the screens a patient reaches after they have enrolled. None of these sit on
+// the enrollment journey, so there is no previous screen to walk to and each one has to say where
+// it belongs. Without this, Back from the medication list dropped the patient on the public
+// invitation to a programme they had already joined.
+const POST_ENROLLMENT_PARENT = {
+  MY_MEDICATIONS: "MY_CARE",
+  MY_APPOINTMENTS: "MY_CARE",
+  APPOINTMENT_DETAIL: "MY_APPOINTMENTS",
+  APPOINTMENT_SCHEDULING: "MY_APPOINTMENTS"
+};
 const contextualAssuranceFooter = (screen, typeOverride = "") => {
   const type = typeOverride || ASSURANCE_BY_SCREEN[screen];
   const assurance = ASSURANCE_VARIANTS[type]?.();
@@ -5521,6 +5532,18 @@ async function finalizeAccessBpBaseline({ navigate = true } = {}) {
 
 async function advance() {
   state.error = "";
+  // "Start your care journey" is an invitation to join. A patient who has already joined and lands
+  // back here — by reload, by a shared link, by Back — was being walked into "Who is completing
+  // this?", asked to enrol a second time in a programme they are already in. They resume instead:
+  // their care setup where they left it, or My Care once it is done.
+  if (state.screen === "INVITATION" && state.enrollmentStatus === "COMPLETED") {
+    const progress = gettingStartedProgress();
+    const resume = progress.status === FLOW_STATUS.COMPLETED ? "" : progress.resumeRoute || state.baselineResumeScreen;
+    state.screen = resume || "MY_CARE";
+    draftStore.save(state);
+    render();
+    return;
+  }
   if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING" && state.eligibilityError) { await runEligibility(); return; }
   if (state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome !== "eligible") {
     if (state.accessOutcome === "unavailable") { state.screen = "ACCESS_ELIGIBILITY_PROCESSING"; render(); runEligibility(); return; }
@@ -7574,7 +7597,24 @@ function bind() {
         state.screen = "ONBOARDING";
         state.baselineResumeScreen = "ONBOARDING";
         draftStore.save(state); render();
-      } else { state.screen = previousScreen(state); render(); }
+      } else if (state.screen === "MY_MEDICATIONS" && state.refillFlow?.step) {
+        // The refill status is a view inside the medication list, not a screen of its own. Back
+        // closes it and leaves the list standing.
+        state.refillFlow = { medicationId: "", step: "", answer: "" };
+        state.activeRefillId = "";
+        state.error = "";
+        draftStore.save(state); render();
+      } else if (POST_ENROLLMENT_PARENT[state.screen]) {
+        state.screen = POST_ENROLLMENT_PARENT[state.screen];
+        state.error = "";
+        draftStore.save(state); render();
+      } else {
+        const previous = previousScreen(state);
+        // No previous screen means this one is not on the enrollment journey. An enrolled patient
+        // belongs in My Care, never back on the invitation to a programme they already joined.
+        state.screen = previous || (state.enrollmentStatus === "COMPLETED" ? "MY_CARE" : "INVITATION");
+        render();
+      }
     }
     if (action === "care-setup-section") {
       const destination = { health: "CLINICAL_VERIFICATION", medications: "MEDICATIONS_REVIEW", preferences: "CARE_PREFERENCES", goals: "GOALS" }[el.dataset.section];
@@ -7888,7 +7928,13 @@ function bind() {
       } else state.error = L("Please wait before requesting another code.", "Espere antes de solicitar otro código.", "Tanpri tann anvan ou mande yon lòt kòd.");
       draftStore.save(state); render();
     }
-    if (action === "restart") { state.screen = "INVITATION"; render(); }
+    // The logo is the header's home button, and home means something different once the patient is
+    // in. Before enrolling it is the invitation; after enrolling, sending them back to an invitation
+    // to join is how an enrolled patient ended up being asked who was completing their enrollment.
+    if (action === "restart") {
+      state.screen = state.enrollmentStatus === "COMPLETED" ? "MY_CARE" : "INVITATION";
+      render();
+    }
     if (action === "secondary") {
       if (state.screen === "ONBOARDING") {
         state.enrollmentStatus = "COMPLETED";

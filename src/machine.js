@@ -154,4 +154,8 @@ export function progressFor(s) {
   return { stage, label: PROGRESS_STAGE_LABELS[stage], current, total, percent: current / total * 100 };
 }
 export const nextScreen = s => { const j = journeyFor(s); return j[Math.min(j.indexOf(s.screen) + 1, j.length - 1)]; };
-export const previousScreen = s => { const j = journeyFor(s); return j[Math.max(0, j.indexOf(s.screen) - 1)]; };
+// A screen that is not on the enrollment journey has no previous screen on it. This used to clamp
+// the index at zero, so walking backwards from anything off the journey — every screen a patient
+// reaches after they enrol — returned the journey's first entry, the public invitation. Returning
+// nothing lets the caller route by where the patient actually is.
+export const previousScreen = s => { const j = journeyFor(s); const index = j.indexOf(s.screen); return index > 0 ? j[index - 1] : ""; };
