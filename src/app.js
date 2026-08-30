@@ -3522,11 +3522,11 @@ const defaultCardiologist = () => ({
 });
 
 const patientCareTeam = () => {
+  // The care manager used to be relabelled "Care Manager" here, because buildCareTeam handed back
+  // the organization and an org in that slot reads as an entry nobody can ask for. It now hands
+  // back a person, so overwriting their name with their job title would undo exactly the fix.
   const recordedMembers = buildCareTeam({ offer: state.offer, medications: activeMedications(), locale: state.language })
-    .filter(member => member.professionalType !== PROFESSIONAL_TYPES.PHARMACIST)
-    .map(member => member.professionalType === PROFESSIONAL_TYPES.CARE_MANAGER && member.source === CARE_TEAM_SOURCES.PROGRAM
-      ? { ...member, displayName: L("Care Manager", "Coordinador de cuidado", "Jesyonè swen"), verified: false }
-      : member);
+    .filter(member => member.professionalType !== PROFESSIONAL_TYPES.PHARMACIST);
   const members = [
     ...recordedMembers,
     defaultCardiologist(),

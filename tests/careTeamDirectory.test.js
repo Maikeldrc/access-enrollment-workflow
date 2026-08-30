@@ -130,11 +130,13 @@ describe("building the care team", () => {
       practiceName: "ITERA HEALTH",
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
       source: CARE_TEAM_SOURCES.PROGRAM,
-      verified: true
+      // The prototype's default care manager is not a record, so it does not wear the badge.
+      // "Verified" beside an invented person certifies somebody who does not exist.
+      verified: false
     });
-    // A real assignment on the offer replaces the prototype default rather than being ignored.
+    // A real assignment on the offer replaces the prototype default, and that one is verified.
     const assigned = buildCareTeam({ offer: { ...fixtureOffer, careManager: { id: "cm-7", name: "Bernard Toussaint", credential: "LCSW" } }, locale: "en" });
-    expect(find(assigned, "cm-7").displayName).toBe("Bernard Toussaint, LCSW");
+    expect(find(assigned, "cm-7")).toMatchObject({ displayName: "Bernard Toussaint, LCSW", verified: true });
     expect(buildCareTeam({ offer: { participantProvider: { id: "itera" } }, locale: "ht" })[0].practiceName).toBe("Ekip ITERA ou");
   });
 

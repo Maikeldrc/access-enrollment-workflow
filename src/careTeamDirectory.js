@@ -82,8 +82,8 @@ export const PROTOTYPE_CARE_MANAGER = Object.freeze({ id: "itera-care-manager", 
 
 export const careManagerFor = (offer = null) => {
   const assigned = offer?.careManager;
-  if (assigned?.name) return Object.freeze({ id: assigned.id || "itera-care-manager", name: assigned.name, credential: assigned.credential || "" });
-  return PROTOTYPE_CARE_MANAGER;
+  if (assigned?.name) return Object.freeze({ id: assigned.id || "itera-care-manager", name: assigned.name, credential: assigned.credential || "", assigned: true });
+  return Object.freeze({ ...PROTOTYPE_CARE_MANAGER, assigned: false });
 };
 
 // The care team as the runtime actually knows it. Order is the order a patient thinks in: the
@@ -153,7 +153,9 @@ export function buildCareTeam({ offer = null, medications = [], locale = "en" } 
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
       practiceName: program.displayName || localCareTeamText(CARE_MANAGER_FALLBACK, locale),
       source: CARE_TEAM_SOURCES.PROGRAM,
-      verified: true
+      // Only a real assignment earns the badge. Putting "Verified" beside the prototype's default
+      // care manager would certify a person who does not exist.
+      verified: careManager.assigned
     }));
   }
 
