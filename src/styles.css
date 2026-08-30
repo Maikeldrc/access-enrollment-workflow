@@ -2116,21 +2116,21 @@ a.goal-secondary-button { text-decoration:none; }
 /* ACCESS care plan.
    Three blocks the patient can scan in order — goals, tool, team — reusing the goal card's own
    sections so the plan says the same thing the goals screen said, in the same shapes. */
-.care-plan-block { display: grid; gap: .875rem; margin-top: 1.5rem; }
-.care-plan-block > h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
-.care-plan-goals { display: grid; gap: 1rem; }
-.care-plan-goal {
+.access-plan-block { display: grid; gap: .875rem; margin-top: 1.5rem; }
+.access-plan-block > h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.access-plan-goals { display: grid; gap: 1rem; }
+.access-plan-goal {
   border: 1px solid var(--border-default); border-radius: 16px; padding: 1.125rem;
   background: var(--surface-primary); display: grid; gap: .875rem;
 }
-.care-plan-goal > header { display: flex; align-items: flex-start; gap: .625rem; }
-.care-plan-goal > header svg { flex: 0 0 auto; width: 1.375rem; height: 1.375rem; color: var(--medicare-blue); }
-.care-plan-goal h3 { margin: 0; font-size: 1rem; line-height: 1.35; color: var(--text-primary); }
-.care-plan-device { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid var(--border-default); border-radius: 16px; background: var(--surface-primary); }
-.care-plan-device svg { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; color: var(--medicare-blue); }
-.care-plan-device strong { display: block; color: var(--text-primary); line-height: 1.35; }
-.care-plan-device p { margin: .25rem 0 0; color: var(--text-secondary); line-height: 1.5; }
-.care-plan-team { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
-.care-plan-team li { display: flex; align-items: center; gap: .75rem; }
-.care-plan-team strong { display: block; color: var(--text-primary); line-height: 1.35; }
-.care-plan-team small { color: var(--text-secondary); }
+.access-plan-goal > header { display: flex; align-items: flex-start; gap: .625rem; }
+.access-plan-goal > header svg { flex: 0 0 auto; width: 1.375rem; height: 1.375rem; color: var(--medicare-blue); }
+.access-plan-goal h3 { margin: 0; font-size: 1rem; line-height: 1.35; color: var(--text-primary); }
+.access-plan-device { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid var(--border-default); border-radius: 16px; background: var(--surface-primary); }
+.access-plan-device svg { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; color: var(--medicare-blue); }
+.access-plan-device strong { display: block; color: var(--text-primary); line-height: 1.35; }
+.access-plan-device p { margin: .25rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+.access-plan-team { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
+.access-plan-team li { display: flex; align-items: center; gap: .75rem; }
+.access-plan-team strong { display: block; color: var(--text-primary); line-height: 1.35; }
+.access-plan-team small { color: var(--text-secondary); }

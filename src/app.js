@@ -4783,7 +4783,7 @@ function accessCarePlanReady() {
     const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
     const nextSteps = suggestedActionsFor(goalType).slice(0, 3)
       .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
-    return `<article class="care-plan-goal">
+    return `<article class="access-plan-goal">
       <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
       <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
       <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
@@ -4798,14 +4798,14 @@ function accessCarePlanReady() {
   const deviceStatus = requested
     ? L("Requested — we’ll keep you updated", "Solicitado: le mantendremos informado", "Mande — n ap kenbe w enfòme")
     : L("Not requested yet", "Aún no solicitado", "Poko mande");
-  const deviceCard = `<section class="care-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="care-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
+  const deviceCard = `<section class="access-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="access-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
 
   const team = patientCareTeam().slice(0, 4).map(member =>
     `<li>${careTeamMemberAvatar(member)}<span><strong>${escapeHtml(member.displayName)}</strong><small>${escapeHtml(careTeamRoleLabel(member))}</small></span></li>`).join("");
-  const teamCard = team ? `<section class="care-plan-block"><h2>${L("Connected with your care team", "Conectado con su equipo de cuidado", "Konekte ak ekip swen ou")}</h2><ul class="care-plan-team">${team}</ul></section>` : "";
+  const teamCard = team ? `<section class="access-plan-block"><h2>${L("Connected with your care team", "Conectado con su equipo de cuidado", "Konekte ak ekip swen ou")}</h2><ul class="access-plan-team">${team}</ul></section>` : "";
 
   return `${art("check", true)}${titleBlock(L("Your ACCESS care plan is ready", "Su plan de cuidado ACCESS está listo", "Plan swen ACCESS ou a pare"), L("Your goals, health information, connected monitor, and next steps are now organized in one place.", "Sus objetivos, su información de salud, su monitor conectado y los próximos pasos están ahora en un solo lugar.", "Objektif ou yo, enfòmasyon sante ou, aparèy konekte ou a ak pwochen etap yo kounye a nan yon sèl kote."))}
-    <section class="care-plan-block"><h2>${L("Your health goals", "Sus objetivos de salud", "Objektif sante ou yo")}</h2><div class="care-plan-goals">${goals}</div></section>
+    <section class="access-plan-block"><h2>${L("Your health goals", "Sus objetivos de salud", "Objektif sante ou yo")}</h2><div class="access-plan-goals">${goals}</div></section>
     ${deviceCard}${teamCard}
     ${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "finish")}`;
 }
