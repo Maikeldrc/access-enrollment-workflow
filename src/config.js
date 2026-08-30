@@ -55,9 +55,23 @@ export const SCENARIOS = {
   "link-invalid": { label: "Link · invalid", pathway: "CCM", tokenState: "invalid" }
 };
 
+// The clinical baselines this patient's record already holds when the invitation reaches them.
+// They are OBSERVATIONS, not goals and not targets: the care team recorded a blood pressure and a
+// weight, and every ACCESS milestone downstream is arithmetic on these two numbers. That is why
+// they live on the patient record rather than in a screen — a card that carried its own 152 would
+// keep saying 152 after the record said something else.
+//
+// Each one is CONFIRMED or it is not here at all. A baseline invented to fill a blank silently
+// becomes the number every milestone is derived from, so the resolver treats anything short of a
+// confirmed measurement as pending and the screens say so out loud.
+export const DEMO_BASELINE_OBSERVATIONS = Object.freeze({
+  bloodPressure: Object.freeze({ status: "CONFIRMED", systolic: 152, diastolic: 88, unit: "mmHg", recordedAt: "2026-08-14T15:20:00.000Z", source: "CARE_TEAM_RECORD" }),
+  weight: Object.freeze({ status: "CONFIRMED", weightLb: 204, bmi: 31, unit: "lb", recordedAt: "2026-08-14T15:20:00.000Z", source: "CARE_TEAM_RECORD" })
+});
+
 const shared = {
   id: "offer_demo_2026",
-  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" } },
+  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" }, baselineObservations: DEMO_BASELINE_OBSERVATIONS },
   referringProvider: { id: "dr-fresner", name: "Dr. Fresner", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
   participantProvider: { id: "itera", legalName: "ITERA HEALTH LLC", displayName: "ITERA HEALTH", supportPhone: "(305) 394-8070" },
   qualifyingCondition: { patientFriendlyName: "high blood pressure" },

@@ -54,6 +54,9 @@ describe("how ACCESS measures progress", () => {
     // that it is 15 mmHg off this patient's own starting point.
     expect(measure.improvementMilestone.derivedFromBaseline).toBe(152);
     expect(measure.improvementMilestone.improvementRequired).toBe(15);
+    // How far below the baseline the milestone sits, in the baseline's own units. A patient asking
+    // "what does 15 points lower mean for me" gets this number, not a subtraction done in a view.
+    expect(measure.improvementMilestone.reductionFromBaseline).toBe(15);
     // Two separately named keys, so there is no single "target" for a caller to grab blindly.
     expect(Object.keys(measure)).toEqual(expect.arrayContaining(["control", "improvementMilestone"]));
     expect(measure).not.toHaveProperty("target");
@@ -72,6 +75,10 @@ describe("how ACCESS measures progress", () => {
     expect(measure.improvementMilestone.value).toBe(199.5);
     expect(measure.control.value).toBe(30);
     expect(measure.control.maxIncreasePercentFromBaseline).toBe(5);
+    // The rule is a percentage; what the patient wants to hear is pounds. Both travel together so
+    // nobody downstream has to turn one into the other.
+    expect(measure.improvementMilestone.improvementRequired).toBe(5);
+    expect(measure.improvementMilestone.reductionFromBaseline).toBe(10.5);
   });
 
   it("keeps control and improvement as distinct routes in the outcome definition", () => {

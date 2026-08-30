@@ -124,6 +124,21 @@ async function openPlanReview(page) {
   await expect(page.getByRole("heading", { name: "Review your personalized plan" })).toBeVisible();
 }
 
+// The goal detail once connected readings are actually arriving. The patient it runs on has to be
+// one whose record holds a monitor: without one there is no feed to read, the screen correctly shows
+// its empty state, and there is no longitudinal progress left to make understandable.
+const openLongitudinalGoalDetail = async page => {
+  await page.getByRole("button", { name: /Save my plan/ }).click();
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.assignedDeviceId = "tenovi-bp-8842";
+    draft.screen = "MY_GOALS";
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "View my goal" }).click();
+};
+
 test("care plan review reads as a personal plan rather than an administrative table", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
   await openPlanReview(page);
@@ -167,16 +182,7 @@ test("care plan review reads as a personal plan rather than an administrative ta
 test("goal detail turns connected readings into understandable longitudinal progress", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
   await openPlanReview(page);
-  await page.getByRole("button", { name: /Save my plan/ }).click();
-  await page.evaluate(() => {
-    const select = document.querySelector("#screen-select");
-    const option = document.createElement("option");
-    option.value = "MY_GOALS";
-    select.appendChild(option);
-    select.value = "MY_GOALS";
-    select.dispatchEvent(new Event("change"));
-  });
-  await page.getByRole("button", { name: "View my goal" }).click();
+  await openLongitudinalGoalDetail(page);
 
   await expect(page.getByRole("heading", { name: "Keep my blood pressure under control" })).toBeVisible();
   await expect(page.locator(".goal-health-card")).toContainText("120 / 80");
@@ -243,16 +249,7 @@ for (const width of [360, 375, 384, 390, 393, 412, 430]) {
   test(`longitudinal goal detail stays mobile-first at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 824 });
     await openPlanReview(page);
-    await page.getByRole("button", { name: /Save my plan/ }).click();
-    await page.evaluate(() => {
-      const select = document.querySelector("#screen-select");
-      const option = document.createElement("option");
-      option.value = "MY_GOALS";
-      select.appendChild(option);
-      select.value = "MY_GOALS";
-      select.dispatchEvent(new Event("change"));
-    });
-    await page.getByRole("button", { name: "View my goal" }).click();
+    await openLongitudinalGoalDetail(page);
     const audit = await page.locator("#screen-content").evaluate(root => ({
       rootOverflow: root.scrollWidth > root.clientWidth + 1,
       documentOverflow: document.documentElement.scrollWidth > innerWidth + 1,
@@ -271,16 +268,7 @@ for (const scale of [1.25, 1.5]) {
   test(`goal detail accepts ${Math.round(scale * 100)}% text scaling`, async ({ page }) => {
     await page.setViewportSize({ width: 384, height: 824 });
     await openPlanReview(page);
-    await page.getByRole("button", { name: /Save my plan/ }).click();
-    await page.evaluate(() => {
-      const select = document.querySelector("#screen-select");
-      const option = document.createElement("option");
-      option.value = "MY_GOALS";
-      select.appendChild(option);
-      select.value = "MY_GOALS";
-      select.dispatchEvent(new Event("change"));
-    });
-    await page.getByRole("button", { name: "View my goal" }).click();
+    await openLongitudinalGoalDetail(page);
     await page.evaluate(value => { document.documentElement.style.fontSize = `${16 * value}px`; }, scale);
     const overflow = await page.locator("#screen-content").evaluate(root => root.scrollWidth > root.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1);
     expect(overflow).toBe(false);
@@ -291,16 +279,7 @@ for (const scale of [1.25, 1.5]) {
 test("longitudinal goal detail is complete in Spanish and Kreyòl", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
   await openPlanReview(page);
-  await page.getByRole("button", { name: /Save my plan/ }).click();
-  await page.evaluate(() => {
-    const select = document.querySelector("#screen-select");
-    const option = document.createElement("option");
-    option.value = "MY_GOALS";
-    select.appendChild(option);
-    select.value = "MY_GOALS";
-    select.dispatchEvent(new Event("change"));
-  });
-  await page.getByRole("button", { name: "View my goal" }).click();
+  await openLongitudinalGoalDetail(page);
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.getByRole("heading", { name: "Mantener mi presión arterial bajo control" })).toBeVisible();
   await expect(page.locator(".goal-health-card")).toContainText("Recibida automáticamente desde su monitor");
@@ -452,7 +431,15 @@ async function reachMyGoals(page, { width = 384, extraGoals = true } = {}) {
   await page.getByLabel("Check my blood pressure regularly").check();
   await page.getByRole("button", { name: "Review my plan" }).click();
   await page.getByRole("button", { name: "Save my plan" }).click();
-  await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
+  // The card's progress is read from connected readings, so the patient needs a monitor on their
+  // record for there to be any. Without one the goal reports what it actually knows: nothing yet.
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.assignedDeviceId = "tenovi-bp-8842";
+    draft.screen = "ONBOARDING_COMPLETE";
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
+  await page.reload();
   await page.getByRole("button", { name: "Go to my dashboard" }).click();
   await page.getByRole("button", { name: /My Goals/ }).click();
   await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();

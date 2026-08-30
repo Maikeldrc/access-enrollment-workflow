@@ -1,9 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { CANONICAL_PATIENT_SCENARIO, PROTOTYPE_OPTIONS, createPrototypeOffer, isProviderReferralSource, normalizePrototypeConfig, prescriberFor, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "../src/config.js";
+import { CANONICAL_PATIENT_SCENARIO, DEMO_BASELINE_OBSERVATIONS, PROTOTYPE_OPTIONS, createPrototypeOffer, isProviderReferralSource, normalizePrototypeConfig, prescriberFor, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "../src/config.js";
+import { accessProgressMeasure, patientStartingPoint } from "../src/accessCareActivation.js";
 
 // The public link no longer asks anyone to configure a scenario, which means nothing checks these
 // values at runtime any more. They are the invitation, so they are asserted here instead: a change
 // to the canonical patient is a deliberate edit to one object, never an accident downstream.
+// The invited patient arrives with baselines their care team already confirmed, which is what makes
+// the ACCESS milestones real numbers instead of a promise to work them out later. These hold the
+// fixture and the arithmetic together: if the record changes, the milestones change with it, and if
+// a screen ever starts carrying its own 137 these still pass while the screen quietly goes stale.
+describe("the canonical patient's confirmed starting points", () => {
+  const runtime = { BLOOD_PRESSURE_CONTROL: DEMO_BASELINE_OBSERVATIONS.bloodPressure, WEIGHT_MANAGEMENT: DEMO_BASELINE_OBSERVATIONS.weight };
+
+  it("carries the baselines on the patient record the offer hands over", () => {
+    expect(createPrototypeOffer(CANONICAL_PATIENT_SCENARIO).patient.baselineObservations).toEqual(DEMO_BASELINE_OBSERVATIONS);
+    expect(DEMO_BASELINE_OBSERVATIONS.bloodPressure).toMatchObject({ status: "CONFIRMED", systolic: 152, diastolic: 88 });
+    expect(DEMO_BASELINE_OBSERVATIONS.weight).toMatchObject({ status: "CONFIRMED", weightLb: 204, bmi: 31 });
+  });
+
+  it("resolves both starting points as confirmed rather than pending", () => {
+    expect(patientStartingPoint("BLOOD_PRESSURE_CONTROL", runtime)).toMatchObject({ status: "CONFIRMED", value: 152, diastolic: 88 });
+    expect(patientStartingPoint("WEIGHT_MANAGEMENT", runtime)).toMatchObject({ status: "CONFIRMED", value: 204, bmi: 31 });
+  });
+
+  it("derives 137 mmHg and 193.8 lb from the record, and keeps both apart from the control target", () => {
+    const bp = accessProgressMeasure("BLOOD_PRESSURE_CONTROL", patientStartingPoint("BLOOD_PRESSURE_CONTROL", runtime));
+    expect(bp.improvementMilestone).toMatchObject({ value: 137, derivedFromBaseline: 152, reductionFromBaseline: 15 });
+    expect(bp.control.value).toBe(130);
+
+    const weight = accessProgressMeasure("WEIGHT_MANAGEMENT", patientStartingPoint("WEIGHT_MANAGEMENT", runtime));
+    expect(weight.improvementMilestone).toMatchObject({ value: 193.8, derivedFromBaseline: 204, improvementRequired: 5, reductionFromBaseline: 10.2 });
+    expect(weight.control.value).toBe(30);
+  });
+});
+
 describe("the canonical patient invitation", () => {
   it("describes one ACCESS hypertension patient referred by Dr. Fresner", () => {
     expect(CANONICAL_PATIENT_SCENARIO.program).toBe("ACCESS");
