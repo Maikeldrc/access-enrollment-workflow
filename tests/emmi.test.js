@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EMMI_TOOL_DECLARATIONS, EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "../src/emmi/tools.js";
+import { getEmmiQuickQuestions } from "../src/emmi/quickQuestions.js";
 
 const memory = new Map();
 const makeRuntime = (patientId = "DEMO-P001") => {
@@ -81,5 +82,31 @@ describe("EMMI prototype tools", () => {
     const entry = EmmiAuditLog.all().at(-1);
     expect(entry).toMatchObject({ voiceId: "Sulafat", voiceVersion: "emmi-voice-v1", voiceProvider: "gemini-live" });
     expect(entry.voiceEvents.at(-1)).toMatchObject({ type: "EMMI_VOICE_SESSION_CONFIGURED", voiceId: "Sulafat", screenId: "INVITATION" });
+  });
+});
+
+describe("EMMI suggestions on the ACCESS activation screens", () => {
+  const ask = (currentScreen, program = "ACCESS") =>
+    getEmmiQuickQuestions({ currentScreen, program, locale: "en" }).map(item => item.label || item.copy || "").join(" | ");
+
+  // Offering "can I change a goal later?" to a patient whose goals are assigned invites them to
+  // expect control they do not have, and then to feel overruled when they discover otherwise.
+  it("asks what an ACCESS patient actually arrives with, and leaves the chooser alone", () => {
+    expect(ask("GOALS")).toMatch(/Did I choose these goals\?/);
+    expect(ask("GOALS")).toMatch(/15 mmHg lower/);
+    expect(ask("GOALS")).not.toMatch(/personalize my plan/i);
+    expect(ask("GOALS", "CCM")).toMatch(/personalize my plan/i);
+  });
+
+  it("offers the barrier screen's own questions", () => {
+    expect(ask("ACCESS_SUPPORT_NEEDS")).toMatch(/Why are you asking/);
+    expect(ask("ACCESS_SUPPORT_NEEDS")).toMatch(/forget my medications/);
+  });
+
+  // The arm restriction question left the device screen, so suggesting it invites a question the
+  // screen no longer answers.
+  it("stops offering the arm question the device screen no longer asks", () => {
+    expect(ask("ACCESS_BP_DEVICE_INFO")).toMatch(/cuff size/i);
+    expect(ask("ACCESS_BP_DEVICE_INFO")).not.toMatch(/which arm/i);
   });
 });

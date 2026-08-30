@@ -69,6 +69,12 @@ const CATALOG = {
   "goal-monitor-help": { intent: "DEVICE_SUPPORT", copy: ["How do I use my monitor?", "¿Cómo uso mi monitor?", "Kijan pou m itilize aparèy mwen an?"] },
   "device-no-tape": { intent: "DEVICE_SUPPORT", copy: ["I don’t have a measuring tape", "No tengo una cinta métrica", "Mwen pa gen yon riban mezi"] },
   "device-measure-arm": { intent: "DEVICE_SUPPORT", copy: ["How do I measure my arm?", "¿Cómo mido mi brazo?", "Kijan pou m mezire bra mwen?"] },
+  "goals-did-i-choose": { intent: "GOALS", copy: ["Did I choose these goals?", "¿Yo elegí estas metas?", "Èske se mwen ki chwazi objektif sa yo?"] },
+  "goals-improvement-milestone": { intent: "GOALS", copy: ["What does 15 mmHg lower mean?", "¿Qué significa 15 mmHg menos?", "Kisa 15 mmHg pi ba vle di?"] },
+  "goals-remove-bp": { intent: "GOALS", copy: ["Can I remove the blood pressure goal?", "¿Puedo quitar la meta de presión arterial?", "Èske mwen ka retire objektif tansyon an?"] },
+  "barriers-why-asking": { intent: "GOALS", copy: ["Why are you asking about this?", "¿Por qué me preguntan esto?", "Poukisa n ap mande sa?"] },
+  "barriers-forget-medication": { intent: "GOALS", copy: ["What happens if I say I forget my medications?", "¿Qué pasa si digo que olvido mis medicamentos?", "Kisa k ap pase si mwen di mwen bliye medikaman mwen?"] },
+  "device-cuff-size": { intent: "DEVICE_SUPPORT", copy: ["How do I know which cuff size fits?", "¿Cómo sé qué talla de brazalete me queda?", "Kijan mwen konnen ki gwosè manchèt ki bon pou mwen?"] },
   "device-which-arm": { intent: "DEVICE_SUPPORT", copy: ["I’m not sure which arm to use", "No sé qué brazo usar", "Mwen pa sèten ki bra pou m itilize"] },
   "device-take-again": { intent: "DEVICE_SUPPORT", copy: ["Do I need to take my blood pressure again now?", "¿Necesito tomarme la presión otra vez ahora?", "Èske mwen bezwen pran tansyon mwen ankò kounye a?"] },
   "device-connected": { intent: "DEVICE_SUPPORT", copy: ["Is my monitor connected?", "¿Mi monitor está conectado?", "Èske aparèy mwen konekte?"] },
@@ -143,10 +149,12 @@ const SCREEN_SETS = {
   DISCLOSURE: ["disclosure-voluntary-meaning", "disclosure-benefits-change", "disclosure-cost", "disclosure-change-provider"],
   CONSENT_REVIEW: ["access-must-enroll", "eligibility-change-medicare", "consent-why-zero-payment", "consent-change-mind-later"],
   ENROLLMENT_CONFIRMED: ["access-what-next", "device-how-get-monitor", "plan-what-will-include", "goals-what-work-on"],
+  GOALS: ["goals-did-i-choose", "goals-improvement-milestone", "goals-remove-bp", "human-talk-care-team"],
+  ACCESS_SUPPORT_NEEDS: ["barriers-why-asking", "barriers-forget-medication", "goals-trouble", "human-talk-care-team"],
+  ONBOARDING_COMPLETE: ["care-what-should-i-do", "device-how-get-monitor", "goals-what-work-on", "care-team-how-contact"],
   MY_CARE: ["bp-how-am-i-doing", "care-what-should-i-do", "appointment-need-one", "care-team-how-contact"],
   HEALTH_INFORMATION_REVIEW: ["health-high-bp-meaning", "health-emmi-confirm", "health-not-correct", "human-care-team-help"],
-  ACCESS_BP_DEVICE_INFO: ["device-no-tape", "device-measure-arm", "device-which-arm", "human-talk-care-team"],
-  ACCESS_MEASURE: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
+  ACCESS_BP_DEVICE_INFO: ["device-cuff-size", "device-measure-arm", "device-no-tape", "human-talk-care-team"],
   ACCESS_BP_DEVICE_VERIFICATION: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
   ACCESS_BP_DEVICE_RESULT: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
   ACCESS_BP_GUIDED_SETUP: ["device-take-again", "device-connected", "device-need-monitor", "human-talk-care-team"],
@@ -165,6 +173,10 @@ const ELIGIBILITY_SCREENS = ["ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_MEDICARE_I
 function resolveIds({ currentScreen, program, context }) {
   if (currentScreen === "MY_GOALS" && context.activeGoal?.latestReading) return ["goal-reading-meaning", "goal-week-trend", "goal-monitor-help", "human-talk-care-team"];
   if (currentScreen === "MY_GOALS" && context.activeGoal) return ["goals-trouble", "goal-trend-importance", "goals-change-later", "human-talk-care-team"];
+  // On ACCESS the goals are assigned, so offering "can I change a goal later?" and "help me
+  // personalize my plan" invites the patient to expect control they do not have. The questions
+  // they actually arrive with are whether they chose these and what the milestone means.
+  if (currentScreen === "GOALS" && program === "ACCESS") return ["goals-did-i-choose", "goals-improvement-milestone", "goals-remove-bp", "human-talk-care-team"];
   if (["GOALS", "MY_GOALS"].includes(currentScreen)) return ["goals-why-asking", "goals-change-later", "goals-personalize", "goals-trouble"];
   if (currentScreen === "ACCESS_ELIGIBILITY_RESULT") return context.eligibilityStatus === "NOT_ELIGIBLE"
     ? ["eligibility-why-blocked", "access-affects-medicare", "eligibility-still-see-doctors"]
