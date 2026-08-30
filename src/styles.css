@@ -2158,3 +2158,4 @@ a.goal-secondary-button { text-decoration:none; }
 .access-plan-support { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
 .access-plan-support li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
 .access-plan-support svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
+.access-plan-note { margin: -.375rem 0 0; color: var(--text-secondary); line-height: 1.5; }

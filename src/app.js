@@ -4815,10 +4815,12 @@ function accessCarePlanReady() {
   const deviceStatus = requested
     ? L("Requested — we’ll keep you updated", "Solicitado: le mantendremos informado", "Mande — n ap kenbe w enfòme")
     : L("Not requested yet", "Aún no solicitado", "Poko mande");
+  // Named for what actually happened. Barriers are recorded here; applying real interventions is
+  // a separate step, and until it runs nothing has been "added" for the patient at all.
   const supportAdded = activePatientGoals().flatMap(goal => (goal.barriers || [])
     .filter(barrier => barrierIsActive(barrier))
     .map(barrier => ({ goal, barrier })));
-  const supportCard = supportAdded.length ? `<section class="access-plan-block"><h2>${L("Support we added for you", "Apoyo que agregamos para usted", "Sipò nou ajoute pou ou")}</h2><ul class="access-plan-support">${supportAdded.map(({ barrier }) => `<li>${icon(barrierIcon(barrier))}<span>${escapeHtml(localBarrierText(barrierCategoryConfig(barrier.category).label, state.language))}</span></li>`).join("")}</ul></section>` : "";
+  const supportCard = supportAdded.length ? `<section class="access-plan-block"><h2>${L("What you told us could get in the way", "Lo que nos dijo que podría dificultarlo", "Sa ou di nou ki ka anpeche")}</h2><p class="access-plan-note">${L("Your care team will use this to add the right support to your plan.", "Su equipo de cuidado usará esto para agregar el apoyo adecuado a su plan.", "Ekip swen ou ap sèvi ak sa pou ajoute bon sipò a nan plan ou.")}</p><ul class="access-plan-support">${supportAdded.map(({ barrier }) => `<li>${icon(barrierIcon(barrier))}<span>${escapeHtml(localBarrierText(barrierCategoryConfig(barrier.category).label, state.language))}</span></li>`).join("")}</ul></section>` : "";
   const planCard = `<section class="access-plan-block"><h2>${L("Your care plan", "Su plan de cuidado", "Plan swen ou")}</h2><div class="access-plan-device">${icon("plan")}<div><strong>${L("Active", "Activo", "Aktif")}</strong><p>${L("Your ACCESS care plan is in place and will be updated as your care continues.", "Su plan de cuidado ACCESS está activo y se actualizará conforme avance su cuidado.", "Plan swen ACCESS ou a anplas epi l ap mete ajou pandan swen ou ap kontinye.")}</p></div></div></section>`;
   const deviceCard = `<section class="access-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="access-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
 
