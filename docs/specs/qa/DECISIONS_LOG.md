@@ -73,9 +73,17 @@ survive being shown at 150% on a 360px phone.
 only passes because an earlier one was skipped is what it exists to catch, and splitting it would
 reintroduce exactly the seeding that hides those defects.
 
+## Resolved
+
+**`access-bp-assigned` stays visible in the admin console** — *yours.* It is a real product path —
+the patient whose monitor is already on file — and it should be possible to demonstrate it. No code
+change; it was already listed.
+
+**The weight goal keeps its medication question** — *yours, and against my recommendation.* I argued
+it is off-topic beside eating and moving, and that section 8 says not to ask what cannot change care
+execution. You kept it: medication can affect weight, and the option only appears because this
+patient actually has medications. No code change.
+
 ## Open, not yet decided
 
-- Whether the `access-bp-assigned` scenario should appear in the admin console's scenario list, where
-  a demo operator will see it, or be hidden as a test-only fixture.
-- Whether the weight goal should offer a medication question at all. It appears because the patient
-  has medications, which is defensible, but it is off-topic beside eating and moving.
+Nothing outstanding.
