@@ -267,8 +267,8 @@ describe("focused questions reach focused knowledge", () => {
     ["¿Qué es eCKM?", /Early Cardio-Kidney-Metabolic/i],
     ["What is the ACCESS blood pressure target?", /below 130 mmHg/i],
     ["¿Cuál es la meta de presión arterial de ACCESS?", /below 130 mmHg/i],
-    ["Why do you need A1c if I'm not diabetic?", /A1c is asked of everyone in the track/i],
-    ["¿Por qué necesitan A1c si no soy diabético?", /A1c is asked of everyone in the track/i]
+    ["Why do you need A1c if I'm not diabetic?", /Being asked for an A1c does not mean you have diabetes/i],
+    ["¿Por qué necesitan A1c si no soy diabético?", /Being asked for an A1c does not mean you have diabetes/i]
   ]) {
     it(`answers from the page written for it: ${question.slice(0, 44)}`, () => {
       expect(retrievedText(question)).toMatch(expected);

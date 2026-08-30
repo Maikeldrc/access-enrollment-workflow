@@ -16,9 +16,9 @@ keywords: eckm, ckm, msk, bh, track, tracks, via, vía, pista, wout, early cardi
 
 # ACCESS tracks: eCKM, CKM, MSK and BH
 
-**eCKM stands for Early Cardio-Kidney-Metabolic.** It is one of the four tracks CMS launched for the ACCESS model, and it is the answer to "what does eCKM mean?".
+**eCKM stands for Early Cardio-Kidney-Metabolic.** It is the ACCESS track for people managing early heart, kidney and metabolic conditions — most often high blood pressure — before they become more serious.
 
-CMS launched four tracks:
+It is one of four tracks CMS launched for the ACCESS model:
 
 - **eCKM — Early Cardio-Kidney-Metabolic.** Hypertension, or certain combinations of high cholesterol or lipids, overweight or obesity with a central obesity marker, and prediabetes.
 - **CKM — Cardio-Kidney-Metabolic.** Diabetes, chronic kidney disease stage 3a or 3b, or atherosclerotic cardiovascular disease.

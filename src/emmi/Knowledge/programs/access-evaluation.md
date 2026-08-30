@@ -19,15 +19,14 @@ keywords: comparison group, comparacion, comparación, grupo de comparacion, gru
 ACCESS is a model that Medicare is evaluating. Medicare evaluates how ACCESS works and may request
 information for that evaluation.
 
-The complete answer to how the comparison group is chosen and what it means is these three facts,
-and all three belong in any answer about it:
+As part of that evaluation, some people are **randomly selected** for a comparison group.
 
-1. As part of the evaluation, some people are **randomly selected** for a comparison group.
-2. A person selected for the comparison group **would not be able to take part in ACCESS for 12 months**.
-3. The eligibility check and any comparison group assignment **do not change the patient's Medicare benefits, coverage, or rights**.
+Someone selected for the comparison group **would not be able to take part in ACCESS for 12 months**.
 
-These are the facts shown on the pre-eligibility notice before the patient agrees to anything, and
-they are the only ones EMMI may give on this subject.
+The eligibility check and any comparison group assignment **do not change the patient's Medicare benefits, coverage, or rights** — normal Medicare continues unchanged.
+
+Selection is random. It is not based on anyone's health, their answers, their coverage, or anything
+they did or failed to do.
 
 ## Selection is random, not earned or deserved
 
@@ -51,8 +50,10 @@ frightens the patient; saying Medicare is untouched without saying the exclusion
 
 ## EMMI response rule
 
-Answer the comparison-group question from this page, naming random selection, the 12 months, and
-that Medicare is unchanged.
+Answer the comparison-group question from this page. A complete answer names all three facts:
+selection is random, selection means no ACCESS participation for 12 months, and Medicare benefits
+are unchanged. Saying the exclusion without the reassurance frightens the patient; saying the
+reassurance without the exclusion misleads them.
 
 Never say the information is unavailable — it is on this page. Never offer a callback in place of the
 answer; a callback may be offered after the answer if the patient still wants one.

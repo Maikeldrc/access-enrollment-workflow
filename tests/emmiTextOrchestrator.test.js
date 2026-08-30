@@ -507,3 +507,60 @@ describe("follow-up query expansion", () => {
     expect(expandEmmiQuery({ question: "y cual es la diferencia", conversation: { conversationSummary: "ACCESS then CCM" }, program: "ACCESS" })).toMatch(/ACCESS CCM/);
   });
 });
+
+// When the model cannot be reached, the answer still has to be the answer.
+//
+// Production QA called this "generic ACCESS fallback ignores focused knowledge". The fallback
+// collected programme names from the retrieved file PATHS, and every ACCESS page has "access" in
+// its path, so any question that retrieved one returned the general ACCESS paragraph and threw away
+// everything that had just been retrieved. eCKM, the outcome targets and A1c all came back as the
+// same three sentences about extra support between doctor visits.
+describe("the answer when the model is unreachable", () => {
+  const focusedPassage = {
+    sourceId: "access-tracks",
+    sourcePath: "programs/access-tracks.md",
+    heading: "ACCESS tracks: eCKM, CKM, MSK and BH",
+    text: "**eCKM stands for Early Cardio-Kidney-Metabolic.** It is the ACCESS track for early heart, kidney and metabolic conditions.\n\nIt is one of four tracks CMS launched:\n\n- **eCKM — Early Cardio-Kidney-Metabolic.** Hypertension and prediabetes.\n- **CKM — Cardio-Kidney-Metabolic.** Diabetes and chronic kidney disease.\n\n## EMMI response rule\n\nNever quote a monthly amount from this page."
+  };
+
+  it("answers from the page that was retrieved rather than from a canned programme description", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).toMatch(/Early Cardio-Kidney-Metabolic/);
+    expect(answer.text).not.toMatch(/extra support between doctor visits/i);
+  });
+
+  it("keeps the list items, because that is where the facts are", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    // A promise of four tracks followed by nothing is worse than no answer at all.
+    expect(answer.text).toMatch(/Hypertension and prediabetes/);
+    expect(answer.text).not.toMatch(/launched:\s*\./);
+  });
+
+  it("never reads the page's own instructions out to the patient", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).not.toMatch(/EMMI response rule|Never quote a monthly amount/i);
+  });
+
+  it("leaves no markdown in what the patient reads", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).not.toMatch(/\*\*|^#|^- /m);
+  });
+
+  // The corpus is English and the canned answers are trilingual. With no model there is nothing to
+  // translate with, so a Spanish patient keeps a Spanish answer rather than English prose.
+  it("keeps a Spanish patient in Spanish rather than handing them the English page", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("¿Qué significa eCKM?");
+    expect(answer.text).not.toMatch(/Early Cardio-Kidney-Metabolic/);
+  });
+
+  it("still gives the canned programme answer when the general programme page is what matched", async () => {
+    const { orchestrator } = harness({ locale: "EN" });
+    const answer = await orchestrator.answer("What is ACCESS?");
+    expect(answer.text).toMatch(/extra support between doctor visits/i);
+  });
+});

@@ -364,6 +364,52 @@ const programAnswers = Object.freeze({
   }
 });
 
+// The generic page for a programme, as opposed to a page written for one question about it.
+const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|tcm|rtm|ccm-rpm|pcm-rpm)\.md$/i;
+
+// Turn a retrieved page into something that reads as an answer: no headings, no markdown, and only
+// as much as a patient will read. The pages lead with their answer for exactly this reason.
+const passageAnswer = passage => {
+  // Everything from the response rule onward is written for the model, not the patient: retrieval
+  // appends it to whichever chunk it returns, and it must never be read out as an answer.
+  const body = String(passage?.text || "")
+    .split(/^#{1,4}\s*EMMI response rule\s*$/mi)[0]
+    // Emphasis comes off first: a line ending "things:**" does not look like it ends in a colon,
+    // and the list it introduces would be started as a new sentence instead of joined to it.
+    .replace(/\*\*|__|`/g, "");
+
+  const blocks = [];
+  for (const block of body.split(/\r?\n\s*\r?\n/)) {
+    const lines = block.split(/\r?\n/).map(line => line.trim()).filter(Boolean).filter(line => !/^#{1,4}\s/.test(line));
+    if (!lines.length) continue;
+    // A list is where the facts are — the four tracks, the two halves of the target — so items are
+    // kept and turned into sentences. Everything else is a paragraph that was hard-wrapped, and
+    // its lines rejoin without gaining a full stop in the middle of a sentence.
+    const isList = lines.every(line => /^(?:[-*]|\d+\.)\s+/.test(line));
+    if (isList) blocks.push(lines.map(line => line.replace(/^(?:[-*]|\d+\.)\s+/, "")).map(item => (/[.!?]$/.test(item) ? item : `${item}.`)).join(" "));
+    else blocks.push(lines.join(" "));
+  }
+
+  const prose = blocks
+    .reduce((joined, block) => {
+      const previous = joined.at(-1);
+      // A list belongs to the sentence that introduced it.
+      if (previous && /[:;,]$/.test(previous)) joined[joined.length - 1] = `${previous} ${block}`;
+      else joined.push(block);
+      return joined;
+    }, [])
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (prose.length <= 460) return prose;
+  let cut = "";
+  for (const sentence of prose.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) {
+    if ((cut + sentence).length > 460 && cut) break;
+    cut += sentence;
+  }
+  return cut.trim() || prose.slice(0, 460);
+};
+
 const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
   const sources = retrieval.passages || [];
   const sourcePaths = sources.map(item => item.sourcePath).join(" ");
@@ -381,6 +427,21 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
   });
   if (combinedProgram) return pick(locale, programAnswers[combinedProgram]);
   if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
+  // A page written for this question beats a canned description of the programme it belongs to.
+  // Without this, any question whose retrieval touched a file with a programme name in its path —
+  // which is every ACCESS page — returned the general ACCESS blurb and discarded everything that
+  // had just been retrieved. That is the "generic ACCESS fallback ignores focused knowledge"
+  // defect, and it is why eCKM, the outcome targets and A1c all came back as the same paragraph.
+  //
+  // English only, and deliberately. The corpus is written in English; the canned answers are
+  // trilingual. When the model is reachable it translates the passage, and this path is only for
+  // when it is not, so a Spanish or Creole patient keeps the answer in their own language rather
+  // than being handed English prose.
+  const focused = sources[0] && !GENERIC_PROGRAM_PAGE.test(sources[0].sourcePath || "") ? sources[0] : null;
+  if (focused && String(locale).toUpperCase() === "EN") {
+    const answer = passageAnswer(focused);
+    if (answer) return answer;
+  }
   const named = explicitPrograms.find(name => programAnswers[name]) || programs.find(name => programAnswers[name]);
   if (named) return pick(locale, programAnswers[named]);
   if (sources.some(item => /medications/.test(item.sourcePath))) return pick(locale, {
