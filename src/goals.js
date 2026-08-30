@@ -51,11 +51,15 @@ export const GOAL_CONFIG = Object.freeze({
     category: "WEIGHT",
     displayName: T("Reach or maintain a healthy weight", "Alcanzar o mantener un peso saludable", "Rive oswa kenbe yon pwa ki an sante"),
     progressType: "MEASUREMENT_ADHERENCE",
+    // "Weigh myself", not "Track my weight". A connected scale transmits on its own, so tracking is
+    // the platform's job and naming it as the patient's task tells them to log numbers nobody is
+    // asking them to log. The blood pressure goal already says "check", not "track", for the same
+    // reason. What the patient actually does is step on the scale.
     suggestedActions: [
-      { id: "track-weight", title: T("Track your weight", "Registrar mi peso", "Swiv pwa mwen"), frequency: true, defaultTarget: 3 },
-      { id: "follow-nutrition-plan", title: T("Follow your nutrition plan", "Seguir mi plan de nutrición", "Swiv plan nitrisyon mwen"), frequency: true, defaultTarget: 5 },
-      { id: "stay-active-as-able", title: T("Stay physically active as appropriate", "Mantenerme físicamente activo según corresponda", "Rete fizikman aktif jan sa apwopriye"), frequency: true, defaultTarget: 3 },
-      { id: "nutrition-support", title: T("Get nutrition or weight support when needed", "Recibir apoyo de nutrición o peso cuando lo necesite", "Jwenn sipò nitrisyon oswa pwa lè mwen bezwen l"), frequency: false }
+      { id: "weigh-in", title: T("Weigh myself regularly", "Pesarme con regularidad", "Peze tèt mwen regilyèman"), frequency: true, defaultTarget: 3 },
+      { id: "follow-nutrition-plan", title: T("Follow my nutrition plan", "Seguir mi plan de nutrición", "Swiv plan nitrisyon mwen"), frequency: true, defaultTarget: 5 },
+      { id: "stay-active-as-able", title: T("Stay active in ways that are right for me", "Mantenerme activo de la forma adecuada para mí", "Rete aktif nan fason ki bon pou mwen"), frequency: true, defaultTarget: 3 },
+      { id: "nutrition-support", title: T("Ask for nutrition or weight support when I need it", "Pedir apoyo de nutrición o peso cuando lo necesite", "Mande sipò nitrisyon oswa pwa lè mwen bezwen l"), frequency: false }
     ]
   },
   STAY_INDEPENDENT: {
@@ -203,7 +207,7 @@ const ACTION_ICONS = Object.freeze({
   "learn-purpose": "book",
   "make-question-list": "document",
   "review-with-team": "people",
-  "track-weight": "scale",
+  "weigh-in": "scale",
   "follow-nutrition-plan": "nutrition",
   "stay-active-as-able": "activity",
   "nutrition-support": "people"

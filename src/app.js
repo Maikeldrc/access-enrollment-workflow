@@ -4189,12 +4189,20 @@ function accessAssignedGoals() {
     const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
     const actionItems = suggestedActionsFor(goalType).slice(0, goalType === "BLOOD_PRESSURE_CONTROL" ? 3 : 4)
       .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
+    // Summary first, detail on request. Two goals with four sections each is a wall of text at
+    // 384px, and the patient's own question — what is this goal and where am I starting — gets
+    // buried under the program's measurement rules. So the card answers that much and keeps the
+    // thresholds and the action list one tap away. <details> because the browser already makes it
+    // keyboard operable and announces its state; a div and a click handler would not.
     return `<article class="access-goal-card">
       <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
       <p class="access-goal-support">${accessGoalSupportCopy(goalType)}</p>
-      <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
       <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
-      <section class="access-goal-plan"><h4>${L("How we’ll work on it", "Cómo trabajaremos en esto", "Kijan n ap travay sou li")}</h4><ul>${actionItems}</ul></section>
+      <details class="access-goal-details">
+        <summary>${L("How ACCESS measures progress, and how we’ll work on it", "Cómo ACCESS mide su progreso y cómo trabajaremos en esto", "Kijan ACCESS mezire pwogrè, ak kijan n ap travay sou li")}${icon("chevronRight")}</summary>
+        <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
+        <section class="access-goal-plan"><h4>${L("How we’ll work on it", "Cómo trabajaremos en esto", "Kijan n ap travay sou li")}</h4><ul>${actionItems}</ul></section>
+      </details>
     </article>`;
   }).join("");
   return `${titleBlock(L("Your ACCESS health goals", "Sus objetivos de salud de ACCESS", "Objektif sante ACCESS ou yo"), L("These goals are part of your ACCESS care. We’ll track your progress and personalize the support you receive along the way.", "Estos objetivos forman parte de su cuidado ACCESS. Seguiremos su progreso y personalizaremos el apoyo que recibe en el camino.", "Objektif sa yo fè pati swen ACCESS ou. N ap swiv pwogrè ou epi pèsonalize sipò ou resevwa sou wout la."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}<div class="access-goal-list">${cards}</div>${actions(L("Personalize my care", "Personalizar mi cuidado", "Pèsonalize swen mwen"))}`;

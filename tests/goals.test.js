@@ -95,6 +95,34 @@ describe("goal category iconography", () => {
     expect(new Set(actionIcons).size).toBeGreaterThan(1);
     expect(actionIcons).not.toEqual(actionIcons.map(() => resolveGoalIcon({ goalType: "BLOOD_PRESSURE_CONTROL" })));
   });
+
+  // Connected devices transmit on their own: the blood pressure monitor and the scale both send
+  // their readings to the platform. So tracking is not the patient's job, and an action that tells
+  // them to track asks for bookkeeping nobody wants from them. They take the measurement; the
+  // platform records it. Both goals say check or weigh, never track.
+  it("asks the patient to take the measurement, not to track what a device transmits", () => {
+    // Narrow on purpose: following a nutrition plan is a real patient action, and "swiv" is simply
+    // "follow" in Kreyòl. What is banned is tracking the measurement itself.
+    const tracksAMeasurement = /track(ing)? (my |the )?(weight|blood pressure)|registrar (mi |la )?(peso|presi[oó]n)|swiv (pwa|tansyon)/i;
+    for (const goalType of ["BLOOD_PRESSURE_CONTROL", "WEIGHT_MANAGEMENT"]) {
+      for (const action of suggestedActionsFor(goalType)) {
+        for (const locale of ["en", "es", "ht"]) {
+          expect(action.title[locale]).not.toMatch(tracksAMeasurement);
+        }
+      }
+    }
+    expect(suggestedActionsFor("WEIGHT_MANAGEMENT")[0].title.en).toBe("Weigh myself regularly");
+  });
+
+  // The file writes a patient's own actions in the first person. A goal added later that slips into
+  // "your" reads like an instruction from someone else, in the middle of a list that does not.
+  it("keeps every configured action in the patient's own voice", () => {
+    for (const goalType of Object.keys(GOAL_CONFIG)) {
+      for (const action of suggestedActionsFor(goalType)) {
+        expect(action.title.en).not.toMatch(/\byour\b/i);
+      }
+    }
+  });
 });
 
 describe("the patient's calendar day", () => {
