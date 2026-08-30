@@ -24,6 +24,20 @@ const safeStorage = storage => ({
 const parse = value => { try { return JSON.parse(value || "null"); } catch { return null; } };
 const cleanText = value => String(value || "").replace(/\s+/g, " ").trim().slice(0, 900);
 
+// Everything EMMI remembers about one enrollment: the saved conversation, the tab's copy of it,
+// and the visit id that decides whether the next turn is a reconnect or a fresh greeting.
+//
+// All three are keyed by `scenarioId:patientId`, and both demo enrollments are the same fictional
+// patient on the same scenario — so their scope strings are identical and the second enrollment
+// would resume the first one's conversation word for word. That is why this clears the keys whole
+// instead of deleting one scope: there is no scope that separates A from B.
+export function clearEmmiConversation({ storage = globalThis.localStorage, sessionStorage = globalThis.sessionStorage } = {}) {
+  const drop = (store, key) => { try { store?.removeItem(key); } catch { /* best effort */ } };
+  drop(storage, STORAGE_KEY);
+  drop(sessionStorage, SESSION_KEY);
+  drop(sessionStorage, VISIT_KEY);
+}
+
 export class EmmiConversationManager {
   constructor({ patientId = "", scenarioId = "", locale = "EN", storage = globalThis.localStorage, sessionStorage = globalThis.sessionStorage, now = () => Date.now(), onEvent = () => {} } = {}) {
     this.storage = safeStorage(storage);

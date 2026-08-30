@@ -1,6 +1,7 @@
 import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTOTYPE_CONFIG, PROTOTYPE_OPTIONS, SCENARIOS, SECONDARY_COVERAGE_STATUSES, isProviderReferralSource, normalizePrototypeConfig, prescriberFor, scenarioRequiresPhysician, scenarioUsesBloodPressureMonitoring } from "./config.js";
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
+import { resetEnrollmentSession } from "./enrollmentSession.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
 import { ACCESS_OUTCOME_TARGETS, accessProgressMeasure, assignedAccessGoals, isAssignedAccessGoal, patientStartingPoint } from "./accessCareActivation.js";
 import {
@@ -23,11 +24,11 @@ import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
-import { EmmiAuditLog, EmmiToolOrchestrator, selectDemoPatientId } from "./emmi/tools.js";
+import { EmmiAuditLog, EmmiToolOrchestrator, clearEmmiAuditLog, selectDemoPatientId } from "./emmi/tools.js";
 import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
 import { buildHomeNarration, buildNarration, buildTransitionNarration } from "./emmi/narrative.js";
 import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transitionManager.js";
-import { EmmiConversationManager } from "./emmi/conversationManager.js";
+import { EmmiConversationManager, clearEmmiConversation } from "./emmi/conversationManager.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
@@ -79,6 +80,39 @@ const scenarioId = canonicalInvitation ? "access-invitation" : prototypeMode ? "
 const invitationIdentity = () => state.offer?.patient?.identityMatch || { dobIso: "", zip: "" };
 const draftStore = new DraftStore();
 const growthStore = new GrowthStore();
+
+// ---------------------------------------------------------------------------------------------
+// "/new" is a command, not a screen
+//
+// The bare link resumes whatever enrollment this browser is holding — that is what makes it a
+// patient's own link and why it must not start over on every visit. "/new" is the other verb:
+// forget that enrollment and begin another one.
+//
+// It is carried out HERE, at module scope, for one reason. Everything below runs after it: the
+// first render, and boot(), which reads the draft. Resetting any later would paint the previous
+// patient and then blank them, and in a clinical prototype that flash is not a cosmetic flicker —
+// it is showing patient A's name, readings and care plan to whoever is holding the phone to start
+// patient B. There is no render between the reset and the clean state because there is no render
+// before this line at all.
+//
+// The URL is rewritten to "/" in the same breath, and that is not tidying. A command that stays in
+// the address bar is a command that runs again: refresh would discard the enrollment the patient
+// had just begun, forever, one keystroke at a time. Rewriting it means refresh resumes B, which is
+// what a patient reloading a page expects and what §7 asks for.
+//
+// Nothing about the invitation itself changes. "/new" carries no scenario parameter, so the
+// canonical ACCESS patient resolves exactly as it does at "/", and the journey opens on its first
+// real screen because a cleared draft is a draft boot() finds nothing in.
+const startingNewEnrollment = location.pathname === "/new";
+if (startingNewEnrollment) {
+  resetEnrollmentSession({
+    draftStore,
+    growthStore,
+    clearConversation: clearEmmiConversation,
+    clearAuditLog: clearEmmiAuditLog
+  });
+  history.replaceState(null, "", `/${location.search}${location.hash}`);
+}
 const EMMI_PREFERENCES_KEY = "itera.emmi.preferences.v1";
 // The demo pharmacy fill dates are relative to today so the prototype always shows one medication
 // approaching a refill and one comfortably stocked, whenever it is opened.
@@ -8012,7 +8046,10 @@ function bind() {
       return;
     }
     if (action === "dev") { state.devOpen = !state.devOpen; render(); }
-    if (action === "clear") { draftStore.clear(); location.reload(); }
+    // The console's reset is the same reset the patient's "/new" performs. It used to drop the
+    // draft alone, which left EMMI still remembering the cleared patient and their Care Circle
+    // still on file — a demo that looked reset and was not.
+    if (action === "clear") { resetEnrollmentSession({ draftStore, growthStore, clearConversation: clearEmmiConversation, clearAuditLog: clearEmmiAuditLog }); location.reload(); }
   }));
   const goalDiscoveryForm = document.querySelector("#care-goals-form");
   goalDiscoveryForm?.addEventListener("change", event => {
