@@ -890,3 +890,34 @@ test("a goal with a baseline and no monitor shows what it knows, and invents no 
   await expect(outcome).toContainText("Baseline confirmed");
   await expect(outcome).toContainText("137 mmHg or lower");
 });
+
+// My Goals is where the patient comes back weeks later. A card that showed a next step but not the
+// number the goal is measured from would make them open the goal just to remember where they began.
+test("both goal cards carry the starting point the rest of the journey showed", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.screen = "MY_GOALS";
+    delete draft.activeGoalId;
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();
+
+  const bloodPressure = page.locator('.goal-card:has-text("Keep my blood pressure under control")');
+  const weight = page.locator('.goal-card:has-text("Reach or maintain a healthy weight")');
+  await expect(bloodPressure.locator(".goal-summary-baseline")).toContainText("152 / 88 mmHg");
+  await expect(weight.locator(".goal-summary-baseline")).toContainText("204 lb");
+  await expect(weight.locator(".goal-summary-baseline")).toContainText("BMI 31.0");
+
+  // The starting point is a fact, not progress. Neither card counts anything it has not measured.
+  await expect(page.locator("#screen-content")).not.toContainText("readings received");
+  await expect(page.locator(".goal-metric-list")).toHaveCount(0);
+
+  // And it says the same thing in the patient's own language.
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".goal-summary-baseline").first()).toContainText("Punto de partida");
+  await expect(page.locator("#screen-content")).toContainText("IMC 31.0");
+});

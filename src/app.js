@@ -4367,6 +4367,23 @@ const goalCardCta = goal => (goalIsReadyToPersonalize(goal)
   ? { label: L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen"), action: "view-goal" }
   : { label: L("View my goal", "Ver mi meta", "Gade objektif mwen"), action: "view-goal" });
 
+// The number this goal is being measured from, on the screen the patient comes back to weeks later.
+// One line and no more: the card says where they started, not how ACCESS measures it — the control
+// target and the milestone are one tap away inside the goal, where there is room to keep them apart.
+//
+// A pending baseline renders nothing rather than a placeholder. "To be confirmed" belongs on the
+// activation screens, which are explaining what will happen; on a card it would be a row of nothing
+// sitting where a fact goes.
+function goalStartingPointLine(goal) {
+  if (!goal || !isAssignedAccessGoal(state.offer, goal.goalType)) return "";
+  const point = patientStartingPoint(goal.goalType, careActivationRuntime());
+  if (point.status !== "CONFIRMED") return "";
+  const value = goal.goalType === "BLOOD_PRESSURE_CONTROL"
+    ? `${point.value}${point.diastolic ? ` / ${point.diastolic}` : ""} mmHg`
+    : `${point.value} lb${point.bmi ? ` · ${L("BMI", "IMC", "BMI")} ${formatBmi(point.bmi)}` : ""}`;
+  return `<div class="goal-summary-block goal-summary-baseline"><span class="goal-summary-label">${L("Starting point", "Punto de partida", "Pwen depa")}</span><p class="goal-summary-value">${value}</p></div>`;
+}
+
 // The primary goal gets the fuller treatment: progress, the next step and a lead action. Other
 // goals stay deliberately lighter, so the patient's own priority is the thing that stands out.
 function primaryGoalCard(goal) {
@@ -4374,6 +4391,7 @@ function primaryGoalCard(goal) {
   const ctaAction = goalCardCta(goal);
   return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
+    ${goalStartingPointLine(goal)}
     ${goalProgressMarkup(goal)}
     ${goalNeedsHelpLine(goal)}
     ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
@@ -4387,6 +4405,7 @@ function secondaryGoalCard(goal) {
   return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     <p class="goal-card-status">${icon(goalStatusIcon(goal))}<span>${goalStatusCopy(goal)}</span></p>
+    ${goalStartingPointLine(goal)}
     <p class="goal-card-support">${ready
       ? L("Personalize how you’d like to work on this goal.", "Personalice cómo le gustaría trabajar en esta meta.", "Pèsonalize kijan ou ta renmen travay sou objektif sa a.")
       : escapeHtml(goalNextStep(goal))}</p>
