@@ -87,6 +87,44 @@ worse problem. The patient now reads a translation of a record that has not move
 affordance and it previously went to the invitation for everybody, which is how an enrolled patient
 ended up being asked who was completing their enrollment.
 
+## Clinical safety — decisions worth your attention
+
+These three are judgment calls about an emergency, made alone. They are the ones I would most want
+a clinician to look at.
+
+**A patient saying they feel better ends the emergency episode** — mine, and the one I am least
+certain of. Saying "I called 911" or "the paramedics are here" clearly should end it. Saying only
+"I'm feeling better now, the pain stopped" is the patient assessing themselves, and believing them
+means an emergency prompt can be talked away. I decided it ends the episode anyway, because the
+alternative that was actually shipped — an app that answers nothing but "call 911" forever, through
+reloads — is not the safer option, it is just the more frightened one. The acknowledgement repeats
+the instruction to call 911 if the symptoms return, and it is recorded as
+`PATIENT_REPORTED_RECOVERED` rather than as a confirmed handoff, so the two are never confused in
+the record. **If a clinician wants only a confirmed handoff to close an episode, that is one line.**
+
+**Four hours before an episode expires on its own** — mine, and the number is a judgment, not a
+finding. Long enough to cover a real episode and the wait that follows it; short enough that a
+patient returning the next day is not met with an emergency that is over. Nothing in the spec named
+a duration.
+
+**A new symptom during an open episode still escalates** — mine, and the conservative half. The
+resolution check runs before the emergency gate, but only resolution phrasing passes it; anything
+that reads as a symptom goes to the clinical engine as it always did.
+
+## Engineering, continued
+
+**Knowledge pages now declare their own keywords, in three languages** — mine, and it changes how
+every future page has to be written. The corpus is English and the patients ask in three languages,
+so token overlap alone cannot tell one ACCESS page from another for a Spanish or Creole question.
+Yesterday's comparison-group fix passed on a tie-break; two new pages were enough to break it. The
+alternative was translating the whole corpus, which is a much larger piece of work and probably the
+right eventual answer.
+
+**The no-model fallback answers from the retrieved page, in English only** — mine. When the model
+cannot be reached there is nothing to translate with, so a Spanish or Creole patient keeps the
+canned trilingual answer rather than being handed English prose. It means those patients still get
+a general answer in that degraded mode. **This disappears if the corpus is translated.**
+
 ## Verification method
 
 **The responsive audit walks the screens instead of jumping to them** — mine, and forced. The QA
@@ -127,3 +165,13 @@ session with the live browser and audio, or a scheduled human pass.**
 
 **Whether the consent answer must quote "up to $6".** See the entry under Engineering. I decided
 against it and can reverse it in one edit.
+
+**Whether a patient's own word that they feel better should end an emergency episode.** See Clinical
+safety above. I said yes; a clinician may well say no. It is the single decision in this work I
+would most like reviewed.
+
+**Whether to translate the knowledge corpus.** It is written in English and read by patients in
+three languages. Keywords per page close the retrieval half of that, and the model translates the
+answer when it is reachable — but when it is not, a Spanish or Creole patient gets a general answer
+where an English speaker gets a specific one. Translating the corpus is the real fix and is a
+sizeable piece of work.
