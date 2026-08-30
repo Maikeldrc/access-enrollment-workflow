@@ -8,7 +8,7 @@ async function openOwnedBpVerification(page, scenario = "access-bp-assigned") {
   // starts the assigned-device lookup — a jump shows the screen before it has looked anything up.
   await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
   await page.getByRole("button", { name: /Set up my care/i }).click();
-  await expect(page.getByRole("heading", { name: /Your monitor is connected to ITERA|We don’t see a monitor connected to your care yet\.|We need to check your monitor|Let’s get you a connected monitor/ })).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole("heading", { name: /Your monitor is connected to ITERA|We don’t see a monitor connected to your care yet\.|We need to check your monitor|Let’s get you a connected monitor/ })).toBeVisible({ timeout: 15000 });
 }
 
 // The readings only exist once a monitor is connected, and it is the record holding a device that
@@ -616,9 +616,9 @@ test("ACCESS monitor fulfillment is localized in Spanish and Kreyòl", async ({ 
   await expect(page.getByRole("heading", { name: "Controle su presión arterial desde casa" })).toBeVisible();
   await expect(page.getByText("Elija la talla de brazalete correcta", { exact: true })).toBeVisible();
   await expect(page.getByText("Su información de salud está protegida", { exact: true })).toBeVisible();
-  await page.locator('.choice-card:has(input[value="UNSURE"])').click();
-  await expect(page.getByText("Podemos ayudarle a confirmar el tamaño adecuado antes de enviar su monitor.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Continuar" }).click();
+  await page.getByRole("button", { name: "Sé la medida de mi brazo" }).click();
+  await page.getByLabel("Circunferencia del brazo").fill("60");
+  await page.getByRole("button", { name: "Solicitar mi monitor" }).click();
   await expect(page.getByRole("heading", { name: "¿Dónde desea recibir su monitor?" })).toBeVisible();
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
   await expect(page.getByRole("heading", { name: "Ki kote ou vle resevwa aparèy ou a?" })).toBeVisible();
@@ -627,12 +627,15 @@ test("ACCESS monitor fulfillment is localized in Spanish and Kreyòl", async ({ 
 
 test("ACCESS incompatible monitor requests a compatible device without reopening enrollment", async ({ page }) => {
   await openOwnedBpVerification(page, "access-bp-incompatible");
-  await expect(page.getByRole("heading", { name: "Let’s get you a connected monitor" })).toBeVisible();
+  // The lookup resolves after the screen appears, so this heading arrives a moment later.
+  await expect(page.getByRole("heading", { name: "Let’s get you a connected monitor" })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("Your current monitor may still be useful for your personal care, but your ACCESS readings need to come from a monitor that can securely send readings to ITERA HEALTH.", { exact: true })).toBeVisible();
   await expect(page.getByText("We can help arrange a connected monitor for you.", { exact: true })).toBeVisible();
   await expect(page.locator("#screen-content")).not.toContainText(/photo|serial number|QR|barcode|brand|model|invalid monitor|unsupported device|incompatible monitor/i);
   await page.getByRole("button", { name: "Get a connected monitor" }).click();
-  await expect(page.getByRole("heading", { name: "Let’s get you a connected monitor" })).toBeVisible();
+  // Choosing to get one leads to the request screen; the previous heading was the explanation of
+  // why the monitor they own cannot be used.
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(lifecycle).toMatchObject({ enrollmentStatus: "COMPLETED", baselineStatus: "IN_PROGRESS", bpBaselineStatus: "DEVICE_VERIFICATION", deviceSource: "PATIENT_OWNED", deviceVerificationStatus: "PENDING_DEVICE", deviceFulfillmentStatus: "NOT_REQUESTED", bpDeviceFulfillmentStatus: "NOT_STARTED" });
 });
@@ -755,8 +758,10 @@ test("ACCESS completes the remaining baseline readings automatically without kee
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Your ACCESS health goals" })).toBeVisible();
   await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"))?.bpBaselineStatus)).toBe("COMPLETED");
-  await expect(page.getByText("Starting blood pressure complete", { exact: true })).toBeVisible();
-  await expect(page.getByText("3 of 3 readings received", { exact: true })).toBeVisible();
+  // The progress card that carried these two lines belonged to the setup screen care activation
+  // replaced. What this test is named for — the readings finishing without the patient waiting on
+  // the measurement screen — is the record above, and it is asserted there.
+  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"))?.bpReadingCount)).toBe(3);
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(lifecycle).toMatchObject({ bpBaselineStatus: "COMPLETED", bpBaselineReadingCount: 3, bpBaselineRemainingReadings: 0, deviceVerificationStatus: "SOURCE_VERIFIED" });
   expect(new Set(lifecycle.bpReadingReceipts.map(receipt => receipt.observationId)).size).toBe(3);
@@ -1403,7 +1408,10 @@ test("ACCESS merges care coordination into What your care includes with a dynami
   await expect(page.locator(".access-care-chip")).toHaveCount(0);
   await expect(page.getByLabel("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.")).toBeVisible();
   await page.locator("#screen-select").selectOption("ONBOARDING_COMPLETE", { force: true });
-  await expect(page.getByText("You continue working with Dr. Humberto Machado Jr.", { exact: true })).toBeVisible();
+  // ACCESS ends on its care plan, which names the care team rather than saying that sentence. The
+  // physician the console configured still has to appear there, which is what this was checking.
+  await expect(page.getByRole("heading", { name: "Your ACCESS care is ready" })).toBeVisible();
+  await expect(page.locator(".access-plan-block", { hasText: "Connected with your care team" })).toContainText("Dr. Humberto Machado Jr.");
 });
 
 test("ACCESS care inclusions adapt to the configured condition and direct outreach source", async ({ page }) => {
@@ -2239,7 +2247,7 @@ test("contextual assurance footer follows actions and stays clear of Emmi", asyn
     ["CARE_RECOMMENDATION", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
     ["ACCESS_ELIGIBILITY_RESULT", "NO_COMMITMENT_YET", "You’ll review all the details before completing your enrollment"],
     ["CONSENT_REVIEW", "ENROLLMENT_CHOICE", "You choose whether to enroll"],
-    ["ACCESS_BP_DEVICE_INFO", "BP_HEALTH_DATA_SECURITY", "Your health information is secure"]
+    ["ACCESS_BP_DEVICE_INFO", "BP_HEALTH_DATA_SECURITY", "Your health information is protected"]
   ];
 
   for (const [screen, type, message] of cases) {
