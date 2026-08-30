@@ -29,7 +29,7 @@ describe("EMMI ephemeral token endpoint safety", () => {
             startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
             endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
             prefixPaddingMs: 300,
-            silenceDurationMs: 800
+            silenceDurationMs: 1200
           },
           activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
         }
@@ -56,5 +56,5 @@ describe("EMMI ephemeral token endpoint safety", () => {
     expect(JSON.stringify(result)).not.toMatch(/ko-KR|Korean|한국어/i);
   });
   it("rejects cross-origin production requests", async () => expect(await call("POST", { VERCEL_URL: "dev-enrollment.vercel.app" }, {}, { headers: { origin: "https://attacker.example" } })).toMatchObject({ status: 403, body: { error: "origin_not_allowed" } }));
-  it("rate limits repeated requests", async () => { const env = {}; for (let i = 0; i < 10; i += 1) await call("POST", env, {}, { ip: "rate-test" }); expect(await call("POST", env, {}, { ip: "rate-test" })).toMatchObject({ status: 429 }); });
+  it("rate limits repeated requests without blocking normal reconnect bursts", async () => { const env = {}; for (let i = 0; i < 30; i += 1) await call("POST", env, {}, { ip: "rate-test" }); expect(await call("POST", env, {}, { ip: "rate-test" })).toMatchObject({ status: 429 }); });
 });

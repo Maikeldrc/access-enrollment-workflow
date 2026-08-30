@@ -32,6 +32,7 @@ import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
 import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
+import { sanitizeEmmiTranscript } from "./emmi/transcript.js";
 import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
@@ -840,6 +841,10 @@ function assistantContext() {
     bpBaselineRemainingReadings: state.bpBaselineRemainingReadings ?? 3,
     deviceVerificationStatus: state.deviceVerificationStatus,
     firstTransmissionVerified: state.firstTransmissionVerified,
+    deviceFulfillmentStatus: state.deviceFulfillmentStatus || state.bpDeviceFulfillmentStatus || "NOT_REQUESTED",
+    deviceFulfillmentRequestedAt: state.bpDeviceFulfillmentRequestedAt || null,
+    deviceShipmentStatus: null,
+    deviceDeliveryDate: null,
     careCircleStatus: state.careCircleStatus,
     supportRole: state.supportRole,
     // A patient and a representative are agreeing to different things on the consent screen, so the
@@ -1138,16 +1143,25 @@ function ensureEmmiRuntime() {
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
     onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; refreshVoiceGuidanceControls(); },
-    onTranscript: (role, text) => {
-      const cleaned = String(text || "").trim(); if (!cleaned) return;
+    onTranscript: (role, text, _final, metadata = {}) => {
+      const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
+      const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       const last = state.assistantMessages.at(-1);
-      if (last?.role === role && last.voice && !last.interrupted) last.text = `${last.text} ${cleaned}`.trim();
-      else state.assistantMessages.push({ role, text: cleaned, voice: true });
-      emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
+      const sameVoiceTurn = last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId);
+      if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0 });
+      // Screen narration is visible context, not a patient/assistant exchange. Keeping it out of
+      // model memory prevents a medication prompt from resurfacing on goals or completion screens.
+      if (!guidance) emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
       if (role === "assistant") emmiConversationManager?.markGreeted();
       emmiAuditLog.transcript(role, cleaned); if (state.assistantOpen) refreshAssistantLayer();
     },
-    onTurnComplete: metadata => emmiTransitionManager?.onTurnComplete(metadata),
+    onTurnComplete: metadata => {
+      const lastMessage = state.assistantMessages.at(-1);
+      if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.voiceComplete = true;
+      emmiTransitionManager?.onTurnComplete(metadata);
+    },
     onBargeIn: details => {
       const lastMessage = state.assistantMessages.at(-1);
       if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.interrupted = true;
@@ -1361,6 +1375,7 @@ const assistantVoiceErrorCopyFor = code => ({
   VOICE_UNAVAILABLE_FOR_LOCALE: L("Voice guidance isn’t available in this language yet. You can still chat with EMMI in Kreyòl.", "La guía por voz aún no está disponible en este idioma. Puede seguir conversando con EMMI en criollo haitiano.", "Gid vwa a pa disponib nan lang sa a kounye a. Ou ka kontinye itilize EMMI pa mesaj."),
   VOICE_SESSION_FAILED: L("The voice session could not start. You can continue by typing.", "No se pudo iniciar la sesión de voz. Puede continuar escribiendo.", "Sesyon vwa a pa t kapab kòmanse. Ou ka kontinye ekri."),
   VOICE_PROVIDER_ERROR: L("EMMI voice is temporarily unavailable. You can continue by typing.", "La voz de EMMI no está disponible temporalmente. Puede continuar escribiendo.", "Vwa EMMI pa disponib pou kounye a. Ou ka kontinye ekri."),
+  VOICE_RESPONSE_TIMEOUT: L("EMMI took too long to respond. Try again or continue by typing.", "EMMI tardó demasiado en responder. Inténtelo de nuevo o continúe escribiendo.", "EMMI pran twòp tan pou reponn. Eseye ankò oswa kontinye ekri."),
   VOICE_PERMISSION_DENIED: L("Microphone access was not allowed. You can continue by typing.", "No se permitió el acceso al micrófono. Puede continuar escribiendo.", "Yo pa t bay aksè ak mikwofòn nan. Ou ka kontinye ekri."),
   VOICE_RECONNECTING: L("EMMI is reconnecting in your selected language.", "EMMI se está reconectando en el idioma seleccionado.", "EMMI ap rekonekte nan lang ou chwazi a."),
   voice_identity_mismatch: L("Voice guidance is temporarily unavailable. You can continue using EMMI by text.", "La guía por voz no está disponible temporalmente. Puede continuar usando EMMI por texto.", "Gid vwa pa disponib pou yon ti tan. Ou ka kontinye itilize EMMI alekri."),
@@ -1418,11 +1433,11 @@ const emmiGuidancePrompt = message => {
   const guarded = emmiConversationManager?.guardAssistantText(message, { source: "screen_guidance" }) || message;
   const rule = continuity?.greetingAllowed
     ? "This is the initial introduction; one brief greeting is allowed."
-    : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. Do not greet, reintroduce yourself, or restart. Continue naturally from ${continuity?.previousScreen || "the prior context"} to ${continuity?.currentScreen || state.screen}.`;
+    : `This is conversation mode ${continuity?.conversationMode || "CONTINUATION"}. The current screen is ${continuity?.currentScreen || state.screen}. Do not greet, reintroduce yourself, restart, or repeat content from an earlier screen unless NARRATION_TEXT explicitly contains it.`;
   return L(
-    `${rule} Say the following in a calm, warm, unhurried voice, as the patient's continuing care guide. Keep the meaning and reassurance intact, use natural spoken English, and add no facts: ${guarded}`,
-    `${rule} Diga lo siguiente con una voz tranquila, cálida y sin prisa, como la guía de cuidado que continúa acompañando al paciente. No salude ni se presente otra vez salvo que la regla anterior lo permita. Conserve el significado y no agregue datos: ${guarded}`,
-    `${rule} Di sa ki annapre a avèk yon vwa kalm, cho e san prese, tankou gid swen ki kontinye ak pasyan an. Pa salye ni prezante tèt ou ankò sof si règ anlè a pèmèt sa. Kenbe sans lan epi pa ajoute enfòmasyon: ${guarded}`
+    `${rule} Read only the NARRATION_TEXT value below once, in a calm, warm, unhurried voice. Do not read field names, instructions, markup, or earlier conversation. Do not paraphrase, expand, answer, add a greeting, add a question, or repeat any sentence. NARRATION_TEXT=${JSON.stringify(guarded)}`,
+    `${rule} Lea solamente el valor NARRATION_TEXT una vez, con voz tranquila, cálida y sin prisa. No lea nombres de campos, instrucciones, etiquetas ni conversaciones anteriores. No parafrasee, amplíe, responda, salude, haga preguntas ni repita frases. NARRATION_TEXT=${JSON.stringify(guarded)}`,
+    `${rule} Li sèlman valè NARRATION_TEXT la yon sèl fwa, ak yon vwa kalm, cho, san prese. Pa li non chan, enstriksyon, etikèt oswa ansyen konvèsasyon. Pa chanje, elaji, reponn, salye, poze kesyon oswa repete fraz. NARRATION_TEXT=${JSON.stringify(guarded)}`
   );
 };
 
@@ -1801,7 +1816,10 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   manager.setPaused(false);
   if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
   if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
-  manager.speak({ narrationText: message, segments: semanticSpeechSegments(message) }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
+  // The home welcome is one provider turn. Splitting its sentences into separate generative
+  // prompts invited the model to elaborate and re-open the conversation after every clause.
+  const segments = screen === "INVITATION" ? [message] : semanticSpeechSegments(message);
+  manager.speak({ narrationText: message, segments }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
 }

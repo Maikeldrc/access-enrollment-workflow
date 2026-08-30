@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
+import { describe, expect, it, vi } from "vitest";
+import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
 
 // The worklet runs on the audio thread and cannot be imported here, so its accumulator is
 // reproduced exactly: this is the part of the migration that decides the packet cadence.
@@ -28,6 +28,7 @@ describe("EMMI audio pipeline", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
     expect(EMMI_MIC_FRAME_SIZE).toBe(2048);
     expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v3");
+    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
   });
 
   it("aggregates render quanta into one provider-sized frame instead of sending each one", () => {
@@ -102,5 +103,169 @@ describe("EMMI audio pipeline", () => {
     const hostile = {};
     Object.defineProperty(hostile, "audioWorklet", { get() { throw new TypeError("Illegal invocation"); } });
     expect(() => supportsAudioWorklet(hostile, scope)).toThrow();
+  });
+
+  it("does not complete a provider turn until every scheduled audio source has ended", () => {
+    const states = [];
+    const completions = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ currentScreen: "INVITATION", sessionId: "test" }),
+      executeTool: async () => ({}),
+      onState: state => states.push(state),
+      onTurnComplete: turn => completions.push(turn),
+      onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
+    });
+    const turn = { id: "turn-1", generationId: 4, providerTurnComplete: true, providerTurnCompleteAt: performance.now(), firstAudioReceivedAt: performance.now() };
+    client.activeTurn = turn;
+    client.activeAudioGenerationId = 4;
+    const source = {};
+    client.sources.set(source, { metadata: turn });
+    expect(client.finishTurnIfDrained(4)).toBe(false);
+    expect(completions).toHaveLength(0);
+    expect(states).not.toContain("LISTENING");
+    client.sources.delete(source);
+    expect(client.finishTurnIfDrained(4)).toBe(true);
+    expect(completions).toEqual([turn]);
+    expect(states.at(-1)).toBe("LISTENING");
+    expect(telemetry.at(-1).type).toBe("EMMI_AUDIO_TURN_DRAINED");
+  });
+
+  it("does not let local microphone energy cancel a turn before audio is audible", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.inputContext = { sampleRate: 48000 };
+    client.state = "EMMI_THINKING";
+    client.activeTurn = { id: "welcome", generationId: 1, contextVersion: 1, priority: "SCREEN_GUIDANCE" };
+    client.activeAudioGenerationId = 1;
+    client.bargeIn.observeFrame = vi.fn();
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+
+    expect(client.bargeIn.observeFrame).not.toHaveBeenCalled();
+    expect(client.activeTurn?.id).toBe("welcome");
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledOnce();
+  });
+
+  it("discards provider transcript fragments from an interrupted generation", async () => {
+    const transcripts = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN" }),
+      onTranscript: (role, text) => transcripts.push({ role, text }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.awaitingPatientResponse = true;
+    client.patientResponseReady = false;
+    client.activeTurn = null;
+
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "late canceled words" } } });
+
+    expect(transcripts).toEqual([]);
+    expect(telemetry).toContain("EMMI_STALE_TRANSCRIPT_DISCARDED");
+  });
+
+  it("sanitizes provider transcript payloads and carries turn metadata to the UI", async () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES", currentScreen: "GOALS" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata })
+    });
+    client.activeContextVersion = 4;
+    client.activeAudioGenerationId = 8;
+    client.activeTurn = { generationId: 8, contextVersion: 4, screenId: "GOALS", priority: "SCREEN_GUIDANCE" };
+
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "<speech>Elija una meta.</speech>" } } });
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "[object Object]" } } });
+
+    expect(transcripts).toEqual([expect.objectContaining({
+      role: "assistant",
+      text: "Elija una meta.",
+      final: true,
+      metadata: expect.objectContaining({ generationId: 8, screenId: "GOALS", priority: "SCREEN_GUIDANCE" })
+    })]);
+  });
+
+  it("allocates one generation before voice-response transcript fragments arrive", async () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata })
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.awaitingPatientResponse = true;
+    client.state = "USER_SPEAKING";
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "What would I have to pay for this program?" } } });
+    const generationId = client.activeTurn.generationId;
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "I cannot confirm your exact cost." } } });
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "Your care team can review it with you." } } });
+
+    expect(generationId).toBeGreaterThan(0);
+    expect(transcripts.map(item => item.metadata.generationId)).toEqual([generationId, generationId, generationId]);
+    expect(client.state).toBe("EMMI_THINKING");
+  });
+
+  it("recovers to listening when a barge-in produces no transcript", () => {
+    vi.useFakeTimers();
+    const states = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN" }),
+      onState: (state, detail) => states.push({ state, detail }),
+      onVoiceTelemetry: type => telemetry.push(type),
+      transcriptWaitTimeoutMs: 50
+    });
+    client.awaitingPatientResponse = true;
+    client.state = "USER_SPEAKING";
+
+    client.handlePatientSpeechEnd({ source: "local_vad", durationMs: 400 });
+    vi.advanceTimersByTime(50);
+
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(states.at(-1)).toEqual({ state: "LISTENING", detail: "transcript_not_received" });
+    expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
+    vi.useRealTimers();
+  });
+
+  it("turns a stalled provider turn into a recoverable timeout instead of permanent Thinking", () => {
+    vi.useFakeTimers();
+    const errors = [];
+    const states = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onError: code => errors.push(code),
+      onState: state => states.push(state),
+      onVoiceTelemetry: type => telemetry.push(type),
+      turnStallTimeoutMs: 75
+    });
+    client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+
+    expect(client.sendText("Explain ACCESS", { id: "welcome" })).toBe(true);
+    vi.advanceTimersByTime(75);
+
+    expect(errors).toEqual(["VOICE_RESPONSE_TIMEOUT"]);
+    expect(telemetry).toContain("EMMI_VOICE_TURN_TIMEOUT");
+    expect(client.activeTurn).toBeNull();
+    expect(states.at(-1)).toBe("DISCONNECTED");
+    vi.useRealTimers();
+  });
+
+  it("asks for clarification when ASR reports an unexpected language", async () => {
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
+    });
+    client.session = { sendClientContent: vi.fn() };
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "Necesito ayuda con mi presión y mi médico." } } });
+
+    expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("TRUSTED ASR SAFETY OVERRIDE"),
+      turnComplete: false
+    }));
   });
 });

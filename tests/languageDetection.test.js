@@ -34,6 +34,10 @@ describe("detecting the language a patient is using", () => {
 });
 
 describe("deciding what to do about it", () => {
+  it("accepts natural punctuated confirmations from speech transcription", () => {
+    for (const answer of ["Sí.", "Sí, por favor!", "YES.", "Wi, tanpri."]) expect(isLanguageOfferAccepted(answer)).toBe(true);
+    for (const answer of ["No.", "No, gracias.", "Non, mèsi."]) expect(isLanguageOfferDeclined(answer)).toBe(true);
+  });
   it("does nothing when the patient is already writing in EMMI's language", () => {
     expect(resolveLanguageIntent({ text: "What is ACCESS and how does it help me?", activeLocale: "en" }).action).toBeNull();
   });

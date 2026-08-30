@@ -198,7 +198,7 @@ describe("EMMI live context guards", () => {
   it("handles provider callback errors without throwing", () => { const onError = vi.fn(); const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onError }); expect(() => client.handleProviderError(new Error("failed"))).not.toThrow(); expect(onError).toHaveBeenCalledWith("VOICE_PROVIDER_ERROR"); });
   it("uses GoAway for proactive handoff", async () => { vi.useFakeTimers(); const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onReconnectNeeded: () => "resume" }); client.sessionResumptionHandle = "resume"; client.connect = vi.fn().mockResolvedValue(true); client.disconnect = vi.fn(); await client.handleMessage({ goAway: { timeLeft: "1s" } }); vi.advanceTimersByTime(100); expect(client.disconnect).toHaveBeenCalledWith("go_away_handoff"); expect(client.connect).toHaveBeenCalled(); vi.useRealTimers(); });
 
-  it("resolves at a semantic turn boundary and retains the turn metadata", async () => {
+  it("resolves only after the provider turn has no audible audio left and retains metadata", async () => {
     const completed = [];
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onTurnComplete: metadata => completed.push(metadata) });
     client.session = { sendClientContent: vi.fn() };
@@ -208,7 +208,7 @@ describe("EMMI live context guards", () => {
     client.state = "EMMI_SPEAKING";
     const handoff = client.beginGracefulHandoff({ nextContextVersion: 2, allowedTurnId: "turn-1", maxGracefulHandoffMs: 100 });
     await client.handleMessage({ serverContent: { turnComplete: true } });
-    await expect(handoff).resolves.toMatchObject({ reason: "semantic_boundary", forcedReconnect: false });
+    await expect(handoff).resolves.toMatchObject({ reason: "audio_drained", forcedReconnect: false });
     expect(completed[0]).toMatchObject({ id: "turn-1", narrationId: "narration-1" });
   });
 
@@ -232,6 +232,6 @@ describe("EMMI live context guards", () => {
     await client.handleMessage({ serverContent: { outputTranscription: { text: "Call 911 now if you have severe chest pain." } } });
     expect(await Promise.race([handoff.then(() => "ended"), new Promise(resolve => setTimeout(() => resolve("still-speaking"), 15))])).toBe("still-speaking");
     await client.handleMessage({ serverContent: { turnComplete: true } });
-    await expect(handoff).resolves.toMatchObject({ reason: "semantic_boundary" });
+    await expect(handoff).resolves.toMatchObject({ reason: "audio_drained" });
   });
 });

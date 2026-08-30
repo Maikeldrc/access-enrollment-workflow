@@ -100,8 +100,13 @@ export function resolveLanguageIntent({ text = "", activeLocale = "en", offeredL
 
 // "Yes" in each of the three, for a patient answering the offer rather than continuing in their
 // language. Kept narrow on purpose: anything longer is a real message and goes to the orchestrator.
-const AFFIRMATIVE = /^(yes|yes please|sure|ok|okay|s[ií]|claro|por favor|wi|dak[oò]|oke)$/i;
-export const isLanguageOfferAccepted = text => AFFIRMATIVE.test(String(text || "").trim());
+const confirmation = text => String(text || "")
+  .toLowerCase()
+  .replace(/[.,;:!?¿¡"'()]+/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+const AFFIRMATIVE = /^(yes|yes please|sure|ok|okay|s[ií]|s[ií] por favor|claro|claro que s[ií]|por favor|wi|wi tanpri|dak[oò]|oke)$/i;
+export const isLanguageOfferAccepted = text => AFFIRMATIVE.test(confirmation(text));
 
 const DECLINE = /^(no|no thanks|no gracias|non|non mèsi|nope)$/i;
-export const isLanguageOfferDeclined = text => DECLINE.test(String(text || "").trim());
+export const isLanguageOfferDeclined = text => DECLINE.test(confirmation(text));

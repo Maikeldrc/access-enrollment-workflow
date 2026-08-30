@@ -41,7 +41,7 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
     }
     if (name === "getExpectedAccessCost") return { grossBeneficiaryResponsibility: 6, expectedPatientPayment: 0, currency: "USD", responsibilityType: "EXPECTED", explanationCode: "SUPPLEMENTAL_COVERS_COST_SHARE" };
     if (name === "getEnrollmentContext") return { eligibilityStatus: "ELIGIBLE" };
-    if (name === "getAssignedDevice") return { found: true, displayName: "Tenovi Connected Blood Pressure Monitor", deviceId: "TEN-8842", integrationStatus: "CONNECTED" };
+    if (name === "getAssignedDevice") return { found: true, displayName: "Tenovi Connected Blood Pressure Monitor", deviceId: "TEN-8842", integrationStatus: "CONNECTED", fulfillmentStatus: "NOT_REQUESTED", shipmentStatus: null };
     if (name === "getMedicationList") return { medications: [{ name: "Lisinopril", details: "10 mg", active: true }] };
     if (name === "getPatientGoals") return { goals: [{ title: "Mantener mi presión arterial bajo control" }] };
     if (name === "getLatestReading") return { reading: { systolic: 120, diastolic: 80, classification: "WITHIN_EXPECTED_RANGE" } };
@@ -122,6 +122,31 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
+  it("uses the immediate assistant turn for repeat and simplify follow-ups", async () => {
+    const conversation = { turns: [{ role: "assistant", text: "Your next step is ‘Start your care journey.’" }] };
+    const repeat = await harness({ locale: "EN", conversation }).orchestrator.answer("Can you repeat that?");
+    expect(repeat.text).toMatch(/Your next step/);
+    expect(repeat.trace.intent).toBe("REPEAT_PRIOR_ANSWER");
+    const simpler = await harness({ locale: "EN", conversation }).orchestrator.answer("Can you explain that more simply?");
+    expect(simpler.text).toMatch(/tap.*Start your care journey/i);
+    expect(simpler.trace.responseMode).toBe("DETERMINISTIC_CONVERSATION_CONTEXT");
+  });
+
+  it("routes a Spanish monitor-shipping question to runtime without inventing a date", async () => {
+    const { orchestrator, executeTool } = harness({ locale: "ES" });
+    const answer = await orchestrator.answer("¿Cuándo me van a enviar el monitor?");
+    expect(executeTool).toHaveBeenCalledWith("getAssignedDevice", expect.any(Object));
+    expect(answer.text).toMatch(/no veo una solicitud de envío/i);
+    expect(answer.text).not.toMatch(/mañana|días|septiembre|tracking/i);
+  });
+
+  it("answers a named referring-doctor follow-up from the care-team runtime", async () => {
+    const { orchestrator, executeTool } = harness({ locale: "EN" });
+    const answer = await orchestrator.answer("Will I still see Dr. Fresner?");
+    expect(executeTool).toHaveBeenCalledWith("getCareTeam", expect.any(Object));
+    expect(answer.text).toMatch(/Dr\. Fresner remains part of your care/i);
+  });
+
   it("routes chest pain to deterministic safety before retrieval", async () => {
     const { orchestrator, executeTool } = harness();
     const answer = await orchestrator.answer("Tengo dolor fuerte en el pecho.");
@@ -177,6 +202,13 @@ describe("Ask EMMI answer-first orchestration", () => {
     const answer = await orchestrator.answer("¿Por qué necesitan mis medicamentos?");
     expect(answer.text).toMatch(/ayuda al equipo a entender qué toma/i);
     expect(answer.trace.responseMode).toBe("DETERMINISTIC_GROUNDED_FALLBACK");
+  });
+
+  it("answers every part of a combined cost and leaving question", async () => {
+    const answer = await harness().orchestrator.answer("¿Cuánto voy a pagar y puedo salir del programa si cambio de opinión?");
+    expect(answer.text).toMatch(/pago esperado.*\$0/i);
+    expect(answer.text).toMatch(/participación es voluntaria.*terminar su participación/i);
+    expect(answer.trace.toolCalls).toContain("getExpectedAccessCost");
   });
 });
 

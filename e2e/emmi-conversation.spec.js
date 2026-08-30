@@ -374,14 +374,15 @@ test("writing in another language is offered, not imposed", async ({ page }) => 
   await expect(dialog.getByPlaceholder("Ask a question…")).toBeVisible();
 });
 
-test("saying yes moves the whole conversation without starting a new one", async ({ page }) => {
+test("saying yes naturally moves the whole conversation without starting a new one", async ({ page }) => {
   const dialog = await openEmmiOnHome(page);
   await ask(dialog, "What is ACCESS?");
   await dialog.getByPlaceholder("Ask a question…").fill("¿Qué es ACCESS y cómo me ayuda?");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
 
-  await dialog.getByPlaceholder("Ask a question…").fill("sí");
+  // Real speech transcription includes capitalization and punctuation.
+  await dialog.getByPlaceholder("Ask a question…").fill("Sí.");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(page.locator(".assistant-layer").locator(".assistant-conversation")).toContainText("seguimos en español");
 
@@ -394,6 +395,32 @@ test("saying yes moves the whole conversation without starting a new one", async
   await expect(panel.locator(".assistant-message.user").first()).toContainText("What is ACCESS?");
   await expect(panel).not.toContainText("Hola, soy EMMI");
   await expect(panel).toHaveAttribute("data-assistant-mode", "conversation");
+});
+
+test("Spanish monitor shipping questions use fulfillment data and never invent a date", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await dialog.getByPlaceholder("Ask a question…").fill("¿Qué es ACCESS y cómo me ayuda?");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
+  await dialog.getByPlaceholder("Ask a question…").fill("Sí.");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+
+  const panel = page.locator(".assistant-layer");
+  await panel.getByPlaceholder("Haga una pregunta…").fill("¿Cuándo me van a enviar el monitor?");
+  await panel.getByRole("button", { name: "Enviar pregunta" }).click();
+  const answer = panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(answer).toContainText(/solicitud de envío|solicitud de su monitor/i);
+  await expect(answer).toContainText(/no puedo darle una fecha|todavía no.*fecha/i);
+  await expect(answer).not.toContainText(/ACCESS es una opción|programa de cuidado/i);
+});
+
+test("immediate follow-ups preserve the referent and simplify the prior answer", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await ask(dialog, "What happens next?");
+  await ask(dialog, "Can you explain that more simply?");
+  const answer = dialog.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(answer).toContainText(/In simple terms/i);
+  await expect(answer).toContainText(/Start your care journey/i);
 });
 
 test("carrying on in a language is a clearer answer than any confirmation", async ({ page }) => {
