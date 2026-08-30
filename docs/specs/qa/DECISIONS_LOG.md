@@ -56,6 +56,23 @@ turns reach the clinical engine; the engine still decides severity.
 **New CSS prefixed `access-plan-`** — mine, forced. Four class names I chose were already taken by
 the goal plan review, and the rules collided in both directions.
 
+## Verification method
+
+**The responsive audit walks the screens instead of jumping to them** — mine, and forced. The QA
+screen selector does not exist on the canonical invitation, which is correct: a patient must never
+see the console. It turned out better anyway, because the goals cards and barrier groups only carry
+real content after the patient has passed through the steps that create them.
+
+**Touch targets measured through the label** — mine. A checkbox is 20px and unhittable on its own;
+what the patient presses is the row around it.
+
+**The goal disclosure is opened before auditing** — mine. What a disclosure hides still has to
+survive being shown at 150% on a 360px phone.
+
+**One long golden-journey test rather than several** — mine. The value is the sequence: a step that
+only passes because an earlier one was skipped is what it exists to catch, and splitting it would
+reintroduce exactly the seeding that hides those defects.
+
 ## Open, not yet decided
 
 - Whether the `access-bp-assigned` scenario should appear in the admin console's scenario list, where
