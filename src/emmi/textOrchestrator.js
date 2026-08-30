@@ -426,22 +426,21 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
     KR: "ACCESS se yon modèl Medicare ki konsantre sou plis sipò ak rezilta sante. CCM se yon sèvis jesyon swen kwonik pou moun ki gen plizyè maladi kwonik. Toude ka ede ant vizit, men yo gen règ diferan."
   });
   if (combinedProgram) return pick(locale, programAnswers[combinedProgram]);
-  if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
-  // A page written for this question beats a canned description of the programme it belongs to.
-  // Without this, any question whose retrieval touched a file with a programme name in its path —
-  // which is every ACCESS page — returned the general ACCESS blurb and discarded everything that
-  // had just been retrieved. That is the "generic ACCESS fallback ignores focused knowledge"
-  // defect, and it is why eCKM, the outcome targets and A1c all came back as the same paragraph.
+  // A page written for this question beats every canned answer below it. Those exist for questions
+  // no single page covers — comparing two programmes — and for pages that never had one. Left after
+  // the leave-the-programme answer, this never ran for "when can I leave?", which is exactly the
+  // question a page had just been written to answer with the ninety days in it.
   //
-  // English only, and deliberately. The corpus is written in English; the canned answers are
-  // trilingual. When the model is reachable it translates the passage, and this path is only for
-  // when it is not, so a Spanish or Creole patient keeps the answer in their own language rather
-  // than being handed English prose.
+  // English reads the page itself; Spanish and Creole read the answer the page carries for them, so
+  // they get the specific answer rather than the general paragraph an English speaker would never
+  // have been given.
   const focused = sources[0] && !GENERIC_PROGRAM_PAGE.test(sources[0].sourcePath || "") ? sources[0] : null;
-  if (focused && String(locale).toUpperCase() === "EN") {
-    const answer = passageAnswer(focused);
-    if (answer) return answer;
+  if (focused) {
+    const key = String(locale).toUpperCase();
+    const written = key === "EN" ? passageAnswer(focused) : passageAnswer({ text: focused.localizedAnswers?.[key] || "" });
+    if (written) return written;
   }
+  if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
   const named = explicitPrograms.find(name => programAnswers[name]) || programs.find(name => programAnswers[name]);
   if (named) return pick(locale, programAnswers[named]);
   if (sources.some(item => /medications/.test(item.sourcePath))) return pick(locale, {

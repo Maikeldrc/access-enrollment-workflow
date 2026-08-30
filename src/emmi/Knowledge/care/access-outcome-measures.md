@@ -11,7 +11,7 @@ version: 1.0
 last_reviewed: 2026-08-30
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH outcome configuration
 owner: ITERA HEALTH
-keywords: target, targets, meta, metas, objetivo, objetivos, sib, presion, presión, blood pressure, tansyon, 130, mmhg, control, mejora, improvement, milestone, ldl, cholesterol, colesterol, kolesterol, weight, peso, pwa, measures, medidas, mezi, outcomes, resultados
+keywords: target, targets, meta, metas, sib, presion, presión, blood pressure, tansyon, 130, mmhg, control, mejora, improvement, milestone, ldl, cholesterol, colesterol, kolestewòl, weight, peso, pwa, measures, medidas, mezi, outcomes, resultados
 ---
 
 # What ACCESS measures, and the ACCESS blood pressure target
@@ -36,3 +36,11 @@ Answer what ACCESS measures, and what the programme's targets are, from this pag
 This patient's own target, their own readings and their own progress are runtime facts, and come from getClinicalTarget, getLatestReading and getGoalProgress. A care team may set a target that differs from the programme's, and theirs wins.
 
 Never interpret a patient's result, never say whether a number is good or bad for them, and never suggest a diagnosis. That is their care team's work.
+
+## Patient answer (ES)
+
+ACCESS sigue cuatro medidas juntas: presión arterial, colesterol LDL, A1c y peso. La meta de presión arterial tiene dos partes distintas: la meta de control es una presión sistólica por debajo de 130 mmHg, y el logro de mejora es bajar al menos 15 mmHg desde su punto de partida. Se puede alcanzar la mejora sin haber llegado todavía al control. Su meta personal la fija su equipo de cuidado y es la que manda.
+
+## Patient answer (KR)
+
+ACCESS swiv kat mezi ansanm: tansyon, kolestewòl LDL, A1c ak pwa. Objektif tansyon an gen de pati diferan: objektif kontwòl la se yon tansyon sistolik anba 130 mmHg, epi objektif amelyorasyon an se desann omwen 15 mmHg anba kote ou te kòmanse a. Ou ka rive nan amelyorasyon an san ou poko rive nan kontwòl la. Se ekip swen ou ki fikse objektif pa ou, epi se sa k ap konte.

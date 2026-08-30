@@ -293,3 +293,71 @@ describe("focused questions reach focused knowledge", () => {
     expect(tracks.filter(chunk => /\$\d/.test(chunk.text)).map(chunk => chunk.heading)).toEqual([]);
   });
 });
+
+// A page answers in the language it is asked in.
+//
+// The corpus is written in English and read by patients in three. When the model is reachable it
+// translates; when it is not, a Spanish or Creole patient was handed a general paragraph where an
+// English speaker got the specific answer. Each page now carries its own answer per language, and
+// retrieval has to put the right page in front of the question first.
+describe("answering in the patient's language", () => {
+  const topFor = (query, runtime = { program: "ACCESS" }) =>
+    retrieveKnowledge({ query, runtime, index }).chunks[0];
+
+  // Spanish and Creole, against an English corpus, with the words a patient would really use.
+  const ROUTES = [
+    ["¿Qué es ACCESS?", "programs/access.md"],
+    ["¿Qué significa eCKM?", "programs/access-tracks.md"],
+    ["¿Qué es el grupo de comparación?", "programs/access-evaluation.md"],
+    ["¿Desde cuándo puedo dejar ACCESS?", "enrollment/leaving-access.md"],
+    ["¿Cuál es la meta de presión de ACCESS?", "care/access-outcome-measures.md"],
+    ["¿Por qué necesitan A1c si no soy diabético?", "care/access-a1c.md"],
+    ["¿Por qué revisan mis medicamentos?", "care/medications.md"],
+    ["¿Qué son mis objetivos?", "care/patient-goals.md"],
+    ["¿Puede mi hija ayudarme?", "enrollment/care-circle.md"],
+    ["¿Qué es Medicare Original?", "medicare/original-medicare.md"],
+    ["¿Qué es QMB?", "medicare/qmb.md"],
+    ["Kisa eCKM vle di?", "programs/access-tracks.md"],
+    ["Kilè mwen ka kite ACCESS?", "enrollment/leaving-access.md"],
+    ["Poukisa nou bezwen A1c?", "care/access-a1c.md"]
+  ];
+
+  for (const [question, expected] of ROUTES) {
+    it(`reaches ${expected.split("/").pop()} for: ${question.slice(0, 38)}`, () => {
+      expect(topFor(question)?.sourcePath).toBe(expected);
+    });
+  }
+
+  it("carries the page's own answer in each language", () => {
+    const top = topFor("¿Qué es el grupo de comparación?");
+    expect(top.localizedAnswers.ES).toMatch(/seleccionadas al azar/i);
+    expect(top.localizedAnswers.ES).toMatch(/12 meses/);
+    expect(top.localizedAnswers.KR).toMatch(/o aza/i);
+  });
+
+  it("keeps the ninety days in the Spanish and Creole answers too", () => {
+    const top = topFor("¿Desde cuándo puedo dejar ACCESS?");
+    expect(top.localizedAnswers.ES).toMatch(/90 días después de la inscripción/);
+    expect(top.localizedAnswers.KR).toMatch(/90 jou apre enskripsyon/);
+  });
+
+  // The translations are the answer, not a second copy of the page competing with it.
+  it("never offers a localized answer as a retrievable chunk", () => {
+    expect(index.chunks.filter(chunk => /^Patient answer/i.test(chunk.heading))).toEqual([]);
+  });
+
+  it("gives the general programme page the questions that name only the programme", () => {
+    expect(topFor("¿Qué es ACCESS?")?.sourcePath).toBe("programs/access.md");
+    // And withholds them the moment the question names something more specific.
+    expect(topFor("¿Desde cuándo puedo dejar ACCESS?")?.sourcePath).not.toBe("programs/access.md");
+  });
+
+  it("does not let a programme's own page answer a question about a different programme", () => {
+    expect(topFor("¿Qué es CCM?")?.sourcePath).toBe("programs/ccm.md");
+  });
+
+  it("still lets the current screen resolve a question that matches nothing", () => {
+    const vague = retrieveKnowledge({ query: "¿Por qué me preguntan esto?", runtime: { currentScreen: "MEDICATIONS_REVIEW" }, index });
+    expect(vague.chunks.some(chunk => chunk.sourcePath.startsWith("care/"))).toBe(true);
+  });
+});

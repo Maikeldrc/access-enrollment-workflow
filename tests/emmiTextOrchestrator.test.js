@@ -564,3 +564,52 @@ describe("the answer when the model is unreachable", () => {
     expect(answer.text).toMatch(/extra support between doctor visits/i);
   });
 });
+
+// The answer a patient reads when the model is unreachable, in their own language.
+describe("the fallback answers in the patient's language", () => {
+  const withLocalized = {
+    sourceId: "leaving-access",
+    sourcePath: "enrollment/leaving-access.md",
+    heading: "Leaving ACCESS: the 90 day term",
+    text: "Beginning 90 days after enrollment, the patient may end their ACCESS participation.",
+    localizedAnswers: {
+      ES: "A partir de 90 días después de la inscripción, puede terminar su participación en ACCESS.",
+      KR: "Apati 90 jou apre enskripsyon an, ou ka mete fen nan patisipasyon ACCESS ou."
+    }
+  };
+
+  it("reads the Spanish answer the page carries rather than a general paragraph", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("¿Desde cuándo puedo dejar ACCESS?");
+    expect(answer.text).toMatch(/90 días después de la inscripción/);
+  });
+
+  it("reads the Creole one for a Creole patient", async () => {
+    const { orchestrator } = harness({ locale: "KR", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("Kilè mwen ka kite ACCESS?");
+    expect(answer.text).toMatch(/90 jou apre enskripsyon/);
+  });
+
+  it("still reads the page itself for an English patient", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("When can I leave ACCESS?");
+    expect(answer.text).toMatch(/Beginning 90 days after enrollment/);
+  });
+
+  // A page written for the question outranks the canned answers that exist for questions no page
+  // covers. Left behind them, this never ran for "when can I leave?" — the one question a page had
+  // just been written to answer with the ninety days in it.
+  it("prefers the page over the canned leave-the-programme answer", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("¿Cómo dejo el programa?");
+    expect(answer.text).toMatch(/90 días/);
+  });
+
+  it("falls back to the trilingual canned answer when a page carries no translation", async () => {
+    const untranslated = { ...withLocalized, localizedAnswers: {} };
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [untranslated] });
+    const answer = await orchestrator.answer("¿Desde cuándo puedo dejar ACCESS?");
+    expect(answer.text).not.toMatch(/Beginning 90 days/);
+    expect(answer.text).toMatch(/[áéíóúñ¿]/);
+  });
+});

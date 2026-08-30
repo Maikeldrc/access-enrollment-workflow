@@ -10,6 +10,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: ITERA HEALTH product configuration
 owner: ITERA HEALTH
+keywords: pago esperado, pago, expected payment, payment, pèman, cuanto, cuánto, konbyen, monto, montan, factura, bill, fakti, cero, $0
 ---
 
 # Expected patient payment
@@ -35,3 +36,11 @@ If coverage cannot be verified, or verification is too old to rely on, or it is 
 ## EMMI response rule
 
 Never state an amount that did not come from the financial responsibility engine. If the engine returns no amount, say the amount is not known and offer to have it checked, rather than guessing.
+
+## Patient answer (ES)
+
+Un pago esperado es lo que se prevé que usted pague por un servicio, según la cobertura que se ha verificado para usted. Se llama «esperado» y no «final» porque las aseguradoras procesan los reclamos después de la atención y la cobertura puede cambiar. Un pago esperado de $0 no significa que el servicio sea gratuito ni que todo lo demás cueste $0: significa que Medicare cubrió su parte y que se espera que su cobertura secundaria cubra el resto. Si no se puede confirmar la cobertura, la cantidad es desconocida, y eso se le dirá tal cual en lugar de adivinarla.
+
+## Patient answer (KR)
+
+Yon pèman ou dwe atann se sa yo prevwa ou pral peye pou yon sèvis, dapre kouvèti yo verifye pou ou. Yo rele l « atann » olye « final » paske konpayi asirans yo trete reklamasyon apre swen an, epi kouvèti ka chanje. Yon pèman $0 pa vle di sèvis la gratis ni ke tout lòt bagay koute $0: li vle di Medicare kouvri pati pa l epi yo atann kouvèti segondè ou kouvri rès la. Si yo pa ka konfime kouvèti a, montan an pa konnen, epi y ap di ou sa konsa olye devine l.

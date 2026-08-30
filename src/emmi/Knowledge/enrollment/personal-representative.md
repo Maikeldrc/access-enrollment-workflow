@@ -9,6 +9,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
+keywords: representante personal, personal representative, reprezantan pèsonèl, representante, poder legal, power of attorney, decidir por mi, decidir por mí, autoridad legal, otorite legal
 ---
 
 # Personal Representative
@@ -20,3 +21,11 @@ Do not represent relationship labels such as spouse, child or caregiver as proof
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+Un Representante personal no es lo mismo que alguien que le ayuda ni que un miembro de su Círculo de cuidado. Un Representante personal está autorizado legalmente a tomar decisiones de atención médica por usted. Ser su esposo, su hijo o quien le cuida no basta por sí solo como prueba de esa autoridad, y verificar un teléfono confirma que esa persona controla ese número, no que tenga autoridad legal.
+
+## Patient answer (KR)
+
+Yon Reprezantan pèsonèl pa menm bagay ak yon moun k ap ede ou ni ak yon manm Sèk swen ou. Yon Reprezantan pèsonèl gen otorizasyon legal pou pran desizyon swen sante pou ou. Se pa ase pou yon moun se mari ou, pitit ou oswa moun k ap ba ou swen pou pwouve otorite sa a, epi verifye yon telefòn konfime moun nan kontwole nimewo a, se pa ke li gen otorite legal.

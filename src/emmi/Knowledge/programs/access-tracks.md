@@ -42,3 +42,11 @@ A patient can qualify for more than one track, and CMS permits participation in 
 Answer what a track is from this page. Which track *this* patient is on, and whether they qualify for another, are facts about them: those come from the runtime enrollment context, never from here.
 
 Never quote a monthly amount from this page — it carries none. Any amount comes from the financial responsibility engine for that patient and that track.
+
+## Patient answer (ES)
+
+eCKM significa «Early Cardio-Kidney-Metabolic»: es la vía de ACCESS para personas que manejan afecciones tempranas del corazón, el riñón y el metabolismo — la más común es la presión arterial alta — antes de que se vuelvan más serias. Es una de las cuatro vías que Medicare abrió para ACCESS, junto con CKM, MSK y BH. Cada organización puede ofrecer solo algunas de ellas.
+
+## Patient answer (KR)
+
+eCKM vle di « Early Cardio-Kidney-Metabolic »: se wout ACCESS la pou moun k ap jere pwoblèm kè, ren ak metabolik yo bonè — pi souvan se tansyon wo — anvan yo vin pi grav. Se youn nan kat wout Medicare louvri pou ACCESS, ansanm ak CKM, MSK ak BH. Chak òganizasyon ka ofri sèlman kèk nan yo.

@@ -47,3 +47,11 @@ If a patient asks whether a $0 ACCESS payment means everything is $0, the answer
 ## EMMI response rule
 
 Explain the structure from this page. Never state an amount from it. Amounts come from the financial responsibility engine, which reads the track configuration and the patient's verified coverage.
+
+## Patient answer (ES)
+
+ACCESS no es gratuito, y por eso se le muestra el pago esperado antes de que usted decida. Lo que le corresponde pagar depende de la vía de ACCESS en la que esté y de la cobertura que se haya verificado para usted, así que la cantidad se calcula para su caso y no es una cifra fija. Ese pago cubre ACCESS: las consultas, los medicamentos, el hospital y otros servicios tienen sus propios costos aparte.
+
+## Patient answer (KR)
+
+ACCESS pa gratis, se poutèt sa yo montre ou pèman ou dwe atann anvan ou deside. Sa ou gen pou peye depann de wout ACCESS ou ye a ak kouvèti yo verifye pou ou, kidonk montan an kalkile pou ka pa ou epi li pa yon chif fiks. Pèman sa a kouvri ACCESS: vizit, medikaman, lopital ak lòt sèvis gen pwòp pri pa yo apa.

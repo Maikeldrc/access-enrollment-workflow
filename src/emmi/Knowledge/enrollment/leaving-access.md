@@ -55,3 +55,11 @@ it.
 
 What a particular patient would pay, and whether they are enrolled at all, are facts about them and
 come from the runtime tools rather than from this page.
+
+## Patient answer (ES)
+
+Participar en ACCESS es voluntario. A partir de 90 días después de la inscripción, usted puede terminar su participación en ACCESS o cambiar a otro proveedor participante. Dejar ACCESS no termina ni cambia su Medicare: sus beneficios, su cobertura y sus derechos continúan igual.
+
+## Patient answer (KR)
+
+Patisipe nan ACCESS se volontè. Apati 90 jou apre enskripsyon an, ou ka mete fen nan patisipasyon ACCESS ou oswa chanje pou yon lòt founisè ki patisipe. Kite ACCESS pa mete fen ni chanje Medicare ou: benefis, kouvèti ak dwa ou yo rete menm jan an.
