@@ -8074,7 +8074,28 @@ function renderPublicAccessLanding() {
   const shareId = new URLSearchParams(location.search).get("shareId") || "";
   if (shareId) growthStore.updateAccessShare(shareId, { clicked: true, landingStarted: true });
   document.documentElement.lang = htmlLanguage(state.language);
-  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art("people")}${titleBlock(L("Learn about Medicare’s ACCESS Model", "Conozca el Modelo ACCESS de Medicare", "Aprann sou Modèl ACCESS Medicare"), L("ITERA HEALTH is a Medicare ACCESS Participant providing extra support between doctor visits.", "ITERA HEALTH es un participante de Medicare ACCESS que brinda apoyo adicional entre visitas médicas.", "ITERA HEALTH se yon patisipan Medicare ACCESS ki bay plis sipò ant vizit kay doktè."))}<section class="public-access-facts">${rows([["home", L("Support between doctor visits", "Apoyo entre visitas médicas", "Sipò ant vizit kay doktè"), L("Get help with questions and next steps.", "Reciba ayuda con preguntas y próximos pasos.", "Jwenn èd ak kesyon ak pwochen etap yo.")], ["shield", L("Participation is voluntary", "La participación es voluntaria", "Patisipasyon an volontè"), L("You choose whether to enroll.", "Usted decide si desea inscribirse.", "Se ou ki chwazi si w ap enskri.")], ["medicare", L("Original Medicare is required", "Se requiere Medicare Original", "Medicare Orijinal obligatwa"), L("Medicare must check whether ACCESS is available to you.", "Medicare debe verificar si ACCESS está disponible para usted.", "Medicare dwe verifye si ACCESS disponib pou ou.")]])}</section><p class="public-growth-disclaimer">${L("Learning more does not mean you are eligible or enrolled.", "Obtener más información no significa que sea elegible ni que esté inscrito.", "Aprann plis pa vle di ou kalifye oswa ou enskri.")}</p><button type="button" class="button primary" data-public-action="start-access">${L("See if ACCESS may be available to you", "Vea si ACCESS podría estar disponible para usted", "Gade si ACCESS ka disponib pou ou")} ${icon("arrowRight")}</button></section></main>`;
+  // The invitee is a stranger to this product and often an older adult reading on a phone. Four
+  // questions, in order: who invited me, what am I being asked to do, what am I not allowed to do,
+  // and how do I say yes. Anything that does not answer one of those is noise on this screen.
+  //
+  // Only the patient's first name is used. The invite record holds nothing else by design — this
+  // page is reachable by anyone holding the link, and a surname on it would be a disclosure the
+  // patient never made.
+  const boundaries = available ? `<section class="care-circle-boundaries">
+      <h2>${L("What Care Circle support means", "Qué significa el apoyo del Círculo de cuidado", "Sa sipò Sèk swen vle di")}</h2>
+      <ul>
+        <li>${icon("check")}<span>${L("You may help with reminders and basic care tasks the patient chooses.", "Puede ayudar con recordatorios y tareas básicas que el paciente elija.", "Ou ka ede ak rapèl ak travay swen debaz pasyan an chwazi.")}</span></li>
+        <li>${icon("shield")}<span>${L("You cannot consent, sign, or make healthcare decisions for the patient.", "No puede dar consentimiento, firmar ni tomar decisiones médicas por el paciente.", "Ou pa ka bay konsantman, siyen, oswa pran desizyon swen sante pou pasyan an.")}</span></li>
+      </ul>
+      <p class="care-circle-boundaries-note">${L("This does not make you a Personal Representative.", "Esto no le convierte en Representante personal.", "Sa pa fè w yon Reprezantan pèsonèl.")}</p>
+    </section>` : "";
+  const heading = accepted
+    ? titleBlock(L("You’re ready to help", "Ya puede ayudar", "Ou pare pou ede"), L("You can now provide basic support through ITERA HEALTH.", "Ahora puede brindar apoyo básico mediante ITERA HEALTH.", "Kounye a ou ka bay sipò debaz atravè ITERA HEALTH."))
+    : titleBlock(
+        L(`You’ve been invited to join ${patient}’s Care Circle`, `Le han invitado al Círculo de cuidado de ${patient}`, `Yo envite w antre nan Sèk swen ${patient}`),
+        L(`${patient} invited you to provide basic support during their care experience.`, `${patient} le invitó a brindar apoyo básico durante su experiencia de cuidado.`, `${patient} envite w bay sipò debaz pandan eksperyans swen li.`)
+      );
+  app.innerHTML = `<main class="public-growth-page">${publicBrandHeader()}<section class="public-growth-content">${art(available ? "people" : "lock", accepted)}${available ? heading : titleBlock(L("This invitation is no longer available", "Esta invitación ya no está disponible", "Envitasyon sa a pa disponib ankò"), L("Ask the patient to send a new secure invitation.", "Pida al paciente que envíe una nueva invitación segura.", "Mande pasyan an voye yon nouvo envitasyon an sekirite."))}${boundaries}${available ? (accepted ? `<p class="growth-success-note">${icon("check")} ${L("Care Circle invitation accepted", "Invitación al Círculo de cuidado aceptada", "Envitasyon Sèk swen aksepte")}</p>` : `<button type="button" class="button primary" data-public-action="accept-support">${L("Accept invitation", "Aceptar invitación", "Aksepte envitasyon")} ${icon("arrowRight")}</button>`) : ""}</section></main>`;
   app.querySelector('[data-public-action="language"]')?.addEventListener("click", () => { setLanguage(state.language === "en" ? "es" : state.language === "es" ? "ht" : "en"); renderPublicAccessLanding(); });
   app.querySelector('[data-public-action="start-access"]')?.addEventListener("click", () => {
     if (shareId) growthStore.updateAccessShare(shareId, { eligibilityStarted: true });

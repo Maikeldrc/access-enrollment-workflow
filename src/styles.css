@@ -1449,7 +1449,30 @@ p { margin:0; }
 .care-circle-member-card details { margin-top:10px;border-top:1px solid var(--border-default);padding-top:10px; }.care-circle-member-card summary { min-height:44px;display:flex;align-items:center;color:var(--primary-700);font-weight:700;cursor:pointer; }
 .care-circle-manage-actions { display:grid;gap:8px; }.care-circle-manage-actions button { min-height:44px;padding:8px 10px;text-align:left;color:var(--primary-700);background:transparent;border:1px solid var(--border-default);border-radius:10px;font:inherit;font-weight:700; }.care-circle-manage-actions .danger-text { color:#a72f28; }
 .care-circle-empty { padding:24px 16px;display:grid;justify-items:center;gap:8px;text-align:center;border:1px dashed var(--border-default);border-radius:16px;background:var(--surface-primary); }.care-circle-empty>svg { width:34px;height:34px;color:var(--primary-600); }.care-circle-empty p { margin:0;color:var(--text-muted); }
-.care-circle-boundaries { display:grid;gap:12px;margin:20px 0;padding:16px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }.care-circle-boundaries h2 { margin:0;font-size:1.15rem; }.care-circle-boundaries p { margin:0;display:grid;grid-template-columns:24px 1fr;gap:10px;line-height:1.5; }.care-circle-boundaries svg { color:var(--primary-600); }
+/* Care Circle boundaries card.
+   Read by someone who has never seen this product, usually on a phone, often an older adult. The
+   two rules carry equal weight and get identical icon boxes: the source glyphs have different
+   intrinsic sizes, so the box is fixed and the svg is sized into it rather than left to render at
+   whatever the icon set chose. Sized in rem so 150% text scaling grows the card with the copy. */
+.care-circle-boundaries {
+  display: grid; gap: .875rem; margin: 1.25rem 0; padding: 1.375rem;
+  border: 1px solid var(--border-default); border-radius: 18px; background: var(--surface-primary);
+}
+.care-circle-boundaries h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.care-circle-boundaries ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
+.care-circle-boundaries li {
+  margin: 0; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .75rem;
+  line-height: 1.55; color: var(--text-primary);
+  /* Long clinical words in three languages; break them rather than push the card sideways. */
+  overflow-wrap: anywhere; text-wrap: pretty;
+}
+/* The glyph optically sits high against a full line of text, so it drops by a fraction rather than
+   centring on the whole block, which would float it down beside a two-line bullet. */
+.care-circle-boundaries li svg { width: 1.5rem; height: 1.5rem; margin-top: .0625rem; color: var(--primary-600); }
+.care-circle-boundaries-note {
+  margin: 0; padding-top: .75rem; border-top: 1px solid var(--border-default);
+  font-size: .875rem; line-height: 1.5; color: var(--text-secondary);
+}
 @media (max-width:360px) { .care-circle-member-heading { grid-template-columns:38px minmax(0,1fr); }.care-circle-member-heading em { grid-column:2;justify-self:start; }.care-circle-sticky-actions { grid-template-columns:minmax(82px,.65fr) minmax(0,1.35fr); } }
 .growth-boundary-note { display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:start;margin-top:18px;padding:13px;border:1px solid var(--primary-100);border-radius:14px;background:var(--primary-50); }
 .growth-boundary-note>.icon { width:40px;height:40px; }
