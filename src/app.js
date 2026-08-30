@@ -4792,6 +4792,23 @@ function monitoringReady() {
 // together — the goals the track assigned, where each one starts, how ACCESS will judge it, the
 // monitor being arranged and the people involved. Everything here is read from runtime, so a plan
 // can only ever claim what actually happened.
+// What each intervention is, said as the patient would recognize it. The model's type names are
+// internal; "DEVICE_SUPPORT_TASK" is not something anybody asked for by name.
+const interventionPatientLabel = type => ({
+  REMINDER: L("Reminders to help you remember", "Recordatorios para ayudarle a recordar", "Rapèl pou ede w sonje"),
+  ROUTINE_ADJUSTMENT: L("Help fitting this into your day", "Ayuda para ajustarlo a su día", "Èd pou fè sa antre nan jounen ou"),
+  EDUCATION: L("Guidance from EMMI whenever you need it", "Orientación de EMMI cuando la necesite", "Gid EMMI lè ou bezwen l"),
+  DEVICE_GUIDANCE: L("Step-by-step help with your monitor", "Ayuda paso a paso con su monitor", "Èd etap pa etap ak aparèy ou"),
+  DEVICE_SUPPORT_TASK: L("Device support from your care team", "Soporte de dispositivo de su equipo", "Sipò aparèy nan men ekip swen ou"),
+  CARE_CIRCLE: L("Support from someone you trust", "Apoyo de alguien de confianza", "Sipò yon moun ou fè konfyans"),
+  PLAN_ADJUSTMENT: L("An adjustment to how your plan fits you", "Un ajuste para que su plan se adapte a usted", "Yon ajisteman pou plan ou anfòm ak ou"),
+  RESOURCE_SUPPORT: L("Help finding the right resources", "Ayuda para encontrar recursos", "Èd pou jwenn bon resous yo"),
+  LANGUAGE_SUPPORT: L("Support in your language", "Apoyo en su idioma", "Sipò nan lang ou"),
+  APPOINTMENT_COORDINATION: L("Help arranging an appointment", "Ayuda para coordinar una cita", "Èd pou òganize yon randevou"),
+  CARE_TEAM_TASK: L("A follow-up from your care team", "Un seguimiento de su equipo de cuidado", "Yon swivi nan men ekip swen ou"),
+  SAFETY_ESCALATION: L("A review by your care team", "Una revisión de su equipo de cuidado", "Yon revizyon nan men ekip swen ou")
+})[type] || "";
+
 function accessCarePlanReady() {
   const runtime = careActivationRuntime();
   const goals = assignedAccessGoals(state.offer).map(goalType => {
@@ -4817,10 +4834,14 @@ function accessCarePlanReady() {
     : L("Not requested yet", "Aún no solicitado", "Poko mande");
   // Named for what actually happened. Barriers are recorded here; applying real interventions is
   // a separate step, and until it runs nothing has been "added" for the patient at all.
-  const supportAdded = activePatientGoals().flatMap(goal => (goal.barriers || [])
-    .filter(barrier => barrierIsActive(barrier))
-    .map(barrier => ({ goal, barrier })));
-  const supportCard = supportAdded.length ? `<section class="access-plan-block"><h2>${L("What you told us could get in the way", "Lo que nos dijo que podría dificultarlo", "Sa ou di nou ki ka anpeche")}</h2><p class="access-plan-note">${L("Your care team will use this to add the right support to your plan.", "Su equipo de cuidado usará esto para agregar el apoyo adecuado a su plan.", "Ekip swen ou ap sèvi ak sa pou ajoute bon sipò a nan plan ou.")}</p><ul class="access-plan-support">${supportAdded.map(({ barrier }) => `<li>${icon(barrierIcon(barrier))}<span>${escapeHtml(localBarrierText(barrierCategoryConfig(barrier.category).label, state.language))}</span></li>`).join("")}</ul></section>` : "";
+  // What actually started, deduplicated: two goals can both open a reminder, and the patient wants
+  // to know reminders exist, not read the word twice.
+  const supportAdded = [...new Map(activePatientGoals()
+    .flatMap(goal => (goal.barriers || []).filter(barrierIsActive))
+    .flatMap(barrier => (barrier.interventions || []).map(item => item.type))
+    .filter(type => interventionPatientLabel(type))
+    .map(type => [type, type])).values()];
+  const supportCard = supportAdded.length ? `<section class="access-plan-block"><h2>${L("Support we added for you", "Apoyo que agregamos para usted", "Sipò nou ajoute pou ou")}</h2><ul class="access-plan-support">${supportAdded.map(type => `<li>${icon("check")}<span>${interventionPatientLabel(type)}</span></li>`).join("")}</ul></section>` : "";
   const planCard = `<section class="access-plan-block"><h2>${L("Your care plan", "Su plan de cuidado", "Plan swen ou")}</h2><div class="access-plan-device">${icon("plan")}<div><strong>${L("Active", "Activo", "Aktif")}</strong><p>${L("Your ACCESS care plan is in place and will be updated as your care continues.", "Su plan de cuidado ACCESS está activo y se actualizará conforme avance su cuidado.", "Plan swen ACCESS ou a anplas epi l ap mete ajou pandan swen ou ap kontinye.")}</p></div></div></section>`;
   const deviceCard = `<section class="access-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="access-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
 
@@ -4838,6 +4859,15 @@ function accessCarePlanReady() {
 // the plan is already active — the only thing still unknown is what might stop the patient
 // following it. So this asks one question per goal, offers only difficulties the product can
 // actually act on, and creates nothing when the answer is that nothing is in the way.
+// Every barrier category in the model declares its own interventions, in order, with an owner. The
+// first one is the model's own answer to that difficulty, so it is the one that starts — applying
+// all four for a forgotten routine would bury the patient in help nobody asked for. Nothing is
+// invented here: a category with no interventions configured would simply start none.
+function applyFirstIntervention(barrier, now) {
+  const [type] = barrierCategoryConfig(barrier.category).interventions || [];
+  return type ? applyIntervention(barrier, { type, detail: { source: "CARE_ACTIVATION" }, now }) : barrier;
+}
+
 function accessSupportNeeds() {
   const goals = activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType));
   const groups = goals.map(goal => {
@@ -5876,7 +5906,7 @@ async function advance() {
       picked.forEach(category => {
         if (findReusableBarrier(goal.barriers || [], { category, goalId: goal.id })) return;
         const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
-        goal.barriers = [...(goal.barriers || []), barrier];
+        goal.barriers = [...(goal.barriers || []), applyFirstIntervention(barrier, now)];
         created.push({ goalType: goal.goalType, category });
       });
     });
@@ -5884,7 +5914,7 @@ async function advance() {
       const goal = activePatientGoals()[0];
       if (goal) {
         const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category: "OTHER", patientDescription: state.supportNeedsOther, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
-        goal.barriers = [...(goal.barriers || []), barrier];
+        goal.barriers = [...(goal.barriers || []), applyFirstIntervention(barrier, now)];
         created.push({ goalType: goal.goalType, category: "OTHER" });
       }
     }
