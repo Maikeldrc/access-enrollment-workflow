@@ -8045,8 +8045,12 @@ function bind() {
     const unit = data.get("armCircumferenceUnit") === "in" ? "in" : "cm";
     const measurementReady = state.exactArmMeasurementOpen && Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
     const cuffReady = !state.exactArmMeasurementOpen && Boolean(data.get("choice") || state.selectedCuffOption);
-    const restriction = data.get("armRestrictionReported");
-    bpDeviceInfoCta.disabled = !((measurementReady || cuffReady) && ["NO", "YES"].includes(restriction) && (restriction !== "YES" || ["LEFT", "RIGHT"].includes(data.get("restrictedArm"))));
+    // The arm-restriction question was removed from this screen, but the gate still waited for its
+    // answer, so a patient who entered a measurement could never submit it — the field accepted
+    // their arm and then the button stayed dead with nothing saying why. A measurement outside every
+    // stocked cuff is not a reason to trap them either: it is recorded as needing the care team to
+    // confirm the size, which is what the engine already does with it.
+    bpDeviceInfoCta.disabled = !(measurementReady || cuffReady);
   };
   bpDeviceInfoForm?.addEventListener("input", updateBpDeviceInfoCta);
   bpDeviceInfoForm?.addEventListener("change", event => {
