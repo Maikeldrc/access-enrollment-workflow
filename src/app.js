@@ -4872,6 +4872,7 @@ function accessCarePlanReady() {
   return `${art("check", true)}${titleBlock(L("Your ACCESS care is ready", "Su cuidado ACCESS está listo", "Swen ACCESS ou a pare"), L("Your goals, care plan, connected tools, and support are all in place.", "Sus objetivos, su plan de cuidado, sus herramientas conectadas y su apoyo ya están listos.", "Objektif ou yo, plan swen ou, zouti konekte ou yo ak sipò ou tout anplas."))}
     <section class="access-plan-block"><h2>${L("Your health goals", "Sus objetivos de salud", "Objektif sante ou yo")}</h2><div class="access-plan-goals">${goals}</div></section>
     ${deviceCard}${planCard}${supportCard}${teamCard}
+    ${shareAccessPrompt(GROWTH_MOMENTS.GETTING_STARTED_COMPLETED)}
     ${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "finish")}`;
 }
 
@@ -6440,6 +6441,16 @@ function showHelp(trigger = null) {
   document.querySelector(".shell")?.insertAdjacentHTML("beforeend", assistantLayer());
   setPatientExperienceInert(true);
   bindAssistantLayer();
+  // A freshly inserted scroll container starts at the top, which is the oldest message in the
+  // thread. Reopening EMMI after a long conversation put the patient back at the screen narration
+  // they heard first rather than at the answer they had just been given. The second pass is for
+  // after the web font settles: the measurement taken mid-render is not the final height.
+  const openedThread = document.querySelector(".assistant-layer .assistant-content");
+  if (openedThread) {
+    const toLatest = () => { openedThread.scrollTop = openedThread.scrollHeight; };
+    toLatest();
+    requestAnimationFrame(toLatest);
+  }
   startAssistantKeyboardWatch();
   syncEmmiPresentation();
   // Back should close EMMI rather than walk the patient out of enrollment. One entry, added only

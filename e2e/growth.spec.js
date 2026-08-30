@@ -102,7 +102,9 @@ test("Share ACCESS waits for a value moment instead of interrupting enrollment c
 test("Share ACCESS opens a public, unpersonalized landing after Getting Started completes", async ({ page, context }) => {
   await seedDraft(page, "ONBOARDING_COMPLETE");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+  // ACCESS ends on its care plan now, not on the generic completion screen. The share moment is
+  // the same moment either way: the patient has finished getting started.
+  await expect(page.getByRole("heading", { name: "Your ACCESS care is ready" })).toBeVisible();
   await expect(page.locator('[data-share-access-moment="GETTING_STARTED_COMPLETED"]')).toBeVisible();
   await expect(page.getByText("Know someone who may benefit from learning about ACCESS?")).toBeVisible();
   await page.getByRole("button", { name: "Share ACCESS" }).click();
