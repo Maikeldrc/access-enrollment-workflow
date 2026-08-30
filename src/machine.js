@@ -57,6 +57,7 @@ const PROGRESS_STAGE_BY_SCREEN = {
   MEDICATIONS_REVIEW: "GETTING_STARTED",
   CARE_PREFERENCES: "GETTING_STARTED",
   GOALS: "GETTING_STARTED",
+  ACCESS_SUPPORT_NEEDS: "GETTING_STARTED",
   ACCESS_BP_DEVICE_VERIFICATION: "GETTING_STARTED",
   ACCESS_BP_DEVICE_RESULT: "GETTING_STARTED",
   ACCESS_BP_DEVICE_INFO: "GETTING_STARTED",
@@ -85,6 +86,7 @@ const CARE_ACTIVATION_STAGE_BY_SCREEN = {
   ACCESS_BP_DEVICE_VERIFICATION: "DEVICE", ACCESS_BP_DEVICE_RESULT: "DEVICE", ACCESS_BP_GUIDED_SETUP: "DEVICE",
   ACCESS_BP_MEASUREMENT: "DEVICE", ACCESS_BP_BASELINE_RESULT: "DEVICE", ACCESS_BP_ESCALATION: "DEVICE",
   GOALS: "GOALS",
+  ACCESS_SUPPORT_NEEDS: "PERSONALIZE",
   CLINICAL_VERIFICATION: "PERSONALIZE", MEDICATIONS_REVIEW: "PERSONALIZE", CARE_PREFERENCES: "PERSONALIZE",
   ONBOARDING_COMPLETE: "CARE_PLAN"
 };
@@ -102,7 +104,7 @@ export function journeyFor(s) {
     // the monitor being arranged, then the goals the track assigned them — and only afterwards asked
     // for what is still missing to personalize it. Goals moved ahead of the personalization screens
     // for that reason: a patient who has seen their goals understands what the questions are for.
-    const remainingCareSetup = ["GOALS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+    const remainingCareSetup = ["GOALS", "ACCESS_SUPPORT_NEEDS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
     // The patient is never asked whether they own a monitor. Their record already says, and the
     // default is the canonical patient's situation: no connected monitor yet.
     const devicePath = s.bpDevicePath || "needed";

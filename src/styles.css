@@ -2134,3 +2134,27 @@ a.goal-secondary-button { text-decoration:none; }
 .access-plan-team li { display: flex; align-items: center; gap: .75rem; }
 .access-plan-team strong { display: block; color: var(--text-primary); line-height: 1.35; }
 .access-plan-team small { color: var(--text-secondary); }
+
+/* Support needs.
+   One question per goal, so the groups carry the goal's name and the options belong to it visibly.
+   Checkboxes are full-width rows rather than a dense list: this is read by someone deciding what
+   is hard for them, not scanning a form. */
+.support-need-group { margin: 1.5rem 0 0; padding: 0; border: 0; }
+.support-need-group > legend { padding: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+.support-need-question { margin: .25rem 0 .75rem; color: var(--text-secondary); line-height: 1.5; }
+.support-need-options { display: grid; gap: .5rem; }
+.support-need-option {
+  display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); align-items: start; gap: .75rem;
+  min-height: 48px; padding: .75rem .875rem; line-height: 1.45; color: var(--text-primary);
+  border: 1px solid var(--border-default); border-radius: 14px; background: var(--surface-primary);
+}
+.support-need-option > span { display: flex; align-items: flex-start; gap: .5rem; min-width: 0; }
+.support-need-option svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
+.support-need-option input { width: 1.25rem; height: 1.25rem; margin: .125rem 0 0; }
+.support-need-option:has(input:checked) { border-color: var(--primary-600); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-600) 18%, transparent); }
+/* Saying nothing is in the way is an answer, and it should look like one rather than an opt-out. */
+.support-need-none { margin-top: .25rem; }
+.support-need-other { margin-top: 1.5rem; }
+.access-plan-support { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.access-plan-support li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
+.access-plan-support svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }

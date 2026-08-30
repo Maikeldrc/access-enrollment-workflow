@@ -4213,7 +4213,7 @@ function accessAssignedGoals() {
       </details>
     </article>`;
   }).join("");
-  return `${titleBlock(L("Your ACCESS health goals", "Sus objetivos de salud de ACCESS", "Objektif sante ACCESS ou yo"), L("These goals are part of your ACCESS care. We’ll track your progress and personalize the support you receive along the way.", "Estos objetivos forman parte de su cuidado ACCESS. Seguiremos su progreso y personalizaremos el apoyo que recibe en el camino.", "Objektif sa yo fè pati swen ACCESS ou. N ap swiv pwogrè ou epi pèsonalize sipò ou resevwa sou wout la."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}<div class="access-goal-list">${cards}</div>${actions(L("Personalize my care", "Personalizar mi cuidado", "Pèsonalize swen mwen"))}`;
+  return `${titleBlock(L("Your ACCESS health goals", "Sus objetivos de salud de ACCESS", "Objektif sante ACCESS ou yo"), L("These goals are part of your ACCESS care. We’ll track your progress and personalize the support you receive along the way.", "Estos objetivos forman parte de su cuidado ACCESS. Seguiremos su progreso y personalizaremos el apoyo que recibe en el camino.", "Objektif sa yo fè pati swen ACCESS ou. N ap swiv pwogrè ou epi pèsonalize sipò ou resevwa sou wout la."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}<div class="access-goal-list">${cards}</div>${actions(L("Tell us what could make this harder", "Cuéntenos qué podría dificultarlo", "Di nou sa ki ka fè sa pi difisil"))}`;
 }
 
 function goals() {
@@ -4815,16 +4815,40 @@ function accessCarePlanReady() {
   const deviceStatus = requested
     ? L("Requested — we’ll keep you updated", "Solicitado: le mantendremos informado", "Mande — n ap kenbe w enfòme")
     : L("Not requested yet", "Aún no solicitado", "Poko mande");
+  const supportAdded = activePatientGoals().flatMap(goal => (goal.barriers || [])
+    .filter(barrier => barrierIsActive(barrier))
+    .map(barrier => ({ goal, barrier })));
+  const supportCard = supportAdded.length ? `<section class="access-plan-block"><h2>${L("Support we added for you", "Apoyo que agregamos para usted", "Sipò nou ajoute pou ou")}</h2><ul class="access-plan-support">${supportAdded.map(({ barrier }) => `<li>${icon(barrierIcon(barrier))}<span>${escapeHtml(localBarrierText(barrierCategoryConfig(barrier.category).label, state.language))}</span></li>`).join("")}</ul></section>` : "";
+  const planCard = `<section class="access-plan-block"><h2>${L("Your care plan", "Su plan de cuidado", "Plan swen ou")}</h2><div class="access-plan-device">${icon("plan")}<div><strong>${L("Active", "Activo", "Aktif")}</strong><p>${L("Your ACCESS care plan is in place and will be updated as your care continues.", "Su plan de cuidado ACCESS está activo y se actualizará conforme avance su cuidado.", "Plan swen ACCESS ou a anplas epi l ap mete ajou pandan swen ou ap kontinye.")}</p></div></div></section>`;
   const deviceCard = `<section class="access-plan-block"><h2>${L("Your connected tool", "Su herramienta conectada", "Zouti konekte ou a")}</h2><div class="access-plan-device">${icon("device")}<div><strong>${L("Blood pressure monitor", "Monitor de presión arterial", "Aparèy tansyon")}</strong><p>${deviceStatus}</p></div></div></section>`;
 
   const team = patientCareTeam().slice(0, 4).map(member =>
     `<li>${careTeamMemberAvatar(member)}<span><strong>${escapeHtml(member.displayName)}</strong><small>${escapeHtml(careTeamRoleLabel(member))}</small></span></li>`).join("");
   const teamCard = team ? `<section class="access-plan-block"><h2>${L("Connected with your care team", "Conectado con su equipo de cuidado", "Konekte ak ekip swen ou")}</h2><ul class="access-plan-team">${team}</ul></section>` : "";
 
-  return `${art("check", true)}${titleBlock(L("Your ACCESS care plan is ready", "Su plan de cuidado ACCESS está listo", "Plan swen ACCESS ou a pare"), L("Your goals, health information, connected monitor, and next steps are now organized in one place.", "Sus objetivos, su información de salud, su monitor conectado y los próximos pasos están ahora en un solo lugar.", "Objektif ou yo, enfòmasyon sante ou, aparèy konekte ou a ak pwochen etap yo kounye a nan yon sèl kote."))}
+  return `${art("check", true)}${titleBlock(L("Your ACCESS care is ready", "Su cuidado ACCESS está listo", "Swen ACCESS ou a pare"), L("Your goals, care plan, connected tools, and support are all in place.", "Sus objetivos, su plan de cuidado, sus herramientas conectadas y su apoyo ya están listos.", "Objektif ou yo, plan swen ou, zouti konekte ou yo ak sipò ou tout anplas."))}
     <section class="access-plan-block"><h2>${L("Your health goals", "Sus objetivos de salud", "Objektif sante ou yo")}</h2><div class="access-plan-goals">${goals}</div></section>
-    ${deviceCard}${teamCard}
+    ${deviceCard}${planCard}${supportCard}${teamCard}
     ${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "finish")}`;
+}
+
+// Support needs, not a care plan builder. The goals are assigned, the targets come from ACCESS and
+// the plan is already active — the only thing still unknown is what might stop the patient
+// following it. So this asks one question per goal, offers only difficulties the product can
+// actually act on, and creates nothing when the answer is that nothing is in the way.
+function accessSupportNeeds() {
+  const goals = activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType));
+  const groups = goals.map(goal => {
+    const options = barrierOptionsFor({ goal, hasDevice: barrierCapabilities().hasDevice, hasMedications: Boolean((state.careMedications || []).length), locale: state.language })
+      .filter(option => option.category !== "OTHER");
+    const name = escapeHtml(localGoalText(GOAL_CONFIG[goal.goalType].displayName, state.language));
+    const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}"><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
+    return `<fieldset class="support-need-group"><legend>${name}</legend><p class="support-need-question">${L("Anything that could make this goal harder?", "¿Algo que pueda dificultar esta meta?", "Èske gen anyen ki ka fè objektif sa a pi difisil?")}</p><div class="support-need-options">${choices}<label class="support-need-option support-need-none"><input type="checkbox" name="barrier:${goal.id}" value="NONE"><span>${icon("check")}<span>${L("Nothing right now", "Nada por ahora", "Anyen pou kounye a")}</span></span></label></div></fieldset>`;
+  }).join("");
+  return `${art("people")}${titleBlock(L("Is anything making your care harder?", "¿Hay algo que dificulte su cuidado?", "Èske gen yon bagay ki fè swen ou pi difisil?"), L("Tell us if there’s anything that could make it harder to follow your care plan. We can help you find the right support.", "Díganos si hay algo que pueda dificultar seguir su plan de cuidado. Podemos ayudarle a encontrar el apoyo adecuado.", "Di nou si gen yon bagay ki ka fè li pi difisil pou swiv plan swen ou. Nou ka ede w jwenn bon sipò a."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}
+    <form id="support-needs-form">${groups}
+    <label class="field support-need-other">${L("Anything else? (optional)", "¿Algo más? (opcional)", "Yon lòt bagay? (opsyonèl)")}<textarea name="otherConcern" rows="2" maxlength="280">${escapeHtml(state.supportNeedsOther || "")}</textarea></label>
+    </form>${actions(t().continue)}`;
 }
 
 function onboardingComplete() {
@@ -5093,7 +5117,7 @@ function prototypeSetup() {
   </main>`;
 }
 
-const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
+const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ACCESS_SUPPORT_NEEDS: accessSupportNeeds, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
 renderers.MY_CARE_TEAM = myCareTeamScreen;
@@ -5830,6 +5854,35 @@ async function advance() {
     state.baselineResumeScreen = "ONBOARDING";
     audit(state, "care_preferences_completed", "success", { contactMethod: state.preferredContactMethod, preferredLanguage: state.preferredCareLanguage, timeOfDay: state.preferredContactTime });
     state.screen = "ONBOARDING";
+    draftStore.save(state); render(); return;
+  }
+  if (state.screen === "ACCESS_SUPPORT_NEEDS") {
+    const form = document.querySelector("#support-needs-form");
+    const data = new FormData(form);
+    state.supportNeedsOther = String(data.get("otherConcern") || "").trim();
+    const now = new Date().toISOString();
+    const created = [];
+    activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType)).forEach(goal => {
+      // "Nothing right now" is an answer, not a barrier. Selecting it alongside a difficulty is a
+      // contradiction the patient did not mean, so an explicit difficulty wins.
+      const picked = data.getAll(`barrier:${goal.id}`).filter(value => value !== "NONE");
+      picked.forEach(category => {
+        if (findReusableBarrier(goal, category)) return;
+        const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
+        goal.barriers = [...(goal.barriers || []), barrier];
+        created.push({ goalType: goal.goalType, category });
+      });
+    });
+    if (state.supportNeedsOther) {
+      const goal = activePatientGoals()[0];
+      if (goal) {
+        const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category: "OTHER", patientDescription: state.supportNeedsOther, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
+        goal.barriers = [...(goal.barriers || []), barrier];
+        created.push({ goalType: goal.goalType, category: "OTHER" });
+      }
+    }
+    audit(state, "access_support_needs_recorded", "success", { barrierCount: created.length, categories: created.map(item => item.category) });
+    state.screen = nextScreen(state);
     draftStore.save(state); render(); return;
   }
   // GOALS uses its own multi-step actions so discovery, priority and planning remain auditable.

@@ -361,8 +361,11 @@ export function barrierOptionsFor({ goal = null, hasDevice = false, hasMedicatio
     measures && (hasDevice || goal?.goalType === "BLOOD_PRESSURE_CONTROL") ? "DEVICE_TECHNOLOGY" : null,
     measures ? "UNDERSTANDING" : null,
     hasTemplate("medications-as-directed") || hasMedications ? "MEDICATION_UNDERSTANDING" : null,
-    hasTemplate("reduce-salt") ? "NUTRITION" : null,
-    hasTemplate("be-active") || goal?.goalType === "STAY_ACTIVE" ? "PHYSICAL_LIMITATION" : null,
+    hasTemplate("reduce-salt") || hasTemplate("follow-nutrition-plan") ? "NUTRITION" : null,
+    hasTemplate("be-active") || hasTemplate("stay-active-as-able") || goal?.goalType === "STAY_ACTIVE" ? "PHYSICAL_LIMITATION" : null,
+    // Weighing in is a measurement like a reading is, and forgetting it is the same difficulty
+    // under a different name. Without this the weight goal offered nothing about weighing at all.
+    hasTemplate("weigh-in") ? "FORGETFULNESS_ROUTINE" : null,
     !measures ? "FORGETFULNESS_ROUTINE" : null,
     "TIME_ROUTINE",
     "SOCIAL_SUPPORT",
