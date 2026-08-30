@@ -6525,7 +6525,15 @@ function bind() {
         const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
         const contact = contacts?.[0];
         if (!contact) { state.careCircleNotice = L("No contact was selected. You can enter their information below.", "No se seleccionó ningún contacto. Puede ingresar sus datos abajo.", "Ou pa chwazi okenn kontak. Ou ka antre enfòmasyon yo anba a."); render(); return; }
-        const rawNumbers = (contact.tel || []).map(item => typeof item === "string" ? { value: item, label: L("Mobile", "Celular", "Mobil") } : { value: item.value || "", label: item.type?.[0] || item.type || L("Mobile", "Celular", "Mobil") }).filter(item => phoneDigits(item.value).length === 10);
+        // The picker hands back its own raw type strings — "mobile", "home" — while the fallback
+        // label was already a translated "Mobile". A list mixing the two reads as a bug, and an
+        // untranslated English type is worse for a patient reading in Kreyol, so known types are
+        // localized and anything unrecognized is merely capitalized rather than dropped.
+        const phoneTypeLabel = type => ({
+          mobile: L("Mobile", "Celular", "Mobil"), cell: L("Mobile", "Celular", "Mobil"),
+          home: L("Home", "Casa", "Lakay"), work: L("Work", "Trabajo", "Travay"), other: L("Other", "Otro", "Lòt")
+        })[String(type || "").toLowerCase()] || (type ? String(type).charAt(0).toUpperCase() + String(type).slice(1) : L("Mobile", "Celular", "Mobil"));
+        const rawNumbers = (contact.tel || []).map(item => typeof item === "string" ? { value: item, label: phoneTypeLabel("mobile") } : { value: item.value || "", label: phoneTypeLabel(item.type?.[0] || item.type) }).filter(item => phoneDigits(item.value).length === 10);
         state.supportPersonName = String(contact.name?.[0] || contact.name || "").trim();
         state.careCircleContactNumbers = rawNumbers;
         state.careCircleContactSource = "CONTACT_PICKER";
