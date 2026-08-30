@@ -2057,6 +2057,22 @@ a.goal-secondary-button { text-decoration:none; }
 .access-goal-value { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
 .access-goal-value span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
 .access-goal-detail { margin: .125rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+/* Weight left, BMI right, one row. space-between rather than a right-aligned second column: when
+   the row cannot hold both — 360px at 150% text — each metric wraps onto its own line and stays
+   left-aligned there, which is where a stacked metric belongs. min-width: 0 on both so a metric
+   that is alone on its line wraps inside itself instead of pushing the card sideways; nothing here
+   is nowrap, for the same reason. */
+.access-goal-metrics {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: .125rem 1rem;
+}
+.access-goal-metrics > p { min-width: 0; overflow-wrap: anywhere; }
+/* The BMI is the same fact as the weight, measured differently, so on one row it carries the same
+   size and weight and lets its own label take the quiet unit styling the "lb" already has. */
+.access-goal-metrics .access-goal-detail {
+  margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); line-height: 1.55;
+}
+.access-goal-metrics .access-goal-detail span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
 /* A confirmed baseline is a fact the patient can rely on, so it carries the same check the rest of
    the journey uses for something that actually happened. It wraps under the value at 384px rather
    than squeezing the number, which is the part that has to stay readable. */
