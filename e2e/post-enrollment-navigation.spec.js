@@ -115,3 +115,30 @@ test("the Spanish medication screen gives its directions in Spanish", async ({ p
   await expect(screen).toContainText(/Tome una vez al día/);
   await expect(screen).not.toContainText(/Take once daily/);
 });
+
+// The production QA validation asked for "Am I enrolled?" before and after completion, as a pair.
+// Before completion the answer was already right and only invisible behind the safety episode;
+// this pins the other half, which nothing was holding.
+test("EMMI's answer to whether the patient is enrolled changes when the enrollment does", async ({ page }) => {
+  const { openEmmiConversation } = await import("./emmiSurfaces.js");
+  const ask = async (dialog, question) => {
+    const before = await dialog.locator(".assistant-message.assistant:not(.assistant-thinking)").count();
+    await dialog.getByPlaceholder("Ask a question…").fill(question);
+    await dialog.getByRole("button", { name: "Send question" }).click();
+    await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)")).toHaveCount(before + 1, { timeout: 15000 });
+    return (await dialog.locator(".assistant-message.assistant").last().textContent())?.trim() || "";
+  };
+
+  await page.goto("/");
+  const before = await openEmmiConversation(page);
+  // Not enrolled yet, and the answer has to say so rather than reading the ACCESS screen as a yes.
+  expect(await ask(before, "Am I enrolled now?")).toMatch(/not enrolled until you review/i);
+  await before.locator(".assistant-close").click();
+
+  await enrol(page);
+
+  const after = await openEmmiConversation(page);
+  const answer = await ask(after, "Am I enrolled now?");
+  expect(answer).not.toMatch(/not enrolled until you review/i);
+  expect(answer).toMatch(/enrolled|enrollment/i);
+});
