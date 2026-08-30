@@ -50,7 +50,18 @@ const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó
 const REPEAT_FOLLOW_UP = /^(can you |could you |please )?(repeat|say that again|repeat that)|^(repita|puede repetir|d[ií]galo otra vez)|^(repete|di sa ank[oò])/i;
 const SIMPLIFY_FOLLOW_UP = /explain (that|it) (more )?simply|simpler|i (did not|didn'?t|don'?t) understand (that|it)|no entend[ií] (eso|esto)|expl[ií]quelo m[aá]s (f[aá]cil|sencillo)|mwen pa konprann|esplike sa pi senp/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
-const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
+// A patient asking whether to stop a medicine names the medicine. The old pattern required the
+// generic word, so "should I stop my lisinopril?" — the exact phrasing the QA spec lists — walked
+// past it into the model. Drug-name suffixes catch the whole class without needing a formulary,
+// and an accidental extra dose is a safety event even though no verb of change appears in it.
+const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|prazole|oxacin|cycline)";
+const MEDICATION_SAFETY = new RegExp(
+  "(stop|quit|skip|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|pill|dose|tablet|" + DRUG_SUFFIX + ")"
+  + "|(took|take|taken)[^?.]{0,20}(two|three|2|3|double|an extra|extra)[^?.]{0,10}(dose|pill|tablet)"
+  + "|dejar de tomar|suspender[^?.]{0,30}medic|cambiar la dosis|tom[eé][^?.]{0,15}dos dosis"
+  + "|sispann pran|chanje d[oò]z",
+  "i"
+);
 // The two halves can arrive in either order, and both must be present: a patient asking whether to
 // measure again is asking about the baseline counters, not about their last reading.
 const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\b|\bnow\b/i.test(text))
