@@ -278,6 +278,64 @@ const RULES = [
       ES: "Está bien. Abra el seguimiento de la meta e indique que tiene dificultades. Le ayudaremos a identificar la barrera y, si lo desea, enviar una solicitud de apoyo a su equipo.",
       KR: "Sa pa yon pwoblèm. Louvri tcheke objektif la epi chwazi ou gen difikilte. N ap ede w idantifye baryè a epi, si ou vle, voye yon demann sipò bay ekip swen ou."
     })
+  },
+
+  // --- Assigned goals ------------------------------------------------------------------------
+  //
+  // An ACCESS goal is assigned by the pathway. It is not chosen and it is not a preference, and
+  // answering otherwise invites the patient to expect control they do not have.
+  {
+    intent: "GOAL_ASSIGNMENT",
+    ids: ["goals-did-i-choose"],
+    match: /did i (choose|pick|select) (these|those|my) goals|yo eleg[i]{1,2} estas metas|eske se mwen ki chwazi objektif|èske se mwen ki chwazi objektif/i,
+    answer: locale => pick(locale, {
+      EN: "No. These goals come with your ACCESS care — the programme assigns them based on your conditions and your care track. What you can choose is how we help you work on them, and what to tell us is getting in the way.",
+      ES: "No. Estas metas vienen con su cuidado ACCESS: el programa las asigna según sus condiciones y su vía de cuidado. Lo que usted sí elige es cómo le ayudamos a trabajarlas y qué nos cuenta que se lo dificulta.",
+      KR: "Non. Objektif sa yo vini ak swen ACCESS ou — pwogram nan bay yo dapre kondisyon ou ak wout swen ou. Sa ou ka chwazi se kijan nou ede w travay sou yo, ak sa ou di nou k ap anpeche w."
+    })
+  },
+  {
+    intent: "GOAL_ASSIGNMENT",
+    ids: ["goals-remove-bp"],
+    match: /can i (remove|delete|drop|cancel) (the |my )?(blood pressure|bp|weight) goal|puedo (quitar|eliminar) la meta|eske mwen ka retire objektif|èske mwen ka retire objektif/i,
+    answer: locale => pick(locale, {
+      EN: "That goal is part of the ACCESS care you enrolled in, so it is not something to switch off here. If it does not feel right for you, tell your care team — they can review what your care includes.",
+      ES: "Esa meta forma parte del cuidado ACCESS en el que se inscribió, así que no es algo que se desactive aquí. Si no le encaja, dígaselo a su equipo de cuidado: ellos pueden revisar lo que incluye su cuidado.",
+      KR: "Objektif sa a fè pati swen ACCESS ou enskri a, kidonk se pa yon bagay pou etenn isit la. Si li pa santi l bon pou ou, di ekip swen ou — yo ka revize sa swen ou genyen."
+    })
+  },
+  {
+    intent: "GOAL_TARGET_EXPLANATION",
+    ids: ["goals-improvement-milestone"],
+    match: /what does .{0,20}(15|fifteen).{0,20}(lower|less|below)|que significa .{0,20}15 ?mmhg|kisa 15 ?mmhg/i,
+    answer: locale => pick(locale, {
+      EN: "They are two different things. Control means getting your top number below 130. The improvement milestone means dropping at least 15 points from where you started, so ACCESS can recognise real progress even if you have not reached 130 yet. The milestone is not your final goal; it is the point where your progress counts.",
+      ES: "Son dos cosas distintas. Control significa bajar su número de arriba por debajo de 130. El hito de mejora significa bajar al menos 15 puntos desde donde empezó, para que ACCESS reconozca un avance real aunque todavía no haya llegado a 130. El hito no es su meta final: es el punto donde su progreso cuenta.",
+      KR: "Se de bagay diferan. Kontwòl vle di desann chif anwo a anba 130. Etap amelyorasyon an vle di desann omwen 15 pwen depi kote ou te kòmanse, pou ACCESS ka rekonèt pwogrè reyèl menm si ou poko rive nan 130. Etap la se pa objektif final ou; se kote pwogrè ou konte."
+    })
+  },
+
+  // --- Barriers ------------------------------------------------------------------------------
+  {
+    intent: "BARRIER_PURPOSE",
+    ids: ["barriers-why-asking"],
+    screens: ["ACCESS_SUPPORT_NEEDS"],
+    match: /why are you asking|por que me pregunt|poukisa n ap mande/i,
+    answer: locale => pick(locale, {
+      EN: "Your care plan is already in place — you do not have to build one. I am asking whether anything could make it harder to follow, so we can add the right support. If nothing is in the way, that is a complete answer.",
+      ES: "Su plan de cuidado ya está listo; usted no tiene que crearlo. Le pregunto si algo podría dificultar seguirlo, para agregar el apoyo adecuado. Si nada se lo dificulta, esa es una respuesta completa.",
+      KR: "Plan swen ou deja anplas — ou pa bezwen fè youn. M ap mande si gen yon bagay ki ka fè l pi difisil pou swiv, pou nou ka ajoute bon sipò a. Si anyen pa anpeche w, sa se yon repons konplè."
+    })
+  },
+  {
+    intent: "BARRIER_SUPPORT",
+    ids: ["barriers-forget-medication"],
+    match: /what happens if i say i forget|que pasa si digo que olvido|kisa k ap pase si mwen di mwen bliye/i,
+    answer: locale => pick(locale, {
+      EN: "We add support for it — reminders, and a follow-up from your care team if that would help. Nothing about your medications changes: what you take and when stays exactly as your clinician prescribed it.",
+      ES: "Agregamos apoyo para eso: recordatorios y un seguimiento de su equipo de cuidado si ayuda. Nada de su medicación cambia: qué toma y cuándo sigue exactamente como se lo indicó su profesional clínico.",
+      KR: "Nou ajoute sipò pou sa — rapèl, ak yon swivi nan men ekip swen ou si sa ta ede. Anyen nan medikaman ou pa chanje: sa ou pran ak kilè rete egzakteman jan doktè ou preskri l."
+    })
   }
 ];
 
