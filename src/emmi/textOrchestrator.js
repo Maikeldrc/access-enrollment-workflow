@@ -38,6 +38,24 @@ const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressu
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
+// Where this patient started, and what ACCESS will recognise as improvement for them.
+//
+// Both are facts about one person. The knowledge base can explain what a baseline is and what the
+// program measures; it has no way of knowing that THIS patient started at 152, so a question in
+// either family must never reach retrieval. They are matched ahead of COST below, because "how
+// much is 5% for me" is a question about a weight goal that the word "how much" would otherwise
+// send to the cost engine.
+const ACCESS_BASELINE = /(starting|baseline)\s*(blood pressure|bp|systolic|weight|point)|what (was|is) my (starting|baseline)|where did i start|(presi[oó]n|peso)\s*(arterial\s*)?inicial|l[ií]nea base|punto de partida|pwen depa|(tansyon|pwa)[^?]*konmansman/i;
+const ACCESS_MILESTONE = /\d+\s*(mmhg|points?|puntos?|pwen)\s*(lower|below|less|menos|m[aá]s baj|pi ba)|(how much|cu[aá]nto|konbyen)[^?]*\d+\s*%|\d+\s*%[^?]*(for me|mean|means|para m[ií]|significa|pou mwen|vle di)|improvement milestone|hito de mejora|etap amelyorasyon/i;
+// Which goal the patient meant. A percentage belongs to the weight goal and mmHg to the blood
+// pressure one, because that is how each rule is written. When the question names neither, both
+// baselines are reported rather than one of them being guessed at.
+const WEIGHT_SUBJECT = /weight|pounds?|\blbs?\b|bmi|%|percent|peso|libras?|imc|por ?ciento|pwa|liv/i;
+const BLOOD_PRESSURE_SUBJECT = /blood pressure|\bbp\b|systolic|mmhg|points?|presi[oó]n|sist[oó]lica|puntos?|tansyon|sistolik|pwen/i;
+const accessBaselineGoalType = text => {
+  if (WEIGHT_SUBJECT.test(text)) return "WEIGHT_MANAGEMENT";
+  return BLOOD_PRESSURE_SUBJECT.test(text) ? "BLOOD_PRESSURE_CONTROL" : "";
+};
 // Asking whether the doctor stays involved is the same question as asking who the doctor is: both
 // are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
 // rather than replacing them. Naming the physician in the question is the most natural way to ask it.
@@ -505,6 +523,48 @@ const accessCostAnswer = (result, locale) => {
   });
 };
 
+// The patient's own starting point, said back to them. Nothing is computed here: every number is
+// read from the resolved shape, so a baseline that is pending produces a sentence saying so rather
+// than a plausible-looking number.
+const accessStartingPointAnswer = (locale, entry) => {
+  const point = entry.startingPoint || {};
+  if (point.status !== "CONFIRMED") return entry.goalType === "WEIGHT_MANAGEMENT"
+    ? pick(locale, { EN: "I don’t have a confirmed starting weight for you yet. Your care team confirms it as part of setting up your care.", ES: "Todavía no tengo un peso inicial confirmado para usted. Su equipo de atención lo confirma como parte de la configuración de su cuidado.", KR: "Mwen poko gen yon pwa nan konmansman ki konfime pou ou. Ekip swen ou konfime l antan y ap mete swen ou anplas." })
+    : pick(locale, { EN: "I don’t have a confirmed starting blood pressure for you yet. Your care team confirms it as part of setting up your care.", ES: "Todavía no tengo una presión arterial inicial confirmada para usted. Su equipo de atención la confirma como parte de la configuración de su cuidado.", KR: "Mwen poko gen yon tansyon nan konmansman ki konfime pou ou. Ekip swen ou konfime l antan y ap mete swen ou anplas." });
+  if (entry.goalType === "WEIGHT_MANAGEMENT") {
+    const weight = pick(locale, { EN: `Your starting weight is ${point.value} pounds.`, ES: `Su peso inicial es ${point.value} libras.`, KR: `Pwa ou nan konmansman an se ${point.value} liv.` });
+    if (!point.bmi) return weight;
+    const bmi = Number(point.bmi).toFixed(1);
+    return `${weight} ${pick(locale, { EN: `Your BMI at that starting point is ${bmi}.`, ES: `Su IMC en ese punto de partida es ${bmi}.`, KR: `BMI ou nan pwen depa sa a se ${bmi}.` })}`;
+  }
+  // A systolic without a diastolic is still a baseline. It is named as a systolic rather than read
+  // out as half of a pair the record does not hold.
+  if (!point.diastolic) return pick(locale, { EN: `Your starting systolic blood pressure is ${point.value} mmHg.`, ES: `Su presión arterial sistólica inicial es ${point.value} mmHg.`, KR: `Tansyon sistolik ou nan konmansman an se ${point.value} mmHg.` });
+  return pick(locale, { EN: `Your starting blood pressure is ${point.value} over ${point.diastolic}.`, ES: `Su presión arterial inicial es ${point.value} sobre ${point.diastolic}.`, KR: `Tansyon ou nan konmansman an se ${point.value} sou ${point.diastolic}.` });
+};
+
+// The milestone, always said with the baseline it came from and always distinguished from the
+// control target. "137" on its own is the answer this whole module exists to avoid giving: it
+// tells a patient who started at 152 that 137 is where they are trying to land, which is not what
+// ACCESS means and is worse than saying nothing.
+const accessMilestoneAnswer = (locale, entry) => {
+  const measure = entry.measure || {};
+  const milestone = measure.improvementMilestone;
+  if (!milestone) return accessStartingPointAnswer(locale, entry);
+  if (entry.goalType === "WEIGHT_MANAGEMENT") {
+    return pick(locale, {
+      EN: `Based on your starting weight of ${milestone.derivedFromBaseline} pounds, ${milestone.improvementRequired}% is about ${milestone.reductionFromBaseline} pounds, which corresponds to an ACCESS improvement milestone of about ${milestone.value} pounds or lower. The control target is separate: a BMI below ${measure.control.value}.`,
+      ES: `Con base en su peso inicial de ${milestone.derivedFromBaseline} libras, ${milestone.improvementRequired}% es aproximadamente ${milestone.reductionFromBaseline} libras, lo que corresponde a un hito de mejora de ACCESS de aproximadamente ${milestone.value} libras o menos. La meta de control es distinta: un IMC menor de ${measure.control.value}.`,
+      KR: `Dapre pwa ou nan konmansman an ki se ${milestone.derivedFromBaseline} liv, ${milestone.improvementRequired}% se anviwon ${milestone.reductionFromBaseline} liv, sa ki koresponn ak yon etap amelyorasyon ACCESS anviwon ${milestone.value} liv oswa mwens. Objektif kontwòl la se yon lòt bagay: yon BMI anba ${measure.control.value}.`
+    });
+  }
+  return pick(locale, {
+    EN: `Based on your starting systolic blood pressure of ${milestone.derivedFromBaseline}, your ACCESS improvement milestone is ${milestone.value} mmHg or lower. That is not the same as the control target, which is below ${measure.control.value} mmHg systolic.`,
+    ES: `Con base en su presión sistólica inicial de ${milestone.derivedFromBaseline}, su hito de mejora de ACCESS es ${milestone.value} mmHg o menos. No es lo mismo que la meta de control, que es menos de ${measure.control.value} mmHg sistólica.`,
+    KR: `Dapre tansyon sistolik ou nan konmansman an ki se ${milestone.derivedFromBaseline}, etap amelyorasyon ACCESS ou se ${milestone.value} mmHg oswa mwens. Sa pa menm bagay ak objektif kontwòl la, ki se anba ${measure.control.value} mmHg sistolik.`
+  });
+};
+
 const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
   if (tool === "getExpectedAccessCost") {
     const cost = accessCostAnswer(result, locale);
@@ -727,6 +787,23 @@ export class EmmiTextOrchestrator {
           return { text: pick(locale, { EN: "No. Your monitor is connected and we received your first reading. You can take your next readings later, and ITERA will receive them automatically.", ES: "No. Su monitor está conectado y recibimos su primera medición. Puede realizar las próximas más adelante e ITERA las recibirá automáticamente.", KR: "Non. Aparèy ou konekte epi nou resevwa premye mezi ou a. Ou ka pran lòt mezi yo pita, epi ITERA ap resevwa yo otomatikman." }), trace };
         }
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getEnrollmentContext", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
+    }
+    // A starting point and a milestone are read from the patient's own record, never explained from
+    // general education and never recomputed here. When this patient has no ACCESS baselines at all
+    // the block claims nothing and lets normal routing take the turn.
+    const milestoneAsked = ACCESS_MILESTONE.test(asked);
+    if (milestoneAsked || ACCESS_BASELINE.test(asked)) {
+      trace.intent = milestoneAsked ? "ACCESS_IMPROVEMENT_MILESTONE" : "ACCESS_BASELINE";
+      trace.toolCalls.push("getAccessBaseline");
+      try {
+        const goalType = accessBaselineGoalType(asked);
+        const resolved = await this.executeTool("getAccessBaseline", { patientId: context.patientId, ...(goalType ? { goalType } : {}) });
+        const baselines = resolved?.baselines || [];
+        if (baselines.length) {
+          trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push("getAccessBaseline"); emit("EMMI_ANSWER_ROUTED");
+          return { text: baselines.map(entry => milestoneAsked ? accessMilestoneAnswer(locale, entry) : accessStartingPointAnswer(locale, entry)).join(" "), trace };
+        }
+      } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getAccessBaseline", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
     // Where a refill stands is a runtime fact, never a guess: EMMI reads the episodes and says what
     // each one is actually waiting on.

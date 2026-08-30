@@ -2,7 +2,7 @@ import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTO
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
-import { accessProgressMeasure, assignedAccessGoals, patientStartingPoint } from "./accessCareActivation.js";
+import { ACCESS_OUTCOME_TARGETS, accessProgressMeasure, assignedAccessGoals, isAssignedAccessGoal, patientStartingPoint } from "./accessCareActivation.js";
 import {
   Activity, ArrowLeft, ArrowRight, BadgeCheck, Bell, BookOpen, CalendarDays, ClipboardCheck, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
@@ -45,7 +45,7 @@ import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as b
 import { EXPLANATION_CODES, accessTrackCost, resolveExpectedPatientResponsibility } from "./financialResponsibility.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
 import { ingestBloodPressureObservation } from "./clinicalMonitoring.js";
-import { DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, classifyBloodPressure, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
+import { DEMO_BP_CLINICAL_TARGET, DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, classifyBloodPressure, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 import { BloodPressureSimulator, SIMULATION_STATUS, SIMULATION_TARGET, simulationAllowed } from "./bpSimulator.js";
 import { REFILL_TRIGGER_POLICY, SIGNAL_STATUS, answerSupplySignal, detectLowSupply, estimateMedicationSupply, openSignalFor, supersedeSignalsForDispense, supplyPhrase, supplySignalAnalytics } from "./medicationSupply.js";
 import { REFILL_BLOCKERS, REFILL_PATHS, REFILL_STATUS, SUPPLY_ANSWERS, TAKING_ANSWERS, advanceRefill, createRefillEpisode, openRefillFor, refillAnalytics, refillCareTeamSummary, refillIdempotencyKey, refillIsOpen, refillNextStep, refillPatientStatus, resolveRefillPath, statusForPath } from "./medicationRefill.js";
@@ -867,6 +867,15 @@ function assistantContext() {
     deviceScenario,
     goalFlowStep: state.goalFlowStep,
     patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
+    // Where this patient started and what ACCESS will recognise as progress, resolved by the same
+    // functions the goals screen and the care plan render. "What was my starting blood pressure"
+    // is a question about this patient, and the knowledge base has no way to answer it: it knows
+    // what a baseline IS, never what THIS one is. Handing EMMI the resolved shape is what keeps
+    // the number it says identical to the number on the screen behind the conversation.
+    accessGoalBaselines: assignedAccessGoals(state.offer).map(goalType => {
+      const startingPoint = patientStartingPoint(goalType, careActivationRuntime());
+      return { goalType, title: localGoalText(GOAL_CONFIG[goalType].displayName, state.language), startingPoint, measure: accessProgressMeasure(goalType, startingPoint) };
+    }),
     activeGoal: activeGoalRecord ? {
       id: activeGoalRecord.id,
       title: goalDisplayName(activeGoalRecord, state.language),
@@ -4160,15 +4169,26 @@ function goalPlanReview() {
     <div class="goal-stacked-actions">${cta(L("Save my plan", "Guardar mi plan", "Sove plan mwen"), "goal-plan-save")}${cta(L("Edit my plan", "Editar mi plan", "Modifye plan mwen"), "goal-plan-change", true)}</div>`;
 }
 
-// What the patient's record can actually say about where they are starting. Weight has no baseline
-// field anywhere yet, so it reports pending rather than borrowing a number from somewhere else.
+// What the patient's record can actually say about where they are starting.
+//
+// Two sources, in one order that never changes. A baseline captured in this journey supersedes the
+// one the record arrived with, because three verified readings taken today are a newer measurement
+// of the same thing — not a second opinion to be averaged with the first. Everything else falls
+// back to the observations the care team already confirmed, and a record with neither says PENDING
+// rather than borrowing a number from somewhere else.
+//
+// The shape is keyed by goal type because that is what the starting-point resolver reads. The
+// patient record is keyed clinically, and translating between the two here is what keeps a goal
+// vocabulary out of a record that is just a blood pressure and a weight.
 function careActivationRuntime() {
-  const baseline = state.bpBaseline;
+  const observations = state.offer?.patient?.baselineObservations || {};
+  const captured = state.bpBaseline;
+  const capturedBloodPressure = state.bpBaselineStatus === "COMPLETED" && captured?.sourceVerified
+    ? { status: "CONFIRMED", systolic: captured.averageSystolic, diastolic: captured.averageDiastolic, recordedAt: captured.completedAt, source: "VERIFIED_DEVICE" }
+    : null;
   return {
-    BLOOD_PRESSURE_CONTROL: state.bpBaselineStatus === "COMPLETED" && baseline?.sourceVerified
-      ? { status: "CONFIRMED", systolic: baseline.averageSystolic, diastolic: baseline.averageDiastolic, recordedAt: baseline.completedAt }
-      : { status: "PENDING" },
-    WEIGHT_MANAGEMENT: { status: "PENDING" }
+    BLOOD_PRESSURE_CONTROL: capturedBloodPressure || observations.bloodPressure || { status: "PENDING" },
+    WEIGHT_MANAGEMENT: observations.weight || { status: "PENDING" }
   };
 }
 
@@ -4180,32 +4200,69 @@ const accessGoalSupportCopy = goalType => ({
 // Two named rows, never one "target". The control threshold belongs to the program and is always
 // shown; the improvement milestone is arithmetic on this patient's own baseline, so before a
 // baseline exists it is described in words rather than given a number it cannot have yet.
+//
+// Every number below is read from the resolved measure or from the outcome definition. Nothing here
+// writes 130, 15, 30, 5 or a milestone of its own: a threshold typed into a view is a second source
+// of truth that goes on rendering last quarter's rule after the program has changed it.
+//
+// A row is [label, value, note]. The note is what makes the milestone honest at a glance: "137 mmHg
+// or lower" on its own reads like a clinical target, and "15 mmHg below your starting systolic blood
+// pressure" underneath it is the sentence that says where the number came from.
 function accessMeasureRows(goalType, measure) {
   const controlLabel = L("Control target", "Meta de control", "Objektif kontwòl");
   const milestoneLabel = L("ACCESS improvement milestone", "Hito de mejora de ACCESS", "Etap amelyorasyon ACCESS");
+  const milestone = measure.improvementMilestone;
+  const improvement = ACCESS_OUTCOME_TARGETS[goalType].improvement.value;
   if (goalType === "BLOOD_PRESSURE_CONTROL") {
-    const milestone = measure.improvementMilestone
-      ? L(`${measure.improvementMilestone.value} mmHg or lower`, `${measure.improvementMilestone.value} mmHg o menos`, `${measure.improvementMilestone.value} mmHg oswa mwens`)
-      : L("At least 15 mmHg lower than your starting point", "Al menos 15 mmHg por debajo de su punto de partida", "Omwen 15 mmHg pi ba pase pwen depa ou");
-    return [[controlLabel, L("Below 130 mmHg", "Por debajo de 130 mmHg", "Anba 130 mmHg")], [milestoneLabel, milestone]];
+    const belowStarting = L(`${improvement} mmHg below your starting systolic blood pressure.`, `${improvement} mmHg por debajo de su presión sistólica inicial.`, `${improvement} mmHg anba tansyon sistolik ou nan konmansman an.`);
+    return [
+      [controlLabel, L(`Below ${measure.control.value} mmHg systolic`, `Menos de ${measure.control.value} mmHg sistólica`, `Anba ${measure.control.value} mmHg sistolik`)],
+      milestone
+        ? [milestoneLabel, L(`${milestone.value} mmHg or lower`, `${milestone.value} mmHg o menos`, `${milestone.value} mmHg oswa mwens`), belowStarting]
+        : [milestoneLabel, L(`At least ${improvement} mmHg below your starting systolic blood pressure`, `Al menos ${improvement} mmHg por debajo de su presión sistólica inicial`, `Omwen ${improvement} mmHg anba tansyon sistolik ou nan konmansman an`)]
+    ];
   }
-  const milestone = measure.improvementMilestone
-    ? L(`${measure.improvementMilestone.value} lb or lower`, `${measure.improvementMilestone.value} lb o menos`, `${measure.improvementMilestone.value} lb oswa mwens`)
-    : L("At least 5% below your starting weight", "Al menos 5% por debajo de su peso inicial", "Omwen 5% pi ba pase pwa ou nan konmansman");
-  return [[controlLabel, L("A BMI below 30, without gaining significant weight", "Un IMC por debajo de 30, sin aumentar de peso de forma significativa", "Yon BMI anba 30, san pran anpil pwa")], [milestoneLabel, milestone]];
+  const belowStartingWeight = L(`At least ${improvement}% below your starting weight.`, `Al menos ${improvement}% por debajo de su peso inicial.`, `Omwen ${improvement}% pi ba pase pwa ou nan konmansman an.`);
+  return [
+    [controlLabel, L(`BMI below ${measure.control.value}, without gaining significant weight`, `IMC menor de ${measure.control.value}, sin aumentar de peso de forma significativa`, `BMI anba ${measure.control.value}, san pran anpil pwa`)],
+    milestone
+      ? [milestoneLabel, L(`${milestone.value} lb or lower`, `${milestone.value} lb o menos`, `${milestone.value} lb oswa mwens`), belowStartingWeight]
+      : [milestoneLabel, L(`At least ${improvement}% below your starting weight`, `Al menos ${improvement}% por debajo de su peso inicial`, `Omwen ${improvement}% pi ba pase pwa ou nan konmansman an`)]
+  ];
 }
 
+const accessMeasureMarkup = (goalType, measure) => `<dl>${accessMeasureRows(goalType, measure)
+  .map(([label, value, note]) => `<div><dt>${label}</dt><dd>${value}${note ? `<small>${note}</small>` : ""}</dd></div>`).join("")}</dl>`;
+
+// BMI carries one decimal in every clinical record the patient will ever be shown, so a baseline of
+// 31 reads as 31.0 rather than as an integer that looks like a different measurement.
+const formatBmi = value => Number(value).toFixed(1);
+
+// A confirmed baseline says so. "152 / 88 mmHg" with nothing under it leaves the patient guessing
+// whether that is today's reading, a target, or something still being worked out; the line beneath
+// it is the difference between a number on a screen and a fact about their care.
 function accessStartingPointBody(goalType, point) {
-  if (point.status === "CONFIRMED" && goalType === "BLOOD_PRESSURE_CONTROL") {
-    return `<p class="access-goal-value">${point.value} mmHg <span>${L("starting systolic", "sistólica inicial", "sistolik nan konmansman")}</span></p>`;
-  }
   if (point.status === "CONFIRMED") {
-    return `<p class="access-goal-value">${point.value} lb${point.bmi ? ` · ${L("BMI", "IMC", "BMI")} ${point.bmi}` : ""}</p>`;
+    const confirmed = `<p class="access-goal-confirmed">${icon("check")}<span>${L("Baseline confirmed", "Línea base confirmada", "Pwen depa konfime")}</span></p>`;
+    if (goalType === "BLOOD_PRESSURE_CONTROL") {
+      // A systolic on its own is still a baseline, so it keeps the label that says which number it
+      // is instead of being rendered as half of a pair the record does not hold.
+      const value = point.diastolic
+        ? `${point.value} / ${point.diastolic} <span>mmHg</span>`
+        : `${point.value} mmHg <span>${L("starting systolic", "sistólica inicial", "sistolik nan konmansman")}</span>`;
+      return `<p class="access-goal-value">${value}</p>${confirmed}`;
+    }
+    // Weight and BMI are two readings of the same confirmed baseline, so they sit on one row as
+    // peers. Stacked, the BMI read as a footnote to the weight and cost the card a whole line for
+    // one short number. Weight stays first in the source, which is the order it is read in whether
+    // the row holds both or wraps them.
+    const bmi = point.bmi ? `<p class="access-goal-detail"><span>${L("BMI", "IMC", "BMI")}</span> ${formatBmi(point.bmi)}</p>` : "";
+    return `<div class="access-goal-metrics"><p class="access-goal-value">${point.value} <span>lb</span></p>${bmi}</div>${confirmed}`;
   }
   const pending = goalType === "BLOOD_PRESSURE_CONTROL"
     ? L("We’ll confirm your starting blood pressure as part of setting up your care.", "Confirmaremos su presión arterial inicial como parte de la configuración de su cuidado.", "N ap konfime tansyon ou nan konmansman an antan n ap mete swen ou anplas.")
     : L("We’ll confirm your starting weight to personalize this goal.", "Confirmaremos su peso inicial para personalizar esta meta.", "N ap konfime pwa ou nan konmansman an pou pèsonalize objektif sa a.");
-  return `<p class="access-goal-pending">${L("To be confirmed", "Por confirmar", "Pou konfime")}</p><p>${pending}</p>`;
+  return `<p class="access-goal-pending">${L("To be confirmed", "Por confirmar", "Pou konfime")}</p><p class="access-goal-pending-note">${pending}</p>`;
 }
 
 // No checkboxes, no selection, no percentages. The patient is being shown the care they already
@@ -4215,7 +4272,7 @@ function accessAssignedGoals() {
   const cards = assignedAccessGoals(state.offer).map(goalType => {
     const point = patientStartingPoint(goalType, runtime);
     const measure = accessProgressMeasure(goalType, point);
-    const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+    const rows = accessMeasureMarkup(goalType, measure);
     const actionItems = suggestedActionsFor(goalType).slice(0, goalType === "BLOOD_PRESSURE_CONTROL" ? 3 : 4)
       .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
     // Summary first, detail on request. Two goals with four sections each is a wall of text at
@@ -4223,13 +4280,16 @@ function accessAssignedGoals() {
     // buried under the program's measurement rules. So the card answers that much and keeps the
     // thresholds and the action list one tap away. <details> because the browser already makes it
     // keyboard operable and announces its state; a div and a click handler would not.
+    // The summary names both halves, so the measure block does not label itself again underneath it:
+    // opening the disclosure lands the patient on the targets themselves. The plan keeps its heading,
+    // because that one marks where the numbers stop and what we will do about them starts.
     return `<article class="access-goal-card">
       <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
       <p class="access-goal-support">${accessGoalSupportCopy(goalType)}</p>
       <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
       <details class="access-goal-details">
         <summary>${L("How ACCESS measures progress, and how we’ll work on it", "Cómo ACCESS mide su progreso y cómo trabajaremos en esto", "Kijan ACCESS mezire pwogrè, ak kijan n ap travay sou li")}${icon("chevronRight")}</summary>
-        <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
+        <section class="access-goal-measure">${rows}</section>
         <section class="access-goal-plan"><h4>${L("How we’ll work on it", "Cómo trabajaremos en esto", "Kijan n ap travay sou li")}</h4><ul>${actionItems}</ul></section>
       </details>
     </article>`;
@@ -4335,6 +4395,23 @@ const goalCardCta = goal => (goalIsReadyToPersonalize(goal)
   ? { label: L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen"), action: "view-goal" }
   : { label: L("View my goal", "Ver mi meta", "Gade objektif mwen"), action: "view-goal" });
 
+// The number this goal is being measured from, on the screen the patient comes back to weeks later.
+// One line and no more: the card says where they started, not how ACCESS measures it — the control
+// target and the milestone are one tap away inside the goal, where there is room to keep them apart.
+//
+// A pending baseline renders nothing rather than a placeholder. "To be confirmed" belongs on the
+// activation screens, which are explaining what will happen; on a card it would be a row of nothing
+// sitting where a fact goes.
+function goalStartingPointLine(goal) {
+  if (!goal || !isAssignedAccessGoal(state.offer, goal.goalType)) return "";
+  const point = patientStartingPoint(goal.goalType, careActivationRuntime());
+  if (point.status !== "CONFIRMED") return "";
+  const value = goal.goalType === "BLOOD_PRESSURE_CONTROL"
+    ? `${point.value}${point.diastolic ? ` / ${point.diastolic}` : ""} mmHg`
+    : `${point.value} lb${point.bmi ? ` · ${L("BMI", "IMC", "BMI")} ${formatBmi(point.bmi)}` : ""}`;
+  return `<div class="goal-summary-block goal-summary-baseline"><span class="goal-summary-label">${L("Starting point", "Punto de partida", "Pwen depa")}</span><p class="goal-summary-value">${value}</p></div>`;
+}
+
 // The primary goal gets the fuller treatment: progress, the next step and a lead action. Other
 // goals stay deliberately lighter, so the patient's own priority is the thing that stands out.
 function primaryGoalCard(goal) {
@@ -4342,6 +4419,7 @@ function primaryGoalCard(goal) {
   const ctaAction = goalCardCta(goal);
   return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
+    ${goalStartingPointLine(goal)}
     ${goalProgressMarkup(goal)}
     ${goalNeedsHelpLine(goal)}
     ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
@@ -4355,6 +4433,7 @@ function secondaryGoalCard(goal) {
   return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     <p class="goal-card-status">${icon(goalStatusIcon(goal))}<span>${goalStatusCopy(goal)}</span></p>
+    ${goalStartingPointLine(goal)}
     <p class="goal-card-support">${ready
       ? L("Personalize how you’d like to work on this goal.", "Personalice cómo le gustaría trabajar en esta meta.", "Pèsonalize kijan ou ta renmen travay sou objektif sa a.")
       : escapeHtml(goalNextStep(goal))}</p>
@@ -4395,6 +4474,14 @@ const backToCareAction = () => `<div class="goal-back-actions"><button type="but
 
 const goalHealthLocale = () => ({ en: "en-US", es: "es-US", ht: "ht-HT" }[state.language] || "en-US");
 
+// Whether this patient's record holds a monitor at all — assigned by ITERA, confirmed as their own,
+// or named by the scenario they arrived on. It answers "could a reading have reached us", which is
+// a different question from whether the device is connected and working today.
+const patientMonitorOnRecord = () => Boolean(
+  state.assignedDeviceId || state.confirmedDeviceId || state.bpDevice?.deviceId || state.patientHasBloodPressureMonitor
+  || (state.offer?.fixture?.deviceSource && state.offer.fixture.deviceSource !== "NONE")
+);
+
 function bloodPressureGoalRuntime(goal) {
   const readings = (state.bpReadings || []).filter(item => Number.isFinite(Number(item.systolic)) && Number.isFinite(Number(item.diastolic))).map((item, index) => ({
     id: item.observationId || item.readingId || `runtime-reading-${index}`,
@@ -4409,7 +4496,16 @@ function bloodPressureGoalRuntime(goal) {
     observationId: item.observationId || item.readingId || "",
     classification: item.classification || ""
   }));
-  return buildBloodPressureGoalRuntime({ readings, demoMode: goal.goalType === "BLOOD_PRESSURE_CONTROL" && readings.length === 0, monitoringRules: state.bpMonitoringRules || DEMO_BP_MONITORING_RULES, clinicalTarget: state.bpClinicalTarget || null });
+  // The demo adapter stands in for the longitudinal feed a connected monitor would provide. A
+  // patient whose record holds no monitor has no feed for it to stand in for, so inventing readings
+  // there claims transmissions from a device that does not exist — and, sitting above a confirmed
+  // starting point of 152/88, a fabricated 120/80 tells them they have already reached a control
+  // they have not. The empty state is the honest answer and the screens already have one.
+  //
+  // The care-team target is not gated with it: a threshold is a configuration the patient is
+  // entitled to know on day one, not a claim that anything was measured.
+  const demoMode = goal.goalType === "BLOOD_PRESSURE_CONTROL" && readings.length === 0 && patientMonitorOnRecord();
+  return buildBloodPressureGoalRuntime({ readings, demoMode, monitoringRules: state.bpMonitoringRules || DEMO_BP_MONITORING_RULES, clinicalTarget: state.bpClinicalTarget || DEMO_BP_CLINICAL_TARGET });
 }
 
 const bpClassificationCopy = classification => ({
@@ -4594,6 +4690,18 @@ function goalBarrierFollowUp() {
     <div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
 }
 
+function accessGoalOutcomeSection(goal) {
+  if (!goal || !isAssignedAccessGoal(state.offer, goal.goalType)) return "";
+  const point = patientStartingPoint(goal.goalType, careActivationRuntime());
+  const measure = accessProgressMeasure(goal.goalType, point);
+  return `<section class="goal-section access-goal-outcome">
+    <h2>${L("How ACCESS measures this goal", "Cómo ACCESS mide esta meta", "Kijan ACCESS mezire objektif sa a")}</h2>
+    <p class="goal-section-support">${L("Your care team records these. They are not something you set or change here.", "Su equipo de cuidado registra estos datos. No son algo que usted defina o cambie aquí.", "Se ekip swen ou ki anrejistre sa yo. Se pa yon bagay ou fikse oswa chanje isit la.")}</p>
+    <div class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goal.goalType, point)}</div>
+    <div class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4>${accessMeasureMarkup(goal.goalType, measure)}</div>
+  </section>`;
+}
+
 function goalDetail() {
   const goal = currentGoal();
   if (!goal) return myGoalsDashboard();
@@ -4626,13 +4734,22 @@ function goalDetail() {
     : goal.status === "ACHIEVED"
       ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.")
       : L("See how your blood pressure is doing, follow your steps, and learn what your results mean.", "Vea cómo va su presión, siga sus pasos y aprenda qué significan sus resultados.", "Gade kijan tansyon ou ye, swiv etap ou yo, epi aprann sa rezilta yo vle di.");
+  // The same starting point and the same two ACCESS measures the goals screen and the care plan
+  // show, read from the same resolver rather than restated here. My Goals is where the patient
+  // comes back to weeks later, and a baseline that differed from the one they were shown at
+  // activation would read as their number having quietly changed.
+  //
+  // Read-only on purpose: the baseline is an observation, the control target belongs to the
+  // program and the milestone is arithmetic on the two. None of them is the patient's to edit, so
+  // this section offers no control at all and says why.
+  const accessOutcome = accessGoalOutcomeSection(goal);
   const latest = health?.latest;
   const metric = health ? `<section class="goal-health-card" aria-label="${latest ? escapeHtml(L(`Blood pressure, ${latest.systolic} over ${latest.diastolic} millimeters of mercury. ${bpClassificationCopy(latest.classification)}.`, `Presión arterial, ${latest.systolic} sobre ${latest.diastolic} milímetros de mercurio. ${bpClassificationCopy(latest.classification)}.`, `Tansyon, ${latest.systolic} sou ${latest.diastolic} milimèt mèki. ${bpClassificationCopy(latest.classification)}.`)) : ""}"><div class="goal-health-eyebrow">${icon("heart")}<span>${L("My blood pressure today", "Mi presión hoy", "Tansyon mwen jodi a")}</span></div>${latest ? `<p class="goal-health-value"><strong>${latest.systolic} <i>/</i> ${latest.diastolic}</strong><span>mmHg</span></p><p class="goal-health-status ${latest.classification.toLowerCase()}">${icon(latest.classification === "WITHIN_EXPECTED_RANGE" ? "check" : "info")}${bpClassificationCopy(latest.classification)}</p><p class="goal-health-time">${L("Today", "Hoy", "Jodi a")} · ${new Intl.DateTimeFormat(goalHealthLocale(), { hour: "numeric", minute: "2-digit" }).format(new Date(latest.timestamp))}</p><p class="goal-health-source">${latest.source === "CONNECTED_DEVICE" && latest.sourceVerified ? L("Received automatically from your monitor", "Recibida automáticamente desde su monitor", "Resevwa otomatikman nan monitè ou") : L("Reported health reading", "Lectura de salud registrada", "Lekti sante rapòte")}</p><button type="button" class="goal-card-action" data-action="view-goal-readings">${L("View my readings", "Ver mis lecturas", "Gade lekti mwen")} ${icon("arrowRight")}</button><button type="button" class="goal-card-action secondary" data-action="explain-goal-reading">${L("What does this reading mean?", "¿Qué significa esta lectura?", "Kisa lekti sa a vle di?")} ${icon("arrowRight")}</button>` : `<div class="goal-health-empty">${icon("info")}<strong>${L("We have not received a reading today.", "Aún no hemos recibido una lectura hoy.", "Nou poko resevwa yon lekti jodi a.")}</strong><p>${L("When you use your connected monitor, the reading will appear here automatically.", "Cuando use su monitor conectado, la lectura aparecerá aquí automáticamente.", "Lè ou sèvi ak monitè konekte ou, lekti a ap parèt isit otomatikman.")}</p></div>`}</section>` : "";
-  const trend = health ? `<section class="goal-section goal-trend"><div class="goal-section-heading"><div><h2>${L("How my blood pressure has been", "Cómo ha estado mi presión", "Kijan tansyon mwen te ye")}</h2><p>${L("Last 7 days", "Últimos 7 días", "7 dènye jou yo")}</p></div></div>${goalTrendChart(health.trend)}${health.trend.averageSystolic ? `<div class="goal-trend-summary"><span>${L("Average", "Promedio", "Mwayèn")}</span><strong>${health.trend.averageSystolic} / ${health.trend.averageDiastolic}</strong><small>${icon(health.trend.direction === "STABLE" ? "check" : "trending")}${bpTrendCopy(health.trend.direction)}</small></div>` : ""}<button type="button" class="goal-secondary-button" data-action="explain-goal-trend">${icon("trending")}<span>${L("Ask EMMI to explain this trend", "Pedir a EMMI que explique esta tendencia", "Mande EMMI eksplike tandans sa a")}</span></button></section>` : "";
+  const trend = health ? `<section class="goal-section goal-trend"><div class="goal-section-heading"><div><h2>${L("How my blood pressure has been", "Cómo ha estado mi presión", "Kijan tansyon mwen te ye")}</h2><p>${L("Last 7 days", "Últimos 7 días", "7 dènye jou yo")}</p></div></div>${goalTrendChart(health.trend)}${health.trend.averageSystolic ? `<div class="goal-trend-summary"><span>${L("Average", "Promedio", "Mwayèn")}</span><strong>${health.trend.averageSystolic} / ${health.trend.averageDiastolic}</strong><small>${icon(health.trend.direction === "STABLE" ? "check" : "trending")}${bpTrendCopy(health.trend.direction)}</small></div>` : ""}${health.trend.direction === "INSUFFICIENT_DATA" ? "" : `<button type="button" class="goal-secondary-button" data-action="explain-goal-trend">${icon("trending")}<span>${L("Ask EMMI to explain this trend", "Pedir a EMMI que explique esta tendencia", "Mande EMMI eksplike tandans sa a")}</span></button>`}</section>` : "";
   return `<span class="eyebrow">${L("My goal", "Mi meta", "Objektif mwen")}</span>
     <div class="goal-detail-hero">${goalIcon(goal, "goal-detail-hero-icon")}<h1 tabindex="-1">${title}</h1></div>
     ${statusLead ? `<p class="lead">${statusLead}</p>` : ""}
-    ${metric}${trend}
+    ${metric}${trend}${accessOutcome}
     <section class="goal-section">
       <h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>
       ${actionRows ? `<p class="goal-section-support">${L("Some steps are recorded automatically. You only confirm the ones you do yourself.", "Algunos pasos se registran automáticamente. Usted solo confirma los que realiza personalmente.", "Gen kèk etap ki anrejistre otomatikman. Ou konfime sèlman sa ou fè tèt ou.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
@@ -4835,13 +4952,13 @@ function accessCarePlanReady() {
   const goals = assignedAccessGoals(state.offer).map(goalType => {
     const point = patientStartingPoint(goalType, runtime);
     const measure = accessProgressMeasure(goalType, point);
-    const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+    const rows = accessMeasureMarkup(goalType, measure);
     const nextSteps = suggestedActionsFor(goalType).slice(0, 3)
       .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
     return `<article class="access-plan-goal">
       <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
       <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
-      <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
+      <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4>${rows}</section>
       <section class="access-goal-plan"><h4>${L("Next steps", "Próximos pasos", "Pwochen etap yo")}</h4><ul>${nextSteps}</ul></section>
     </article>`;
   }).join("");

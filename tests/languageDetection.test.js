@@ -109,4 +109,34 @@ describe("orthography is orthography, not a second helping for words", () => {
     expect(detectPatientLanguage("I want nan bread and rice")).toBe("en");
     expect(detectPatientLanguage("I can get that appointment for you")).toBe("en");
   });
+
+  // The Creole markers were never the problem here: English scoring nothing was. "call nan ap now"
+  // read as Creole on two points against zero, which is the documented threshold working exactly as
+  // documented - the sentence simply offered English no word it recognised. Raising the threshold
+  // would have closed it by refusing to answer, and the cost of that falls on the two languages this
+  // detector exists for: "mwen pa konprann" and "gracias por su ayuda" both go silent at three.
+  // Teaching English the words a patient uses to arrange care costs those two nothing.
+  it("gives English the words a patient writes to arrange care", () => {
+    expect(detectPatientLanguage("call me tomorrow")).toBe("en");
+    expect(detectPatientLanguage("please call the office")).toBe("en");
+    expect(detectPatientLanguage("what time is my visit")).toBe("en");
+    expect(detectPatientLanguage("how much does this cost")).toBe("en");
+  });
+
+  it("stops a sentence with no English in the list from reading as Creole", () => {
+    // Two Creole markers against an English zero used to win outright. English now scores too, and
+    // a tie is answered the way the margin rule answers every tie: by not deciding.
+    expect(detectPatientLanguage("call nan ap now")).toBeNull();
+  });
+
+  it("leaves Spanish and Creole exactly where they were", () => {
+    expect(detectPatientLanguage("mwen pa konprann")).toBe("ht");
+    expect(detectPatientLanguage("gracias por su ayuda")).toBe("es");
+    expect(detectPatientLanguage("necesito ayuda con mi presión")).toBe("es");
+    expect(detectPatientLanguage("Mwen bezwen ed ak tansyon doktè mwen")).toBe("ht");
+    // "me" and "no" stayed out of the English list for this reason: both are ordinary Spanish, and
+    // giving English two free points here would have pulled this sentence into a tie and silenced it.
+    expect(detectPatientLanguage("no me entiendo con mi seguro")).toBe("es");
+    expect(detectPatientLanguage("no puedo ir a mi cita")).toBe("es");
+  });
 });

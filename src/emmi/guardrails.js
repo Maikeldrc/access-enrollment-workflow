@@ -320,16 +320,6 @@ const RULES = [
       KR: "Objektif sa a fè pati swen ACCESS ou enskri a, kidonk se pa yon bagay pou etenn isit la. Si li pa santi l bon pou ou, di ekip swen ou — yo ka revize sa swen ou genyen."
     })
   },
-  {
-    intent: "GOAL_TARGET_EXPLANATION",
-    ids: ["goals-improvement-milestone"],
-    match: /what does .{0,20}(15|fifteen).{0,20}(lower|less|below)|que significa .{0,20}15 ?mmhg|kisa 15 ?mmhg/i,
-    answer: locale => pick(locale, {
-      EN: "They are two different things. Control means getting your top number below 130. The improvement milestone means dropping at least 15 points from where you started, so ACCESS can recognise real progress even if you have not reached 130 yet. The milestone is not your final goal; it is the point where your progress counts.",
-      ES: "Son dos cosas distintas. Control significa bajar su número de arriba por debajo de 130. El hito de mejora significa bajar al menos 15 puntos desde donde empezó, para que ACCESS reconozca un avance real aunque todavía no haya llegado a 130. El hito no es su meta final: es el punto donde su progreso cuenta.",
-      KR: "Se de bagay diferan. Kontwòl vle di desann chif anwo a anba 130. Etap amelyorasyon an vle di desann omwen 15 pwen depi kote ou te kòmanse, pou ACCESS ka rekonèt pwogrè reyèl menm si ou poko rive nan 130. Etap la se pa objektif final ou; se kote pwogrè ou konte."
-    })
-  },
 
   // --- Barriers ------------------------------------------------------------------------------
   {

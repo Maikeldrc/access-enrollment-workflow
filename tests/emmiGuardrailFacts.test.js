@@ -19,11 +19,13 @@ describe("assigned goals are not preferences", () => {
 
   // The milestone and the control target are different things, and calling the milestone a target
   // tells a patient starting at 152 that 137 is where they are trying to land.
-  it("separates the improvement milestone from the control target", () => {
-    const answer = ask("What does 15 mmHg lower mean?", afterEnrollment).text;
-    expect(answer).toMatch(/below 130/);
-    expect(answer).toMatch(/at least 15 points/);
-    expect(answer).toMatch(/not your final goal/);
+  // This was a guardrail answering the difference in general terms. It is now answered from the
+  // patient's own baseline instead — 152 becomes "137 mmHg or lower", which is the number they are
+  // actually working towards — so the guardrail was removed rather than left to pre-empt it. A
+  // guardrail runs first, and a general explanation standing in front of a live read is the same
+  // mistake as the five deterministic answers deleted earlier in this branch.
+  it("leaves the improvement milestone to the runtime, which knows this patient's starting point", () => {
+    expect(ask("What does 15 mmHg lower mean?", afterEnrollment)).toBeNull();
   });
 });
 

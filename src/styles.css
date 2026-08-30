@@ -1988,6 +1988,9 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .goal-barrier-resolved { display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.45; }
 .goal-barrier-resolved .icon { flex:0 0 20px;width:20px;height:20px;color:var(--primary-600);background:transparent; }
 .goal-summary-help .goal-summary-value { color:var(--primary-700);font-weight:700; }
+/* The starting point is a measurement, so it carries the weight of one. Not as loud as the goal
+   title above it, and never louder than the next step, which is the thing to act on. */
+.goal-summary-baseline .goal-summary-value { font-weight:700; }
 /* Choosing a difficulty: one question, big targets, and labels that wrap to as many lines as the
    patient's language needs. */
 .goal-barrier-choices .goal-response-button,.goal-followup-options .goal-response-button,.goal-reminder-slots .goal-response-button { display:flex;gap:11px;align-items:center;text-align:left; }
@@ -2052,10 +2055,38 @@ a.goal-secondary-button { text-decoration:none; }
    first thing to break at 384px with the text scaled up. */
 .access-goal-measure dt { font-size: .8125rem; color: var(--text-secondary); }
 .access-goal-measure dd { margin: 0; font-weight: 600; color: var(--text-primary); }
+/* Where the milestone came from, under the milestone itself. Regular weight and secondary colour so
+   it reads as the explanation of the number above it rather than as a second number. */
+.access-goal-measure dd small { display: block; margin-top: .125rem; font-size: .8125rem; font-weight: 400; color: var(--text-secondary); line-height: 1.45; }
 .access-goal-value { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
 .access-goal-value span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
+.access-goal-detail { margin: .125rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+/* Weight left, BMI right, one row. space-between rather than a right-aligned second column: when
+   the row cannot hold both — 360px at 150% text — each metric wraps onto its own line and stays
+   left-aligned there, which is where a stacked metric belongs. min-width: 0 on both so a metric
+   that is alone on its line wraps inside itself instead of pushing the card sideways; nothing here
+   is nowrap, for the same reason. */
+.access-goal-metrics {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: .125rem 1rem;
+}
+.access-goal-metrics > p { min-width: 0; overflow-wrap: anywhere; }
+/* The BMI is the same fact as the weight, measured differently, so on one row it carries the same
+   size and weight and lets its own label take the quiet unit styling the "lb" already has. */
+.access-goal-metrics .access-goal-detail {
+  margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); line-height: 1.55;
+}
+.access-goal-metrics .access-goal-detail span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
+/* A confirmed baseline is a fact the patient can rely on, so it carries the same check the rest of
+   the journey uses for something that actually happened. It wraps under the value at 384px rather
+   than squeezing the number, which is the part that has to stay readable. */
+.access-goal-confirmed {
+  display: flex; align-items: center; gap: .375rem; flex-wrap: wrap;
+  margin: .5rem 0 0; font-size: .875rem; font-weight: 600; color: var(--primary-700); line-height: 1.4;
+}
+.access-goal-confirmed svg { flex: 0 0 auto; width: 1rem; height: 1rem; }
 .access-goal-pending { margin: 0 0 .25rem; font-weight: 600; color: var(--text-secondary); }
-.access-goal-baseline p:last-child { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+.access-goal-pending-note { margin: 0; color: var(--text-secondary); line-height: 1.5; }
 .access-goal-plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
 .access-goal-plan li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
 .access-goal-plan li svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
@@ -2080,6 +2111,14 @@ a.goal-secondary-button { text-decoration:none; }
 /* The sections inside already carry their own top rule as standalone blocks; nested under the
    disclosure the first one would double it against the summary. */
 .access-goal-details .access-goal-measure { border-top: 0; padding-top: .5rem; }
+/* The same two blocks inside Goal Detail, which styles its own headings. They keep the goal card's
+   eyebrow so a patient who saw them at activation recognises them here. */
+.access-goal-outcome { display: grid; gap: .875rem; }
+.access-goal-outcome h4 {
+  margin: 0 0 .5rem; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.access-goal-outcome .access-goal-baseline { border-top: 0; padding-top: 0; }
 @media (prefers-reduced-motion: reduce) { .access-goal-details > summary svg { transition: none; } }
 
 /* Care team initials.

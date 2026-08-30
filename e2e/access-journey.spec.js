@@ -773,3 +773,151 @@ test("EMMI knows the enrollment is done and what comes after it", async ({ page 
   await expect(answer).toContainText(/enrollment is complete/i);
   await expect(dialog).not.toContainText(/someone will call you/i);
 });
+
+// ---------------------------------------------------------------------------------------------
+// Confirmed starting points
+//
+// The invited patient's record already holds a blood pressure and a weight their care team
+// confirmed, so ACCESS can say what it will measure and where they are measuring from. Every
+// number on these screens is derived from those two observations; none of them is written into a
+// view. The seed puts the patient where care activation would have left them and changes nothing
+// else about the invitation.
+// ---------------------------------------------------------------------------------------------
+
+const openAccessCareScreen = async (page, screen) => {
+  await page.goto("/");
+  await page.evaluate(value => {
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
+      scenarioId: "access-invitation", screen: value, role: "patient", completionRole: "patient",
+      identityVerified: true, consentSaved: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED",
+      accessOutcome: "eligible", accessEligible: true, language: "en",
+      audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: []
+    }));
+  }, screen);
+  await page.reload();
+};
+
+test("both ACCESS goals open on a confirmed starting point rather than on a promise to confirm one", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await expect(page.getByRole("heading", { name: "Your ACCESS health goals" })).toBeVisible();
+
+  const [bloodPressure, weight] = await page.locator(".access-goal-card").all();
+  await expect(bloodPressure.locator(".access-goal-value")).toContainText("152 / 88");
+  await expect(bloodPressure.locator(".access-goal-confirmed")).toContainText("Baseline confirmed");
+  await expect(weight.locator(".access-goal-value")).toContainText("204");
+  await expect(weight.locator(".access-goal-detail")).toHaveText("BMI 31.0");
+  await expect(weight.locator(".access-goal-confirmed")).toContainText("Baseline confirmed");
+  await expect(page.locator("#screen-content")).not.toContainText("To be confirmed");
+});
+
+// 137 is 152 − 15 and 193.8 is 5% off 204. Both are arithmetic on this patient's own baseline, and
+// neither is the clinical target: telling someone who started at 152 that 137 is where they are
+// trying to land is wrong, so the milestone is always shown with where it came from.
+test("each milestone is derived from this patient's baseline and never displaces the control target", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.locator("details.access-goal-details").first().click();
+  await page.locator("details.access-goal-details").last().click();
+
+  const [bloodPressure, weight] = await page.locator(".access-goal-card").all();
+  await expect(bloodPressure.locator(".access-goal-measure")).toContainText("Below 130 mmHg systolic");
+  await expect(bloodPressure.locator(".access-goal-measure")).toContainText("137 mmHg or lower");
+  await expect(bloodPressure.locator(".access-goal-measure small")).toHaveText("15 mmHg below your starting systolic blood pressure.");
+  await expect(weight.locator(".access-goal-measure")).toContainText("BMI below 30");
+  await expect(weight.locator(".access-goal-measure")).toContainText("193.8 lb or lower");
+  await expect(weight.locator(".access-goal-measure small")).toHaveText("At least 5% below your starting weight.");
+});
+
+test("the care plan repeats the same starting points and the same milestones", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "ONBOARDING_COMPLETE");
+  const plan = page.locator(".access-plan-goals");
+  await expect(plan).toContainText("152 / 88");
+  await expect(plan).toContainText("137 mmHg or lower");
+  await expect(plan).toContainText("204");
+  await expect(plan).toContainText("BMI 31.0");
+  await expect(plan).toContainText("193.8 lb or lower");
+  await expect(plan).not.toContainText("To be confirmed");
+});
+
+test("the starting points read the same in Spanish and Kreyòl", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.getByRole("heading", { name: "Sus objetivos de salud de ACCESS" })).toBeVisible();
+  await expect(page.locator("#screen-content")).toContainText("152 / 88");
+  await expect(page.locator("#screen-content")).toContainText("Línea base confirmada");
+  await expect(page.locator("#screen-content")).toContainText("IMC 31.0");
+  await expect(page.locator("#screen-content")).not.toContainText("Por confirmar");
+
+  await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.getByRole("heading", { name: "Objektif sante ACCESS ou yo" })).toBeVisible();
+  await expect(page.locator("#screen-content")).toContainText("152 / 88");
+  await expect(page.locator("#screen-content")).toContainText("Pwen depa konfime");
+  await expect(page.locator("#screen-content")).not.toContainText("Pou konfime");
+});
+
+// A confirmed baseline is not progress. This patient has no monitor and has taken no readings, so
+// the goal reports that instead of inventing a reading — a fabricated 120/80 sitting above a
+// starting point of 152/88 tells them they have already reached a control they have not.
+test("a goal with a baseline and no monitor shows what it knows, and invents no readings", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  // Moving on is what writes the assigned goals to the patient's record.
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.screen = "MY_GOALS";
+    draft.activeGoalId = draft.patientGoals.find(goal => goal.goalType === "BLOOD_PRESSURE_CONTROL").id;
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: "Keep my blood pressure under control" })).toBeVisible();
+  await expect(page.locator(".goal-health-card")).toContainText("We have not received a reading today.");
+  const screen = page.locator("#screen-content");
+  await expect(screen).not.toContainText("120 / 80");
+  await expect(screen).not.toContainText("Received automatically from your monitor");
+  await expect(screen).not.toContainText("readings received");
+  await expect(page.locator(".goal-trend-summary")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Ask EMMI to explain this trend/ })).toHaveCount(0);
+
+  // The starting point and the milestones are still there: a baseline is a fact, not progress.
+  const outcome = page.locator(".access-goal-outcome");
+  await expect(outcome).toContainText("152 / 88");
+  await expect(outcome).toContainText("Baseline confirmed");
+  await expect(outcome).toContainText("137 mmHg or lower");
+});
+
+// My Goals is where the patient comes back weeks later. A card that showed a next step but not the
+// number the goal is measured from would make them open the goal just to remember where they began.
+test("both goal cards carry the starting point the rest of the journey showed", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2"));
+    draft.screen = "MY_GOALS";
+    delete draft.activeGoalId;
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify(draft));
+  });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "My Goals" })).toBeVisible();
+
+  const bloodPressure = page.locator('.goal-card:has-text("Keep my blood pressure under control")');
+  const weight = page.locator('.goal-card:has-text("Reach or maintain a healthy weight")');
+  await expect(bloodPressure.locator(".goal-summary-baseline")).toContainText("152 / 88 mmHg");
+  await expect(weight.locator(".goal-summary-baseline")).toContainText("204 lb");
+  await expect(weight.locator(".goal-summary-baseline")).toContainText("BMI 31.0");
+
+  // The starting point is a fact, not progress. Neither card counts anything it has not measured.
+  await expect(page.locator("#screen-content")).not.toContainText("readings received");
+  await expect(page.locator(".goal-metric-list")).toHaveCount(0);
+
+  // And it says the same thing in the patient's own language.
+  await page.getByRole("button", { name: "Change language to Spanish" }).click();
+  await expect(page.locator(".goal-summary-baseline").first()).toContainText("Punto de partida");
+  await expect(page.locator("#screen-content")).toContainText("IMC 31.0");
+});

@@ -30,7 +30,14 @@ const MARKERS = {
     "need", "want", "can", "have", "would", "thanks", "thank", "hello", "hi",
     "my", "your", "you", "the", "and", "with", "but", "also", "very", "is", "am",
     "i", "will", "do", "does", "it", "this", "that", "for", "about", "should", "get",
-    "blood", "pressure", "doctor", "medication", "appointment", "help", "understand", "insurance"
+    "blood", "pressure", "doctor", "medication", "appointment", "help", "understand", "insurance",
+    // What a patient actually writes to arrange care. The list above covers question words,
+    // modals and clinical nouns, but had nothing for contacting or scheduling, so an ordinary
+    // sentence like "call me tomorrow" scored English nothing at all. Deliberately excludes
+    // words another language here also claims - "me" is a Spanish pronoun, "no" and "non"
+    // belong to Spanish and Creole - because a marker that two languages share is not evidence.
+    "call", "now", "today", "tomorrow", "time", "please", "know", "take", "tell", "see",
+    "cost", "visit", "nurse", "care", "phone", "number", "office", "schedule"
   ]
 };
 
