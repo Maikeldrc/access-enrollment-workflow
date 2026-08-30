@@ -4737,31 +4737,17 @@ function cuffRangeLabel(option) {
 }
 
 function accessBpDeviceInfo() {
-  const restrictionYes = state.armRestrictionReported === "YES";
-  const specialReview = state.armRestrictionReported === "UNSURE" || state.restrictedArm === "BOTH";
-  const canChooseCuff = state.armRestrictionReported === "NO" || (restrictionYes && ["LEFT", "RIGHT"].includes(state.restrictedArm));
   const deviceConfiguration = bpFulfillmentDeviceConfiguration();
+  // Sizes and ranges come from the device record, never from copy. Tenovi and Pylo ship different
+  // cuffs at different ranges, so a hardcoded "22-42 cm" would be a manufacturer claim about
+  // whichever monitor this patient is not getting. Tenovi happens to have exactly three.
   const cuffOptions = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
-  const cuffQuestion = canChooseCuff ? `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><div class="cuff-placement-card"><img src="/assets/bp-upper-arm-cuff.png" alt="${L("Blood pressure cuff placed on the upper arm", "Brazalete de presión arterial colocado en la parte superior del brazo", "Manchèt tansyon plase sou pati anwo bra a")}"><div><strong>${L("The cuff goes on your upper arm", "El brazalete se coloca en la parte superior del brazo", "Manchèt la ale sou pati anwo bra ou")}</strong><p>${L("Choose the size that seems closest. We’ll verify it before shipping.", "Elija el tamaño que le parezca más adecuado. Lo verificaremos antes del envío.", "Chwazi gwosè ki sanble pi pre a. N ap verifye li anvan nou voye l.")}</p></div></div><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Which cuff size do you think fits best?", "¿Qué tamaño de brazalete cree que le queda mejor?", "Ki gwosè manchèt ou panse ki pi bon pou ou?")}</legend><p class="fieldset-support">${L("Choose the option that best fits your upper arm. If you’re not sure, we can help.", "Elija la opción que mejor se ajuste a la parte superior de su brazo. Si no está seguro, podemos ayudarle.", "Chwazi opsyon ki pi byen adapte ak pati anwo bra ou. Si ou pa sèten, nou ka ede w.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), `${cuffOptionDescription(option)}<span class="cuff-manufacturer-range">${cuffRangeLabel(option)}</span>`, state.selectedCuffOption === option.id)).join("")}${choice("UNSURE", "question", L("I’m not sure", "No estoy seguro", "Mwen pa sèten"), L("Your care team can help choose the right cuff.", "Su equipo de cuidado puede ayudarle a elegir el brazalete adecuado.", "Ekip swen ou ka ede chwazi bon manchèt la."), state.selectedCuffOption === "UNSURE")}</div></fieldset>${state.selectedCuffOption === "UNSURE" ? `<aside class="note cuff-assistance-note">${icon("people")}<p>${L("We can help confirm the right size before sending your monitor.", "Podemos ayudarle a confirmar el tamaño adecuado antes de enviar su monitor.", "Nou ka ede konfime bon gwosè a anvan nou voye aparèy ou a.")}</p></aside>` : ""}<button type="button" class="text-button exact-measurement-toggle" data-action="toggle-exact-arm-measurement" aria-expanded="${state.exactArmMeasurementOpen}">${L("I know my arm measurement", "Sé la medida de mi brazo", "Mwen konnen mezi bra mwen")}</button>${state.exactArmMeasurementOpen ? `<div class="exact-measurement-panel"><div class="field"><label for="arm-circumference">${L("Arm circumference", "Circunferencia del brazo", "Sikonferans bra")}</label><div class="measurement-input"><input id="arm-circumference" name="armCircumferenceValue" type="number" inputmode="decimal" step="0.1" min="0" value="${escapeHtml(state.armCircumferenceValue)}"><select name="armCircumferenceUnit" aria-label="${L("Measurement unit", "Unidad de medida", "Inite mezi")}"><option value="cm" ${state.armCircumferenceUnit === "cm" ? "selected" : ""}>cm</option><option value="in" ${state.armCircumferenceUnit === "in" ? "selected" : ""}>in</option></select></div><small>${L("We’ll use this measurement to recommend a compatible cuff.", "Usaremos esta medida para recomendar un brazalete compatible.", "N ap itilize mezi sa a pou rekòmande yon manchèt ki mache ak aparèy la.")}</small></div></div>` : ""}</section>` : "";
-  const specialSection = specialReview ? `<aside class="note arm-clinical-review">${icon("people")}<div><strong>${L("We’ll help confirm the best way to take your blood pressure.", "Le ayudaremos a confirmar la mejor forma de tomarse la presión arterial.", "N ap ede konfime pi bon fason pou pran tansyon ou.")}</strong><p>${L("You don’t need to choose an arm or cuff size on your own.", "No necesita elegir un brazo ni el tamaño del brazalete por su cuenta.", "Ou pa bezwen chwazi yon bra oswa gwosè manchèt poukont ou.")}</p></div></aside><div class="actions">${cta(t().back, "back", true)}${cta(L("Continue setting up my care", "Continuar configurando mi cuidado", "Kontinye mete swen mwen anplas"), "arm-review-continue")}</div><div class="measurement-help-actions centered-help-action">${cta(L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an"), "arm-help-care-team", true)}</div>` : "";
-  // Yes or no only. "Not sure" sent the patient to a clinical review for a question they can answer
-  // — being told to avoid an arm is something a person remembers — and the uncertainty it collected
-  // was about the question, not about their arm. The review path itself is not orphaned: "Both arms"
-  // still opens it, and the care team can still flag a case as needing review server-side.
-  const armRestrictionOptions = [
-    ["NO", L("No", "No", "Non"), ""],
-    ["YES", L("Yes", "Sí", "Wi"), ""]
-  ];
+  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your connected blood pressure monitor", "Su monitor de presión arterial conectado", "Aparèy tansyon konekte ou a")}</strong><p>${L("We’ll arrange a monitor for your ACCESS care and send it to the address you confirm.", "Gestionaremos un monitor para su cuidado ACCESS y lo enviaremos a la dirección que confirme.", "N ap fè aranjman pou yon aparèy pou swen ACCESS ou epi voye l nan adrès ou konfime a.")}</p></div></aside>`;
+  // The size is all this screen needs to send the right box. How to wear the cuff is taught during
+  // device setup, in front of the actual device, which is the only moment it is useful.
+  const cuffSection = `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Choose the right cuff size", "Elija la talla de brazalete correcta", "Chwazi bon gwosè manchèt la")}</legend><p class="fieldset-support">${L("Measure around your upper arm and select the size that matches your measurement.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda a su medida.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn ak mezi ou.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), cuffRangeLabel(option), state.selectedCuffOption === option.id)).join("")}</div></fieldset><button type="button" class="text-button exact-measurement-toggle" data-action="toggle-exact-arm-measurement" aria-expanded="${state.exactArmMeasurementOpen}">${L("I know my arm measurement", "Sé la medida de mi brazo", "Mwen konnen mezi bra mwen")}</button>${state.exactArmMeasurementOpen ? `<div class="exact-measurement-panel"><div class="field"><label for="arm-circumference">${L("Arm circumference", "Circunferencia del brazo", "Sikonferans bra")}</label><div class="measurement-input"><input id="arm-circumference" name="armCircumferenceValue" type="number" inputmode="decimal" step="0.1" min="0" value="${escapeHtml(state.armCircumferenceValue)}"><select name="armCircumferenceUnit" aria-label="${L("Measurement unit", "Unidad de medida", "Inite mezi")}"><option value="cm" ${state.armCircumferenceUnit === "cm" ? "selected" : ""}>cm</option><option value="in" ${state.armCircumferenceUnit === "in" ? "selected" : ""}>in</option></select></div><small>${L("We’ll use this measurement to recommend a compatible cuff.", "Usaremos esta medida para recomendar un brazalete compatible.", "N ap itilize mezi sa a pou rekòmande yon manchèt ki mache ak aparèy la.")}</small></div></div>` : ""}</section>`;
   const hasCuffDecision = Boolean(state.selectedCuffOption) || state.exactArmMeasurementOpen;
-  // Care activation opens here, so this screen states what the patient is getting before it asks
-  // them anything. The monitor is presented as arranged, not offered: their record already says they
-  // have none, so there is no question to ask about it and no choice to fake.
-  // "Set up my monitor" rather than "Request my monitor": the delivery address still has to be
-  // confirmed after this screen, and nothing is requested until it is. No copy in this step may say
-  // ordered, shipped or requested while the request has not actually been made.
-  const monitorCta = L("Set up my monitor", "Configurar mi monitor", "Konfigire aparèy mwen an");
-  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your connected blood pressure monitor", "Su monitor de presión arterial conectado", "Aparèy tansyon konekte ou a")}</strong><p>${L("We’ll arrange a connected blood pressure monitor for your ACCESS care so you can track your readings from home.", "Vamos a gestionar un monitor de presión arterial conectado para su cuidado ACCESS para que pueda registrar sus mediciones desde casa.", "N ap fè aranjman pou yon aparèy tansyon konekte pou swen ACCESS ou, pou ou ka swiv mezi ou yo lakay ou.")}</p><p>${L("Your readings will help your care team follow your progress and personalize your care.", "Sus mediciones ayudarán a su equipo de cuidado a seguir su progreso y personalizar su cuidado.", "Mezi ou yo ap ede ekip swen ou swiv pwogrè ou epi pèsonalize swen ou.")}</p></div></aside>`;
-  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("A connected blood pressure monitor will help you track your readings and help your care team understand how you’re doing between visits.", "Un monitor de presión arterial conectado le ayudará a registrar sus mediciones y a que su equipo de cuidado entienda cómo está entre visitas.", "Yon aparèy tansyon konekte ap ede w swiv mezi ou yo epi ede ekip swen ou konprann kijan w ap ale ant vizit yo."))}${monitorCard}<form id="bp-device-info-form"><fieldset class="inline-question"><legend>${L("Has a healthcare professional told you not to use one of your arms for blood pressure readings?", "¿Le ha indicado un profesional de salud que no debe usar uno de sus brazos para medirse la presión arterial?", "Èske yon pwofesyonèl sante te di w pou pa itilize youn nan bra ou pou mezire tansyon?")}</legend><div class="segmented-options keep-one-row">${armRestrictionOptions.map(([value, label, accessibleLabel]) => `<label><input type="radio" name="armRestrictionReported" value="${value}" ${accessibleLabel ? `aria-label="${accessibleLabel}"` : ""} ${state.armRestrictionReported === value ? "checked" : ""}><span>${label}</span></label>`).join("")}</div></fieldset><fieldset class="inline-question restricted-arm-question" ${restrictionYes ? "" : "hidden"}><legend>${L("Which arm should not be used?", "¿Cuál brazo no debe usarse?", "Ki bra yo pa dwe itilize?")}</legend><div class="segmented-options">${[["LEFT", L("Left arm", "Brazo izquierdo", "Bra goch")], ["RIGHT", L("Right arm", "Brazo derecho", "Bra dwat")], ["BOTH", L("Both arms", "Ambos brazos", "Toude bra yo")]].map(([value, label]) => `<label><input type="radio" name="restrictedArm" value="${value}" ${state.restrictedArm === value ? "checked" : ""}><span>${label}</span></label>`).join("")}</div></fieldset>${cuffQuestion}${specialSection}<p class="form-error" role="alert">${state.error || ""}</p>${specialReview ? "" : actions(monitorCta, true, "", !canChooseCuff || !hasCuffDecision)}</form>`;
+  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("Your connected monitor will help you track your blood pressure and share your readings with your ACCESS care team.", "Su monitor conectado le ayudará a controlar su presión arterial y a compartir sus mediciones con su equipo de cuidado ACCESS.", "Aparèy konekte ou a ap ede w swiv tansyon ou epi pataje mezi ou yo ak ekip swen ACCESS ou."))}${monitorCard}<form id="bp-device-info-form">${cuffSection}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Request my monitor", "Solicitar mi monitor", "Mande aparèy mwen an"), true, "", !hasCuffDecision)}</form>`;
 }
 
 function accessBpShippingAddress() {
@@ -5684,24 +5670,14 @@ async function advance() {
   if (state.screen === "ACCESS_BP_DEVICE_INFO") {
     const form = document.querySelector("#bp-device-info-form");
     const data = Object.fromEntries(new FormData(form));
-    const restriction = data.armRestrictionReported || state.armRestrictionReported;
-    if (!["NO", "YES"].includes(restriction)) { state.error = L("Choose an answer about arm restrictions.", "Seleccione una respuesta sobre las restricciones del brazo.", "Chwazi yon repons sou restriksyon bra."); render(); return; }
-    const restrictedArm = restriction === "YES" ? data.restrictedArm : "NONE";
-    if (restriction === "YES" && !["LEFT", "RIGHT", "BOTH"].includes(restrictedArm)) { state.error = L("Choose which arm has the restriction.", "Seleccione qué brazo tiene la restricción.", "Chwazi ki bra ki gen restriksyon an."); render(); return; }
-    state.armRestrictionReported = restriction;
-    state.restrictedArm = restrictedArm;
-    state.measurementArm = restriction === "YES" && restrictedArm === "LEFT" ? "RIGHT" : restriction === "YES" && restrictedArm === "RIGHT" ? "LEFT" : "PENDING";
-    const specialReview = restriction === "UNSURE" || restrictedArm === "BOTH";
+    // The arm restriction question left this screen. Which arm to avoid is clinical context for
+    // taking a reading, not something needed to put the right box in the post, and it is taught
+    // where it is useful: at device setup, with the cuff in the patient’s hands. Nothing below
+    // reads an arm, and the cuff size is the only answer this step still needs.
     const deviceConfiguration = bpFulfillmentDeviceConfiguration();
     const availableCuffs = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
     state.deviceModelSelected = deviceConfiguration?.id || null;
-    if (specialReview) {
-      state.cuffSelectionMethod = "CARE_TEAM_ASSISTANCE";
-      state.selectedCuffOption = "";
-      state.cuffSizeSelected = null;
-      state.cuffSelectionStatus = "NEEDS_ASSISTANCE";
-      state.armMeasurementStatus = "NEEDS_ASSISTANCE";
-    } else if (state.exactArmMeasurementOpen) {
+    if (state.exactArmMeasurementOpen) {
       const value = Number(data.armCircumferenceValue);
       const unit = data.armCircumferenceUnit === "in" ? "in" : "cm";
       const valid = Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
@@ -5717,31 +5693,22 @@ async function advance() {
       state.cuffSelectionStatus = matches.length ? "AUTO_MATCHED" : "NEEDS_ASSISTANCE";
     } else {
       const selectedId = data.choice || state.selectedCuffOption;
-      if (!selectedId) { state.error = L("Choose a cuff size or select that you’re not sure.", "Elija un tamaño de brazalete o indique que no está seguro.", "Chwazi yon gwosè manchèt oswa di ou pa sèten."); render(); return; }
-      if (selectedId === "UNSURE") {
-        state.cuffSelectionMethod = "CARE_TEAM_ASSISTANCE";
-        state.selectedCuffOption = "";
-        state.cuffSizeSelected = null;
-        state.cuffSelectionStatus = "NEEDS_ASSISTANCE";
-        state.armMeasurementStatus = "NEEDS_ASSISTANCE";
-      } else {
-        const selectedOption = availableCuffs.find(option => option.id === selectedId);
-        if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
-        state.cuffSelectionMethod = "PATIENT_SELECTED";
-        state.selectedCuffOption = selectedOption.id;
-        state.cuffSizeSelected = selectedOption.labelKey;
-        state.cuffSelectionStatus = "SELECTED";
-        state.armMeasurementStatus = "NOT_REQUIRED";
-        state.armCircumferenceValue = "";
-      }
+      if (!selectedId) { state.error = L("Choose a cuff size.", "Elija una talla de brazalete.", "Chwazi yon gwosè manchèt."); render(); return; }
+      const selectedOption = availableCuffs.find(option => option.id === selectedId);
+      if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
+      state.cuffSelectionMethod = "PATIENT_SELECTED";
+      state.selectedCuffOption = selectedOption.id;
+      state.cuffSizeSelected = selectedOption.labelKey;
+      state.cuffSelectionStatus = "SELECTED";
+      state.armMeasurementStatus = "NOT_REQUIRED";
+      state.armCircumferenceValue = "";
     }
     const tasks = [...(state.careTeamTasks || [])];
     const addTask = (type, reason) => { if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() }); };
     if (state.cuffSelectionStatus === "NEEDS_ASSISTANCE") addTask("CUFF_SELECTION_ASSISTANCE", state.cuffSelectionMethod);
-    if (["YES", "UNSURE"].includes(restriction)) addTask("ARM_RESTRICTION_REVIEW", restriction);
     state.careTeamTasks = tasks;
     state.baselineResumeScreen = "ACCESS_BP_SHIPPING_ADDRESS";
-    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: restriction, restrictedArm, measurementArm: state.measurementArm, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
+    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
   }
   if (state.screen === "ACCESS_BP_SHIPPING_ADDRESS") {
     const form = document.querySelector("#bp-shipping-form");
