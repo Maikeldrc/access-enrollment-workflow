@@ -1,7 +1,7 @@
 ---
 id: access-cost-sharing
 title: ACCESS cost sharing
-category: programs
+category: program
 program: ACCESS
 audience: patient
 risk_level: high
@@ -18,6 +18,8 @@ owner: ITERA HEALTH
 Under the ACCESS model framework, participants elect whether to collect or forego the applicable beneficiary cost sharing on Outcome-Aligned Payments.
 
 ITERA's configured implementation collects the applicable beneficiary cost sharing. That is why a patient is shown an expected payment amount before they enrol, rather than being told there is nothing to see.
+
+Any amount stated to a patient must come from the financial responsibility engine for that patient and that track. Never quote a remembered figure from this page or from anywhere else.
 
 ## ACCESS is never described as free
 

@@ -73,8 +73,15 @@ const INTENT_RULES = [
   { intent: "GENERAL_KNOWLEDGE", risk: "low", test: /\b(what is|what are|what does|why|how does|explain|tell me about)\b|qué es|que es|por qué|porque|kisa|poukisa/i }
 ];
 
-// A question is personalised when the patient asks about themselves rather than the concept.
-const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\b(mi|mis|m[ií]o|m[ií]a|yo|soy|estoy|tengo|puedo)\b|\b(mwen|pa m)\b/i;
+// A question is personalised when the patient asks about themselves rather than the concept, and
+// that decides whether a runtime tool is demanded instead of a general page.
+//
+// Spanish carries the subject in the verb, so the pronoun a patient would have to say is usually
+// absent: "¿Cuánto voy a pagar al mes?" is unmistakably about the speaker and matched none of the
+// markers, which let a cost question be answered from a generic page instead of the engine. The
+// first-person verb forms below close that. Over-matching here is the safe direction — it demands a
+// tool that would otherwise be skipped — so ambiguous nouns like "pago" and "cambio" stay out.
+const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\b(mi|mis|m[ií]|m[ií]o|m[ií]a|conmigo|nos|nuestr[oa]|yo|soy|estoy|tengo|puedo|podr[ií]a|voy|quiero|debo|necesito|participo|estar[ée]|ser[ée]|tendr[ée]|pagar[ée]|inscribirme|dejarlo)\b|\b(mwen|pa m|m ap|m'ap)\b/i;
 
 export const classifyQuestion = (question, runtime = {}) => {
   const text = String(question || "");
@@ -101,7 +108,10 @@ export const classifyQuestion = (question, runtime = {}) => {
 };
 
 const CATEGORY_FOR_INTENT = {
-  COST: ["medicare", "program"],
+  // "billing" is where the authoritative expected-payment page lives, so a cost question that
+  // did not reach it was answering from the surrounding programme pages instead of the page
+  // written to answer it.
+  COST: ["medicare", "program", "billing"],
   ELIGIBILITY: ["program", "enrollment"],
   DEVICE: ["device", "program"],
   MEDICATION: ["care", "safety"],
@@ -318,6 +328,18 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     selected.push(entry);
   }
 
+  // A page's response rule is how it constrains the answer — "never state an amount from this
+  // page", "never say the information is unavailable". One chunk per document meant the rule
+  // travelled only when its own section happened to outscore the rest of the page, so the model
+  // could be handed a cost page stripped of the sentence forbidding it to quote a figure. The rule
+  // is not a competitor for a slot; it belongs to whichever chunk of that document was chosen.
+  const ruleFor = sourceId => index.chunks.find(chunk => chunk.sourceId === sourceId && /EMMI response rule/i.test(chunk.heading));
+  const withRule = selected.map(entry => {
+    const rule = ruleFor(entry.chunk.sourceId);
+    if (!rule || rule.id === entry.chunk.id) return entry;
+    return { ...entry, chunk: { ...entry.chunk, text: `${entry.chunk.text}\n\n## ${rule.heading}\n\n${rule.text}` } };
+  });
+
   return {
     intent: classification.intent,
     riskLevel: classification.riskLevel,
@@ -326,7 +348,7 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     mustNotAnswerAlone: classification.mustNotAnswerAlone,
     sourcePriority: SOURCE_PRIORITY.ITERA_KNOWLEDGE_BASE,
     knowledgeVersion: index.builtAt,
-    chunks: selected.map(entry => ({
+    chunks: withRule.map(entry => ({
       sourceId: entry.chunk.sourceId,
       sourcePath: entry.chunk.sourcePath,
       title: entry.chunk.metadata.title,

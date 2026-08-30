@@ -115,6 +115,8 @@ let state = {
   medicationsReviewStatus: "NOT_STARTED", careMedications: [
     {
       id: "med-lisinopril", name: "Lisinopril", strength: "10 mg", details: "10 mg · Once daily", sig: "Take once daily", active: true,
+      detailsDisplay: { en: "10 mg · Once daily", es: "10 mg · Una vez al día", ht: "10 mg · Yon fwa pa jou" },
+      sigDisplay: { en: "Take once daily", es: "Tome una vez al día", ht: "Pran yon fwa pa jou" },
       medicationRequestId: "rx-lisinopril-2026", prescriber: prototypePrescriber,
       pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
       refillsRemaining: 0, prescriptionExpiresOn: "2027-02-01",
@@ -123,6 +125,8 @@ let state = {
     },
     {
       id: "med-atorvastatin", name: "Atorvastatin", strength: "20 mg", details: "20 mg · Once daily", sig: "Take once daily at bedtime", active: true,
+      detailsDisplay: { en: "20 mg · Once daily", es: "20 mg · Una vez al día", ht: "20 mg · Yon fwa pa jou" },
+      sigDisplay: { en: "Take once daily at bedtime", es: "Tome una vez al día al acostarse", ht: "Pran yon fwa pa jou anvan ou dòmi" },
       medicationRequestId: "rx-atorvastatin-2026", prescriber: prototypePrescriber,
       pharmacy: { id: "pharm-cvs", name: "CVS Pharmacy", address: "123 Main Street", phone: "+13055550188", statusIntegration: false },
       refillsRemaining: 3, prescriptionExpiresOn: "2027-02-01",
@@ -2339,7 +2343,7 @@ function medicationAttentionLine() {
 
 const medicationIdentity = medication => `<div class="medication-identity">
   <span class="medication-icon">${icon("pill")}</span>
-  <div><strong>${escapeHtml(medicationLabel(medication))}</strong>${medication.sig ? `<span>${escapeHtml(medication.sig)}</span>` : ""}</div>
+  <div><strong>${escapeHtml(medicationLabel(medication))}</strong>${medicationSig(medication) ? `<span>${escapeHtml(medicationSig(medication))}</span>` : ""}</div>
 </div>`;
 
 // Requested, approved and ready are three different facts. The card shows the one the product was
@@ -2440,7 +2444,7 @@ function refillChangeScreen(medication) {
 function refillDoseScreen(medication) {
   return `${titleBlock(L("What dose are you taking?", "¿Qué dosis está tomando?", "Ki dòz w ap pran?"), L("Your care team will review this. Nothing changes automatically.", "Su equipo lo revisará. Nada cambia automáticamente.", "Ekip swen ou ap revize sa. Anyen pa chanje otomatikman."), L("Refill", "Surtida", "Ranplisaj"))}
     ${medicationIdentity(medication)}
-    <p class="medication-documented">${L("On file", "En el registro", "Nan dosye a")}: ${escapeHtml(medication.details || medication.sig || "")}</p>
+    <p class="medication-documented">${L("On file", "En el registro", "Nan dosye a")}: ${escapeHtml(medicationDetails(medication) || medicationSig(medication))}</p>
     <form id="refill-dose-form"><label class="field">${L("What you take", "Lo que usted toma", "Sa ou pran")}<input name="patientReportedDose" maxlength="80" placeholder="${L("Example: 10 mg twice a day", "Ejemplo: 10 mg dos veces al día", "Egzanp: 10 mg de fwa pa jou")}"></label></form>
     <p class="form-error" role="alert">${state.error || ""}</p>
     <div class="actions">${cta(t().back, "close-refill-flow", true)}${cta(L("Send to my care team", "Enviar a mi equipo", "Voye bay ekip mwen"), "submit-refill-dose")}</div>`;
@@ -2835,7 +2839,7 @@ function medicationsReview() {
   const medicationCards = medications.map(medication => {
     const review = reviews[medication.id] || { reviewStatus: "UNREVIEWED" };
     const reviewed = review.reviewStatus !== "UNREVIEWED";
-    return `<article class="medication-card medication-review-card ${reviewed ? "reviewed" : "unreviewed"}" data-medication-id="${medication.id}" data-scroll-anchor="medication-${medication.id}"><div class="medication-card-heading">${icon("pill")}<span><strong>${escapeHtml(medication.name)}</strong><small>${escapeHtml(medication.details || L("Dose not listed", "Dosis no indicada", "Dòz la pa nan lis la"))}</small><em>${L("On file", "Registrado", "Nan dosye")}</em></span></div>${reviewed ? `<div class="medication-reviewed-state">${icon(review.reviewStatus === "CONFIRMED_CURRENT" ? "check" : "info")}<span><strong>${statusCopy(review)}</strong>${review.reviewStatus === "CONFIRMED_CURRENT" ? "" : `<small>${review.reviewStatus === "NEEDS_REVIEW" ? L("That’s okay. Your care team can review this with you.", "Está bien. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Ekip swen ou ka revize sa avèk ou.") : L("Thanks — we’ll let your care team know.", "Gracias. Informaremos a su equipo de atención.", "Mèsi — n ap fè ekip swen ou konnen.")}</small>`}</span></div><button type="button" class="medication-change-answer" data-action="change-medication-answer" data-medication-id="${medication.id}">${L("Change answer", "Cambiar respuesta", "Chanje repons")}</button>` : `<p class="medication-question">${L("Do you still take this medication?", "¿Todavía toma este medicamento?", "Èske ou toujou pran medikaman sa a?")}</p><div class="medication-review-actions"><button type="button" class="medication-confirm-button" data-action="confirm-medication-current" data-medication-id="${medication.id}">${icon("check")} ${L("Yes, I still take it", "Sí, todavía lo tomo", "Wi, mwen toujou pran li")}</button><button type="button" class="medication-changed-button" data-action="open-medication-change" data-medication-id="${medication.id}">${L("Something changed", "Algo cambió", "Gen yon bagay ki chanje")}</button></div>${changePanel(medication)}`}</article>`;
+    return `<article class="medication-card medication-review-card ${reviewed ? "reviewed" : "unreviewed"}" data-medication-id="${medication.id}" data-scroll-anchor="medication-${medication.id}"><div class="medication-card-heading">${icon("pill")}<span><strong>${escapeHtml(medication.name)}</strong><small>${escapeHtml(medicationDetails(medication) || L("Dose not listed", "Dosis no indicada", "Dòz la pa nan lis la"))}</small><em>${L("On file", "Registrado", "Nan dosye")}</em></span></div>${reviewed ? `<div class="medication-reviewed-state">${icon(review.reviewStatus === "CONFIRMED_CURRENT" ? "check" : "info")}<span><strong>${statusCopy(review)}</strong>${review.reviewStatus === "CONFIRMED_CURRENT" ? "" : `<small>${review.reviewStatus === "NEEDS_REVIEW" ? L("That’s okay. Your care team can review this with you.", "Está bien. Su equipo de atención puede revisarlo con usted.", "Sa pa yon pwoblèm. Ekip swen ou ka revize sa avèk ou.") : L("Thanks — we’ll let your care team know.", "Gracias. Informaremos a su equipo de atención.", "Mèsi — n ap fè ekip swen ou konnen.")}</small>`}</span></div><button type="button" class="medication-change-answer" data-action="change-medication-answer" data-medication-id="${medication.id}">${L("Change answer", "Cambiar respuesta", "Chanje repons")}</button>` : `<p class="medication-question">${L("Do you still take this medication?", "¿Todavía toma este medicamento?", "Èske ou toujou pran medikaman sa a?")}</p><div class="medication-review-actions"><button type="button" class="medication-confirm-button" data-action="confirm-medication-current" data-medication-id="${medication.id}">${icon("check")} ${L("Yes, I still take it", "Sí, todavía lo tomo", "Wi, mwen toujou pran li")}</button><button type="button" class="medication-changed-button" data-action="open-medication-change" data-medication-id="${medication.id}">${L("Something changed", "Algo cambió", "Gen yon bagay ki chanje")}</button></div>${changePanel(medication)}`}</article>`;
   }).join("");
   const added = (state.additionalMedications || []).map(item => `<article class="medication-added-card"><div>${icon("pill")}<span><strong>${escapeHtml(item.medicationName)}</strong><small>${escapeHtml([item.dose, item.frequencyLabel].filter(Boolean).join(" · ") || L("Details not provided", "Detalles no proporcionados", "Pa gen detay"))}</small><em>${L("Added by you", "Agregado por usted", "Ou ajoute li")}</em></span></div><div><button type="button" data-action="edit-added-medication" data-medication-id="${item.id}">${L("Edit", "Editar", "Modifye")}</button><button type="button" data-action="remove-added-medication" data-medication-id="${item.id}">${L("Remove", "Eliminar", "Retire")}</button></div></article>`).join("");
   const additionalAnswered = ["NONE", "ADDED", "UNSURE"].includes(state.additionalMedicationsStatus);
@@ -2866,6 +2870,11 @@ const medicationPrescriber = medication => {
 };
 
 const medicationLabel = medication => (medication ? `${medication.name}${medication.strength ? ` ${medication.strength}` : ""}` : "");
+// The record keeps the sig exactly as the prescriber documented it, because that is what travels to
+// the care team and to the refill episode. What the patient reads is a translation of it, so a
+// Spanish screen stops handing out directions in English.
+const medicationSig = medication => (medication?.sigDisplay ? localized(medication.sigDisplay) : medication?.sig || "");
+const medicationDetails = medication => (medication?.detailsDisplay ? localized(medication.detailsDisplay) : medication?.details || "");
 const medicationSupplyEstimate = medication => estimateMedicationSupply(medication, { reviewStatus: medicationReviewStatus(medication?.id) });
 
 const supplySignals = () => state.medicationSupplySignals || [];

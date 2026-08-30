@@ -171,3 +171,85 @@ describe("source hierarchy and wiring", () => {
     expect(corpus).not.toMatch(/patient_demo|1EG4TE5MK73|05\/12\/195\d/);
   });
 });
+
+// The live voice re-test of 2026-08-30 found EMMI answering "that information is not in my sources"
+// for the comparison group, and inventing "you can leave whenever you want" for the consent term.
+// Neither fact was in a topic document: both lived only in the master file, which retrieval demotes
+// to a fallback on purpose, so the specific documents filled every slot and the answer never
+// travelled. Asserting which file was picked is not enough — one chunk per document is selected, so
+// the assertion has to be that the retrieved TEXT carries the fact.
+describe("the facts a patient is entitled to before agreeing", () => {
+  const retrievedText = (query, runtime = { program: "ACCESS" }) =>
+    retrieveKnowledge({ query, runtime, index }).chunks.map(chunk => chunk.text).join("\n\n");
+
+  const COMPARISON_GROUP = [
+    "En la elegibilidad de Medicare, ¿cómo se elige el grupo de comparación y qué consecuencia tiene para mí?",
+    "How is the comparison group chosen and what does it mean for me?",
+    "¿Qué es el grupo de comparación?"
+  ];
+
+  for (const question of COMPARISON_GROUP) {
+    it(`states random selection and the twelve months for: ${question.slice(0, 46)}`, () => {
+      const text = retrievedText(question);
+      expect(text).toMatch(/randomly selected/i);
+      expect(text).toMatch(/12 months/i);
+      // The exclusion without the reassurance is a frightening half-answer.
+      expect(text).toMatch(/do not change the patient's Medicare benefits, coverage, or rights/i);
+    });
+  }
+
+  const LEAVING = [
+    "Antes de inscribirme, ¿cuánto podría pagar al mes y desde cuándo puedo dejar ACCESS o cambiar de proveedor?",
+    "¿Desde cuándo puedo dejar ACCESS o cambiar de proveedor?",
+    "When can I leave ACCESS or change provider?",
+    "Kilè mwen ka kite ACCESS oswa chanje founisè?"
+  ];
+
+  for (const question of LEAVING) {
+    it(`carries the 90 day term for: ${question.slice(0, 46)}`, () => {
+      expect(retrievedText(question)).toMatch(/90 days after enrollment/i);
+    });
+  }
+
+  it("tells the model in as many words not to say the patient may leave whenever they want", () => {
+    expect(retrievedText("¿Desde cuándo puedo dejar ACCESS?")).toMatch(/cuando quiera/i);
+  });
+
+  // The re-test expected the consent answer to contain "up to $6". It deliberately does not: the
+  // amount depends on the patient's verified coverage, and a remembered figure is how EMMI once
+  // told a patient $0 while their screen said $6. What knowledge owes the cost question is the
+  // timing and the structure; the number comes from the engine, every time.
+  it("still demands the cost engine for a cost question rather than answering from a page", () => {
+    const asked = retrieveKnowledge({ query: "¿Cuánto voy a pagar al mes por ACCESS?", runtime: { program: "ACCESS" }, index });
+    expect(asked.intent).toBe("COST");
+    expect(asked.requiredTool).toBe("getExpectedAccessCost");
+    expect(asked.chunks.map(chunk => chunk.text).join("\n")).toMatch(/financial responsibility engine/i);
+  });
+
+  it("hands the model each page's response rule even when another section of it won the slot", () => {
+    const asked = retrieveKnowledge({ query: "¿Cuánto voy a pagar al mes por ACCESS?", runtime: { program: "ACCESS" }, index });
+    const cost = asked.chunks.find(chunk => chunk.sourcePath === "programs/access-cost-sharing.md");
+    // The section that outscored the rest of the page says nothing about where an amount may come
+    // from; the rule forbidding EMMI to quote one is what makes the page safe to hand over.
+    expect(cost.heading).not.toMatch(/EMMI response rule/i);
+    expect(cost.text).toMatch(/Never state an amount from it/i);
+  });
+
+  it("carries no remembered amount that could be quoted in place of the engine's", () => {
+    const priced = index.chunks.filter(chunk => /\$\d/.test(chunk.text) && !/emmi-master-knowledge/.test(chunk.sourcePath));
+    // $0 is a permitted example because the pages exist to explain what $0 does and does not mean.
+    expect(priced.filter(chunk => /\$(?!0\b)\d/.test(chunk.text)).map(chunk => chunk.sourcePath)).toEqual([]);
+  });
+
+  it("keeps every document in a category the router actually looks for", () => {
+    // access-cost-sharing.md declared "programs" while the router only ever asks for "program",
+    // so the document could never earn its category score.
+    // The master file declares no front matter on purpose and is a fallback, so it is exempt: what
+    // this catches is a document that declares a category nothing will ever ask for.
+    const known = new Set(["program", "medicare", "enrollment", "device", "care", "safety", "company", "core", "billing", "communication"]);
+    const strays = index.documents
+      .filter(doc => doc.metadata.category && !known.has(doc.metadata.category))
+      .map(doc => `${doc.path}:${doc.metadata.category}`);
+    expect(strays).toEqual([]);
+  });
+});
