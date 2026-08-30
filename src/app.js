@@ -4259,13 +4259,16 @@ function accessAssignedGoals() {
     // buried under the program's measurement rules. So the card answers that much and keeps the
     // thresholds and the action list one tap away. <details> because the browser already makes it
     // keyboard operable and announces its state; a div and a click handler would not.
+    // The summary names both halves, so the measure block does not label itself again underneath it:
+    // opening the disclosure lands the patient on the targets themselves. The plan keeps its heading,
+    // because that one marks where the numbers stop and what we will do about them starts.
     return `<article class="access-goal-card">
       <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
       <p class="access-goal-support">${accessGoalSupportCopy(goalType)}</p>
       <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
       <details class="access-goal-details">
         <summary>${L("How ACCESS measures progress, and how we’ll work on it", "Cómo ACCESS mide su progreso y cómo trabajaremos en esto", "Kijan ACCESS mezire pwogrè, ak kijan n ap travay sou li")}${icon("chevronRight")}</summary>
-        <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4>${rows}</section>
+        <section class="access-goal-measure">${rows}</section>
         <section class="access-goal-plan"><h4>${L("How we’ll work on it", "Cómo trabajaremos en esto", "Kijan n ap travay sou li")}</h4><ul>${actionItems}</ul></section>
       </details>
     </article>`;
