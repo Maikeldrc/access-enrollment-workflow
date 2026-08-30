@@ -56,6 +56,37 @@ turns reach the clinical engine; the engine still decides severity.
 **New CSS prefixed `access-plan-`** — mine, forced. Four class names I chose were already taken by
 the goal plan review, and the rules collided in both directions.
 
+**The consent answer will not say "up to $6"** — mine, and it contradicts the voice re-test's own
+exit criterion. The report asks that the consent answer contain the figure exactly. It will not:
+the amount depends on the patient's verified coverage, and a remembered figure is precisely how
+EMMI once told a patient $0 while their screen said $6. Knowledge now carries the timing and the
+structure; the number comes from the financial responsibility engine on every question. A test
+asserts that no page outside the master file carries a quotable amount. **If you want the figure
+stated regardless, say so and I will bind it — but it stops being true for every patient.**
+
+**A page's response rule now travels with whichever part of it was retrieved** — mine, and it
+changes what reaches the model on every question, not only the ones in the report. One chunk per
+document meant a page's "EMMI response rule" only arrived when its own section outscored the rest
+of the page, so a cost page could reach the model stripped of the sentence forbidding it to quote a
+figure. The alternative was rewriting all 46 documents to front-load their rules, which leaves the
+same trap set for document 47.
+
+**Spanish first-person verb forms added to the personalisation markers** — mine. "¿Cuánto voy a
+pagar al mes?" matched no marker, so a question unmistakably about the speaker did not demand the
+cost engine. Spanish carries the subject in the verb, so the pronoun the old list waited for is
+usually absent. Over-matching here demands a tool that would otherwise be skipped, which is the
+safe direction, so ambiguous nouns like "pago" and "cambio" stayed out.
+
+**The prescription sig stays in English on the record; only the display is translated** — mine. The
+Spanish and Creole medication screens were handing out directions in English, which is a real
+comprehension failure. But the sig is what the prescriber documented and what travels to the care
+team and into the refill episode, and translating a stored clinical instruction is a different and
+worse problem. The patient now reads a translation of a record that has not moved.
+
+**The header logo goes to My Care once the patient is enrolled** — mine. It is a global navigation
+affordance and it previously went to the invitation for everybody, which is how an enrolled patient
+ended up being asked who was completing their enrollment.
+
 ## Verification method
 
 **The responsive audit walks the screens instead of jumping to them** — mine, and forced. The QA
@@ -86,4 +117,13 @@ patient actually has medications. No code change.
 
 ## Open, not yet decided
 
-Nothing outstanding.
+**The voice transport itself is not certified, and I cannot certify it.** The 2026-08-30 re-test's
+headline finding is that speaking produces no patient transcript, and everything it lists as
+blocked — barge-in, natural pauses, spoken language switching, silence handling, spoken refusal —
+depends on that. Reproducing it needs a real microphone and audible speech, which this session has
+no way to drive. I validated and fixed what is deterministic; I did not touch the audio path, and
+nothing I did this iteration should be read as evidence about it. **Decide who runs that: the
+session with the live browser and audio, or a scheduled human pass.**
+
+**Whether the consent answer must quote "up to $6".** See the entry under Engineering. I decided
+against it and can reverse it in one edit.

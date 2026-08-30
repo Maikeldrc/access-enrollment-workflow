@@ -120,6 +120,22 @@ const RULES = [
       KR: "Sa pa yon pwoblèm. Ekip swen ou ka revize enfòmasyon an avèk ou. EMMI p ap make li kòm konfime ni chanje li otomatikman."
     })
   },
+  // A patient describing who is with them on the "Who is completing this?" screen is asking which of
+  // the three options in front of them to press. Their words match the Care Circle rule below —
+  // "mi hija me está ayudando" — so the answer they got was about inviting a supporter, which is a
+  // different feature on a different screen. Scoped here and placed first, so the screen the patient
+  // is on decides which question they are asking. The labels are quoted from that screen.
+  {
+    intent: "COMPLETION_ROLE",
+    screens: ["DECISION_MAKER"],
+    ids: ["decision-daughter-help", "decision-who-completes"],
+    match: /(daughter|son|wife|husband|family|someone).{0,40}(help|complet|fill)|(help|complet|fill).{0,40}(daughter|son|wife|husband|family)|which option|what should i (pick|choose|select)|(hija|hijo|esposa|esposo|familiar|alguien).{0,40}(ayud|complet|llen)|(ayud|complet|llen).{0,40}(hija|hijo|esposa|esposo|familiar)|qu[eé] opci[oó]n|cu[aá]l (opci[oó]n|elijo|escojo)|(pitit|madanm|mari|fanmi|moun).{0,40}(ede|ranpli)|ki opsyon/i,
+    answer: locale => pick(locale, {
+      EN: "On this screen that is “Helping the patient”. Choose it when someone else is filling this in while the patient is present and making their own decisions — the option says exactly that. Choose “For myself” only if the patient is the one working through the screens. “Personal representative” is a different thing: it is for someone legally authorized to make healthcare decisions for the patient, and it is not the right choice while the patient is deciding for themselves.",
+      ES: "En esta pantalla, esa opción es “Ayudando al paciente”. Elíjala cuando otra persona completa esto mientras el paciente está presente y toma sus propias decisiones — la opción lo dice así. Elija “Para mí” solo si es el paciente quien avanza por las pantallas. “Representante personal” es otra cosa: es para alguien autorizado legalmente a tomar decisiones médicas por el paciente, y no corresponde mientras el paciente decide por sí mismo.",
+      KR: "Nan ekran sa a, se “Ede pasyan an”. Chwazi li lè yon lòt moun ap ranpli sa a pandan pasyan an prezan epi l ap pran pwòp desizyon li — se egzakteman sa opsyon an di. Chwazi “Pou tèt mwen” sèlman si se pasyan an k ap pase nan ekran yo. “Reprezantan pèsonèl” se yon lòt bagay: li pou yon moun ki gen otorizasyon legal pou pran desizyon swen sante pou pasyan an, epi li pa bon chwa a pandan pasyan an ap deside pou tèt li."
+    })
+  },
   {
     intent: "CARE_CIRCLE",
     screens: CARE_CIRCLE_SCREENS,
