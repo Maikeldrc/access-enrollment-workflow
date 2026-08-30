@@ -33,7 +33,7 @@ describe("goal category iconography", () => {
   // the same target seven times.
   it("gives every configured goal a category icon and never repeats the generic target", () => {
     const icons = Object.keys(GOAL_CONFIG).map(goalType => resolveGoalIcon({ goalType }));
-    expect(icons).toEqual(["heart", "home", "shield", "pill", "smile", "footprints", "goals"]);
+    expect(icons).toEqual(["heart", "scale", "home", "shield", "pill", "smile", "footprints", "goals"]);
     expect(new Set(icons).size).toBe(icons.length);
     expect(icons.filter(name => name === GOAL_ICON_REGISTRY.GENERIC)).toHaveLength(1);
   });

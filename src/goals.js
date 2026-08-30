@@ -44,6 +44,20 @@ export const GOAL_CONFIG = Object.freeze({
       { id: "be-active", title: T("Be more active", "Mantenerme más activo", "Pi aktif"), frequency: true, defaultTarget: 3 }
     ]
   },
+  // Assigned by the ACCESS track, not chosen. The actions below are what the patient does; how the
+  // program decides the goal was met lives in ACCESS_OUTCOME_TARGETS, deliberately somewhere else,
+  // so a CMS threshold can never be mistaken for a task or for this patient's clinical target.
+  WEIGHT_MANAGEMENT: {
+    category: "WEIGHT",
+    displayName: T("Reach or maintain a healthy weight", "Alcanzar o mantener un peso saludable", "Rive oswa kenbe yon pwa ki an sante"),
+    progressType: "MEASUREMENT_ADHERENCE",
+    suggestedActions: [
+      { id: "track-weight", title: T("Track your weight", "Registrar mi peso", "Swiv pwa mwen"), frequency: true, defaultTarget: 3 },
+      { id: "follow-nutrition-plan", title: T("Follow your nutrition plan", "Seguir mi plan de nutrición", "Swiv plan nitrisyon mwen"), frequency: true, defaultTarget: 5 },
+      { id: "stay-active-as-able", title: T("Stay physically active as appropriate", "Mantenerme físicamente activo según corresponda", "Rete fizikman aktif jan sa apwopriye"), frequency: true, defaultTarget: 3 },
+      { id: "nutrition-support", title: T("Get nutrition or weight support when needed", "Recibir apoyo de nutrición o peso cuando lo necesite", "Jwenn sipò nitrisyon oswa pwa lè mwen bezwen l"), frequency: false }
+    ]
+  },
   STAY_INDEPENDENT: {
     category: "INDEPENDENCE",
     displayName: T("Stay independent", "Mantener mi independencia", "Rete endepandan"),
@@ -188,7 +202,11 @@ const ACTION_ICONS = Object.freeze({
   "follow-care-plan": "plan",
   "learn-purpose": "book",
   "make-question-list": "document",
-  "review-with-team": "people"
+  "review-with-team": "people",
+  "track-weight": "scale",
+  "follow-nutrition-plan": "nutrition",
+  "stay-active-as-able": "activity",
+  "nutrition-support": "people"
 });
 
 export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";

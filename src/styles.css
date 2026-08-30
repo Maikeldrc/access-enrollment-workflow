@@ -2008,3 +2008,37 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .medication-answers .icon,.medication-choices .icon { flex:0 0 24px;width:24px;height:24px;color:var(--primary-600);background:transparent; }
 .medication-answers span,.medication-choices span { min-width:0;overflow-wrap:anywhere; }
 a.goal-secondary-button { text-decoration:none; }
+
+/* Assigned ACCESS goals.
+   Two cards the patient reads rather than fills in. Each one answers the same three questions in
+   the same order — how progress is measured, where they are starting, what they will do — so the
+   second card is scannable once the first has been understood. Nothing here is a control.
+   Sized in rem and capped by the column, so 384px at 150% text still wraps instead of clipping. */
+.access-goal-list { display: grid; gap: 1rem; }
+.access-goal-card {
+  border: 1px solid var(--border-default); border-radius: 16px; padding: 1.25rem;
+  background: var(--surface-primary); display: grid; gap: 1rem;
+}
+.access-goal-card > header { display: flex; align-items: flex-start; gap: .625rem; }
+.access-goal-card > header svg { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; color: var(--medicare-blue); }
+.access-goal-card h3 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.access-goal-card h4 {
+  margin: 0 0 .5rem; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.access-goal-support { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+.access-goal-measure, .access-goal-baseline, .access-goal-plan {
+  border-top: 1px solid var(--border-default); padding-top: .875rem;
+}
+.access-goal-measure dl { margin: 0; display: grid; gap: .625rem; }
+/* Label above value rather than beside it: the labels are long enough that a two-column row is the
+   first thing to break at 384px with the text scaled up. */
+.access-goal-measure dt { font-size: .8125rem; color: var(--text-secondary); }
+.access-goal-measure dd { margin: 0; font-weight: 600; color: var(--text-primary); }
+.access-goal-value { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.access-goal-value span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
+.access-goal-pending { margin: 0 0 .25rem; font-weight: 600; color: var(--text-secondary); }
+.access-goal-baseline p:last-child { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+.access-goal-plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.access-goal-plan li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
+.access-goal-plan li svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }

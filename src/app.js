@@ -2,6 +2,7 @@ import { BP_FULFILLMENT_DEVICE_MODELS, CANONICAL_PATIENT_SCENARIO, DEFAULT_PROTO
 import { commonMessagesFor, htmlLanguage, localeCode, localize, localizeOfferText } from "./i18n.js";
 import { AUTHORITY_VERIFICATION_METHODS, MockEnrollmentService, DraftStore, audit } from "./services.js";
 import { journeyFor, nextScreen, previousScreen, progressFor } from "./machine.js";
+import { accessProgressMeasure, assignedAccessGoals, patientStartingPoint } from "./accessCareActivation.js";
 import {
   Activity, ArrowLeft, ArrowRight, BadgeCheck, Bell, BookOpen, CalendarDays, ClipboardCheck, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
@@ -4130,7 +4131,79 @@ function goalPlanReview() {
     <div class="goal-stacked-actions">${cta(L("Save my plan", "Guardar mi plan", "Sove plan mwen"), "goal-plan-save")}${cta(L("Edit my plan", "Editar mi plan", "Modifye plan mwen"), "goal-plan-change", true)}</div>`;
 }
 
+// What the patient's record can actually say about where they are starting. Weight has no baseline
+// field anywhere yet, so it reports pending rather than borrowing a number from somewhere else.
+function careActivationRuntime() {
+  const baseline = state.bpBaseline;
+  return {
+    BLOOD_PRESSURE_CONTROL: state.bpBaselineStatus === "COMPLETED" && baseline?.sourceVerified
+      ? { status: "CONFIRMED", systolic: baseline.averageSystolic, diastolic: baseline.averageDiastolic, recordedAt: baseline.completedAt }
+      : { status: "PENDING" },
+    WEIGHT_MANAGEMENT: { status: "PENDING" }
+  };
+}
+
+const accessGoalSupportCopy = goalType => ({
+  BLOOD_PRESSURE_CONTROL: L("Track your blood pressure, stay on top of your medications, and work toward better blood pressure control.", "Registre su presión arterial, mantenga sus medicamentos al día y avance hacia un mejor control de la presión.", "Swiv tansyon ou, kenbe medikaman ou yo ajou, epi travay pou pi bon kontwòl tansyon."),
+  WEIGHT_MANAGEMENT: L("Work toward a healthy weight through monitoring, nutrition, activity, and ongoing support.", "Avance hacia un peso saludable con seguimiento, nutrición, actividad y apoyo continuo.", "Travay pou yon pwa ki an sante ak swivi, nitrisyon, aktivite ak sipò kontinyèl.")
+})[goalType] || "";
+
+// Two named rows, never one "target". The control threshold belongs to the program and is always
+// shown; the improvement milestone is arithmetic on this patient's own baseline, so before a
+// baseline exists it is described in words rather than given a number it cannot have yet.
+function accessMeasureRows(goalType, measure) {
+  const controlLabel = L("Control target", "Meta de control", "Objektif kontwòl");
+  const milestoneLabel = L("ACCESS improvement milestone", "Hito de mejora de ACCESS", "Etap amelyorasyon ACCESS");
+  if (goalType === "BLOOD_PRESSURE_CONTROL") {
+    const milestone = measure.improvementMilestone
+      ? L(`${measure.improvementMilestone.value} mmHg or lower`, `${measure.improvementMilestone.value} mmHg o menos`, `${measure.improvementMilestone.value} mmHg oswa mwens`)
+      : L("At least 15 mmHg lower than your starting point", "Al menos 15 mmHg por debajo de su punto de partida", "Omwen 15 mmHg pi ba pase pwen depa ou");
+    return [[controlLabel, L("Below 130 mmHg", "Por debajo de 130 mmHg", "Anba 130 mmHg")], [milestoneLabel, milestone]];
+  }
+  const milestone = measure.improvementMilestone
+    ? L(`${measure.improvementMilestone.value} lb or lower`, `${measure.improvementMilestone.value} lb o menos`, `${measure.improvementMilestone.value} lb oswa mwens`)
+    : L("At least 5% below your starting weight", "Al menos 5% por debajo de su peso inicial", "Omwen 5% pi ba pase pwa ou nan konmansman");
+  return [[controlLabel, L("A BMI below 30, without gaining significant weight", "Un IMC por debajo de 30, sin aumentar de peso de forma significativa", "Yon BMI anba 30, san pran anpil pwa")], [milestoneLabel, milestone]];
+}
+
+function accessStartingPointBody(goalType, point) {
+  if (point.status === "CONFIRMED" && goalType === "BLOOD_PRESSURE_CONTROL") {
+    return `<p class="access-goal-value">${point.value} mmHg <span>${L("starting systolic", "sistólica inicial", "sistolik nan konmansman")}</span></p>`;
+  }
+  if (point.status === "CONFIRMED") {
+    return `<p class="access-goal-value">${point.value} lb${point.bmi ? ` · ${L("BMI", "IMC", "BMI")} ${point.bmi}` : ""}</p>`;
+  }
+  const pending = goalType === "BLOOD_PRESSURE_CONTROL"
+    ? L("We’ll confirm your starting blood pressure as part of setting up your care.", "Confirmaremos su presión arterial inicial como parte de la configuración de su cuidado.", "N ap konfime tansyon ou nan konmansman an antan n ap mete swen ou anplas.")
+    : L("We’ll confirm your starting weight to personalize this goal.", "Confirmaremos su peso inicial para personalizar esta meta.", "N ap konfime pwa ou nan konmansman an pou pèsonalize objektif sa a.");
+  return `<p class="access-goal-pending">${L("To be confirmed", "Por confirmar", "Pou konfime")}</p><p>${pending}</p>`;
+}
+
+// No checkboxes, no selection, no percentages. The patient is being shown the care they already
+// have, so the only decision on this screen is whether to carry on to personalizing it.
+function accessAssignedGoals() {
+  const runtime = careActivationRuntime();
+  const cards = assignedAccessGoals(state.offer).map(goalType => {
+    const point = patientStartingPoint(goalType, runtime);
+    const measure = accessProgressMeasure(goalType, point);
+    const rows = accessMeasureRows(goalType, measure).map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+    const actionItems = suggestedActionsFor(goalType).slice(0, goalType === "BLOOD_PRESSURE_CONTROL" ? 3 : 4)
+      .map(action => `<li>${icon(goalActionIcon(action.id))}<span>${escapeHtml(localGoalText(action.title, state.language))}</span></li>`).join("");
+    return `<article class="access-goal-card">
+      <header>${icon(resolveGoalIcon({ goalType }))}<h3>${escapeHtml(localGoalText(GOAL_CONFIG[goalType].displayName, state.language))}</h3></header>
+      <p class="access-goal-support">${accessGoalSupportCopy(goalType)}</p>
+      <section class="access-goal-measure"><h4>${L("How ACCESS measures progress", "Cómo ACCESS mide su progreso", "Kijan ACCESS mezire pwogrè")}</h4><dl>${rows}</dl></section>
+      <section class="access-goal-baseline"><h4>${L("Your starting point", "Su punto de partida", "Pwen depa ou")}</h4>${accessStartingPointBody(goalType, point)}</section>
+      <section class="access-goal-plan"><h4>${L("How we’ll work on it", "Cómo trabajaremos en esto", "Kijan n ap travay sou li")}</h4><ul>${actionItems}</ul></section>
+    </article>`;
+  }).join("");
+  return `${titleBlock(L("Your ACCESS health goals", "Sus objetivos de salud de ACCESS", "Objektif sante ACCESS ou yo"), L("These goals are part of your ACCESS care. We’ll track your progress and personalize the support you receive along the way.", "Estos objetivos forman parte de su cuidado ACCESS. Seguiremos su progreso y personalizaremos el apoyo que recibe en el camino.", "Objektif sa yo fè pati swen ACCESS ou. N ap swiv pwogrè ou epi pèsonalize sipò ou resevwa sou wout la."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}<div class="access-goal-list">${cards}</div>${actions(L("Personalize my care", "Personalizar mi cuidado", "Pèsonalize swen mwen"))}`;
+}
+
 function goals() {
+  // An ACCESS patient does not pick their goals: the track assigned them. The chooser below is
+  // still the right screen for every other program, which does ask.
+  if (state.offer?.pathway === "ACCESS") return accessAssignedGoals();
   if (state.goalFlowStep === "PRIORITY") return goalPriorities();
   if (state.goalFlowStep === "PLAN_OFFER") return goalPlanOffer();
   if (state.goalFlowStep === "PLAN_ACTIONS") return goalPlanBuilder();
