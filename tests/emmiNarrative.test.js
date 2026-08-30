@@ -206,3 +206,41 @@ describe("EMMI on the ACCESS care activation screens", () => {
     expect(buildNarration({ screen: "ACCESS_MEASURE", locale: "EN", runtime: {} })).toBeNull();
   });
 });
+
+// EMMI does not go quiet in the middle of a flow she narrates on both sides.
+//
+// The delivery address and the request confirmation had no objective at all, so buildNarration
+// returned null and a patient with voice guidance on heard nothing between the monitor screen and
+// their goals — including on the step that actually places the request.
+describe("every screen of ACCESS care activation is narrated", () => {
+  const ACTIVATION = [
+    "ACCESS_BP_DEVICE_INFO",
+    "ACCESS_BP_SHIPPING_ADDRESS",
+    "ACCESS_BP_FULFILLMENT_CONFIRMED",
+    "GOALS",
+    "ACCESS_SUPPORT_NEEDS",
+    "ONBOARDING_COMPLETE"
+  ];
+
+  for (const screen of ACTIVATION) {
+    for (const locale of ["EN", "ES", "KR"]) {
+      it(`says something on ${screen} in ${locale}`, () => {
+        const narration = buildNarration({ screen, locale, runtime: { program: "ACCESS" } });
+        expect(narration, `${screen} in ${locale} has no narration`).toBeTruthy();
+        expect((narration.narrationText || "").trim().length).toBeGreaterThan(20);
+      });
+    }
+  }
+
+  it("tells the patient the address step is the one that commits the request", () => {
+    const narration = buildNarration({ screen: "ACCESS_BP_SHIPPING_ADDRESS", locale: "EN", runtime: { program: "ACCESS" } });
+    expect(narration.narrationText).toMatch(/places the request|Nothing is requested until you confirm/i);
+  });
+
+  it("never claims a shipment on the confirmation screen", () => {
+    for (const locale of ["EN", "ES", "KR"]) {
+      const narration = buildNarration({ screen: "ACCESS_BP_FULFILLMENT_CONFIRMED", locale, runtime: { program: "ACCESS" } });
+      expect(narration.narrationText).not.toMatch(/has shipped\b(?! until)|ya fue enviado|arrives on|llega el/i);
+    }
+  });
+});

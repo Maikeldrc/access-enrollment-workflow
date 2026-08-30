@@ -459,6 +459,52 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     action: T("Measure around your upper arm and choose the size that matches.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn.")
   }),
 
+  // Two screens of the care activation flow had no objective at all, so buildNarration returned null
+  // and EMMI simply went quiet between the monitor and the goals — the middle of a flow she narrates
+  // on both sides. A patient with voice guidance on heard nothing while confirming where their
+  // monitor is delivered, which is the step that actually commits the request.
+  ACCESS_BP_SHIPPING_ADDRESS: objective({
+    summary: T("This is where your monitor will be delivered.", "Aquí es donde se entregará su monitor.", "Se la y ap livre aparèy ou a."),
+    tone: "reassuring",
+    purpose: T(
+      "This step confirms where your monitor should be delivered. It is the step that actually places the request.",
+      "Este paso confirma dónde debe entregarse su monitor. Es el paso que realmente hace la solicitud.",
+      "Etap sa a konfime kote pou yo livre aparèy ou a. Se etap ki fè demann nan tout bon."
+    ),
+    benefit: T(
+      "Getting the address right is what makes sure the monitor reaches you rather than an old address on file.",
+      "Acertar la dirección es lo que asegura que el monitor le llegue a usted y no a una dirección antigua en el registro.",
+      "Bay bon adrès la se sa ki fè aparèy la rive jwenn ou olye yon ansyen adrès nan dosye a."
+    ),
+    reassurance: T(
+      "You can send it somewhere else if the address shown is not where you want it. Nothing is requested until you confirm.",
+      "Puede enviarlo a otro lugar si la dirección que aparece no es donde lo quiere. No se solicita nada hasta que usted confirme.",
+      "Ou ka voye l yon lòt kote si adrès ki parèt la se pa kote ou vle l. Anyen pa mande jiskaske ou konfime."
+    ),
+    action: T("Check the address, then request your monitor.", "Revise la dirección y luego solicite su monitor.", "Tcheke adrès la, apre sa mande aparèy ou a.")
+  }),
+
+  ACCESS_BP_FULFILLMENT_CONFIRMED: objective({
+    summary: T("Your monitor has been requested.", "Su monitor ha sido solicitado.", "Yo mande aparèy ou a."),
+    tone: "reassuring",
+    purpose: T(
+      "Your request is in. This screen shows what was recorded: the request itself, the cuff size and the address you confirmed.",
+      "Su solicitud está hecha. Esta pantalla muestra lo que quedó registrado: la solicitud, la talla de brazalete y la dirección que confirmó.",
+      "Demann ou an fèt. Ekran sa a montre sa yo anrejistre: demann nan, gwosè manchèt la ak adrès ou konfime a."
+    ),
+    benefit: T(
+      "You do not have to wait here. Your care continues while the monitor is prepared.",
+      "No tiene que esperar aquí. Su cuidado continúa mientras se prepara el monitor.",
+      "Ou pa bezwen tann isit la. Swen ou kontinye pandan y ap prepare aparèy la."
+    ),
+    reassurance: T(
+      "We will not tell you it has shipped until it has. If anything about the request needs checking, your care team can help.",
+      "No le diremos que fue enviado hasta que lo esté. Si algo de la solicitud necesita revisarse, su equipo de cuidado puede ayudarle.",
+      "Nou p ap di ou li voye jiskaske li voye. Si gen yon bagay nan demann nan ki bezwen tcheke, ekip swen ou ka ede ou."
+    ),
+    action: T("Continue to see the health goals your ACCESS care assigned you.", "Continúe para ver los objetivos de salud que le asignó su cuidado ACCESS.", "Kontinye pou wè objektif sante swen ACCESS ou ba ou yo.")
+  }),
+
   ACCESS_SUPPORT_NEEDS: objective({
     summary: T("Your care plan is already in place. We are checking what might make it harder.", "Su plan de cuidado ya está activo. Estamos viendo qué podría dificultarlo.", "Plan swen ou deja anplas. N ap gade sa ki ka fè l pi difisil."),
     tone: "reassuring",
