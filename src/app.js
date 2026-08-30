@@ -5413,6 +5413,10 @@ async function runAssignedDeviceLookup() {
     state.bpDeviceVerificationStatus = "NOT_FOUND";
     state.assignedDeviceId = "";
     state.integrationProvider = "UNKNOWN";
+    // Every other outcome of this lookup records that the baseline is waiting on the device. This
+    // one did not, so a patient whose record claims a monitor nobody can confirm was left looking
+    // like they had never started, while sitting on the screen that is asking them about it.
+    state.bpBaselineStatus = "DEVICE_VERIFICATION";
     state.baselineResumeScreen = "ACCESS_BP_DEVICE_VERIFICATION";
     audit(state, "bp_device_assignment_lookup", "not_found", { patientId });
     draftStore.save(state); render(); return;

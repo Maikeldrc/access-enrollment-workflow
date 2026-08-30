@@ -155,6 +155,10 @@ patient actually has medications. No code change.
 
 ## Open, not yet decided
 
+**The voice transport is owned by the session with the browser and audio** — *yours.* Written up in
+`VOICE_HANDOFF.md`: what changed underneath and should be re-checked by voice, what was never
+touched, and the one concrete lead on the fragmented output with the reason I did not act on it.
+
 **The voice transport itself is not certified, and I cannot certify it.** The 2026-08-30 re-test's
 headline finding is that speaking produces no patient transcript, and everything it lists as
 blocked — barge-in, natural pauses, spoken language switching, silence handling, spoken refusal —
@@ -163,12 +167,12 @@ no way to drive. I validated and fixed what is deterministic; I did not touch th
 nothing I did this iteration should be read as evidence about it. **Decide who runs that: the
 session with the live browser and audio, or a scheduled human pass.**
 
-**Whether the consent answer must quote "up to $6".** See the entry under Engineering. I decided
-against it and can reverse it in one edit.
+**The consent answer will not quote "up to $6"** — *yours,* confirming my call. The amount comes
+from the engine on every question, and the re-test's exit criterion stays unmet on purpose.
 
-**Whether a patient's own word that they feel better should end an emergency episode.** See Clinical
-safety above. I said yes; a clinician may well say no. It is the single decision in this work I
-would most like reviewed.
+**A patient's own word that they feel better ends the emergency episode** — *yours,* confirming my
+call. Recorded as `PATIENT_REPORTED_RECOVERED`, never confused with a confirmed handoff, and the
+acknowledgement still says to call 911 if the symptoms return.
 
 **Which enrollment tests to delete rather than rewrite** — *yours.* You said to delete them if this
 flow no longer needs them. Two went: the health-check screen that asked whether the patient owned a
@@ -182,12 +186,11 @@ had to change.
 One thing the deleted tests held was worth more than they were: a patient must never type a blood
 pressure, and that assertion existed nowhere else in the suite. It is now its own test.
 
-**Whether "we don't see a monitor connected to your care yet" is still a state anyone reaches.**
-Three tests assert it using the no-monitor scenario, but a record that says no monitor now routes
-straight to arranging one — which is right. The screen still has the choices (own monitor, need one
-from ITERA, not sure), reachable only when a record claims a device the lookup cannot find. Either
-that is a real stale-record case worth a scenario, or the state is dead and the three tests go with
-it. **I did not invent a scenario to make the tests pass; that would be a fixture asserting itself.**
+**A stale record is a real case and now has a scenario** — *yours.* `access-bp-stale-assignment`:
+the record claims an assigned monitor the device registry cannot confirm. Not the same as having no
+monitor, which routes straight to arranging one. Writing it found a third defect — every other
+outcome of that lookup records that the baseline is waiting on the device, and this one did not, so
+the patient looked like they had never started while sitting on the screen asking them about it.
 
 **Whether to translate the knowledge corpus.** It is written in English and read by patients in
 three languages. Keywords per page close the retrieval half of that, and the model translates the

@@ -783,7 +783,7 @@ test("ACCESS treats an assigned-device lookup failure as a review state, not a p
 });
 
 test("ACCESS routes a missing assignment directly to connected monitor fulfillment", async ({ page }) => {
-  await openOwnedBpVerification(page, "access-bp-none");
+  await openOwnedBpVerification(page, "access-bp-stale-assignment");
   await page.locator('.choice-card:has(input[value="need-itera"])').click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
@@ -792,7 +792,7 @@ test("ACCESS routes a missing assignment directly to connected monitor fulfillme
 });
 
 test("ACCESS unsure monitor asks one question and offers care-team help", async ({ page }) => {
-  await openOwnedBpVerification(page, "access-bp-none");
+  await openOwnedBpVerification(page, "access-bp-stale-assignment");
   await page.locator('.choice-card:has(input[value="situation-unsure"])').click();
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Was your monitor provided by ITERA HEALTH?" })).toBeVisible();
@@ -804,7 +804,7 @@ test("ACCESS unsure monitor asks one question and offers care-team help", async 
 });
 
 test("ACCESS no-assignment and review states are localized in Spanish and Kreyòl", async ({ page }) => {
-  await openOwnedBpVerification(page, "access-bp-none");
+  await openOwnedBpVerification(page, "access-bp-stale-assignment");
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.getByRole("heading", { name: "Aún no vemos un monitor conectado a su cuidado." })).toBeVisible();
   await expect(page.getByText("Estoy usando mi propio monitor", { exact: true })).toBeVisible();
@@ -815,10 +815,9 @@ test("ACCESS no-assignment and review states are localized in Spanish and Kreyò
 
   await page.evaluate(() => localStorage.removeItem("itera.enrollment.language.v1"));
   await page.goto("/?scenario=access-bp-assignment-failure");
-  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
-  await page.locator('.choice-card:has(input[value="owned"])').click();
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "We need to check your monitor" })).toBeVisible({ timeout: 5000 });
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await page.getByRole("button", { name: /Set up my care/i }).click();
+  await expect(page.getByRole("heading", { name: "We need to check your monitor" })).toBeVisible({ timeout: 10000 });
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.getByRole("heading", { name: "Necesitamos verificar su monitor" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Intentar de nuevo" })).toBeVisible();
@@ -2352,9 +2351,10 @@ test("condition-specific setup never invents hypertension when another condition
   await page.getByRole("group", { name: /Clinical conditions/ }).getByText("Hypertension", { exact: true }).click();
   await page.getByRole("group", { name: /Clinical conditions/ }).getByText("Diabetes", { exact: true }).click();
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
-  await expect(page.getByRole("heading", { name: "Your blood sugar starting point" })).toBeVisible();
-  await expect(page.locator("#screen-content")).not.toContainText("blood pressure");
+  // The condition-specific starting-point screen is gone. ACCESS arranges a blood pressure monitor
+  // for everyone on the track, diabetes included, because blood pressure is one of the four measures
+  // it follows for all of them — so there is no longer a device screen that adapts to the condition.
+  // What still has to hold is the clinical record: it must not acquire a condition nobody selected.
 
   await page.goto("/?admin=1");
   await page.getByRole("radio", { name: "CCM", exact: true }).check({ force: true });

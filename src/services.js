@@ -72,6 +72,9 @@ export class MockEnrollmentService {
     await wait(450);
     const fixture = this.offer().fixture;
     if (!patientId || fixture.bpDeviceAssignment === "none") return { status: "not_found", assignment: null, patientOwnsMonitor: false, deviceSource: "NONE", integrationStatus: "NOT_CONNECTED" };
+    // A record can claim an assignment the device registry cannot confirm. The patient still reaches
+    // the verification screen, because their record sent them there, and is asked rather than told.
+    if (fixture.bpDeviceAssignmentStale) return { status: "not_found", assignment: null, patientOwnsMonitor: false, deviceSource: "UNKNOWN", integrationStatus: "NOT_CONNECTED" };
     if (fixture.bpDeviceAssignment === "patient-owned" || fixture.bpDeviceScenario === "patient-owned-unsupported") return { status: "not_found", assignment: null, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", deviceVendor: "OTHER", deviceStatus: "ACTIVE", integrationProvider: "OTHER", integrationStatus: "UNSUPPORTED" };
     const vendor = fixture.bpDeviceVendor === "PYLO" || fixture.bpDeviceScenario === "itera-pylo" ? "PYLO" : "TENOVI";
     return { status: "active", assignment: { patientId, assignedDeviceId: fixture.assignedDeviceId || (vendor === "PYLO" ? "pylo-bp-6719" : "tenovi-bp-8842"), assignedAt: "2026-08-20T14:00:00.000Z" } };
