@@ -2545,7 +2545,7 @@ test("ACCESS screens stay readable and free of horizontal overflow at required m
     { width: 393, height: 852 },
     { width: 430, height: 932 }
   ];
-  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ACCESS_MEASURE", "ONBOARDING_COMPLETE"];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_PROCESSING", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW", "ACCESS_ALIGNMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "GOALS", "ACCESS_SUPPORT_NEEDS", "ONBOARDING_COMPLETE"];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto("/?scenario=access-happy");
@@ -2723,7 +2723,7 @@ test("patient screens share one page gutter and one content column", async ({ pa
     { width: 412, height: 915, gutter: [15, 17] },
     { width: 430, height: 932, gutter: [15, 17] }
   ];
-  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ONBOARDING_COMPLETE"];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "GOALS", "ONBOARDING_COMPLETE"];
   for (const viewport of viewports) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto("/?scenario=access-happy");
@@ -2792,7 +2792,7 @@ test("patient screens end with their content instead of an empty scroll tail", a
     { width: 412, height: 915 },
     { width: 430, height: 932 }
   ];
-  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BASELINE", "ONBOARDING_COMPLETE"];
+  const screens = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION", "ACCESS_PRE_ELIGIBILITY_NOTICE", "CONSENT_REVIEW", "ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "GOALS", "ONBOARDING_COMPLETE"];
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto("/?scenario=access-happy");

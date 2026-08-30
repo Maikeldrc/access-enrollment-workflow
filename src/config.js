@@ -35,7 +35,7 @@ export const SCENARIOS = {
   // choose the device path, so the verification branch needs a scenario that actually has one —
   // access-happy is the canonical patient, who has none.
   "access-bp-assigned": { label: "ACCESS · assigned ITERA monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" },
-  "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceLookupFailure: true },
+  "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpDeviceLookupFailure: true },
   "access-bp-pylo": { label: "ACCESS · Pylo monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-pylo", bpDeviceAssignment: "itera-pylo", bpDeviceVendor: "PYLO" },
   "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpReadingFailureAt: 1 },
   "access-bp-source-mismatch": { label: "ACCESS · BP source mismatch", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpSourceMismatch: true },
