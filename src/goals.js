@@ -44,6 +44,24 @@ export const GOAL_CONFIG = Object.freeze({
       { id: "be-active", title: T("Be more active", "Mantenerme más activo", "Pi aktif"), frequency: true, defaultTarget: 3 }
     ]
   },
+  // Assigned by the ACCESS track, not chosen. The actions below are what the patient does; how the
+  // program decides the goal was met lives in ACCESS_OUTCOME_TARGETS, deliberately somewhere else,
+  // so a CMS threshold can never be mistaken for a task or for this patient's clinical target.
+  WEIGHT_MANAGEMENT: {
+    category: "WEIGHT",
+    displayName: T("Reach or maintain a healthy weight", "Alcanzar o mantener un peso saludable", "Rive oswa kenbe yon pwa ki an sante"),
+    progressType: "MEASUREMENT_ADHERENCE",
+    // "Weigh myself", not "Track my weight". A connected scale transmits on its own, so tracking is
+    // the platform's job and naming it as the patient's task tells them to log numbers nobody is
+    // asking them to log. The blood pressure goal already says "check", not "track", for the same
+    // reason. What the patient actually does is step on the scale.
+    suggestedActions: [
+      { id: "weigh-in", title: T("Weigh myself regularly", "Pesarme con regularidad", "Peze tèt mwen regilyèman"), frequency: true, defaultTarget: 3 },
+      { id: "follow-nutrition-plan", title: T("Follow my nutrition plan", "Seguir mi plan de nutrición", "Swiv plan nitrisyon mwen"), frequency: true, defaultTarget: 5 },
+      { id: "stay-active-as-able", title: T("Stay active in ways that are right for me", "Mantenerme activo de la forma adecuada para mí", "Rete aktif nan fason ki bon pou mwen"), frequency: true, defaultTarget: 3 },
+      { id: "nutrition-support", title: T("Ask for nutrition or weight support when I need it", "Pedir apoyo de nutrición o peso cuando lo necesite", "Mande sipò nitrisyon oswa pwa lè mwen bezwen l"), frequency: false }
+    ]
+  },
   STAY_INDEPENDENT: {
     category: "INDEPENDENCE",
     displayName: T("Stay independent", "Mantener mi independencia", "Rete endepandan"),
@@ -188,7 +206,11 @@ const ACTION_ICONS = Object.freeze({
   "follow-care-plan": "plan",
   "learn-purpose": "book",
   "make-question-list": "document",
-  "review-with-team": "people"
+  "review-with-team": "people",
+  "weigh-in": "scale",
+  "follow-nutrition-plan": "nutrition",
+  "stay-active-as-able": "activity",
+  "nutrition-support": "people"
 });
 
 export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";

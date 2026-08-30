@@ -417,33 +417,88 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     action: T("Choose a goal to view it or add another goal when you are ready.", "Elija una meta para verla o agregue otra cuando esté listo.", "Chwazi yon objektif pou gade li oswa ajoute yon lòt lè ou pare.")
   }),
 
-  ACCESS_BASELINE: objective({
-    summary: T(
-      "This helps your care team understand your starting point.",
-      "Esto ayuda a su equipo a conocer su punto de partida.",
-      "Sa ede ekip swen ou konprann pwen depa ou."
-    ),
-    dynamic: ["estimatedDuration"],
+  ACCESS_GOALS: objective({
+    summary: T("These goals are already part of your ACCESS care.", "Estas metas ya forman parte de su cuidado ACCESS.", "Objektif sa yo deja fè pati swen ACCESS ou."),
+    tone: "reassuring",
     purpose: T(
-      "This health check helps your care team understand your starting point.",
-      "Esta evaluación ayuda a su equipo de cuidado a conocer su punto de partida.",
-      "Chèk sante sa a ede ekip swen ou konprann pwen depa ou."
+      "These are the health goals your ACCESS care already includes. You are not choosing them here — this screen explains what they are.",
+      "Estas son las metas de salud que su cuidado ACCESS ya incluye. Aquí no las elige: esta pantalla le explica cuáles son.",
+      "Sa yo se objektif sante swen ACCESS ou deja genyen. Ou pa chwazi yo isit la — ekran sa a eksplike kisa yo ye."
     ),
     benefit: T(
-      "Knowing where you are starting is what lets your care team personalize the support you receive.",
-      "Saber desde dónde parte es lo que permite a su equipo personalizar el apoyo que recibe.",
-      "Konnen kote ou kòmanse se sa ki pèmèt ekip swen ou pèsonalize sipò ou resevwa."
+      "Each one shows where you are starting and how ACCESS measures progress, so you can see what your care is working toward.",
+      "Cada una muestra su punto de partida y cómo ACCESS mide el progreso, para que vea hacia dónde va su cuidado.",
+      "Chak youn montre kote ou kòmanse ak kijan ACCESS mezire pwogrè, pou ou wè sa swen ou ap chèche."
     ),
     reassurance: T(
-      "Your progress is saved, so you can stop and come back later.",
-      "Su progreso se guarda, así que puede detenerse y volver más tarde.",
-      "Pwogrè ou anrejistre, konsa ou ka kanpe epi retounen pita."
+      "ACCESS assigns these goals as part of your care. Your care team stays responsible for clinical targets and treatment decisions.",
+      "ACCESS asigna estas metas como parte de su cuidado. Su equipo sigue siendo responsable de los objetivos clínicos y las decisiones de tratamiento.",
+      "ACCESS bay objektif sa yo kòm pati nan swen ou. Ekip swen ou rete responsab sib klinik yo ak desizyon tretman yo."
     ),
-    action: T(
-      "We will go through it one step at a time.",
-      "Lo haremos paso a paso.",
-      "N ap fè l yon etap alafwa."
-    )
+    action: T("Open a goal to see how progress is measured, then continue.", "Abra una meta para ver cómo se mide el progreso y continúe.", "Louvri yon objektif pou wè kijan yo mezire pwogrè, epi kontinye.")
+  }),
+
+  ACCESS_BP_DEVICE_INFO: objective({
+    summary: T("We are arranging your connected blood pressure monitor.", "Estamos gestionando su monitor de presión conectado.", "N ap fè aranjman pou aparèy tansyon konekte ou."),
+    tone: "reassuring",
+    purpose: T(
+      "This step arranges the connected monitor your ACCESS care uses. You only need to choose the cuff size that fits you.",
+      "Este paso gestiona el monitor conectado que usa su cuidado ACCESS. Solo necesita elegir la talla de brazalete que le queda.",
+      "Etap sa a fè aranjman pou aparèy konekte swen ACCESS ou itilize a. Ou sèlman bezwen chwazi gwosè manchèt ki bon pou ou."
+    ),
+    benefit: T(
+      "Your readings reach your care team on their own, so they can see how you are doing between visits without you sending anything.",
+      "Sus mediciones llegan solas a su equipo, así ven cómo está entre visitas sin que usted envíe nada.",
+      "Mezi ou yo rive nan men ekip swen ou poukont yo, konsa yo wè kijan w ap ale ant vizit yo san ou pa voye anyen."
+    ),
+    reassurance: T(
+      "Nothing is ordered until you confirm the address on the next step, and we will not say it has shipped until it has.",
+      "No se solicita nada hasta que confirme la dirección en el paso siguiente, y no diremos que fue enviado hasta que lo esté.",
+      "Anyen pa kòmande jiskaske ou konfime adrès la nan pwochen etap la, epi nou p ap di li voye jiskaske li voye."
+    ),
+    action: T("Measure around your upper arm and choose the size that matches.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn.")
+  }),
+
+  ACCESS_SUPPORT_NEEDS: objective({
+    summary: T("Your care plan is already in place. We are checking what might make it harder.", "Su plan de cuidado ya está activo. Estamos viendo qué podría dificultarlo.", "Plan swen ou deja anplas. N ap gade sa ki ka fè l pi difisil."),
+    tone: "reassuring",
+    purpose: T(
+      "Your ACCESS care plan already exists. This asks whether anything could make it harder to follow, so we can add the right support.",
+      "Su plan de cuidado ACCESS ya existe. Esto pregunta si algo podría dificultar seguirlo, para agregar el apoyo adecuado.",
+      "Plan swen ACCESS ou deja egziste. Sa a mande si gen yon bagay ki ka fè l pi difisil pou swiv, pou nou ka ajoute bon sipò a."
+    ),
+    benefit: T(
+      "What you tell us here changes the support you get — reminders, help with your monitor, or a follow-up from your care team.",
+      "Lo que nos diga aquí cambia el apoyo que recibe: recordatorios, ayuda con su monitor o un seguimiento de su equipo.",
+      "Sa ou di nou isit la chanje sipò ou resevwa — rapèl, èd ak aparèy ou, oswa yon swivi nan men ekip swen ou."
+    ),
+    reassurance: T(
+      "Nothing here changes your goals or your medical instructions, and saying nothing is in the way is a complete answer.",
+      "Nada de esto cambia sus metas ni sus indicaciones médicas, y decir que nada le dificulta es una respuesta completa.",
+      "Anyen isit la pa chanje objektif ou oswa enstriksyon medikal ou, epi di anyen pa anpeche w se yon repons konplè."
+    ),
+    action: T("Choose anything that applies, or say nothing is in the way right now.", "Elija lo que corresponda, o diga que nada le dificulta ahora.", "Chwazi sa ki aplike, oswa di anyen pa anpeche w kounye a.")
+  }),
+
+  ACCESS_ONBOARDING_COMPLETE: objective({
+    summary: T("Your ACCESS care is active.", "Su cuidado ACCESS está activo.", "Swen ACCESS ou aktif."),
+    tone: "encouraging",
+    purpose: T(
+      "Everything is in place: your goals, your care plan, the monitor being arranged, and any support we added.",
+      "Todo está listo: sus metas, su plan de cuidado, el monitor que se está gestionando y el apoyo que agregamos.",
+      "Tout bagay anplas: objektif ou yo, plan swen ou, aparèy k ap prepare a, ak sipò nou ajoute."
+    ),
+    benefit: T(
+      "My Care is where you manage all of it from now on, and I stay available there whenever you have a question.",
+      "Mi cuidado es donde gestiona todo a partir de ahora, y yo sigo disponible allí cuando tenga una pregunta.",
+      "Swen mwen se kote ou jere tout bagay depi kounye a, epi mwen rete disponib la lè ou gen yon kesyon."
+    ),
+    reassurance: T(
+      "Your care plan was already active before this step. Nothing you did here created it.",
+      "Su plan de cuidado ya estaba activo antes de este paso. Nada de lo que hizo aquí lo creó.",
+      "Plan swen ou te deja aktif anvan etap sa a. Anyen ou fè isit la pa t kreye l."
+    ),
+    action: T("Go to My Care when you are ready.", "Vaya a Mi cuidado cuando esté listo.", "Ale nan Swen mwen lè ou pare.")
   }),
 
   RPM_DEVICE_PATH: objective({
@@ -751,7 +806,10 @@ function dynamicSentences(fields, runtime, locale) {
 
 export function buildNarration({ screen, locale = "EN", runtime = {} } = {}) {
   if (screen === "INVITATION") return buildHomeNarration({ locale, ...runtime });
-  const spec = NARRATIVE_OBJECTIVES[screen];
+  // Some screens are shared but not the same experience. GOALS is a chooser for CCM and an
+  // explanation of assigned goals for ACCESS, and EMMI describing the wrong one is worse than
+  // saying nothing. An ACCESS_-prefixed objective wins on that pathway.
+  const spec = (runtime?.program === "ACCESS" && NARRATIVE_OBJECTIVES[`ACCESS_${screen}`]) || NARRATIVE_OBJECTIVES[screen];
   if (!spec) return null;
   // ORIENT -> EXPLAIN/BENEFIT -> REASSURE -> ACTION, then any runtime detail worth saying.
   const segments = spokenSegments([

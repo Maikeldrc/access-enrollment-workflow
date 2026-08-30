@@ -1,4 +1,16 @@
+import { CARE_CIRCLE_MEMBERSHIP_STATUS, createCareCircleMembership, revokeCareCircleMembership, verifyCareCircleMembership } from "./careCircle.js";
+
+// PROTOTYPE BOUNDARY. Every record below lives in this browser's localStorage, which the person
+// sitting in front of it can read and rewrite. Nothing here is an authorization: a real deployment
+// must re-check membership, verification and every permission on a server before showing a
+// supporter anything. What this file provides is the shape that server would enforce, and a
+// faithful demonstration of the flow — not the enforcement itself.
 const CARE_CIRCLE_KEY = "itera.care-circle.prototype.v1";
+// The same fixed code the representative verification uses, for the same reason: there is no SMS
+// gateway in a prototype, and a random code nobody can receive would make the flow undemonstrable.
+const PROTOTYPE_OTP_CODE = "123456";
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
 const ACCESS_SHARE_KEY = "itera.access-share.prototype.v1";
 const GROWTH_PREFERENCES_KEY = "itera.growth.preferences.v1";
 export const GROWTH_PROMPT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -52,14 +64,74 @@ export class GrowthStore {
     invite.status = currentStatus(invite);
     return clone(invite);
   }
+  // Accepting is not joining. It records the answer and creates a membership that cannot do
+  // anything yet, then sends a code to the number the patient named. Opening a link proves someone
+  // opened a link; only the code is evidence they hold that phone.
   acceptSupportInvite(token) {
     const data = this.readCareCircle();
     const invite = data.invites.find(item => item.token === token);
     if (!invite) return { status: "NOT_FOUND" };
     if (invite.canceledAt || invite.revokedAt || invite.removedAt) return { status: "CANCELED" };
     if (new Date(invite.expiresAt).getTime() < Date.now()) { invite.status = "EXPIRED"; this.writeCareCircle(data); return clone(invite); }
-    invite.status = "ACCEPTED"; invite.openedAt ||= new Date().toISOString(); invite.acceptedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    invite.status = "ACCEPTED"; invite.openedAt ||= now; invite.acceptedAt = now;
+    invite.membership ||= createCareCircleMembership({
+      patientId: invite.inviterPatientId, supporterId: invite.inviteId,
+      relationship: invite.supportPerson?.relationship || "", invitationId: invite.inviteId, invitedBy: "PATIENT", acceptedAt: now
+    });
+    this.issueOtp(invite);
     this.writeCareCircle(data); return clone(invite);
+  }
+
+  declineSupportInvite(token) {
+    const data = this.readCareCircle();
+    const invite = data.invites.find(item => item.token === token);
+    if (!invite) return { status: "NOT_FOUND" };
+    invite.status = "DECLINED"; invite.declinedAt = new Date().toISOString();
+    // A declined invitation has no membership to leave behind.
+    delete invite.membership; delete invite.otp;
+    this.writeCareCircle(data); return clone(invite);
+  }
+
+  issueOtp(invite) {
+    const now = Date.now();
+    if (invite.otp && now - new Date(invite.otp.sentAt).getTime() < RESEND_COOLDOWN_MS) return invite.otp;
+    invite.otp = { deliveryId: randomId("OTP"), code: PROTOTYPE_OTP_CODE, sentAt: new Date(now).toISOString(), expiresAt: new Date(now + OTP_TTL_MS).toISOString(), attempts: 0 };
+    return invite.otp;
+  }
+
+  resendSupportOtp(token) {
+    const data = this.readCareCircle();
+    const invite = data.invites.find(item => item.token === token);
+    if (!invite || invite.status !== "ACCEPTED") return { sent: false, reason: "not_acceptable" };
+    const before = invite.otp?.deliveryId;
+    const otp = this.issueOtp(invite);
+    this.writeCareCircle(data);
+    return { sent: otp.deliveryId !== before, deliveryId: otp.deliveryId };
+  }
+
+  // The only thing that activates a membership. It refuses an expired code, counts attempts, and
+  // never widens permissions: proving you hold a phone says nothing about what was shared with you.
+  verifySupportOtp(token, code) {
+    const data = this.readCareCircle();
+    const invite = data.invites.find(item => item.token === token);
+    if (!invite?.otp || !invite.membership) return { verified: false, reason: "not_found" };
+    if (new Date(invite.otp.expiresAt).getTime() < Date.now()) return { verified: false, reason: "expired" };
+    if (invite.otp.attempts >= OTP_MAX_ATTEMPTS) return { verified: false, reason: "locked" };
+    if (String(code || "").trim() !== invite.otp.code) {
+      invite.otp.attempts += 1; this.writeCareCircle(data);
+      return { verified: false, reason: "mismatch", attemptsRemaining: Math.max(0, OTP_MAX_ATTEMPTS - invite.otp.attempts) };
+    }
+    invite.membership = verifyCareCircleMembership(invite.membership);
+    invite.phoneVerifiedAt = invite.membership.verifiedAt;
+    delete invite.otp;
+    this.writeCareCircle(data);
+    return { verified: true, membership: clone(invite.membership) };
+  }
+
+  supportMembership(token) {
+    const invite = this.readCareCircle().invites.find(item => item.token === token);
+    return invite?.membership ? clone(invite.membership) : null;
   }
 
   updateSupportInvite(inviteId, updates) {
@@ -89,9 +161,28 @@ export class GrowthStore {
     return clone(invite);
   }
 
+  // Removing someone revokes the membership as well as closing the invitation. Leaving an ACTIVE
+  // membership attached to a "removed" invitation is exactly the stale grant a supporter's next
+  // request would be checked against.
   removeCareCircleMember(inviteId) {
     const removedAt = new Date().toISOString();
+    const data = this.readCareCircle();
+    const invite = data.invites.find(item => item.inviteId === inviteId);
+    if (invite?.membership) { invite.membership = revokeCareCircleMembership(invite.membership, { revokedAt: removedAt }); this.writeCareCircle(data); }
     return this.updateSupportInvite(inviteId, { status: "CANCELED", removedAt });
+  }
+
+  // Patient-facing status. ACCEPTED is not ACTIVE: the supporter answered, but until the code comes
+  // back the patient should see that it is still waiting rather than that somebody has access.
+  careCircleMemberStatus(invite) {
+    if (!invite) return "EXPIRED";
+    // Derived, not stored: the record keeps its existing CANCELED contract, and the difference
+    // between an invitation the patient cancelled and a member they removed is the removedAt stamp
+    // the record already carried.
+    if (invite.removedAt) return "REMOVED";
+    const status = currentStatus(invite);
+    if (status !== "ACCEPTED") return status;
+    return invite.membership?.status === CARE_CIRCLE_MEMBERSHIP_STATUS.ACTIVE ? "ACTIVE" : "PENDING_VERIFICATION";
   }
 
   createAccessShare({ channel, origin }) {

@@ -44,12 +44,15 @@ describe("the canonical patient invitation", () => {
     for (const program of ["CCM", "RPM", "PCM", "APCM", "ASM", "BHI", "CoCM", "RTM"]) expect(patientFacingCopy).not.toContain(program);
   });
 
-  it("keeps the connected blood pressure monitor inside the ACCESS pathway", () => {
+  // Blood pressure monitoring is part of this patient's care; the monitor itself is not theirs yet.
+  // Those are different facts, and care activation depends on the second one: arranging the monitor
+  // is the first tangible thing ACCESS does, so the invitation must not start out already owning one.
+  it("keeps blood pressure monitoring in the pathway while the patient still has no monitor", () => {
     expect(scenarioUsesBloodPressureMonitoring(CANONICAL_PATIENT_SCENARIO)).toBe(true);
     const offer = createPrototypeOffer(CANONICAL_PATIENT_SCENARIO);
-    expect(offer.fixture.deviceSource).toBe("ITERA_ASSIGNED");
-    expect(offer.fixture.integrationStatus).toBe("CONNECTED");
     expect(offer.onboardingModules).toContain("blood-pressure");
+    expect(offer.fixture.deviceSource).toBe("NONE");
+    expect(offer.fixture.integrationStatus).not.toBe("CONNECTED");
   });
 
   // The demo medications live in runtime state, not in the offer, so agreeing with the offer's

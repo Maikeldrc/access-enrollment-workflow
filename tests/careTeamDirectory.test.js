@@ -121,15 +121,23 @@ describe("building the care team", () => {
     });
   });
 
-  it("includes the ITERA care team from the program record", () => {
+  // The care manager is a person the patient can ask for by name. The organization stays on the
+  // card as the practice behind them rather than standing in for a human being.
+  it("names the care manager and keeps the program as the practice behind them", () => {
     const team = buildCareTeam({ offer: fixtureOffer, medications: [], locale: "es" });
-    expect(find(team, "itera")).toMatchObject({
-      displayName: "ITERA HEALTH",
+    expect(find(team, "itera-care-manager")).toMatchObject({
+      displayName: "Alicia Ramírez, RN",
+      practiceName: "ITERA HEALTH",
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
       source: CARE_TEAM_SOURCES.PROGRAM,
-      verified: true
+      // The prototype's default care manager is not a record, so it does not wear the badge.
+      // "Verified" beside an invented person certifies somebody who does not exist.
+      verified: false
     });
-    expect(buildCareTeam({ offer: { participantProvider: { id: "itera" } }, locale: "ht" })[0].displayName).toBe("Ekip ITERA ou");
+    // A real assignment on the offer replaces the prototype default, and that one is verified.
+    const assigned = buildCareTeam({ offer: { ...fixtureOffer, careManager: { id: "cm-7", name: "Bernard Toussaint", credential: "LCSW" } }, locale: "en" });
+    expect(find(assigned, "cm-7")).toMatchObject({ displayName: "Bernard Toussaint, LCSW", verified: true });
+    expect(buildCareTeam({ offer: { participantProvider: { id: "itera" } }, locale: "ht" })[0].practiceName).toBe("Ekip ITERA ou");
   });
 
   it("returns nothing rather than a placeholder when there is nothing to show", () => {
@@ -175,7 +183,7 @@ describe("resolving who the patient means", () => {
   it("resolves from a specialty or a professional type given directly", () => {
     expect(resolveRequestedProfessional(withCardiologist, { specialty: "Cardiology" }).match.id).toBe("dr-martinez-cardiology");
     expect(resolveRequestedProfessional(withCardiologist, { professionalType: PROFESSIONAL_TYPES.PHARMACIST }).match.id).toBe("pharm-cvs");
-    expect(resolveRequestedProfessional(withCardiologist, { professionalType: PROFESSIONAL_TYPES.CARE_MANAGER }).match.id).toBe("itera");
+    expect(resolveRequestedProfessional(withCardiologist, { professionalType: PROFESSIONAL_TYPES.CARE_MANAGER }).match.id).toBe("itera-care-manager");
   });
 
   it("hands the choice back to the patient when more than one person fits", () => {
