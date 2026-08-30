@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { openEmmiConversation, revealFloatingEmmi } from "./emmiSurfaces.js";
 
-async function openOwnedBpVerification(page, scenario = "access-bp-incompatible") {
+async function openOwnedBpVerification(page, scenario = "access-bp-assigned") {
   await page.goto(`/?scenario=${scenario}`);
   // No monitor question exists any more: a record holding a device routes straight to verification.
   await page.locator("#screen-select").selectOption("ACCESS_BP_DEVICE_VERIFICATION", { force: true });

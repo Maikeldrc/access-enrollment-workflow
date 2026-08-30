@@ -31,6 +31,10 @@ export const SCENARIOS = {
   "access-happy": { label: "ACCESS · eligible", pathway: "ACCESS", accessOutcome: "eligible" },
   "access-bp-incompatible": { label: "ACCESS · patient-owned BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "patient-owned-unsupported", bpDeviceAssignment: "patient-owned" },
   "access-bp-none": { label: "ACCESS · no BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "none", bpDeviceAssignment: "none" },
+  // A patient whose record already holds a working ITERA monitor. The journey reads the record to
+  // choose the device path, so the verification branch needs a scenario that actually has one —
+  // access-happy is the canonical patient, who has none.
+  "access-bp-assigned": { label: "ACCESS · assigned ITERA monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" },
   "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceLookupFailure: true },
   "access-bp-pylo": { label: "ACCESS · Pylo monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceVendor: "PYLO" },
   "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpReadingFailureAt: 1 },
