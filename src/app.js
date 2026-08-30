@@ -4839,7 +4839,12 @@ function accessCarePlanReady() {
 function accessSupportNeeds() {
   const goals = activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType));
   const groups = goals.map(goal => {
-    const options = barrierOptionsFor({ goal, hasDevice: barrierCapabilities().hasDevice, hasMedications: Boolean((state.careMedications || []).length), locale: state.language })
+    // A goal that was just assigned has no actions yet — those arrive when a plan is personalized —
+    // and barrierOptionsFor reads action templates to decide what to offer. Without the goal's own
+    // suggested actions standing in, the weight goal offered nothing about eating, moving or
+    // weighing, which is most of what makes that goal hard.
+    const withActions = (goal.actions || []).length ? goal : { ...goal, actions: suggestedActionsFor(goal.goalType).map(action => ({ templateId: action.id })) };
+    const options = barrierOptionsFor({ goal: withActions, hasDevice: barrierCapabilities().hasDevice, hasMedications: Boolean((state.careMedications || []).length), locale: state.language })
       .filter(option => option.category !== "OTHER");
     const name = escapeHtml(localGoalText(GOAL_CONFIG[goal.goalType].displayName, state.language));
     const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}"><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
