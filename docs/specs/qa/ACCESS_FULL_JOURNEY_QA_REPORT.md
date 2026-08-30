@@ -166,29 +166,27 @@ with no account of the option the patient may have been told to look for.
 
 ## Not yet audited
 
-Stated plainly, because a certification cannot be issued over them:
+Closed since this was written, and how:
 
-- **Home through Consent** — the pre-enrollment half of §3 has not been re-audited in this branch.
-- **EMMI on every new screen.** It has no narrative entry for the device screen, does not know the
-  assigned goals, the selected barriers or the active interventions, and cannot explain the
-  difference between the improvement milestone and the control target. §91 lists incorrect EMMI
-  context as a release blocker, so this alone prevents a READY verdict.
-- **The full clean run of §89** — every result above was reached by seeding state, not by walking
-  from Home through the real UI.
-- **Responsive and font scaling** — spot-checked at 384px with no horizontal overflow on the screens
-  built here; the 7 widths × 3 scales matrix has not been run.
-- **Accessibility** — touch targets and semantics were designed for and checked in places, not
-  audited.
-- **e2e** — a full run against `8dec649` finished at **396 passed / 49 failed / 5 skipped**.
-  Forty-four of the forty-nine are in `enrollment.spec.js`, concentrated in the ACCESS device and
-  baseline block that this refactor rewrote. Seven of those tested features deliberately removed —
-  the arm restriction questions and the health check screens — and have been deleted rather than
-  rewritten: a test for a feature that no longer exists is not coverage. The rest need rewriting to
-  the new flow and are in progress.
+- **Home through Consent** — audited and kept as `e2e/preconsent-integrity.spec.js`: seven screens
+  at two widths and two text sizes, no overflow, nothing clipped, no touch target under 44px, every
+  field labelled, no English in the Spanish or Creole screens, nothing claiming enrollment before
+  consent, no checkbox pre-agreed, nothing visible taken out of the tab order.
+- **EMMI on every new screen** — narrative entries, the assigned goals, the selected barriers and
+  the difference between the control target and the improvement milestone all landed earlier. The
+  last of it was two screens with no objective at all, where `buildNarration` returned null and EMMI
+  simply went quiet: the delivery address and the request confirmation.
+- **The full clean run** — `e2e/golden-journey.spec.js` walks from the invitation to My Care through
+  the real interface with nothing seeded.
+- **Responsive and font scaling** — `e2e/care-activation-responsive.spec.js` runs the seven widths
+  against three text scales.
+- **e2e** — **459 passing, 0 failing, 5 skipped**, from 396 passing and 49 failing when this was
+  written. Unit: 995 passing across 47 files.
 
-  Two earlier numbers I reported were wrong and are corrected here. The first run appeared to pass
-  because `EXIT=$?` after a pipeline reads the exit code of `tail`, not of Playwright. A later
-  targeted run showed 52 failures including most of `emmi-guidance.spec.js`; those did not
-  reproduce — the run had started before the helper fixes, and running three heavy spec files
-  together contends for one dev server, which is the failure mode `playwright.config.js` already
-  documents.
+Still open, and a certification cannot be issued over them:
+
+- **Accessibility beyond the structural checks.** Touch targets, labels, tab order, reduced motion
+  and heading structure are now asserted. Nothing has been tested with a screen reader, and that is
+  what "audited" should mean.
+- **Voice.** Handed to the session with a microphone; see `VOICE_HANDOFF.md`. Its blocker — speaking
+  producing no patient transcript — is unaddressed, and everything behind it is uncertified.
