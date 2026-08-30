@@ -845,7 +845,11 @@ p { margin:0; }
 @keyframes emmi-guide-pulse { 50% { opacity:.55; } }
 @keyframes emmi-audio-wave { to { transform:scaleY(.45);opacity:.55; } }
 .emmi-assistant .emmi-audio-activity { margin-left:0; }
-@media (prefers-reduced-motion:reduce) {}
+/* The speaking cue is decoration: three bars moving to say EMMI has the floor. The global
+   reduced-motion rule shortens every animation to nothing perceptible, which is right for a
+   transition but leaves this one still declared and still running its cycle. A patient who asked
+   for no motion gets none: the bars stand still and keep their heights, so the cue still reads. */
+@media (prefers-reduced-motion:reduce) { .emmi-audio-activity b { animation:none; } }
 
 /* Secondary voice actions live in one senior-friendly bottom sheet. Opening it changes only
    presentation; the existing EMMI session, state machine and conversation stay untouched. */

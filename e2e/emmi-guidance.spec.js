@@ -622,7 +622,9 @@ test("floating EMMI follows the shell when the window is resized", async ({ page
 test("Talk with my care team takes the patient to the human support options", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
   await page.goto("/?scenario=access-happy");
-  await page.locator("#screen-select").selectOption("ACCESS_MEASURE", { force: true });
+  // The health-check screen this used to open on is gone; the device request is where the patient
+  // now stands at the same point in the flow, and wanting a person is screen-independent anyway.
+  await page.locator("#screen-select").selectOption("ACCESS_BP_DEVICE_INFO", { force: true });
   await openEmmiConversation(page);
 
   const support = page.locator(".assistant-human-support");

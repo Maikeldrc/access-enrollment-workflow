@@ -861,7 +861,7 @@ function assistantContext() {
     // A patient and a representative are agreeing to different things on the consent screen, so the
     // guardrail that explains what is being signed needs to know which one is asking.
     completedByRepresentative: isPersonalRepresentative(),
-    careTeam: patientCareTeam(),
+    careTeam: patientCareTeam().map(member => ({ ...member, roleLabel: careTeamRoleLabel(member) })),
     supportPersonName: state.supportPersonName || null,
     supportInviteStatus: state.supportInviteStatus,
     deviceScenario,
@@ -4052,7 +4052,7 @@ function appointmentSchedulingScreen() {
     appointment: record,
     draft: state.appointmentDraft,
     step: flow.step || "PROVIDER",
-    careTeam: patientCareTeam(),
+    careTeam: patientCareTeam().map(member => ({ ...member, roleLabel: careTeamRoleLabel(member) })),
     capability,
     supportedModalities: capability.supportedModalities,
     submittable: draftIsSubmittable(state.appointmentDraft || createAppointmentDraft({ needId: record.id }))
