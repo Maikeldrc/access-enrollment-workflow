@@ -4045,6 +4045,23 @@ const frequencyLabel = value => ({
   "care-team-plan": L("Follow my care team’s plan", "Seguir el plan de mi equipo", "Swiv plan ekip swen mwen")
 })[value] || L("As needed", "Según sea necesario", "Lè sa nesesè");
 
+// The assigned goals become the patient's own records the moment they move past the screen that
+// showed them. Without this My Goals is empty for an ACCESS patient — they were never asked to
+// choose, so nothing ever created them — and the care plan would describe goals the rest of the
+// product had never heard of. Idempotent: passing through twice adds nothing.
+function ensureAssignedAccessGoals() {
+  const now = new Date().toISOString();
+  const existing = state.patientGoals || [];
+  const added = assignedAccessGoals(state.offer)
+    .filter(type => !existing.some(goal => goal.goalType === type && goal.status !== "REMOVED"))
+    // selectedBy is PATHWAY, not PATIENT. The patient did not pick these and the record should not
+    // claim they did.
+    .map(type => ({ ...createPatientGoal({ type, patientId: state.offer?.patient?.id || "", now, goalSource: "PATHWAY" }), selectedBy: "PATHWAY" }));
+  if (!added.length) return;
+  state.patientGoals = [...existing, ...added];
+  audit(state, "access_goals_assigned", "success", { goalTypes: added.map(goal => goal.goalType) });
+}
+
 function syncPatientGoalsFromDiscovery(selectedLegacy, customTitle = "") {
   const now = new Date().toISOString();
   const selectedTypes = selectedLegacy.map(value => LEGACY_GOAL_TYPES[value]).filter(Boolean);
@@ -5816,7 +5833,15 @@ async function advance() {
     draftStore.save(state); render(); return;
   }
   // GOALS uses its own multi-step actions so discovery, priority and planning remain auditable.
-  if (state.screen === "GOALS") return;
+  // ACCESS has no discovery: the goals are assigned, the screen has a single action, and that
+  // action belongs here. Without this branch the early return below swallowed it and the primary
+  // button did nothing at all.
+  if (state.screen === "GOALS") {
+    if (state.offer?.pathway !== "ACCESS") return;
+    ensureAssignedAccessGoals();
+    state.screen = nextScreen(state);
+    draftStore.save(state); render(); return;
+  }
   if (state.screen === "RPM_DEVICE_PATH") { state.devicePath = new FormData(document.querySelector("form")).get("choice"); if (state.devicePath === "help" || !state.devicePath) { showHelp(); return; } }
   if (state.screen === "RPM_ADDRESS_CONFIRMATION") state.addressConfirmed = true;
   if (state.screen === "RPM_DEVICE_SETUP") state.setupComplete = true;

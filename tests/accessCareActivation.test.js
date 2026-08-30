@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { GOAL_CONFIG, createPatientGoal } from "../src/goals.js";
 import { ACCESS_OUTCOME_TARGETS, accessOutcomeStatus, accessProgressMeasure, assignedAccessGoals, isAssignedAccessGoal, patientNeedsConnectedMonitor, patientStartingPoint } from "../src/accessCareActivation.js";
 
 const hypertensionOffer = { pathway: "ACCESS", accessTrack: "eCKM", qualifyingConditions: [{ name: "Hypertension" }] };
@@ -106,5 +107,19 @@ describe("the connected monitor", () => {
   it("says the canonical patient needs one, and does not say so for a patient who has one", () => {
     expect(patientNeedsConnectedMonitor({ bpDeviceScenario: "none" })).toBe(true);
     expect(patientNeedsConnectedMonitor({ bpDeviceScenario: "itera-tenovi" })).toBe(false);
+  });
+});
+
+describe("assigned goals become real patient records", () => {
+  // My Goals, the care plan and the goal detail all read patient goal records. An assigned type
+  // missing from GOAL_CONFIG does not throw — createPatientGoal quietly falls back to CUSTOM, and
+  // the patient ends up with "My personal goal" where their blood pressure goal should be.
+  it("every assigned type exists in the goal catalogue", () => {
+    for (const goalType of assignedAccessGoals(hypertensionOffer)) {
+      expect(GOAL_CONFIG[goalType], `${goalType} is assigned but missing from GOAL_CONFIG`).toBeDefined();
+      const record = createPatientGoal({ type: goalType, patientId: "p1" });
+      expect(record.goalType).toBe(goalType);
+      expect(record.goalSource).toBe("PATHWAY");
+    }
   });
 });
