@@ -121,6 +121,21 @@ Spanish carries the subject in the verb, so the pronoun the marker list waited f
 the router only ever asks for `program`, so it could not earn its category score; and `billing`,
 where the authoritative expected-payment page lives, was mapped to no intent at all.
 
+**ACCESS had lost its Share ACCESS moment.** Care activation ends ACCESS on its own care plan rather
+than the generic completion screen, and the share prompt did not come across with it — so the one
+pathway the share is about was the one that no longer offered it. This was mine, from the care
+activation refactor, and it is why the growth suite was failing.
+
+## Suite
+
+Unit: 893 passing, 46 files, none failing.
+
+End to end: 409 passing, 38 failing, against a baseline of 396 passing and 49 failing before this
+work. Every remaining failure is one of two known groups — the enrollment spec still pointing at the
+health-check screens that care activation replaced, and the Care Circle supporter landing page,
+which was deferred and has never been built. Neither is new, and nothing that passed before this
+work fails after it.
+
 ## Not validated
 
 Honest gaps, not passes.
@@ -137,6 +152,27 @@ assembly in the streaming path rather than anything deterministic).
 
 EMMI-LIVE-005 — the 911 answer the report found improved — was not changed this iteration and was
 not re-checked.
+
+### A lead on EMMI-LIVE-002, for whoever has the microphone
+
+I could not reproduce the orphan fragments, but there is one mechanism in the transcript assembly
+that would produce exactly the reported symptom, and it is worth checking first.
+
+In `src/app.js`, `onTranscript` joins a new transcript chunk onto the previous message only while
+`!last.voiceComplete`. `onTurnComplete` sets that flag as soon as the provider reports the turn done
+and the audio has drained. A transcript delta that arrives after those two — which is ordinary,
+because a provider's final transcript commonly lags its audio — therefore cannot join its own
+message and is pushed as a new one. That is an orphan tail such as "comunicarse con su equipo",
+and it also matches the report's note that an answer "appeared as a partial fragment and only
+completed several seconds later".
+
+If that is confirmed, the fix is to let `generationId` decide the identity of a turn rather than the
+completion flag: a chunk carrying the same generation belongs to that message whether or not the
+turn was marked complete, falling back to the current rule when no generation id is present.
+
+**I deliberately did not make that change.** It is unverifiable without the live path, and an
+unverified edit to voice assembly would leave the next QA pass unable to tell whether a change in
+behaviour came from their fixes or from mine.
 
 ## Coverage added
 
