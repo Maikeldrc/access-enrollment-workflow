@@ -218,6 +218,45 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
+  it("answers a general question about a scheduled visit with its recorded purpose and asks for the patient's concern", async () => {
+    const appointmentPrep = {
+      appointmentId: "APPT-1",
+      providerDisplayName: "Dr. Fresner Lee",
+      status: "CONFIRMED",
+      reasonCategory: "ROUTINE_FOLLOW_UP",
+      reasonSummary: "",
+      topics: [],
+      medications: []
+    };
+    const { orchestrator, executeTool } = harness({ locale: "ES", appointmentPrep });
+
+    const answer = await orchestrator.answer("Tengo una pregunta sobre mi cita con Dr. Fresner Lee.");
+
+    expect(answer.text).toMatch(/seguimiento de rutina/i);
+    expect(answer.text).toMatch(/principal duda o preocupación/i);
+    expect(answer.text).not.toMatch(/No tengo suficiente información aprobada/i);
+    expect(answer.trace.intent).toBe("APPOINTMENT_PREPARATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("explains only the appointment purpose on file and does not invent one when it is absent", () => {
+    const grounded = appointmentPrepConversationResponse({
+      question: "¿Cuál es el objetivo de mi cita?",
+      locale: "ES",
+      appointmentPrep: { providerDisplayName: "Dr. Fresner Lee", reasonCategory: "BLOOD_PRESSURE_FOLLOW_UP", topics: [] }
+    });
+    expect(grounded.text).toMatch(/seguimiento a la presión arterial/i);
+    expect(grounded.text).toMatch(/duda o preocupación/i);
+
+    const unspecified = appointmentPrepConversationResponse({
+      question: "¿Para qué es mi cita?",
+      locale: "ES",
+      appointmentPrep: { providerDisplayName: "Dr. Fresner Lee", reasonCategory: "OTHER", reasonSummary: "", topics: [] }
+    });
+    expect(unspecified.text).toMatch(/no indica un objetivo más específico/i);
+    expect(unspecified.text).not.toMatch(/rutina|presión arterial|medicamento/i);
+  });
+
   it("continues a saved appointment topic and turns the patient's detail into an agenda note", () => {
     const appointmentPrep = { providerDisplayName: "Dr. Fresner Lee", topics: ["Presión alta", "fatiga"], medications: [] };
     const selected = appointmentPrepConversationResponse({ question: "fatiga", locale: "ES", appointmentPrep });

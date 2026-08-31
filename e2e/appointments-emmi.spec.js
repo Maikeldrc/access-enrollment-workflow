@@ -160,6 +160,22 @@ test("when is my appointment is answered from the record, with the provider the 
   await expect(answer).not.toContainText(/Martinez|Cardiolog/i);
 });
 
+test("asking EMMI from a scheduled appointment explains its purpose and asks what concerns the patient", async ({ page }) => {
+  await openAppointments(page, {
+    language: "es",
+    appointments: [appointment({ providerDisplayName: "Dr. Fresner Lee", reasonCategory: "ROUTINE_FOLLOW_UP" })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await expect(page.locator(".appointment-detail-screen")).toBeVisible();
+  await page.locator('[data-action="appointment-ask-emmi"]').first().click();
+
+  const panel = page.locator(".assistant-layer");
+  const answer = panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(answer).toContainText(/seguimiento de rutina/i, { timeout: 25000 });
+  await expect(answer).toContainText(/principal duda o preocupación/i);
+  await expect(answer).not.toContainText(/No tengo suficiente información aprobada/i);
+});
+
 test("a patient with no appointment is told so, and is never told about one", async ({ page }) => {
   await openAppointments(page, { appointments: [] });
   const answer = await tellEmmi(page, "When is my next appointment?");

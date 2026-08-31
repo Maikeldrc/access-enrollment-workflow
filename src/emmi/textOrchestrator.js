@@ -61,6 +61,7 @@ const APPOINTMENT_PREP_FOLLOW_UP = /^(what|how|why|can|could|is|are|does|do|tell
 const APPOINTMENT_PREP_TREND = /trend|this week|recently|changed|going|how (have|are|is)|tendencia|esta semana|[uú]ltimamente|cambiado|c[oó]mo (han|ha|va)|tandans|sem[eè]n|d[eè]ny[eè]man|chanje|kijan/i;
 const APPOINTMENT_PREP_DONE = /^(solo eso|eso es todo|nada m[aá]s|no m[aá]s|solamente eso|that'?s all|that is all|just that|nothing else|i'?m done|se tout|sa s[eè]lman|pa gen anyen ank[oò])[.! ]*$/i;
 const APPOINTMENT_PREP_CONTINUE = /pregunta sobre (mi|la) cita|ay[uú]dame a preparar|seguir preparando|preparar (mi|la) cita|question about my appointment|help me prepare|continue preparing|prepare for my appointment|kesyon sou randevou|ede m prepare|kontinye prepare/i;
+const APPOINTMENT_PURPOSE_QUESTION = /(?:why|what).*(?:appointment|visit).*(?:for|about)|purpose of (?:my|the) (?:appointment|visit)|why (?:do i have|was).*appointment|por qu[eé].*(?:cita|consulta|visita)|para qu[eé] es (?:mi|la) cita|(?:objetivo|motivo) de (?:mi|la) cita|poukisa.*(?:randevou|vizit)|(?:objektif|rezon).*(?:randevou|vizit)/i;
 const APPOINTMENT_PREP_QUESTION = /\?$|^(what|why|how|when|where|who|can|could|is|are|does|do|qu[eé]|por qu[eé]|c[oó]mo|cu[aá]ndo|d[oó]nde|qui[eé]n|puede|es|son|kisa|poukisa|kijan|kil[eè]|ki kote|eske|[eè]ske)\b/i;
 
 // Resolve the patient's active subject from their saved prep list and their own recent turns. An
@@ -92,6 +93,87 @@ const appointmentPrepSummary = (appointmentPrep, locale) => {
   return parts.join(", ");
 };
 
+const APPOINTMENT_PURPOSES = Object.freeze({
+  MEDICATION_RENEWAL: {
+    EN: "renewing a medication and reviewing any related questions with the clinician",
+    ES: "renovar un medicamento y revisar con el profesional cualquier pregunta relacionada",
+    KR: "renouvle yon medikaman epi revize nenpòt kesyon ki gen rapò ak pwofesyonèl klinik la"
+  },
+  MEDICATION_CONCERN: {
+    EN: "reviewing a medication concern with the clinician",
+    ES: "revisar con el profesional una preocupación sobre un medicamento",
+    KR: "revize yon enkyetid sou yon medikaman ak pwofesyonèl klinik la"
+  },
+  BLOOD_PRESSURE_FOLLOW_UP: {
+    EN: "following up on blood pressure, including the readings and concerns you want the clinician to review",
+    ES: "dar seguimiento a la presión arterial, incluidas las lecturas y preocupaciones que quiere revisar con el profesional",
+    KR: "fè swivi tansyon, ansanm ak mezi ak enkyetid ou vle revize ak pwofesyonèl klinik la"
+  },
+  SYMPTOM_REVIEW: {
+    EN: "discussing something you have been feeling so the clinician can review it with you",
+    ES: "conversar sobre algo que ha estado sintiendo para que el profesional pueda revisarlo con usted",
+    KR: "pale sou yon bagay ou santi pou pwofesyonèl klinik la ka revize li avèk ou"
+  },
+  DEVICE_SUPPORT: {
+    EN: "reviewing a question or difficulty with your health device",
+    ES: "revisar una pregunta o dificultad con su dispositivo de salud",
+    KR: "revize yon kesyon oswa difikilte ak aparèy sante ou"
+  },
+  LAB_OR_TEST: {
+    EN: "reviewing a lab or test and the questions you want to discuss",
+    ES: "revisar un laboratorio o una prueba y las preguntas que quiere conversar",
+    KR: "revize yon laboratwa oswa tès ak kesyon ou vle pale sou yo"
+  },
+  ROUTINE_FOLLOW_UP: {
+    EN: "a routine follow-up: a chance to review how things are going and the questions or concerns you want to discuss",
+    ES: "un seguimiento de rutina: una oportunidad para revisar cómo van las cosas y las preguntas o preocupaciones que quiere conversar",
+    KR: "yon swivi abityèl: yon okazyon pou revize kijan bagay yo ye ak kesyon oswa enkyetid ou vle pale sou yo"
+  },
+  NEW_CONCERN: {
+    EN: "reviewing a new concern with the clinician",
+    ES: "revisar una nueva preocupación con el profesional",
+    KR: "revize yon nouvo enkyetid ak pwofesyonèl klinik la"
+  },
+  CARE_PLAN_REVIEW: {
+    EN: "reviewing your care plan and the questions or changes you want to discuss",
+    ES: "revisar su plan de cuidado y las preguntas o cambios que quiere conversar",
+    KR: "revize plan swen ou ak kesyon oswa chanjman ou vle pale sou yo"
+  }
+});
+
+const appointmentPurpose = (appointmentPrep, locale) => {
+  const category = clean(appointmentPrep?.reasonCategory);
+  if (APPOINTMENT_PURPOSES[category]) return pick(locale, APPOINTMENT_PURPOSES[category]);
+  const patientReason = clean(appointmentPrep?.reasonSummary);
+  if (patientReason) return pick(locale, {
+    EN: `the reason recorded in your words: “${patientReason}”`,
+    ES: `el motivo registrado con sus palabras: “${patientReason}”`,
+    KR: `rezon ki anrejistre nan pwòp mo ou: “${patientReason}”`
+  });
+  return "";
+};
+
+const appointmentConcernOpening = (appointmentPrep, locale) => {
+  const provider = clean(appointmentPrep?.providerDisplayName) || pick(locale, { EN: "your clinician", ES: "su profesional clínico", KR: "pwofesyonèl klinik ou" });
+  const purpose = appointmentPurpose(appointmentPrep, locale);
+  const agenda = appointmentPrepSummary(appointmentPrep, locale);
+  const agendaSentence = agenda ? pick(locale, {
+    EN: ` Your visit list already includes ${agenda}.`,
+    ES: ` Su lista para la cita ya incluye ${agenda}.`,
+    KR: ` Lis vizit ou deja gen ${agenda}.`
+  }) : "";
+  if (purpose) return pick(locale, {
+    EN: `Of course. Your appointment with ${provider} is recorded for ${purpose}.${agendaSentence} I can help you understand that purpose and organize what you want to ask. What is your main question or concern about this visit?`,
+    ES: `Claro. Su cita con ${provider} está registrada para ${purpose}.${agendaSentence} Puedo ayudarle a entender ese objetivo y a organizar lo que quiere preguntar. ¿Cuál es su principal duda o preocupación sobre esta cita?`,
+    KR: `Byen antandi. Randevou ou ak ${provider} anrejistre pou ${purpose}.${agendaSentence} Mwen ka ede w konprann objektif sa a epi òganize sa ou vle mande. Ki kesyon oswa enkyetid prensipal ou genyen sou randevou sa a?`
+  });
+  return pick(locale, {
+    EN: `Of course. I can see your appointment with ${provider}, but the record does not state a more specific purpose.${agendaSentence} Tell me what concerns you or what you want to understand, and I’ll help you prepare it for the visit.`,
+    ES: `Claro. Puedo ver su cita con ${provider}, pero el registro no indica un objetivo más específico.${agendaSentence} Dígame qué le preocupa o qué quiere entender y le ayudaré a prepararlo para la consulta.`,
+    KR: `Byen antandi. Mwen ka wè randevou ou ak ${provider}, men dosye a pa bay yon objektif ki pi presi.${agendaSentence} Di m sa k ap enkyete w oswa sa ou vle konprann, epi m ap ede w prepare li pou vizit la.`
+  });
+};
+
 // Visit preparation is a small conversation with durable state, not a general knowledge search.
 // This resolver handles only turns that clearly belong to that conversation. Safety, medication
 // changes and appointment actions are still routed before it by answer().
@@ -113,6 +195,11 @@ export const appointmentPrepConversationResponse = ({ question, locale = "EN", a
   const remaining = topics.filter(topic => !reviewedTopics.some(reviewed => topicKey(reviewed) === topicKey(topic)) && !isMedicationTopic(topic));
   const summary = appointmentPrepSummary(appointmentPrep, locale) || pick(locale, { EN: "the items on your visit list", ES: "los elementos de su lista para la cita", KR: "bagay ki nan lis vizit ou" });
   const completed = APPOINTMENT_PREP_DONE.test(asked);
+
+  if (APPOINTMENT_PREP_CONTINUE.test(asked) || APPOINTMENT_PURPOSE_QUESTION.test(asked)) return {
+    text: appointmentConcernOpening(appointmentPrep, locale),
+    update: { ...preparation, status: "IN_PROGRESS", currentTopic: "", reviewedTopics, notesByTopic, updatedAt: new Date().toISOString() }
+  };
 
   if (completed) return {
     text: pick(locale, {
@@ -145,13 +232,6 @@ export const appointmentPrepConversationResponse = ({ question, locale = "EN", a
       update: { ...preparation, status: "IN_PROGRESS", currentTopic: nextTopic || "", reviewedTopics: nextReviewed, notesByTopic, updatedAt: new Date().toISOString() }
     };
   }
-
-  if (APPOINTMENT_PREP_CONTINUE.test(asked)) return {
-    text: remaining.length
-      ? pick(locale, { EN: `Of course. Your visit list has ${summary}. Which item would you like to prepare first?`, ES: `Claro. Su lista para la cita incluye ${summary}. ¿Qué punto le gustaría preparar primero?`, KR: `Byen antandi. Lis vizit ou gen ${summary}. Ki pwen ou ta renmen prepare an premye?` })
-      : pick(locale, { EN: `Your agenda for ${provider} already includes ${summary}. Would you like to add something else, or is that all?`, ES: `Su agenda para ${provider} ya incluye ${summary}. ¿Desea agregar algo más o eso es todo?`, KR: `Ajanda ou pou ${provider} deja gen ${summary}. Èske ou vle ajoute yon lòt bagay, oswa se tout?` }),
-    update: { ...preparation, status: "IN_PROGRESS", currentTopic: "", reviewedTopics, notesByTopic, updatedAt: new Date().toISOString() }
-  };
 
   return null;
 };

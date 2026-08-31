@@ -901,11 +901,20 @@ function assistantContext() {
   const activeGoalRecord = currentGoal();
   const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
   const activeAppointmentRecord = activeAppointment();
-  const appointmentPrep = state.appointmentFlow?.view === "PREP" && activeAppointmentRecord
+  // Keep the selected appointment available to EMMI on every appointment surface, not only the
+  // preparation screen. The appointment detail's “Ask EMMI” action opens the assistant before it
+  // submits its first turn; limiting this context to PREP made that turn fall into the generic
+  // knowledge fallback even though the patient had just selected a real, scheduled visit.
+  const appointmentInAssistantContext = activeAppointmentRecord
+    && ["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING"].includes(emmiCurrentScreen);
+  const appointmentPrep = appointmentInAssistantContext
     ? {
         appointmentId: activeAppointmentRecord.id,
         providerDisplayName: activeAppointmentRecord.providerDisplayName || "",
         specialty: activeAppointmentRecord.specialty || "",
+        status: activeAppointmentRecord.status || "",
+        reasonCategory: activeAppointmentRecord.reasonCategory || "",
+        reasonSummary: String(activeAppointmentRecord.reasonSummary || "").slice(0, 400),
         topics: (activeAppointmentRecord.prep?.topics || []).filter(Boolean).map(topic => String(topic).slice(0, 120)),
         medications: (activeAppointmentRecord.prep?.medications || []).filter(item => item?.medicationId && item?.name).map(item => ({ medicationId: String(item.medicationId), name: String(item.name).slice(0, 120), details: String(item.details || "").slice(0, 160) })),
         emmiPreparation: activeAppointmentRecord.prep?.emmiPreparation && typeof activeAppointmentRecord.prep.emmiPreparation === "object" ? activeAppointmentRecord.prep.emmiPreparation : null

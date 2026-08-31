@@ -41,6 +41,9 @@ export async function handleEmmiChat(req, res, env = process.env) {
     ? {
         providerDisplayName: clean(payload.appointmentPrep.providerDisplayName, 120),
         specialty: clean(payload.appointmentPrep.specialty, 120),
+        status: clean(payload.appointmentPrep.status, 32),
+        reasonCategory: clean(payload.appointmentPrep.reasonCategory, 64),
+        reasonSummary: clean(payload.appointmentPrep.reasonSummary, 400),
         topics: Array.isArray(payload.appointmentPrep.topics) ? payload.appointmentPrep.topics.slice(0, 10).map(topic => clean(topic, 120)).filter(Boolean) : [],
         medications: Array.isArray(payload.appointmentPrep.medications) ? payload.appointmentPrep.medications.slice(0, 20).map(item => ({ name: clean(item?.name, 120), details: clean(item?.details, 160) })).filter(item => item.name) : [],
         emmiPreparation: payload.appointmentPrep.emmiPreparation && typeof payload.appointmentPrep.emmiPreparation === "object" ? {
@@ -60,7 +63,7 @@ export async function handleEmmiChat(req, res, env = process.env) {
 
 ANSWER-FIRST TASK:
 Answer the patient's actual question in 2–5 short, senior-friendly sentences (normally 50–120 words). Explain an acronym once. Be neutral and do not use sales language. Connect to the current screen only after answering, and only if useful. Never begin with a generic list of things you can help with.
-When APPOINTMENT PREPARATION CONTEXT is present, keep the conversation focused on organizing that specific visit. Treat short replies as continuations of the current appointment topic, use the saved topics and medications, and help the patient produce a concise agenda. Do not switch to unrelated Medicare or program education because of older conversation history.
+When APPOINTMENT PREPARATION CONTEXT is present, keep the conversation focused on that specific visit. Use its reasonCategory and reasonSummary to explain the recorded purpose in plain language without inventing a diagnosis, treatment goal, or clinician decision. Ask what question or concern the patient has, answer what can be answered safely, and help organize the result into a concise agenda. Treat short replies as continuations of the current appointment topic, use the saved topics and medications, and do not switch to unrelated Medicare or program education because of older conversation history.
 
 PATIENT QUESTION: ${question}
 RESOLVED INTENT: ${retrieval.intent}
