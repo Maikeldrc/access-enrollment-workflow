@@ -942,7 +942,7 @@ test("finishing the goals segment marks the goals section of the care setup list
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByRole("heading", { name: "Confirm your health information" })).toBeVisible();
-  await page.getByRole("button", { name: "Everything looks right" }).click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: "Confirm and continue" }).click();
 
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
@@ -960,7 +960,7 @@ test("opening goals from the care setup list returns there rather than round the
   await openAccessCareScreen(page, "GOALS");
   await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Everything looks right" }).click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: "Confirm and continue" }).click();
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
 
@@ -1006,7 +1006,7 @@ test("the barriers question is a section of the care setup list, and completes l
   await weight.locator('input[value="NONE"]').check();
   await page.getByRole("button", { name: "Continue" }).click();
 
-  await page.getByRole("button", { name: "Everything looks right" }).click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: "Confirm and continue" }).click();
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
 

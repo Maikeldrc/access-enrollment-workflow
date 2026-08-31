@@ -39,7 +39,7 @@ const finishCareSetup = async page => {
   await page.getByRole("button", { name: /make this harder/i }).click();
   await page.locator(".support-need-group").first().locator('input[value="FORGETFULNESS_ROUTINE"]').check();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByText("Everything looks right").click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();
   for (let step = 0; step < 8; step += 1) {
     if (await page.getByRole("heading", { name: "Your ACCESS care is ready" }).count()) break;
