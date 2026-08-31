@@ -104,10 +104,15 @@ test("a new screen starts at the top and Back returns the patient where they lef
   await page.locator('[data-action="care-setup-section"]').first().waitFor();
 
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  // Playwright scrolls a target into view before clicking it, so the bottom of the list is not
+  // necessarily where the patient departs from. Settle the page where the click will leave it and
+  // read the position from there, or this asserts against a place they were never standing.
+  const medicationsCard = page.locator('[data-action="care-setup-section"][data-section="medications"]');
+  await medicationsCard.scrollIntoViewIfNeeded();
   const leftAt = await scrollY(page);
   expect(leftAt, "care setup has to be taller than the viewport for this to mean anything").toBeGreaterThan(0);
 
-  await page.locator('[data-action="care-setup-section"][data-section="medications"]').click();
+  await medicationsCard.click();
   await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
   expect(await scrollY(page), "a new screen starts at the top").toBe(0);
 

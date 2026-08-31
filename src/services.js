@@ -210,6 +210,11 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       preferredCareLanguage: state.preferredCareLanguage,
       preferredContactTime: state.preferredContactTime,
       goalsStatus: state.goalsStatus,
+      // What the patient said makes their care harder, including the goals they said nothing was
+      // wrong with — a barrier record cannot carry that second answer.
+      supportNeedsStatus: state.supportNeedsStatus,
+      supportNeedsAnswers: { ...(state.supportNeedsAnswers || {}) },
+      supportNeedsOther: state.supportNeedsOther || "",
       careGoals: [...(state.careGoals || [])],
       careGoalsNote: state.careGoalsNote,
       goalFlowStep: state.goalFlowStep,
