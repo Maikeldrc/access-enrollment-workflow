@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiTextOrchestrator, expandEmmiQuery } from "../src/emmi/textOrchestrator.js";
 import { EMMI_TOOL_DECLARATIONS, EmmiToolOrchestrator } from "../src/emmi/tools.js";
+import { DEMO_BASELINE_OBSERVATIONS } from "../src/config.js";
+import { accessProgressMeasure, patientStartingPoint } from "../src/accessCareActivation.js";
+
+// The demo patient's baselines, resolved by the same functions the goals screen uses. Built rather
+// than typed out, so a test that says EMMI answers "152 over 88" is asserting that EMMI and the
+// card are reading one record — not that two literals happen to agree today.
+const demoAccessBaselines = ["BLOOD_PRESSURE_CONTROL", "WEIGHT_MANAGEMENT"].map(goalType => {
+  const startingPoint = patientStartingPoint(goalType, { BLOOD_PRESSURE_CONTROL: DEMO_BASELINE_OBSERVATIONS.bloodPressure, WEIGHT_MANAGEMENT: DEMO_BASELINE_OBSERVATIONS.weight });
+  return { goalType, startingPoint, measure: accessProgressMeasure(goalType, startingPoint) };
+});
 
 const passage = (program, text = "Approved patient-facing concepts") => ({ sourceId: `program-${program.toLowerCase()}`, sourcePath: `programs/${program.toLowerCase()}.md`, heading: program, text });
 
@@ -8,7 +18,7 @@ const passage = (program, text = "Approved patient-facing concepts") => ({ sourc
 // string, never an internal one, and only the fields the tool contract promises.
 const upcoming = (overrides = {}) => ({ id: "APPT-1", patientStatus: "Cita confirmada", providerDisplayName: "Dr. Martinez", specialty: "Cardiology", scheduledAt: "2026-09-08T14:00:00.000Z", modality: "IN_PERSON", ...overrides });
 
-function harness({ locale = "ES", program = "ACCESS", conversation = {}, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false } = {}) {
+function harness({ locale = "ES", program = "ACCESS", conversation = {}, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
   const calls = [];
   const events = [];
   const executeTool = vi.fn(async (name, args) => {
@@ -48,6 +58,10 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
     if (name === "getReadingTrend") return { trend: { periodDays: 7, count: 5, averageSystolic: 124, averageDiastolic: 81, direction: "STABLE" } };
     if (name === "getClinicalTarget") return { target: { systolicMaximum: 139, diastolicMaximum: 89 } };
     if (name === "getGoalProgress") return { progress: { readingCountThisWeek: 5 } };
+    if (name === "getAccessBaseline") {
+      const baselines = accessBaselines === null ? [] : args.goalType ? accessBaselines.filter(item => item.goalType === args.goalType) : accessBaselines;
+      return { baselines, source: baselines.length ? "PATIENT_RUNTIME" : "UNAVAILABLE" };
+    }
     if (name === "getCareTeam") return { physicianDisplayName: "Dr. Fresner" };
     if (name === "getNextBestAction") return { label: "Continuar" };
     if (name === "evaluateClinicalEscalation") return { instruction: "CALL_911" };
@@ -505,5 +519,184 @@ describe("typographic apostrophes reach the same gates as straight ones", () => 
 describe("follow-up query expansion", () => {
   it("adds the two recent programs to a pronoun-like comparison", () => {
     expect(expandEmmiQuery({ question: "y cual es la diferencia", conversation: { conversationSummary: "ACCESS then CCM" }, program: "ACCESS" })).toMatch(/ACCESS CCM/);
+  });
+});
+
+// When the model cannot be reached, the answer still has to be the answer.
+//
+// Production QA called this "generic ACCESS fallback ignores focused knowledge". The fallback
+// collected programme names from the retrieved file PATHS, and every ACCESS page has "access" in
+// its path, so any question that retrieved one returned the general ACCESS paragraph and threw away
+// everything that had just been retrieved. eCKM, the outcome targets and A1c all came back as the
+// same three sentences about extra support between doctor visits.
+describe("the answer when the model is unreachable", () => {
+  const focusedPassage = {
+    sourceId: "access-tracks",
+    sourcePath: "programs/access-tracks.md",
+    heading: "ACCESS tracks: eCKM, CKM, MSK and BH",
+    text: "**eCKM stands for Early Cardio-Kidney-Metabolic.** It is the ACCESS track for early heart, kidney and metabolic conditions.\n\nIt is one of four tracks CMS launched:\n\n- **eCKM — Early Cardio-Kidney-Metabolic.** Hypertension and prediabetes.\n- **CKM — Cardio-Kidney-Metabolic.** Diabetes and chronic kidney disease.\n\n## EMMI response rule\n\nNever quote a monthly amount from this page."
+  };
+
+  it("answers from the page that was retrieved rather than from a canned programme description", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).toMatch(/Early Cardio-Kidney-Metabolic/);
+    expect(answer.text).not.toMatch(/extra support between doctor visits/i);
+  });
+
+  it("keeps the list items, because that is where the facts are", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    // A promise of four tracks followed by nothing is worse than no answer at all.
+    expect(answer.text).toMatch(/Hypertension and prediabetes/);
+    expect(answer.text).not.toMatch(/launched:\s*\./);
+  });
+
+  it("never reads the page's own instructions out to the patient", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).not.toMatch(/EMMI response rule|Never quote a monthly amount/i);
+  });
+
+  it("leaves no markdown in what the patient reads", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("What does eCKM mean?");
+    expect(answer.text).not.toMatch(/\*\*|^#|^- /m);
+  });
+
+  // The corpus is English and the canned answers are trilingual. With no model there is nothing to
+  // translate with, so a Spanish patient keeps a Spanish answer rather than English prose.
+  it("keeps a Spanish patient in Spanish rather than handing them the English page", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [focusedPassage] });
+    const answer = await orchestrator.answer("¿Qué significa eCKM?");
+    expect(answer.text).not.toMatch(/Early Cardio-Kidney-Metabolic/);
+  });
+
+  it("still gives the canned programme answer when the general programme page is what matched", async () => {
+    const { orchestrator } = harness({ locale: "EN" });
+    const answer = await orchestrator.answer("What is ACCESS?");
+    expect(answer.text).toMatch(/extra support between doctor visits/i);
+  });
+});
+
+// The answer a patient reads when the model is unreachable, in their own language.
+describe("the fallback answers in the patient's language", () => {
+  const withLocalized = {
+    sourceId: "leaving-access",
+    sourcePath: "enrollment/leaving-access.md",
+    heading: "Leaving ACCESS: the 90 day term",
+    text: "Beginning 90 days after enrollment, the patient may end their ACCESS participation.",
+    localizedAnswers: {
+      ES: "A partir de 90 días después de la inscripción, puede terminar su participación en ACCESS.",
+      KR: "Apati 90 jou apre enskripsyon an, ou ka mete fen nan patisipasyon ACCESS ou."
+    }
+  };
+
+  it("reads the Spanish answer the page carries rather than a general paragraph", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("¿Desde cuándo puedo dejar ACCESS?");
+    expect(answer.text).toMatch(/90 días después de la inscripción/);
+  });
+
+  it("reads the Creole one for a Creole patient", async () => {
+    const { orchestrator } = harness({ locale: "KR", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("Kilè mwen ka kite ACCESS?");
+    expect(answer.text).toMatch(/90 jou apre enskripsyon/);
+  });
+
+  it("still reads the page itself for an English patient", async () => {
+    const { orchestrator } = harness({ locale: "EN", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("When can I leave ACCESS?");
+    expect(answer.text).toMatch(/Beginning 90 days after enrollment/);
+  });
+
+  // A page written for the question outranks the canned answers that exist for questions no page
+  // covers. Left behind them, this never ran for "when can I leave?" — the one question a page had
+  // just been written to answer with the ninety days in it.
+  it("prefers the page over the canned leave-the-programme answer", async () => {
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [withLocalized] });
+    const answer = await orchestrator.answer("¿Cómo dejo el programa?");
+    expect(answer.text).toMatch(/90 días/);
+  });
+
+  it("falls back to the trilingual canned answer when a page carries no translation", async () => {
+    const untranslated = { ...withLocalized, localizedAnswers: {} };
+    const { orchestrator } = harness({ locale: "ES", knowledgePassages: [untranslated] });
+    const answer = await orchestrator.answer("¿Desde cuándo puedo dejar ACCESS?");
+    expect(answer.text).not.toMatch(/Beginning 90 days/);
+    expect(answer.text).toMatch(/[áéíóúñ¿]/);
+  });
+});
+
+// Where this patient started, and what ACCESS will recognise as improvement for them. Every number
+// in these answers is a fact about one person, so the knowledge base is the wrong place for all of
+// them: it can say what a baseline is and never that this patient's is 152 over 88.
+describe("ACCESS starting points and improvement milestones", () => {
+  const answerIn = async (question, options = {}) => {
+    const { orchestrator, calls } = harness({ locale: "EN", ...options });
+    const response = await orchestrator.answer(question);
+    return { text: response.text, intent: response.trace.intent, mode: response.trace.responseMode, tools: calls.map(call => call.name) };
+  };
+
+  it("says the starting blood pressure the record holds, and does not go to the knowledge base for it", async () => {
+    const asked = await answerIn("What was my starting blood pressure?");
+    expect(asked.text).toContain("Your starting blood pressure is 152 over 88.");
+    expect(asked.tools).toContain("getAccessBaseline");
+    expect(asked.tools).not.toContain("searchKnowledge");
+    expect(asked.mode).toBe("RUNTIME_GROUNDED");
+  });
+
+  it("says the starting weight and the BMI recorded with it", async () => {
+    const asked = await answerIn("What was my starting weight?");
+    expect(asked.text).toContain("Your starting weight is 204 pounds.");
+    expect(asked.text).toContain("31.0");
+    expect(asked.tools).not.toContain("searchKnowledge");
+  });
+
+  // "137" on its own tells a patient who started at 152 that 137 is where they are trying to land.
+  // The baseline it came from and the separate control target both have to be in the sentence.
+  it("derives the blood pressure milestone from this patient's baseline and keeps the control target distinct", async () => {
+    const asked = await answerIn("What does 15 points lower mean for me?");
+    expect(asked.text).toContain("Based on your starting systolic blood pressure of 152");
+    expect(asked.text).toContain("137 mmHg or lower");
+    expect(asked.text).toMatch(/below 130 mmHg systolic/i);
+    expect(asked.intent).toBe("ACCESS_IMPROVEMENT_MILESTONE");
+  });
+
+  // "How much" is the cost engine's word. A percentage asked about a weight goal is not a question
+  // about what the patient pays, and answering it with an amount of money would be absurd.
+  it("answers what five percent is in pounds instead of routing the word 'how much' to cost", async () => {
+    const asked = await answerIn("How much is 5% for me?");
+    expect(asked.text).toContain("Based on your starting weight of 204 pounds");
+    expect(asked.text).toContain("10.2 pounds");
+    expect(asked.text).toContain("193.8 pounds or lower");
+    expect(asked.tools).not.toContain("getExpectedAccessCost");
+  });
+
+  it("answers in the patient's own language from the same runtime numbers", async () => {
+    const spanish = harness({ locale: "ES" });
+    const asked = await spanish.orchestrator.answer("¿Cuál fue mi presión arterial inicial?");
+    expect(asked.text).toContain("152 sobre 88");
+
+    const creole = harness({ locale: "KR" });
+    const weight = await creole.orchestrator.answer("Ki pwa mwen te genyen nan konmansman?");
+    expect(weight.text).toContain("204 liv");
+  });
+
+  // A pending baseline is a real state. Inventing one would silently become the number every
+  // milestone below it is derived from.
+  it("refuses to state a milestone when no baseline is confirmed", async () => {
+    const pending = [{ goalType: "BLOOD_PRESSURE_CONTROL", startingPoint: { goalType: "BLOOD_PRESSURE_CONTROL", status: "PENDING" }, measure: { goalType: "BLOOD_PRESSURE_CONTROL", status: "PENDING_BASELINE", control: { value: 130 }, improvementMilestone: null } }];
+    const asked = await answerIn("What does 15 points lower mean for me?", { accessBaselines: pending });
+    expect(asked.text).toMatch(/don’t have a confirmed starting blood pressure/i);
+    expect(asked.text).not.toMatch(/\b137\b/);
+  });
+
+  // A patient with no ACCESS baselines at all is not answered about somebody else's: the block
+  // claims nothing and lets the normal routing take the turn.
+  it("falls through to normal routing when this patient has no ACCESS baselines", async () => {
+    const asked = await answerIn("What was my starting blood pressure?", { accessBaselines: null, program: "CCM" });
+    expect(asked.tools).toContain("getAccessBaseline");
+    expect(asked.tools).toContain("searchKnowledge");
   });
 });

@@ -23,3 +23,11 @@ The next best action must come from the orchestration state.
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+CCM + RPM combina el apoyo continuo para varias condiciones crónicas con el monitoreo conectado de sus mediciones, cuando ambas cosas son apropiadas para usted.
+
+## Patient answer (KR)
+
+CCM + RPM konbine sipò kontinyèl pou plizyè maladi kwonik ak siveyans konekte mezi ou yo, lè toude apwopriye pou ou.

@@ -4,3 +4,6 @@ test-results/
 playwright-report/
 .env*
 !.env.example
+e2e-full.log
+enr.log
+enr2.log

@@ -8,7 +8,9 @@
 
 :root {
   --primary-700:#004E89;
-  --primary-600:#0873D7;
+  /* 4.33:1 on --primary-50 before this: under AA for normal text, and this pair carries real
+     copy, not just decoration. #0A6BC5 reads the same blue and clears 4.5 on both backgrounds. */
+  --primary-600:#0A6BC5;
   --primary-500:#1B98E0;
   --primary-400:#8CBDFF;
   --primary-300:#A7D4FF;
@@ -108,7 +110,7 @@ a { color:var(--violet); }
 .shell { position:relative; display:flex; flex-direction:column; width:100%; max-width:var(--patient-shell-width); min-height:100dvh; margin:0 auto; background:var(--surface-primary); box-shadow:none; overflow-x:clip; overflow-y:visible; }
 .app-header { position:relative; z-index:4; padding:calc(14px + env(safe-area-inset-top)) max(var(--patient-page-gutter),env(safe-area-inset-right)) 0 max(var(--patient-page-gutter),env(safe-area-inset-left)); background:var(--surface-secondary); }
 .brand-row { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; width:100%; min-height:44px; }
-.brand { justify-self:center; color:#8b92ad; text-decoration:none; font-size:.78rem; letter-spacing:.045em; font-weight:600; }
+.brand { justify-self:center; color:#666D87; text-decoration:none; font-size:.78rem; letter-spacing:.045em; font-weight:600; }
 .brand b { color:var(--navy); }
 .icon-button,.language { min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer; }
 .back-button { justify-self:start; font-size:1.5rem; }
@@ -676,6 +678,10 @@ p { margin:0; }
 .health-information-card article+.health-information-card article { padding-top:10px;border-top:1px solid var(--border-default); }
 .health-information-card .icon { width:34px;height:34px;color:var(--primary-600);background:var(--primary-50); }
 .health-information-card span { display:grid;gap:3px;min-width:0; }.health-information-card strong { font-size:18px;line-height:1.35; }.health-information-card small { color:var(--text-secondary);font-size:16px;line-height:1.4; }
+.health-information-card.recorded-information { border-left:4px solid var(--primary-600);box-shadow:none;cursor:default; }
+.health-information-card>.recorded-information-label { margin:0;color:var(--text-secondary);font-size:14px;font-weight:800;letter-spacing:.06em;line-height:1.3;text-transform:uppercase; }
+.health-review-decision { display:grid;gap:11px;margin-bottom:4px; }
+.health-review-decision>.health-review-question { margin:0;color:var(--text-primary);font-size:20px;font-weight:800;line-height:1.35; }
 .health-review-choices,.health-update-options,.health-help-actions { display:grid;gap:10px; }
 .health-review-choice,.health-update-options button,.health-help-actions button { width:100%;min-height:62px;padding:12px 13px;border:1px solid var(--border-default);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);font:inherit;text-align:left;cursor:pointer; }
 .health-review-choice { display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:11px; }
@@ -695,7 +701,7 @@ p { margin:0; }
 .health-saved-actions { display:flex;flex-wrap:wrap;gap:8px;margin-top:12px; }.health-saved-actions button { min-height:44px;padding:8px 10px;border:1px solid var(--border-default);border-radius:10px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:16px;font-weight:700; }
 .health-information-review-screen>.actions { position:sticky;bottom:0;z-index:6;margin-inline:-4px;padding:16px 4px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to bottom,rgba(255,255,255,0),var(--background) 20%); }
 .shell:has(.health-information-review-screen) .emmi-assistant { bottom:calc(124px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
-@media (max-width:360px) { .health-information-card,.health-review-panel,.health-update-form,.health-update-review,.health-review-result { padding:14px; }.health-information-review-screen>.actions { grid-template-columns:minmax(84px,.7fr) minmax(0,1.3fr); }.health-saved-actions { display:grid;grid-template-columns:1fr; } }
+@media (max-width:360px) { .health-information-card,.health-review-panel,.health-update-form,.health-update-review,.health-review-result { padding:14px; }.health-review-decision>.health-review-question { font-size:19px; }.health-information-review-screen>.actions { grid-template-columns:minmax(84px,.7fr) minmax(0,1.3fr); }.health-saved-actions { display:grid;grid-template-columns:1fr; } }
 .goal-list { display:grid; gap:8px; }.goal-list .check-row { min-height:48px; margin:0; padding:12px; border-bottom:1px solid var(--line); }
 .address-card { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; font-style:normal; font-size:.86rem; background:#faf9ff; }
 .instruction-list { display:grid; gap:10px; padding:0; list-style:none; }.instruction-list li { display:flex; gap:12px; align-items:center; min-height:62px; padding:10px 13px; border:1px solid var(--line); border-radius:10px; font-size:.85rem; line-height:1.4; }.instruction-list b { display:grid; place-items:center; flex:0 0 31px; width:31px;height:31px;border-radius:50%;color:white;background:var(--violet); }
@@ -784,10 +790,7 @@ p { margin:0; }
 .emmi-avatar { display:grid;place-items:center;width:var(--emmi-avatar-compact);height:var(--emmi-avatar-compact);overflow:visible;border-radius:0;background:transparent;flex:0 0 var(--emmi-avatar-compact); }
 .emmi-assistant .emmi-avatar { width:var(--emmi-avatar-floating);height:var(--emmi-avatar-floating);flex-basis:var(--emmi-avatar-floating); }
 .emmi-avatar img { display:block;width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 6px 12px rgba(0,78,137,.22)); }
-.emmi-assistant img { pointer-events:none;user-select:none; }
-.emmi-contextual-nudge { position:fixed;z-index:9;right:calc(var(--emmi-shell-right-inset,0px) + 14px);bottom:calc(136px + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px));min-height:48px;max-width:220px;padding:10px 14px;border:1px solid var(--primary-300);border-radius:14px;color:var(--text-primary);background:var(--surface-primary);box-shadow:0 10px 28px rgba(0,78,137,.14);font:inherit;font-size:.96rem;font-weight:700;line-height:1.3;text-align:left;cursor:pointer;animation:emmi-nudge-in .2s ease-out; }
-.emmi-contextual-nudge:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
-@keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
+.emmi-assistant img { pointer-events:none;user-select:none; }@keyframes emmi-nudge-in { from { opacity:0;transform:translateY(6px); } }
 .assistant-open { overflow:hidden; }
 .emmi-sheet-open { overflow:hidden; }
 .emmi-sheet-icon { width:22px;height:22px;flex:0 0 22px;border-radius:0;color:inherit;background:transparent; }
@@ -848,7 +851,11 @@ p { margin:0; }
 @keyframes emmi-guide-pulse { 50% { opacity:.55; } }
 @keyframes emmi-audio-wave { to { transform:scaleY(.45);opacity:.55; } }
 .emmi-assistant .emmi-audio-activity { margin-left:0; }
-@media (prefers-reduced-motion:reduce) { .emmi-guide[data-guide-state="SPEAKING"] .emmi-guide-avatar,.emmi-audio-activity b,.emmi-contextual-nudge { animation:none; } }
+/* The speaking cue is decoration: three bars moving to say EMMI has the floor. The global
+   reduced-motion rule shortens every animation to nothing perceptible, which is right for a
+   transition but leaves this one still declared and still running its cycle. A patient who asked
+   for no motion gets none: the bars stand still and keep their heights, so the cue still reads. */
+@media (prefers-reduced-motion:reduce) { .emmi-audio-activity b { animation:none; } }
 
 /* Secondary voice actions live in one senior-friendly bottom sheet. Opening it changes only
    presentation; the existing EMMI session, state machine and conversation stay untouched. */
@@ -1158,7 +1165,7 @@ p { margin:0; }
 .emmi-voice-debug { display:grid;gap:3px;margin:10px 0;padding:9px;border:1px solid #69708c;border-radius:6px;overflow-wrap:anywhere; }.emmi-voice-debug strong { margin-bottom:3px;font-size:12px; }.emmi-voice-debug span { color:#d7dced;font-size:10px;line-height:1.35; }
 
 /* ITERA enrollment color system — shared by ACCESS, CCM, PCM and RPM. */
-.brand { color:var(--text-placeholder); }
+.brand { color:#666D87; }
 .brand b,.language,.back-button { color:var(--text-primary); }
 .lead,.invitation-copy .lead { color:var(--text-secondary); }
 .eyebrow { color:var(--primary-700); background:var(--surface-purple); }
@@ -1449,7 +1456,30 @@ p { margin:0; }
 .care-circle-member-card details { margin-top:10px;border-top:1px solid var(--border-default);padding-top:10px; }.care-circle-member-card summary { min-height:44px;display:flex;align-items:center;color:var(--primary-700);font-weight:700;cursor:pointer; }
 .care-circle-manage-actions { display:grid;gap:8px; }.care-circle-manage-actions button { min-height:44px;padding:8px 10px;text-align:left;color:var(--primary-700);background:transparent;border:1px solid var(--border-default);border-radius:10px;font:inherit;font-weight:700; }.care-circle-manage-actions .danger-text { color:#a72f28; }
 .care-circle-empty { padding:24px 16px;display:grid;justify-items:center;gap:8px;text-align:center;border:1px dashed var(--border-default);border-radius:16px;background:var(--surface-primary); }.care-circle-empty>svg { width:34px;height:34px;color:var(--primary-600); }.care-circle-empty p { margin:0;color:var(--text-muted); }
-.care-circle-boundaries { display:grid;gap:12px;margin:20px 0;padding:16px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }.care-circle-boundaries h2 { margin:0;font-size:1.15rem; }.care-circle-boundaries p { margin:0;display:grid;grid-template-columns:24px 1fr;gap:10px;line-height:1.5; }.care-circle-boundaries svg { color:var(--primary-600); }
+/* Care Circle boundaries card.
+   Read by someone who has never seen this product, usually on a phone, often an older adult. The
+   two rules carry equal weight and get identical icon boxes: the source glyphs have different
+   intrinsic sizes, so the box is fixed and the svg is sized into it rather than left to render at
+   whatever the icon set chose. Sized in rem so 150% text scaling grows the card with the copy. */
+.care-circle-boundaries {
+  display: grid; gap: .875rem; margin: 1.25rem 0; padding: 1.375rem;
+  border: 1px solid var(--border-default); border-radius: 18px; background: var(--surface-primary);
+}
+.care-circle-boundaries h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.care-circle-boundaries ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
+.care-circle-boundaries li {
+  margin: 0; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .75rem;
+  line-height: 1.55; color: var(--text-primary);
+  /* Long clinical words in three languages; break them rather than push the card sideways. */
+  overflow-wrap: anywhere; text-wrap: pretty;
+}
+/* The glyph optically sits high against a full line of text, so it drops by a fraction rather than
+   centring on the whole block, which would float it down beside a two-line bullet. */
+.care-circle-boundaries li svg { width: 1.5rem; height: 1.5rem; margin-top: .0625rem; color: var(--primary-600); }
+.care-circle-boundaries-note {
+  margin: 0; padding-top: .75rem; border-top: 1px solid var(--border-default);
+  font-size: .875rem; line-height: 1.5; color: var(--text-secondary);
+}
 @media (max-width:360px) { .care-circle-member-heading { grid-template-columns:38px minmax(0,1fr); }.care-circle-member-heading em { grid-column:2;justify-self:start; }.care-circle-sticky-actions { grid-template-columns:minmax(82px,.65fr) minmax(0,1.35fr); } }
 .growth-boundary-note { display:grid;grid-template-columns:42px minmax(0,1fr);gap:11px;align-items:start;margin-top:18px;padding:13px;border:1px solid var(--primary-100);border-radius:14px;background:var(--primary-50); }
 .growth-boundary-note>.icon { width:40px;height:40px; }
@@ -1698,9 +1728,7 @@ p { margin:0; }
   .emmi-assistant { right:calc(var(--emmi-shell-right-inset,0px) + var(--patient-page-gutter));bottom:calc(var(--patient-emmi-overlay-offset) + env(safe-area-inset-bottom) + var(--emmi-shell-bottom-inset,0px)); }
 }
 @media (max-width:374px) { body { font-size:17px; }h1 { font-size:1.75rem; }.button { min-height:52px; }.art { height:118px; }.art-orbit { width:104px;height:104px; }.art-icon { width:65px;height:65px; }.stage-brand-row{padding-right:7px} }
-@media (max-width:599px) {
-  .emmi-contextual-nudge { right:58px;bottom:18px;max-width:205px; }
-  .emmi-welcome { padding:16px; }
+@media (max-width:599px) {.emmi-welcome { padding:16px; }
   .emmi-welcome-identity { grid-template-columns:66px 1fr;gap:11px; }
   .emmi-welcome-identity img { width:66px;height:66px; }
   .emmi-welcome-identity h2 { font-size:1.12rem; }
@@ -1888,12 +1916,7 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .assistant-layer .assistant-common-questions button,
 .assistant-layer .assistant-faq-toggle,
 .assistant-layer .assistant-voice-options-toggle,
-.assistant-layer .assistant-voice-options button { min-height:48px;font-size:var(--emmi-panel-action);line-height:1.4; }
-.shell:not(:has(.prototype-console)) .emmi-contextual-nudge,
-.shell:not(:has(.prototype-console)) .emmi-guide-transcript,
-.shell:not(:has(.prototype-console)) .emmi-disclaimer { font-size:var(--font-helper);line-height:var(--line-helper); }
-
-/* Configurator fields that preview patient data use the same readable form scale. */
+.assistant-layer .assistant-voice-options button { min-height:48px;font-size:var(--emmi-panel-action);line-height:1.4; }/* Configurator fields that preview patient data use the same readable form scale. */
 .prototype-field>span,.physician-configuration>legend { font-size:var(--font-helper);line-height:var(--line-helper); }
 .prototype-field select,.prototype-field>input,.other-condition input { min-height:54px;font-size:17px;line-height:1.4; }
 .prototype-helper { font-size:var(--font-helper);line-height:var(--line-helper); }
@@ -1971,6 +1994,9 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .goal-barrier-resolved { display:flex;gap:8px;align-items:flex-start;margin:12px 0 0;color:var(--text-muted);font-size:1rem;line-height:1.45; }
 .goal-barrier-resolved .icon { flex:0 0 20px;width:20px;height:20px;color:var(--primary-600);background:transparent; }
 .goal-summary-help .goal-summary-value { color:var(--primary-700);font-weight:700; }
+/* The starting point is a measurement, so it carries the weight of one. Not as loud as the goal
+   title above it, and never louder than the next step, which is the thing to act on. */
+.goal-summary-baseline .goal-summary-value { font-weight:700; }
 /* Choosing a difficulty: one question, big targets, and labels that wrap to as many lines as the
    patient's language needs. */
 .goal-barrier-choices .goal-response-button,.goal-followup-options .goal-response-button,.goal-reminder-slots .goal-response-button { display:flex;gap:11px;align-items:center;text-align:left; }
@@ -2008,3 +2034,177 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .medication-answers .icon,.medication-choices .icon { flex:0 0 24px;width:24px;height:24px;color:var(--primary-600);background:transparent; }
 .medication-answers span,.medication-choices span { min-width:0;overflow-wrap:anywhere; }
 a.goal-secondary-button { text-decoration:none; }
+
+/* Assigned ACCESS goals.
+   Two cards the patient reads rather than fills in. Each one answers the same three questions in
+   the same order — how progress is measured, where they are starting, what they will do — so the
+   second card is scannable once the first has been understood. Nothing here is a control.
+   Sized in rem and capped by the column, so 384px at 150% text still wraps instead of clipping. */
+.access-goal-list { display: grid; gap: 1rem; }
+.access-goal-card {
+  border: 1px solid var(--border-default); border-radius: 16px; padding: 1.25rem;
+  background: var(--surface-primary); display: grid; gap: 1rem;
+}
+.access-goal-card > header { display: flex; align-items: flex-start; gap: .625rem; }
+.access-goal-card > header svg { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; color: var(--medicare-blue); }
+.access-goal-card h3 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.access-goal-card h4 {
+  margin: 0 0 .5rem; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.access-goal-support { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+.access-goal-measure, .access-goal-baseline, .access-goal-plan {
+  border-top: 1px solid var(--border-default); padding-top: .875rem;
+}
+.access-goal-measure dl { margin: 0; display: grid; gap: .625rem; }
+/* Label above value rather than beside it: the labels are long enough that a two-column row is the
+   first thing to break at 384px with the text scaled up. */
+.access-goal-measure dt { font-size: .8125rem; color: var(--text-secondary); }
+.access-goal-measure dd { margin: 0; font-weight: 600; color: var(--text-primary); }
+/* Where the milestone came from, under the milestone itself. Regular weight and secondary colour so
+   it reads as the explanation of the number above it rather than as a second number. */
+.access-goal-measure dd small { display: block; margin-top: .125rem; font-size: .8125rem; font-weight: 400; color: var(--text-secondary); line-height: 1.45; }
+.access-goal-value { margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.access-goal-value span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
+.access-goal-detail { margin: .125rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+/* Weight left, BMI right, one row. space-between rather than a right-aligned second column: when
+   the row cannot hold both — 360px at 150% text — each metric wraps onto its own line and stays
+   left-aligned there, which is where a stacked metric belongs. min-width: 0 on both so a metric
+   that is alone on its line wraps inside itself instead of pushing the card sideways; nothing here
+   is nowrap, for the same reason. */
+.access-goal-metrics {
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  justify-content: space-between; gap: .125rem 1rem;
+}
+.access-goal-metrics > p { min-width: 0; overflow-wrap: anywhere; }
+/* The BMI is the same fact as the weight, measured differently, so on one row it carries the same
+   size and weight and lets its own label take the quiet unit styling the "lb" already has. */
+.access-goal-metrics .access-goal-detail {
+  margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); line-height: 1.55;
+}
+.access-goal-metrics .access-goal-detail span { font-size: .8125rem; font-weight: 400; color: var(--text-secondary); }
+/* A confirmed baseline is a fact the patient can rely on, so it carries the same check the rest of
+   the journey uses for something that actually happened. It wraps under the value at 384px rather
+   than squeezing the number, which is the part that has to stay readable. */
+.access-goal-confirmed {
+  display: flex; align-items: center; gap: .375rem; flex-wrap: wrap;
+  margin: .5rem 0 0; font-size: .875rem; font-weight: 600; color: var(--primary-700); line-height: 1.4;
+}
+.access-goal-confirmed svg { flex: 0 0 auto; width: 1rem; height: 1rem; }
+.access-goal-pending { margin: 0 0 .25rem; font-weight: 600; color: var(--text-secondary); }
+.access-goal-pending-note { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+.access-goal-plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.access-goal-plan li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
+.access-goal-plan li svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
+
+/* Progressive disclosure inside a goal card.
+   The summary is the tap target, so it carries the 44px minimum itself rather than relying on the
+   text happening to be tall enough. The marker is removed and replaced with a chevron that turns,
+   because the native triangle sits outside the padding and cannot be aligned with the card. */
+.access-goal-details { border-top: 1px solid var(--border-default); padding-top: .875rem; }
+.access-goal-details > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  min-height: 44px; padding: .25rem 0; cursor: pointer;
+  font-size: .9375rem; font-weight: 600; color: var(--medicare-blue); line-height: 1.4;
+}
+.access-goal-details > summary::-webkit-details-marker { display: none; }
+.access-goal-details > summary { list-style: none; }
+.access-goal-details > summary svg {
+  flex: 0 0 auto; width: 1.125rem; height: 1.125rem; transition: transform .18s ease;
+}
+.access-goal-details[open] > summary svg { transform: rotate(90deg); }
+.access-goal-details > summary:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; border-radius: 8px; }
+/* The sections inside already carry their own top rule as standalone blocks; nested under the
+   disclosure the first one would double it against the summary. */
+.access-goal-details .access-goal-measure { border-top: 0; padding-top: .5rem; }
+/* The same two blocks inside Goal Detail, which styles its own headings. They keep the goal card's
+   eyebrow so a patient who saw them at activation recognises them here. */
+.access-goal-outcome { display: grid; gap: .875rem; }
+.access-goal-outcome h4 {
+  margin: 0 0 .5rem; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.access-goal-outcome .access-goal-baseline { border-top: 0; padding-top: 0; }
+@media (prefers-reduced-motion: reduce) { .access-goal-details > summary svg { transition: none; } }
+
+/* Care team initials.
+   Circular like the photo rather than rounded-square like the icon: it stands in for a person's
+   face, so it should occupy the same shape a face would and keep the column aligned whether a
+   member has a photo, initials, or an icon. */
+.care-team-member-initials {
+  display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--primary-50); color: var(--primary-600);
+  font-weight: 600; font-size: 1.0625rem; letter-spacing: .01em;
+  border: 2px solid var(--surface-primary); box-shadow: 0 0 0 1px var(--border-default);
+}
+@media (max-width: 360px) { .care-team-member-initials { width: 44px; height: 44px; font-size: .9375rem; } }
+
+/* Contacts unavailable.
+   A note, not an error: nothing has gone wrong, this browser simply has no Contact Picker. Muted
+   and unboxed so it reads as an aside rather than as a problem the patient has to solve, and it
+   sits where the button would have been so the manual fields still look like the intended path. */
+.contact-picker-unavailable {
+  margin: 1.25rem 0 0; color: var(--text-muted); font-size: .9375rem; line-height: 1.5;
+}
+
+/* Care Circle acceptance: the code step and the two answers to an invitation.
+   Accept leads, Decline is present without competing — declining is a legitimate answer and
+   hiding it would push someone into joining. Both stay full-width and comfortably tappable. */
+.care-circle-accept-actions { display: grid; gap: .625rem; margin-top: 1.25rem; }
+.care-circle-accept-actions .button { width: 100%; min-height: 48px; }
+.care-circle-verify { display: grid; gap: .75rem; margin-top: 1.25rem; }
+.care-circle-verify h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.care-circle-verify p { margin: 0; color: var(--text-secondary); line-height: 1.5; }
+/* Wide, spaced digits: this is read off a text message and typed by someone who may be older. */
+.care-circle-verify input {
+  width: 100%; min-height: 52px; font-size: 1.375rem; letter-spacing: .32em; text-align: center;
+}
+.care-circle-verify .button { width: 100%; min-height: 48px; }
+.care-circle-verify .text-button { min-height: 44px; }
+
+/* ACCESS care plan.
+   Three blocks the patient can scan in order — goals, tool, team — reusing the goal card's own
+   sections so the plan says the same thing the goals screen said, in the same shapes. */
+.access-plan-block { display: grid; gap: .875rem; margin-top: 1.5rem; }
+.access-plan-block > h2 { margin: 0; font-size: 1.0625rem; line-height: 1.35; color: var(--text-primary); }
+.access-plan-goals { display: grid; gap: 1rem; }
+.access-plan-goal {
+  border: 1px solid var(--border-default); border-radius: 16px; padding: 1.125rem;
+  background: var(--surface-primary); display: grid; gap: .875rem;
+}
+.access-plan-goal > header { display: flex; align-items: flex-start; gap: .625rem; }
+.access-plan-goal > header svg { flex: 0 0 auto; width: 1.375rem; height: 1.375rem; color: var(--medicare-blue); }
+.access-plan-goal h3 { margin: 0; font-size: 1rem; line-height: 1.35; color: var(--text-primary); }
+.access-plan-device { display: flex; align-items: flex-start; gap: .75rem; padding: 1rem; border: 1px solid var(--border-default); border-radius: 16px; background: var(--surface-primary); }
+.access-plan-device svg { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; color: var(--medicare-blue); }
+.access-plan-device strong { display: block; color: var(--text-primary); line-height: 1.35; }
+.access-plan-device p { margin: .25rem 0 0; color: var(--text-secondary); line-height: 1.5; }
+.access-plan-team { margin: 0; padding: 0; list-style: none; display: grid; gap: .75rem; }
+.access-plan-team li { display: flex; align-items: center; gap: .75rem; }
+.access-plan-team strong { display: block; color: var(--text-primary); line-height: 1.35; }
+.access-plan-team small { color: var(--text-secondary); }
+
+/* Support needs.
+   One question per goal, so the groups carry the goal's name and the options belong to it visibly.
+   Checkboxes are full-width rows rather than a dense list: this is read by someone deciding what
+   is hard for them, not scanning a form. */
+.support-need-group { margin: 1.5rem 0 0; padding: 0; border: 0; }
+.support-need-group > legend { padding: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.35; color: var(--text-primary); }
+.support-need-question { margin: .25rem 0 .75rem; color: var(--text-secondary); line-height: 1.5; }
+.support-need-options { display: grid; gap: .5rem; }
+.support-need-option {
+  display: grid; grid-template-columns: 1.25rem minmax(0, 1fr); align-items: start; gap: .75rem;
+  min-height: 48px; padding: .75rem .875rem; line-height: 1.45; color: var(--text-primary);
+  border: 1px solid var(--border-default); border-radius: 14px; background: var(--surface-primary);
+}
+.support-need-option > span { display: flex; align-items: flex-start; gap: .5rem; min-width: 0; }
+.support-need-option svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
+.support-need-option input { width: 1.25rem; height: 1.25rem; margin: .125rem 0 0; }
+.support-need-option:has(input:checked) { border-color: var(--primary-600); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-600) 18%, transparent); }
+/* Saying nothing is in the way is an answer, and it should look like one rather than an opt-out. */
+.support-need-none { margin-top: .25rem; }
+.support-need-other { margin-top: 1.5rem; }
+.access-plan-support { margin: 0; padding: 0; list-style: none; display: grid; gap: .5rem; }
+.access-plan-support li { display: flex; align-items: flex-start; gap: .5rem; color: var(--text-primary); line-height: 1.45; }
+.access-plan-support svg { flex: 0 0 auto; width: 1.125rem; height: 1.125rem; margin-top: .125rem; color: var(--text-secondary); }
+.access-plan-note { margin: -.375rem 0 0; color: var(--text-secondary); line-height: 1.5; }

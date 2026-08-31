@@ -1,6 +1,6 @@
 import { classifyBarrierText } from "../goalBarriers.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
-import { createSafetyEpisode, detectEmergencyLanguage, safetyResponseFor } from "./safetyPolicy.js";
+import { createSafetyEpisode, detectEmergencyLanguage, detectSafetyResolution, safetyEpisodeIsActive, safetyResolutionCopy, safetyResponseFor } from "./safetyPolicy.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
@@ -38,6 +38,24 @@ const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressu
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
+// Where this patient started, and what ACCESS will recognise as improvement for them.
+//
+// Both are facts about one person. The knowledge base can explain what a baseline is and what the
+// program measures; it has no way of knowing that THIS patient started at 152, so a question in
+// either family must never reach retrieval. They are matched ahead of COST below, because "how
+// much is 5% for me" is a question about a weight goal that the word "how much" would otherwise
+// send to the cost engine.
+const ACCESS_BASELINE = /(starting|baseline)\s*(blood pressure|bp|systolic|weight|point)|what (was|is) my (starting|baseline)|where did i start|(presi[oó]n|peso)\s*(arterial\s*)?inicial|l[ií]nea base|punto de partida|pwen depa|(tansyon|pwa)[^?]*konmansman/i;
+const ACCESS_MILESTONE = /\d+\s*(mmhg|points?|puntos?|pwen)\s*(lower|below|less|menos|m[aá]s baj|pi ba)|(how much|cu[aá]nto|konbyen)[^?]*\d+\s*%|\d+\s*%[^?]*(for me|mean|means|para m[ií]|significa|pou mwen|vle di)|improvement milestone|hito de mejora|etap amelyorasyon/i;
+// Which goal the patient meant. A percentage belongs to the weight goal and mmHg to the blood
+// pressure one, because that is how each rule is written. When the question names neither, both
+// baselines are reported rather than one of them being guessed at.
+const WEIGHT_SUBJECT = /weight|pounds?|\blbs?\b|bmi|%|percent|peso|libras?|imc|por ?ciento|pwa|liv/i;
+const BLOOD_PRESSURE_SUBJECT = /blood pressure|\bbp\b|systolic|mmhg|points?|presi[oó]n|sist[oó]lica|puntos?|tansyon|sistolik|pwen/i;
+const accessBaselineGoalType = text => {
+  if (WEIGHT_SUBJECT.test(text)) return "WEIGHT_MANAGEMENT";
+  return BLOOD_PRESSURE_SUBJECT.test(text) ? "BLOOD_PRESSURE_CONTROL" : "";
+};
 // Asking whether the doctor stays involved is the same question as asking who the doctor is: both
 // are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
 // rather than replacing them. Naming the physician in the question is the most natural way to ask it.
@@ -50,7 +68,18 @@ const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó
 const REPEAT_FOLLOW_UP = /^(can you |could you |please )?(repeat|say that again|repeat that)|^(repita|puede repetir|d[ií]galo otra vez)|^(repete|di sa ank[oò])/i;
 const SIMPLIFY_FOLLOW_UP = /explain (that|it) (more )?simply|simpler|i (did not|didn'?t|don'?t) understand (that|it)|no entend[ií] (eso|esto)|expl[ií]quelo m[aá]s (f[aá]cil|sencillo)|mwen pa konprann|esplike sa pi senp/i;
 const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
-const MEDICATION_SAFETY = /(stop|quit|skip|double|increase|decrease|change).*(medication|medicine|pill|dose)|dejar de tomar|suspender.*medic|cambiar la dosis|sispann pran|chanje d[oò]z/i;
+// A patient asking whether to stop a medicine names the medicine. The old pattern required the
+// generic word, so "should I stop my lisinopril?" — the exact phrasing the QA spec lists — walked
+// past it into the model. Drug-name suffixes catch the whole class without needing a formulary,
+// and an accidental extra dose is a safety event even though no verb of change appears in it.
+const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|prazole|oxacin|cycline)";
+const MEDICATION_SAFETY = new RegExp(
+  "(stop|quit|skip|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|pill|dose|tablet|" + DRUG_SUFFIX + ")"
+  + "|(took|take|taken)[^?.]{0,20}(two|three|2|3|double|an extra|extra)[^?.]{0,10}(dose|pill|tablet)"
+  + "|dejar de tomar|suspender[^?.]{0,30}medic|cambiar la dosis|tom[eé][^?.]{0,15}dos dosis"
+  + "|sispann pran|chanje d[oò]z",
+  "i"
+);
 // The two halves can arrive in either order, and both must be present: a patient asking whether to
 // measure again is asking about the baseline counters, not about their last reading.
 const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\b|\bnow\b/i.test(text))
@@ -353,6 +382,52 @@ const programAnswers = Object.freeze({
   }
 });
 
+// The generic page for a programme, as opposed to a page written for one question about it.
+const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|tcm|rtm|ccm-rpm|pcm-rpm)\.md$/i;
+
+// Turn a retrieved page into something that reads as an answer: no headings, no markdown, and only
+// as much as a patient will read. The pages lead with their answer for exactly this reason.
+const passageAnswer = passage => {
+  // Everything from the response rule onward is written for the model, not the patient: retrieval
+  // appends it to whichever chunk it returns, and it must never be read out as an answer.
+  const body = String(passage?.text || "")
+    .split(/^#{1,4}\s*EMMI response rule\s*$/mi)[0]
+    // Emphasis comes off first: a line ending "things:**" does not look like it ends in a colon,
+    // and the list it introduces would be started as a new sentence instead of joined to it.
+    .replace(/\*\*|__|`/g, "");
+
+  const blocks = [];
+  for (const block of body.split(/\r?\n\s*\r?\n/)) {
+    const lines = block.split(/\r?\n/).map(line => line.trim()).filter(Boolean).filter(line => !/^#{1,4}\s/.test(line));
+    if (!lines.length) continue;
+    // A list is where the facts are — the four tracks, the two halves of the target — so items are
+    // kept and turned into sentences. Everything else is a paragraph that was hard-wrapped, and
+    // its lines rejoin without gaining a full stop in the middle of a sentence.
+    const isList = lines.every(line => /^(?:[-*]|\d+\.)\s+/.test(line));
+    if (isList) blocks.push(lines.map(line => line.replace(/^(?:[-*]|\d+\.)\s+/, "")).map(item => (/[.!?]$/.test(item) ? item : `${item}.`)).join(" "));
+    else blocks.push(lines.join(" "));
+  }
+
+  const prose = blocks
+    .reduce((joined, block) => {
+      const previous = joined.at(-1);
+      // A list belongs to the sentence that introduced it.
+      if (previous && /[:;,]$/.test(previous)) joined[joined.length - 1] = `${previous} ${block}`;
+      else joined.push(block);
+      return joined;
+    }, [])
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (prose.length <= 460) return prose;
+  let cut = "";
+  for (const sentence of prose.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) {
+    if ((cut + sentence).length > 460 && cut) break;
+    cut += sentence;
+  }
+  return cut.trim() || prose.slice(0, 460);
+};
+
 const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
   const sources = retrieval.passages || [];
   const sourcePaths = sources.map(item => item.sourcePath).join(" ");
@@ -369,6 +444,20 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
     KR: "ACCESS se yon modèl Medicare ki konsantre sou plis sipò ak rezilta sante. CCM se yon sèvis jesyon swen kwonik pou moun ki gen plizyè maladi kwonik. Toude ka ede ant vizit, men yo gen règ diferan."
   });
   if (combinedProgram) return pick(locale, programAnswers[combinedProgram]);
+  // A page written for this question beats every canned answer below it. Those exist for questions
+  // no single page covers — comparing two programmes — and for pages that never had one. Left after
+  // the leave-the-programme answer, this never ran for "when can I leave?", which is exactly the
+  // question a page had just been written to answer with the ninety days in it.
+  //
+  // English reads the page itself; Spanish and Creole read the answer the page carries for them, so
+  // they get the specific answer rather than the general paragraph an English speaker would never
+  // have been given.
+  const focused = sources[0] && !GENERIC_PROGRAM_PAGE.test(sources[0].sourcePath || "") ? sources[0] : null;
+  if (focused) {
+    const key = String(locale).toUpperCase();
+    const written = key === "EN" ? passageAnswer(focused) : passageAnswer({ text: focused.localizedAnswers?.[key] || "" });
+    if (written) return written;
+  }
   if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
   const named = explicitPrograms.find(name => programAnswers[name]) || programs.find(name => programAnswers[name]);
   if (named) return pick(locale, programAnswers[named]);
@@ -431,6 +520,48 @@ const accessCostAnswer = (result, locale) => {
     EN: "I do not have a confirmed expected payment for you right now. Your care team can check your coverage.",
     ES: "Ahora mismo no tengo un pago esperado confirmado. Su equipo de atención puede verificar su cobertura.",
     KR: "Mwen pa gen yon peman konfime ou prevwa kounye a. Ekip swen ou ka verifye kouvèti ou."
+  });
+};
+
+// The patient's own starting point, said back to them. Nothing is computed here: every number is
+// read from the resolved shape, so a baseline that is pending produces a sentence saying so rather
+// than a plausible-looking number.
+const accessStartingPointAnswer = (locale, entry) => {
+  const point = entry.startingPoint || {};
+  if (point.status !== "CONFIRMED") return entry.goalType === "WEIGHT_MANAGEMENT"
+    ? pick(locale, { EN: "I don’t have a confirmed starting weight for you yet. Your care team confirms it as part of setting up your care.", ES: "Todavía no tengo un peso inicial confirmado para usted. Su equipo de atención lo confirma como parte de la configuración de su cuidado.", KR: "Mwen poko gen yon pwa nan konmansman ki konfime pou ou. Ekip swen ou konfime l antan y ap mete swen ou anplas." })
+    : pick(locale, { EN: "I don’t have a confirmed starting blood pressure for you yet. Your care team confirms it as part of setting up your care.", ES: "Todavía no tengo una presión arterial inicial confirmada para usted. Su equipo de atención la confirma como parte de la configuración de su cuidado.", KR: "Mwen poko gen yon tansyon nan konmansman ki konfime pou ou. Ekip swen ou konfime l antan y ap mete swen ou anplas." });
+  if (entry.goalType === "WEIGHT_MANAGEMENT") {
+    const weight = pick(locale, { EN: `Your starting weight is ${point.value} pounds.`, ES: `Su peso inicial es ${point.value} libras.`, KR: `Pwa ou nan konmansman an se ${point.value} liv.` });
+    if (!point.bmi) return weight;
+    const bmi = Number(point.bmi).toFixed(1);
+    return `${weight} ${pick(locale, { EN: `Your BMI at that starting point is ${bmi}.`, ES: `Su IMC en ese punto de partida es ${bmi}.`, KR: `BMI ou nan pwen depa sa a se ${bmi}.` })}`;
+  }
+  // A systolic without a diastolic is still a baseline. It is named as a systolic rather than read
+  // out as half of a pair the record does not hold.
+  if (!point.diastolic) return pick(locale, { EN: `Your starting systolic blood pressure is ${point.value} mmHg.`, ES: `Su presión arterial sistólica inicial es ${point.value} mmHg.`, KR: `Tansyon sistolik ou nan konmansman an se ${point.value} mmHg.` });
+  return pick(locale, { EN: `Your starting blood pressure is ${point.value} over ${point.diastolic}.`, ES: `Su presión arterial inicial es ${point.value} sobre ${point.diastolic}.`, KR: `Tansyon ou nan konmansman an se ${point.value} sou ${point.diastolic}.` });
+};
+
+// The milestone, always said with the baseline it came from and always distinguished from the
+// control target. "137" on its own is the answer this whole module exists to avoid giving: it
+// tells a patient who started at 152 that 137 is where they are trying to land, which is not what
+// ACCESS means and is worse than saying nothing.
+const accessMilestoneAnswer = (locale, entry) => {
+  const measure = entry.measure || {};
+  const milestone = measure.improvementMilestone;
+  if (!milestone) return accessStartingPointAnswer(locale, entry);
+  if (entry.goalType === "WEIGHT_MANAGEMENT") {
+    return pick(locale, {
+      EN: `Based on your starting weight of ${milestone.derivedFromBaseline} pounds, ${milestone.improvementRequired}% is about ${milestone.reductionFromBaseline} pounds, which corresponds to an ACCESS improvement milestone of about ${milestone.value} pounds or lower. The control target is separate: a BMI below ${measure.control.value}.`,
+      ES: `Con base en su peso inicial de ${milestone.derivedFromBaseline} libras, ${milestone.improvementRequired}% es aproximadamente ${milestone.reductionFromBaseline} libras, lo que corresponde a un hito de mejora de ACCESS de aproximadamente ${milestone.value} libras o menos. La meta de control es distinta: un IMC menor de ${measure.control.value}.`,
+      KR: `Dapre pwa ou nan konmansman an ki se ${milestone.derivedFromBaseline} liv, ${milestone.improvementRequired}% se anviwon ${milestone.reductionFromBaseline} liv, sa ki koresponn ak yon etap amelyorasyon ACCESS anviwon ${milestone.value} liv oswa mwens. Objektif kontwòl la se yon lòt bagay: yon BMI anba ${measure.control.value}.`
+    });
+  }
+  return pick(locale, {
+    EN: `Based on your starting systolic blood pressure of ${milestone.derivedFromBaseline}, your ACCESS improvement milestone is ${milestone.value} mmHg or lower. That is not the same as the control target, which is below ${measure.control.value} mmHg systolic.`,
+    ES: `Con base en su presión sistólica inicial de ${milestone.derivedFromBaseline}, su hito de mejora de ACCESS es ${milestone.value} mmHg o menos. No es lo mismo que la meta de control, que es menos de ${measure.control.value} mmHg sistólica.`,
+    KR: `Dapre tansyon sistolik ou nan konmansman an ki se ${milestone.derivedFromBaseline}, etap amelyorasyon ACCESS ou se ${milestone.value} mmHg oswa mwens. Sa pa menm bagay ak objektif kontwòl la, ki se anba ${measure.control.value} mmHg sistolik.`
   });
 };
 
@@ -521,7 +652,7 @@ const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
 };
 
 export class EmmiTextOrchestrator {
-  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {} }) {
+  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {}, onSafetyResolved = () => {} }) {
     this.getContext = getContext;
     this.getConversation = getConversation;
     this.executeTool = executeTool;
@@ -529,6 +660,7 @@ export class EmmiTextOrchestrator {
     this.fetch = fetchImpl;
     this.onEvent = onEvent;
     this.onSafetyEpisode = onSafetyEpisode;
+    this.onSafetyResolved = onSafetyResolved;
   }
 
   async answer(question, { questionId = "" } = {}) {
@@ -540,7 +672,19 @@ export class EmmiTextOrchestrator {
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
-    if (conversation.activeSafetyEpisode?.active && !SAFETY.test(asked)) { trace.intent = "CLINICAL_SAFETY_FOLLOW_UP"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED"); return { ...safetyResponseFor({ locale, episode: conversation.activeSafetyEpisode, question }), trace }; }
+    const openEpisode = safetyEpisodeIsActive(conversation.activeSafetyEpisode) ? conversation.activeSafetyEpisode : null;
+    if (openEpisode) {
+      // Resolution is read before the emergency gate. A patient saying "I called 911" or "the
+      // emergency team is with me now" uses the words that raise an emergency, so the gate treated
+      // every attempt to close the episode as a new one and re-armed it. Nothing could end it.
+      const resolution = detectSafetyResolution(asked);
+      if (resolution) {
+        this.onSafetyResolved(resolution);
+        trace.intent = "CLINICAL_SAFETY_RESOLVED"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED", { resolution });
+        return { text: safetyResolutionCopy(resolution, locale), priority: "CRITICAL_SAFETY", deterministic: true, pendingAction: "clinical-task", trace };
+      }
+      if (!SAFETY.test(asked)) { trace.intent = "CLINICAL_SAFETY_FOLLOW_UP"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED"); return { ...safetyResponseFor({ locale, episode: openEpisode, question }), trace }; }
+    }
     const policy = conversationPolicyResponse(question, locale); if (policy) { trace.intent = policy.intent; trace.responseMode = policy.responseMode; emit("EMMI_ANSWER_ROUTED"); return { text: policy.text, deterministic: true, trace }; }
     const bp = asked.match(BP_READING);
     if (SAFETY.test(asked) || bp) {
@@ -643,6 +787,23 @@ export class EmmiTextOrchestrator {
           return { text: pick(locale, { EN: "No. Your monitor is connected and we received your first reading. You can take your next readings later, and ITERA will receive them automatically.", ES: "No. Su monitor está conectado y recibimos su primera medición. Puede realizar las próximas más adelante e ITERA las recibirá automáticamente.", KR: "Non. Aparèy ou konekte epi nou resevwa premye mezi ou a. Ou ka pran lòt mezi yo pita, epi ITERA ap resevwa yo otomatikman." }), trace };
         }
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getEnrollmentContext", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
+    }
+    // A starting point and a milestone are read from the patient's own record, never explained from
+    // general education and never recomputed here. When this patient has no ACCESS baselines at all
+    // the block claims nothing and lets normal routing take the turn.
+    const milestoneAsked = ACCESS_MILESTONE.test(asked);
+    if (milestoneAsked || ACCESS_BASELINE.test(asked)) {
+      trace.intent = milestoneAsked ? "ACCESS_IMPROVEMENT_MILESTONE" : "ACCESS_BASELINE";
+      trace.toolCalls.push("getAccessBaseline");
+      try {
+        const goalType = accessBaselineGoalType(asked);
+        const resolved = await this.executeTool("getAccessBaseline", { patientId: context.patientId, ...(goalType ? { goalType } : {}) });
+        const baselines = resolved?.baselines || [];
+        if (baselines.length) {
+          trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push("getAccessBaseline"); emit("EMMI_ANSWER_ROUTED");
+          return { text: baselines.map(entry => milestoneAsked ? accessMilestoneAnswer(locale, entry) : accessStartingPointAnswer(locale, entry)).join(" "), trace };
+        }
+      } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "getAccessBaseline", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
     // Where a refill stands is a runtime fact, never a guess: EMMI reads the episodes and says what
     // each one is actually waiting on.

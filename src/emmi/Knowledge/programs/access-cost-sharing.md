@@ -1,7 +1,7 @@
 ---
 id: access-cost-sharing
 title: ACCESS cost sharing
-category: programs
+category: program
 program: ACCESS
 audience: patient
 risk_level: high
@@ -12,6 +12,7 @@ last_reviewed: 2026-08-27
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH participant configuration
 owner: ITERA HEALTH
 patient_facing_approval: approved
+keywords: cost, costo, coste, pagar, pago, pay, payment, kou, peye, cost sharing, coseguro, coinsurance, cuanto, cuánto, konbyen, amount, monto, montan
 ---
 
 # ACCESS cost sharing
@@ -21,6 +22,8 @@ Under the ACCESS model framework, participants elect whether to collect or foreg
 Medicare.gov describes ACCESS as low or no cost and says most participating organizations charge about $0 to $7 per month. The eCKM amount in the current CMS payment schedule is either waived or collected according to the participant's uniform election. This general information never establishes what a particular patient will pay.
 
 ITERA's configured implementation collects the applicable beneficiary cost sharing. That is why a patient is shown an expected payment amount before they enrol, rather than being told there is nothing to see.
+
+Any amount stated to a patient must come from the financial responsibility engine for that patient and that track. Never quote a remembered figure from this page or from anywhere else.
 
 ## ACCESS is never described as free
 
@@ -51,3 +54,11 @@ CMS bases participant payment on the overall share of the organization's patient
 ## EMMI response rule
 
 Explain the structure from this page. Never state an amount from it. Amounts come from the financial responsibility engine, which reads the track configuration and the patient's verified coverage.
+
+## Patient answer (ES)
+
+ACCESS no es gratuito, y por eso se le muestra el pago esperado antes de que usted decida. Lo que le corresponde pagar depende de la vía de ACCESS en la que esté y de la cobertura que se haya verificado para usted, así que la cantidad se calcula para su caso y no es una cifra fija. Ese pago cubre ACCESS: las consultas, los medicamentos, el hospital y otros servicios tienen sus propios costos aparte.
+
+## Patient answer (KR)
+
+ACCESS pa gratis, se poutèt sa yo montre ou pèman ou dwe atann anvan ou deside. Sa ou gen pou peye depann de wout ACCESS ou ye a ak kouvèti yo verifye pou ou, kidonk montan an kalkile pou ka pa ou epi li pa yon chif fiks. Pèman sa a kouvri ACCESS: vizit, medikaman, lopital ak lòt sèvis gen pwòp pri pa yo apa.

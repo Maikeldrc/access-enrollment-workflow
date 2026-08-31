@@ -67,9 +67,10 @@ describe("shared enrollment welcome configuration", () => {
 
 describe("next best action", () => {
   it("sends ACCESS to care activation and care programs to care setup", () => {
-    // The route is unchanged; only what it is called to the patient. After enrollment the next
-    // thing is care activation, not another questionnaire.
-    expect(resolveNextBestAction({ pathway: "ACCESS" })).toMatchObject({ route: "ACCESS_BASELINE", actionType: "HEALTH_CHECK" });
+    // Phase 3 renamed this CTA and deliberately left the route alone, and this assertion existed to
+    // catch an accidental re-route. The route has now moved on purpose: care activation opens with
+    // the connected monitor, and the health check it used to open is gone from the journey entirely.
+    expect(resolveNextBestAction({ pathway: "ACCESS" })).toMatchObject({ route: "ACCESS_BP_DEVICE_INFO", actionType: "CARE_ACTIVATION" });
     expect(resolveNextBestAction({ pathway: "ACCESS" }).label.en).toBe("Set up my care");
     expect(resolveNextBestAction({ pathway: "CCM" })).toMatchObject({ route: "ONBOARDING", actionType: "CARE_SETUP" });
     expect(resolveNextBestAction({ pathway: "CCM" }).label.en).toBe("Set up my care");

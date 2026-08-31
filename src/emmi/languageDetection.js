@@ -30,14 +30,28 @@ const MARKERS = {
     "need", "want", "can", "have", "would", "thanks", "thank", "hello", "hi",
     "my", "your", "you", "the", "and", "with", "but", "also", "very", "is", "am",
     "i", "will", "do", "does", "it", "this", "that", "for", "about", "should", "get",
-    "blood", "pressure", "doctor", "medication", "appointment", "help", "understand", "insurance"
+    "blood", "pressure", "doctor", "medication", "appointment", "help", "understand", "insurance",
+    // What a patient actually writes to arrange care. The list above covers question words,
+    // modals and clinical nouns, but had nothing for contacting or scheduling, so an ordinary
+    // sentence like "call me tomorrow" scored English nothing at all. Deliberately excludes
+    // words another language here also claims - "me" is a Spanish pronoun, "no" and "non"
+    // belong to Spanish and Creole - because a marker that two languages share is not evidence.
+    "call", "now", "today", "tomorrow", "time", "please", "know", "take", "tell", "see",
+    "cost", "visit", "nurse", "care", "phone", "number", "office", "schedule"
   ]
 };
 
 // Characters that only one of the three writes. A single "ñ" or an inverted question mark settles
 // Spanish; the Creole grave accents settle Creole.
+//
+// Characters only. "ap" and "nan" used to sit here too, and being words they were also in the
+// Creole marker list — so each was worth three points, one as a marker and two more as orthography
+// it is not, against a documented ceiling of two. English has no such class to answer with, so
+// "call nan ap now" scored four to nothing and resolved as Creole outright; the margin rule cannot
+// rescue a language that scored zero. They are still markers, worth one each like every other word.
+// "þ" was here as well and is not a Haitian Creole letter — it made Icelandic read as Creole.
 const SPANISH_CHARACTERS = /[ñ¿¡]|[áíóú]/;
-const CREOLE_CHARACTERS = /[èòàþ]|\bap\b|\bnan\b/;
+const CREOLE_CHARACTERS = /[èòà]/;
 
 const normalize = text => String(text || "")
   .toLowerCase()

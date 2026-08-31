@@ -31,12 +31,19 @@ export const SCENARIOS = {
   "access-happy": { label: "ACCESS · eligible", pathway: "ACCESS", accessOutcome: "eligible" },
   "access-bp-incompatible": { label: "ACCESS · patient-owned BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "patient-owned-unsupported", bpDeviceAssignment: "patient-owned" },
   "access-bp-none": { label: "ACCESS · no BP monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "none", bpDeviceAssignment: "none" },
-  "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceLookupFailure: true },
-  "access-bp-pylo": { label: "ACCESS · Pylo monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceVendor: "PYLO" },
-  "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpReadingFailureAt: 1 },
-  "access-bp-source-mismatch": { label: "ACCESS · BP source mismatch", pathway: "ACCESS", accessOutcome: "eligible", bpSourceMismatch: true },
-  "access-bp-background-complete": { label: "ACCESS · BP background completion", pathway: "ACCESS", accessOutcome: "eligible", bpBackgroundReadings: 2 },
-  "access-bp-escalation": { label: "ACCESS · BP clinical escalation", pathway: "ACCESS", accessOutcome: "eligible", bpClinicalReview: "escalation", bpBackgroundReadings: 2 },
+  // A patient whose record already holds a working ITERA monitor. The journey reads the record to
+  // choose the device path, so the verification branch needs a scenario that actually has one —
+  // access-happy is the canonical patient, who has none.
+  "access-bp-assigned": { label: "ACCESS · assigned ITERA monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" },
+  // The record says a monitor was assigned and the device registry does not confirm it. Not the same
+  // as having no monitor: that patient is sent to arrange one, while this one has to be asked.
+  "access-bp-stale-assignment": { label: "ACCESS · stale monitor assignment", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpDeviceAssignmentStale: true },
+  "access-bp-assignment-failure": { label: "ACCESS · assigned monitor review", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpDeviceLookupFailure: true },
+  "access-bp-pylo": { label: "ACCESS · Pylo monitor", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-pylo", bpDeviceAssignment: "itera-pylo", bpDeviceVendor: "PYLO" },
+  "access-bp-reading-failure": { label: "ACCESS · BP transmission retry", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpReadingFailureAt: 1 },
+  "access-bp-source-mismatch": { label: "ACCESS · BP source mismatch", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpSourceMismatch: true },
+  "access-bp-background-complete": { label: "ACCESS · BP background completion", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpBackgroundReadings: 2 },
+  "access-bp-escalation": { label: "ACCESS · BP clinical escalation", pathway: "ACCESS", accessOutcome: "eligible", bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi", bpClinicalReview: "escalation", bpBackgroundReadings: 2 },
   "access-disclosure-configured": { label: "ACCESS · configured disclosures", pathway: "ACCESS", accessOutcome: "eligible", accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: "$35", showAccessClaimsSharing: true, showAccessTempoDisclosure: true, accessTempoDisclosureText: "A connected device may be used to support your ACCESS care. Your care team will explain what is required." },
   "access-control": { label: "ACCESS · control group", pathway: "ACCESS", accessOutcome: "control" },
   "access-not-eligible": { label: "ACCESS · not eligible", pathway: "ACCESS", accessOutcome: "notEligible" },
@@ -51,12 +58,26 @@ export const SCENARIOS = {
   "link-invalid": { label: "Link · invalid", pathway: "CCM", tokenState: "invalid" }
 };
 
+// The clinical baselines this patient's record already holds when the invitation reaches them.
+// They are OBSERVATIONS, not goals and not targets: the care team recorded a blood pressure and a
+// weight, and every ACCESS milestone downstream is arithmetic on these two numbers. That is why
+// they live on the patient record rather than in a screen — a card that carried its own 152 would
+// keep saying 152 after the record said something else.
+//
+// Each one is CONFIRMED or it is not here at all. A baseline invented to fill a blank silently
+// becomes the number every milestone is derived from, so the resolver treats anything short of a
+// confirmed measurement as pending and the screens say so out loud.
+export const DEMO_BASELINE_OBSERVATIONS = Object.freeze({
+  bloodPressure: Object.freeze({ status: "CONFIRMED", systolic: 152, diastolic: 88, unit: "mmHg", recordedAt: "2026-08-14T15:20:00.000Z", source: "CARE_TEAM_RECORD" }),
+  weight: Object.freeze({ status: "CONFIRMED", weightLb: 204, bmi: 31, unit: "lb", recordedAt: "2026-08-14T15:20:00.000Z", source: "CARE_TEAM_RECORD" })
+});
+
 const shared = {
   id: "offer_demo_2026",
-  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" } },
+  patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" }, baselineObservations: DEMO_BASELINE_OBSERVATIONS },
   referringProvider: { id: "dr-fresner", name: "Dr. Fresner", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
   participantProvider: { id: "itera", legalName: "ITERA HEALTH LLC", displayName: "ITERA HEALTH", supportPhone: "(305) 394-8070" },
-  qualifyingCondition: { patientFriendlyName: "high blood pressure" },
+  qualifyingCondition: { name: "Hypertension", patientFriendlyName: "high blood pressure" },
   payer: { type: "OriginalMedicare", mbiAvailable: true, mbiConfidence: "trusted" },
   disclosures: { bundleId: "itera-disclosure-2026-08", version: "2.1" },
   consent: { bundleId: "itera-consent-2026-08", version: "2.1", required: true }
@@ -237,6 +258,10 @@ export const CANONICAL_PATIENT_SCENARIO = Object.freeze({
   source: ACCESS_PROVIDER_REFERRAL,
   referralOrigin: "physician",
   physicianDisplayName: "Dr. Fresner",
+  // The invited patient has no connected monitor yet. Arranging one is the first tangible thing
+  // ACCESS does for them, which is why care activation opens with the device rather than asking a
+  // question whose answer their record already holds.
+  bpDeviceScenario: "none",
   language: "en"
 });
 export const scenarioUsesBloodPressureMonitoring = config => config.program === "ACCESS" && config.accessTrack === "eCKM" && config.conditions.includes("Hypertension");

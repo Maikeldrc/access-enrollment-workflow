@@ -72,6 +72,9 @@ export class MockEnrollmentService {
     await wait(450);
     const fixture = this.offer().fixture;
     if (!patientId || fixture.bpDeviceAssignment === "none") return { status: "not_found", assignment: null, patientOwnsMonitor: false, deviceSource: "NONE", integrationStatus: "NOT_CONNECTED" };
+    // A record can claim an assignment the device registry cannot confirm. The patient still reaches
+    // the verification screen, because their record sent them there, and is asked rather than told.
+    if (fixture.bpDeviceAssignmentStale) return { status: "not_found", assignment: null, patientOwnsMonitor: false, deviceSource: "UNKNOWN", integrationStatus: "NOT_CONNECTED" };
     if (fixture.bpDeviceAssignment === "patient-owned" || fixture.bpDeviceScenario === "patient-owned-unsupported") return { status: "not_found", assignment: null, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", deviceVendor: "OTHER", deviceStatus: "ACTIVE", integrationProvider: "OTHER", integrationStatus: "UNSUPPORTED" };
     const vendor = fixture.bpDeviceVendor === "PYLO" || fixture.bpDeviceScenario === "itera-pylo" ? "PYLO" : "TENOVI";
     return { status: "active", assignment: { patientId, assignedDeviceId: fixture.assignedDeviceId || (vendor === "PYLO" ? "pylo-bp-6719" : "tenovi-bp-8842"), assignedAt: "2026-08-20T14:00:00.000Z" } };
@@ -212,7 +215,7 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalFlowStep: state.goalFlowStep,
       goalFlowOrigin: state.goalFlowOrigin,
       patientGoals: (state.patientGoals || []).map(goal => ({
-        id: goal.id, patientId: goal.patientId, goalType: goal.goalType, title: goal.title, customTitle: goal.customTitle || "", status: goal.status, priority: goal.priority, whyItMatters: goal.whyItMatters || "", planStatus: goal.planStatus,
+        id: goal.id, patientId: goal.patientId, goalType: goal.goalType, title: goal.title, goalSource: goal.goalSource || "", selectedBy: goal.selectedBy || "", customTitle: goal.customTitle || "", status: goal.status, priority: goal.priority, whyItMatters: goal.whyItMatters || "", planStatus: goal.planStatus,
         actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), reminderSlot: action.reminderSlot || "", reminderTime: action.reminderTime || "", status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
         progress: (goal.progress || []).map(item => ({ id: item.id, goalId: item.goalId, actionId: item.actionId || null, progressType: item.progressType, value: item.value ?? null, patientReportedStatus: item.patientReportedStatus || "", timestamp: item.timestamp })),
         // A barrier persists as the care signal it is: what was tried, how it went, who owns it

@@ -10,6 +10,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: CMS / Medicare.gov
 owner: ITERA HEALTH
+keywords: quien paga primero, quién paga primero, primario, secundario, primary, secondary, kiyès ki peye anvan, coordinacion, coordinación, dos seguros
 ---
 
 # How primary and secondary coverage work together
@@ -33,3 +34,11 @@ When a patient says their insurance has changed, coverage must be verified again
 ## EMMI response rule
 
 Explain the general idea simply. For what a specific patient's coverage pays, use verified coverage data and the expected payment the financial responsibility engine returns.
+
+## Patient answer (ES)
+
+Cuando alguien tiene más de una cobertura, una paga primero: esa es la primaria. La que puede pagar parte de lo que queda es la secundaria. Para muchas personas con Medicare Original y una póliza suplementaria, Medicare paga su parte primero y el suplemento puede cubrir parte del resto. Tener una segunda cobertura no significa automáticamente que usted no pague nada.
+
+## Patient answer (KR)
+
+Lè yon moun gen plis pase yon kouvèti, gen youn ki peye anvan: se sa yo rele prensipal la. Sa ki ka peye yon pati nan rès la se segondè a. Pou anpil moun ki gen Medicare Orijinal ak yon polis siplemantè, Medicare peye pati pa l anvan epi siplemantè a ka kouvri yon pati nan rès la. Gen yon dezyèm kouvèti pa vle di otomatikman ou pa peye anyen.

@@ -10,6 +10,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: CMS / Medicare.gov
 owner: ITERA HEALTH
+keywords: medigap, suplemento, suplementario, supplement, supplemental, siplemantè, poliza, póliza, policy, seguro privado
 ---
 
 # Medicare Supplement Insurance (Medigap)
@@ -33,3 +34,11 @@ A patient can have secondary coverage that is Medicaid, a Qualified Medicare Ben
 ## EMMI response rule
 
 This page explains how Medigap works in general. Whether a specific patient has a Medigap policy, and whether that policy pays a specific cost, are patient-specific facts that must come from verified coverage data, never from this page.
+
+## Patient answer (ES)
+
+El seguro suplementario de Medicare, que se suele llamar Medigap, es un seguro privado que funciona junto a Medicare Original y ayuda a pagar algunos de los costos que Medicare Original deja a su cargo. Lo que paga una póliza depende de esa póliza en concreto: dos personas con Medigap pueden deber cantidades distintas. Tener Medigap no significa por sí solo que usted no pague nada.
+
+## Patient answer (KR)
+
+Asirans siplemantè Medicare, yo souvan rele l Medigap, se yon asirans prive ki mache ansanm ak Medicare Orijinal epi ki ede peye kèk nan depans Medicare Orijinal kite sou do ou. Sa yon polis peye depann de polis sa a menm: de moun ki gen Medigap ka dwe montan diferan. Gen Medigap pou kont li pa vle di ou pa peye anyen.

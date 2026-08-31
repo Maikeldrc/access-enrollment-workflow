@@ -471,3 +471,38 @@ test("a quick question in EMMI's own words never triggers a language offer", asy
   await expect(dialog).not.toContainText("Would you like me to continue");
   await expect(dialog.locator(".language")).toContainText("ES");
 });
+
+// Reopening lands on the newest turn, not the oldest.
+//
+// The live re-test of 2026-08-30 closed a long thread, reopened it, and was shown the screen
+// narration from the start of the session instead of the answer it had just been given. Reopening
+// inserts the panel fresh, and a freshly inserted scroll container starts at the top — which, in a
+// conversation, is the oldest thing in it.
+test("reopening a long conversation lands on the newest turn", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 720 });
+  const dialog = await openEmmiOnHome(page);
+
+  for (const question of ["What is ACCESS?", "How does it help me?", "Do I have to enroll?", "Who is my care team?"]) {
+    await ask(dialog, question);
+  }
+
+  const thread = dialog.locator(".assistant-content");
+  const lastMessage = dialog.locator(".assistant-message").last();
+  const lastText = (await lastMessage.textContent())?.trim();
+  expect(lastText).toBeTruthy();
+
+  // Long enough that top and bottom are genuinely different places.
+  const overflows = await thread.evaluate(node => node.scrollHeight - node.clientHeight > 120);
+  expect(overflows, "the thread has to overflow for this test to mean anything").toBe(true);
+
+  await dialog.locator(".assistant-close").click();
+  await expect(page.locator(".assistant-layer")).toHaveCount(0);
+
+  const reopened = await openEmmiConversation(page);
+  const reopenedThread = reopened.locator(".assistant-content");
+  await settle(page);
+
+  const distanceFromBottom = await reopenedThread.evaluate(node => node.scrollHeight - node.scrollTop - node.clientHeight);
+  expect(distanceFromBottom, "reopened away from the newest turn").toBeLessThanOrEqual(96);
+  await expect(reopened.locator(".assistant-message").last()).toBeInViewport();
+});

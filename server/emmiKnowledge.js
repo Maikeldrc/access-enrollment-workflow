@@ -73,8 +73,15 @@ const INTENT_RULES = [
   { intent: "GENERAL_KNOWLEDGE", risk: "low", test: /\b(what is|what are|what does|why|how does|explain|tell me about)\b|qué es|que es|por qué|porque|kisa|poukisa/i }
 ];
 
-// A question is personalised when the patient asks about themselves rather than the concept.
-const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\b(mi|mis|m[ií]o|m[ií]a|yo|soy|estoy|tengo|puedo)\b|\b(mwen|pa m)\b/i;
+// A question is personalised when the patient asks about themselves rather than the concept, and
+// that decides whether a runtime tool is demanded instead of a general page.
+//
+// Spanish carries the subject in the verb, so the pronoun a patient would have to say is usually
+// absent: "¿Cuánto voy a pagar al mes?" is unmistakably about the speaker and matched none of the
+// markers, which let a cost question be answered from a generic page instead of the engine. The
+// first-person verb forms below close that. Over-matching here is the safe direction — it demands a
+// tool that would otherwise be skipped — so ambiguous nouns like "pago" and "cambio" stay out.
+const PERSONAL_MARKERS = /\b(i|i'?m|im|me|my|mine|we|our|am i|do i|did i|have i|was i|will i)\b|\b(mi|mis|m[ií]|m[ií]o|m[ií]a|conmigo|nos|nuestr[oa]|yo|soy|estoy|tengo|puedo|podr[ií]a|voy|quiero|debo|necesito|participo|estar[ée]|ser[ée]|tendr[ée]|pagar[ée]|inscribirme|dejarlo)\b|\b(mwen|pa m|m ap|m'ap)\b/i;
 
 export const classifyQuestion = (question, runtime = {}) => {
   const text = String(question || "");
@@ -101,7 +108,10 @@ export const classifyQuestion = (question, runtime = {}) => {
 };
 
 const CATEGORY_FOR_INTENT = {
-  COST: ["medicare", "program"],
+  // "billing" is where the authoritative expected-payment page lives, so a cost question that
+  // did not reach it was answering from the surrounding programme pages instead of the page
+  // written to answer it.
+  COST: ["medicare", "program", "billing"],
   ELIGIBILITY: ["program", "enrollment"],
   DEVICE: ["device", "program"],
   MEDICATION: ["care", "safety"],
@@ -151,7 +161,11 @@ const PROGRAM_ALIASES = {
   ASM: ["ASM"]
 };
 
-const STOP_WORDS = new Set(["the", "a", "an", "is", "are", "do", "does", "did", "what", "why", "how", "for", "and", "or", "of", "to", "in", "on", "my", "i", "me", "it", "this", "that", "can", "will", "should", "be", "have", "has", "you", "your", "el", "la", "los", "las", "que", "de", "mi", "es", "un", "una", "por", "se", "yon", "nan", "ak", "mwen"]);
+const STOP_WORDS = new Set(["the", "a", "an", "is", "are", "do", "does", "did", "what", "why", "how", "for", "and", "or", "of", "to", "in", "on", "my", "i", "me", "it", "this", "that", "can", "will", "should", "be", "have", "has", "you", "your", "el", "la", "los", "las", "que", "de", "mi", "es", "un", "una", "por", "se", "yon", "nan", "ak", "mwen",
+  // The accented forms are the ones patients actually type, and they were not stopwords, so a
+  // keyword phrase containing "qué" matched every Spanish question ever asked.
+  "qué", "cómo", "como", "cuál", "cual", "cuáles", "dónde", "donde", "quién", "quien", "sí", "más", "mas",
+  "kisà", "ki", "pou", "sa", "ou", "li", "yo", "ap", "gen"]);
 
 const tokenize = value => String(value || "").toLowerCase().split(/[^a-z0-9áéíóúñèòàçü]+/i).filter(word => word.length > 2 && !STOP_WORDS.has(word));
 
@@ -187,6 +201,26 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
     buffer.push(line);
   }
   flush();
+
+  // A page's answer, in the patient's own language.
+  //
+  // The corpus is written in English and read by patients in three. When the model is reachable it
+  // translates, but when it is not, the fallback had nothing specific to say to a Spanish or Creole
+  // patient and fell back to a general paragraph — so they got a worse answer than an English
+  // speaker for the same question. These sections are the answer itself, written once per language.
+  //
+  // They are lifted out rather than left as chunks: they would otherwise compete for a retrieval
+  // slot against the page they belong to, and an English turn would spend its context on a
+  // translation of what it already has.
+  const localizedAnswers = {};
+  const remaining = [];
+  for (const section of sections) {
+    const localized = /^Patient answer \((ES|KR)\)$/i.exec(section.heading);
+    if (localized) localizedAnswers[localized[1].toUpperCase()] = section.text.trim();
+    else remaining.push(section);
+  }
+  sections.length = 0;
+  sections.push(...remaining);
 
   const chunks = [];
   for (const section of sections) {
@@ -229,6 +263,11 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
     heading: chunk.heading,
     text: chunk.text,
     tokens: tokenize(`${chunk.heading} ${chunk.text}`),
+    // The corpus is written in English and the patients ask in three languages, so token overlap
+    // alone cannot tell one ACCESS page from another for a Spanish or Creole question: every page
+    // scores the same category and programme boost and the winner is whatever the tie-break lands
+    // on. A page declares the words a patient would actually use to ask for it, in each language.
+    keywordTokens: tokenize(String(metadata.keywords || "").replace(/,/g, " ")),
     metadata: {
       id: metadata.id || sourcePath,
       title: metadata.title || sourcePath,
@@ -240,7 +279,10 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
       version: metadata.version || null,
       lastReviewed: metadata.last_reviewed || null,
       owner: metadata.owner || null
-    }
+    },
+    // The same answer in each language the patient may be reading in, carried on every chunk of the
+    // page it belongs to so whichever one is retrieved can still be answered in their language.
+    localizedAnswers
   }));
 }
 
@@ -277,33 +319,78 @@ export const resetKnowledgeIndex = () => { cachedIndex = null; };
 // the master only as a fallback when nothing else matched (§42).
 const isMasterSource = chunk => /emmi-master-knowledge/.test(chunk.sourcePath);
 
+// The page that describes a programme as a whole, as opposed to one written about a single question
+// within it. It owns the programme's name, but a page that matches its own topic should still win:
+// naming the programme alone asks for the overview, naming it alongside a topic does not.
+const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|tcm|rtm|ccm-rpm|pcm-rpm)\.md$/i;
+
 export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKnowledgeIndex() } = {}) {
   const classification = classifyQuestion(query, runtime);
   // Query rewriting: the patient's visible question is untouched, but retrieval gets the
   // context they are speaking from (§40).
   const rewritten = [query, runtime.program || "", runtime.currentScreen || "", classification.intent].join(" ");
-  const queryTokens = new Set(tokenize(rewritten));
-  const wantedCategories = new Set([...(CATEGORY_FOR_INTENT[classification.intent] || []), ...(CATEGORY_FOR_SCREEN[runtime.currentScreen] || [])]);
+  // Scored against what the patient actually said, not against the context added around it. The
+  // rewritten string put the programme name into the token set, so the programme's own page matched
+  // it many times over and won whatever was asked. English questions carried enough of their own
+  // topic to outweigh that; a Spanish or Creole question against an English corpus did not, so an
+  // ACCESS patient asking what CCM is, what coinsurance is, or who ITERA are was handed the ACCESS
+  // page every time. Context still counts — as the category and programme boosts below, once.
+  const queryTokens = new Set(tokenize(query));
+  const intentCategories = new Set(CATEGORY_FOR_INTENT[classification.intent] || []);
+  const screenCategories = new Set(CATEGORY_FOR_SCREEN[runtime.currentScreen] || []);
   const wantedPrograms = new Set(PROGRAM_ALIASES[runtime.program] || []);
   for (const namedProgram of ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"]) if (new RegExp(`\\b${namedProgram}\\b`, "i").test(query)) wantedPrograms.add(namedProgram);
 
   const scored = index.chunks.map(chunk => {
     let score = 0;
-    for (const token of chunk.tokens) if (queryTokens.has(token)) score += 1;
+    // Each distinct word counts once. Counting repeats rewarded a page for saying the programme's
+    // name often rather than for answering the question, which is how the general ACCESS page beat
+    // the one written about leaving ACCESS.
+    for (const token of new Set(chunk.tokens)) if (queryTokens.has(token)) score += 1;
     // Heading matches are the strongest signal that a section is on-topic.
     for (const token of tokenize(chunk.heading)) if (queryTokens.has(token)) score += 2;
-    if (wantedCategories.has(chunk.metadata.category)) score += 3;
-    if (chunk.metadata.program && wantedPrograms.has(chunk.metadata.program)) score += 4;
+    // A declared keyword is the page saying "this is the question I answer", and it is the only
+    // signal a non-English question has to go on, so it outweighs an incidental body match.
+    //
+    // It counts for the lead block alone, because keywords belong to the document rather than to any
+    // one section of it. Applied to every chunk they lifted the whole page equally and left the
+    // choice within it to whichever section happened to repeat a word from the question — which is
+    // how the comparison-group page came back as "Medicare benefits are not affected" for a question
+    // containing "Medicare", instead of the lead written to answer it. Pages are authored
+    // answer-first precisely because only one chunk of them is ever selected.
+    let matchedKeyword = false;
+    if (/#0$/.test(chunk.id)) for (const token of chunk.keywordTokens || []) if (queryTokens.has(token)) { score += 4; matchedKeyword = true; }
+    // Category and programme break ties between pages that are about the question. They must not
+    // manufacture relevance for one that is not: with a Spanish or Creole question matching almost
+    // nothing lexically in an English corpus, every ACCESS-tagged page collected the same boost and
+    // the winner was arbitrary — the A1c page answering why medications get reviewed, and the
+    // general ACCESS page answering when a patient may leave. A page earns its context boost only
+    // once something in the question actually pointed at it.
+    const topical = score > 0;
+    // The screen the patient is standing on is the signal for a question that matches nothing —
+    // "why are you asking me this?" — so it is the one boost that must not require a topical match.
+    if (screenCategories.has(chunk.metadata.category)) score += 3;
+    if (topical && intentCategories.has(chunk.metadata.category)) score += 3;
+    if (topical && chunk.metadata.program && wantedPrograms.has(chunk.metadata.program)) score += 4;
     // A program document for a program the patient is not in is noise (§45).
     if (chunk.metadata.program && wantedPrograms.size && !wantedPrograms.has(chunk.metadata.program)) score -= 3;
     if (classification.intent === "CLINICAL_SAFETY" && chunk.metadata.category === "safety") score += 6;
 
-    return { chunk, score };
+    return { chunk, score, keywordMatched: matchedKeyword };
   }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score);
 
   // The master file duplicates the topic files, so it is a fallback rather than a competitor:
   // it only fills slots the specialised documents left empty.
-  const specific = scored.filter(entry => !isMasterSource(entry.chunk));
+  // Three tiers. A page that declared the question's own words answers it; the page describing the
+  // whole programme is where a question lands when nothing more specific claimed it; the master file
+  // fills what is still empty. Without the middle tier the general ACCESS page won every ACCESS
+  // question outright, because it carries the programme's name in its heading, its category and its
+  // body — so "when can I leave ACCESS?" was answered by the page that says what ACCESS is.
+  const claimed = scored.filter(entry => entry.keywordMatched && !GENERIC_PROGRAM_PAGE.test(entry.chunk.sourcePath) && !isMasterSource(entry.chunk));
+  const rest = scored.filter(entry => !claimed.includes(entry) && !isMasterSource(entry.chunk));
+  const specific = claimed.length
+    ? [...claimed, ...rest.filter(entry => !GENERIC_PROGRAM_PAGE.test(entry.chunk.sourcePath)), ...rest.filter(entry => GENERIC_PROGRAM_PAGE.test(entry.chunk.sourcePath))]
+    : rest;
   const fallback = scored.filter(entry => isMasterSource(entry.chunk));
   const ranked = [...specific, ...fallback];
 
@@ -318,6 +405,18 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     selected.push(entry);
   }
 
+  // A page's response rule is how it constrains the answer — "never state an amount from this
+  // page", "never say the information is unavailable". One chunk per document meant the rule
+  // travelled only when its own section happened to outscore the rest of the page, so the model
+  // could be handed a cost page stripped of the sentence forbidding it to quote a figure. The rule
+  // is not a competitor for a slot; it belongs to whichever chunk of that document was chosen.
+  const ruleFor = sourceId => index.chunks.find(chunk => chunk.sourceId === sourceId && /EMMI response rule/i.test(chunk.heading));
+  const withRule = selected.map(entry => {
+    const rule = ruleFor(entry.chunk.sourceId);
+    if (!rule || rule.id === entry.chunk.id) return entry;
+    return { ...entry, chunk: { ...entry.chunk, text: `${entry.chunk.text}\n\n## ${rule.heading}\n\n${rule.text}` } };
+  });
+
   return {
     intent: classification.intent,
     riskLevel: classification.riskLevel,
@@ -326,7 +425,7 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     mustNotAnswerAlone: classification.mustNotAnswerAlone,
     sourcePriority: SOURCE_PRIORITY.ITERA_KNOWLEDGE_BASE,
     knowledgeVersion: index.builtAt,
-    chunks: selected.map(entry => ({
+    chunks: withRule.map(entry => ({
       sourceId: entry.chunk.sourceId,
       sourcePath: entry.chunk.sourcePath,
       title: entry.chunk.metadata.title,
@@ -337,7 +436,8 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
       requiresToolWhenPersonalized: entry.chunk.metadata.requiresToolWhenPersonalized,
       lastReviewed: entry.chunk.metadata.lastReviewed,
       score: entry.score,
-      text: entry.chunk.text
+      text: entry.chunk.text,
+      localizedAnswers: entry.chunk.localizedAnswers || {}
     }))
   };
 }

@@ -10,6 +10,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
+keywords: access, programa, program, pwogram, modelo, model, modèl, consiste, se trata, resumen
 ---
 
 # Medicare ACCESS Model
@@ -30,3 +31,11 @@ When the patient asks a personalized question such as "Am I eligible?", "What wi
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+ACCESS es una opción de cuidado de Medicare que le da apoyo adicional entre sus visitas al médico. Según lo que usted necesite, puede incluir seguimiento de su salud, un plan de cuidado, apoyo con sus medicamentos o mediciones desde casa. Sus médicos de siempre siguen siendo parte de su cuidado, y participar es decisión suya.
+
+## Patient answer (KR)
+
+ACCESS se yon opsyon swen Medicare ki ba ou plis sipò ant vizit doktè ou yo. Selon sa ou bezwen, li ka gen ladan swiv sante ou, yon plan swen, sipò ak medikaman ou, oswa mezi ou pran lakay ou. Doktè ou konn wè yo rete nan swen ou, epi se ou ki chwazi si w ap patisipe.

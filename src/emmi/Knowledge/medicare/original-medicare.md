@@ -10,6 +10,7 @@ version: 1.1
 last_reviewed: 2026-08-27
 source_authority: CMS / Medicare.gov
 owner: ITERA HEALTH
+keywords: medicare original, original medicare, medicare orijinal, parte a, parte b, part a, part b, pati a, pati b, hospital, lopital, cobertura basica, cobertura básica
 ---
 
 # Original Medicare
@@ -39,3 +40,11 @@ Having Part A and Part B active does not by itself establish that someone has Or
 ## EMMI response rule
 
 Use this page to explain how Original Medicare works. Whether this patient has Original Medicare, and what they specifically pay, must come from verified coverage data and the financial responsibility engine.
+
+## Patient answer (ES)
+
+Medicare Original es la cobertura que administra directamente el programa federal de Medicare, y tiene dos partes. La Parte A es el seguro de hospital: cubre la atención hospitalaria como paciente internado y algunos otros servicios. La Parte B cubre atención médica ambulatoria, servicios preventivos y otros servicios. Lo que usted pague depende de las reglas de Medicare para cada tipo de atención y de cualquier cobertura adicional que tenga.
+
+## Patient answer (KR)
+
+Medicare Orijinal se kouvèti pwogram federal Medicare a jere dirèkteman, epi li gen de pati. Pati A se asirans lopital: li kouvri swen lopital kòm pasyan entène ak kèk lòt sèvis. Pati B kouvri swen doktè andeyò lopital, sèvis prevantif ak lòt sèvis. Sa ou peye depann de règ Medicare pou chak kalite swen ak nenpòt kouvèti anplis ou genyen.

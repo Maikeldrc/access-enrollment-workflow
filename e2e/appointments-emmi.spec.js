@@ -234,7 +234,10 @@ test("choosing who to see offers only the care team the runtime actually knows",
   // Every option is either a care-team member the runtime knows or the patient's way out. The
   // recorded cardiologist is available; unrelated specialties are never conjured.
   expect(options.join(" | ")).toMatch(/Dr\. Pedro Martinez.*Cardiology/i);
-  expect(options.join(" | ")).toMatch(/Care Manager/i);
+  // The care manager is offered, and says what she is. "Care coordination" is the label this
+  // product uses for the role on patient-facing surfaces; "Care Manager" is what its own
+  // add-a-professional form calls the role, and only this test expected it here.
+  expect(options.join(" | ")).toMatch(/Alicia Ramírez.*Care coordination/i);
   expect(options.join(" | ")).not.toMatch(/ITERA HEALTH|CVS Pharmacy|dermatolog|nephrolog|endocrinolog/i);
   expect(options.some(option => /Someone else/i.test(option))).toBe(true);
   expect(await screenText(page)).toMatch(/Dr\. Pedro Martinez/);

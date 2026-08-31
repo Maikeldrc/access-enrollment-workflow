@@ -169,3 +169,78 @@ describe("language", () => {
     expect(buildNarration({ screen: "SOME_UNNARRATED_SCREEN", locale: "EN" })).toBeNull();
   });
 });
+
+describe("EMMI on the ACCESS care activation screens", () => {
+  const access = screen => buildNarration({ screen, locale: "EN", runtime: { program: "ACCESS" } });
+
+  // The same screen means different things on different pathways. CCM asks the patient to choose
+  // goals; ACCESS assigns them. EMMI describing the wrong one is worse than saying nothing.
+  it("explains assigned goals on ACCESS and the chooser everywhere else", () => {
+    expect(access("GOALS").narrationText).toMatch(/not choosing them|already/i);
+    expect(buildNarration({ screen: "GOALS", locale: "EN", runtime: { program: "CCM" } }).narrationText).toMatch(/choose/i);
+  });
+
+  // The care plan exists before this screen. EMMI must never describe it as being created here.
+  it("never says the care plan is being created during the barrier step", () => {
+    const narration = access("ACCESS_SUPPORT_NEEDS").narrationText;
+    expect(narration).toMatch(/already exists|already in place/i);
+    expect(narration).not.toMatch(/creating your care plan|build your care plan|set up your care plan/i);
+  });
+
+  it("does not promise a shipment on the device screen", () => {
+    const narration = access("ACCESS_BP_DEVICE_INFO").narrationText;
+    expect(narration).toMatch(/cuff size|address/i);
+    // What section 26 forbids is inventing fulfillment facts. Promising not to claim a shipment is
+    // the opposite of claiming one, so the check targets the fabrications themselves.
+    expect(narration).not.toMatch(/tracking number|carrier|arrives on|will arrive|estimated delivery/i);
+  });
+
+  it("closes on active care rather than on a plan the patient just built", () => {
+    const narration = access("ONBOARDING_COMPLETE").narrationText;
+    expect(narration).toMatch(/already active/i);
+  });
+
+  // The health check screens are gone; a narration for them would be describing nothing.
+  it("has no objective left for the removed health check screens", () => {
+    expect(buildNarration({ screen: "ACCESS_BASELINE", locale: "EN", runtime: {} })).toBeNull();
+    expect(buildNarration({ screen: "ACCESS_MEASURE", locale: "EN", runtime: {} })).toBeNull();
+  });
+});
+
+// EMMI does not go quiet in the middle of a flow she narrates on both sides.
+//
+// The delivery address and the request confirmation had no objective at all, so buildNarration
+// returned null and a patient with voice guidance on heard nothing between the monitor screen and
+// their goals — including on the step that actually places the request.
+describe("every screen of ACCESS care activation is narrated", () => {
+  const ACTIVATION = [
+    "ACCESS_BP_DEVICE_INFO",
+    "ACCESS_BP_SHIPPING_ADDRESS",
+    "ACCESS_BP_FULFILLMENT_CONFIRMED",
+    "GOALS",
+    "ACCESS_SUPPORT_NEEDS",
+    "ONBOARDING_COMPLETE"
+  ];
+
+  for (const screen of ACTIVATION) {
+    for (const locale of ["EN", "ES", "KR"]) {
+      it(`says something on ${screen} in ${locale}`, () => {
+        const narration = buildNarration({ screen, locale, runtime: { program: "ACCESS" } });
+        expect(narration, `${screen} in ${locale} has no narration`).toBeTruthy();
+        expect((narration.narrationText || "").trim().length).toBeGreaterThan(20);
+      });
+    }
+  }
+
+  it("tells the patient the address step is the one that commits the request", () => {
+    const narration = buildNarration({ screen: "ACCESS_BP_SHIPPING_ADDRESS", locale: "EN", runtime: { program: "ACCESS" } });
+    expect(narration.narrationText).toMatch(/places the request|Nothing is requested until you confirm/i);
+  });
+
+  it("never claims a shipment on the confirmation screen", () => {
+    for (const locale of ["EN", "ES", "KR"]) {
+      const narration = buildNarration({ screen: "ACCESS_BP_FULFILLMENT_CONFIRMED", locale, runtime: { program: "ACCESS" } });
+      expect(narration.narrationText).not.toMatch(/has shipped\b(?! until)|ya fue enviado|arrives on|llega el/i);
+    }
+  });
+});

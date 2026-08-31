@@ -11,6 +11,13 @@ const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 const clone = value => JSON.parse(JSON.stringify(value));
 let memoryLogs = []; const store = () => globalThis.sessionStorage;
+// The tool audit is a record of what EMMI did for one patient — which cost it quoted, which device
+// it looked up. It resets with the enrollment, and the in-memory copy goes with it: clearing only
+// the storage would leave this tab still holding the previous patient's calls.
+export function clearEmmiAuditLog() {
+  memoryLogs = [];
+  try { store()?.removeItem(LOG_KEY); } catch { /* best effort */ }
+}
 const readLogs = () => { try { return store() ? JSON.parse(store().getItem(LOG_KEY) || "[]") : memoryLogs; } catch { return memoryLogs; } };
 const writeLogs = logs => { memoryLogs = logs.slice(-25); try { store()?.setItem(LOG_KEY, JSON.stringify(memoryLogs)); } catch {} };
 const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey/i;
@@ -61,6 +68,7 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getReadingTrend", description: "Get the deterministic trend already calculated by the patient runtime. The model must explain it, not recalculate it.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, metricType: { type: "STRING" }, periodDays: { type: "NUMBER" } }, required: ["patientId", "metricType"] } },
   { name: "getClinicalTarget", description: "Get a care-team-defined clinical target when one is present. Never create or modify a target.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, metricType: { type: "STRING" } }, required: ["patientId", "metricType"] } },
   { name: "getGoalProgress", description: "Get factual goal progress derived from readings, patient reports, and completed education.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" } }, required: ["patientId", "goalId"] } },
+  { name: "getAccessBaseline", description: "Get this patient's confirmed ACCESS starting points and the measures derived from them: the starting blood pressure or weight, the program's control target, and the improvement milestone with the amount it sits below the baseline. Always use for any question about where the patient started, what their milestone is, or what a 15 mmHg or 5% improvement means for them. These are patient-specific facts: never take them from general education and never do the arithmetic yourself. A starting point with status PENDING means no baseline is confirmed, and no milestone may be stated at all.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalType: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getEducationRecommendation", description: "Get the next approved contextual education topic selected by deterministic product rules.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" } }, required: ["patientId", "goalId"] } },
   { name: "getCareTeam", description: "Get the trusted physician/care-team context currently available for this patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getNextBestAction", description: "Get the authoritative next action from the same journey resolver used by the patient UI.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
@@ -159,6 +167,14 @@ export class EmmiToolOrchestrator {
     else if (name === "getReadingTrend") result = { metricType: args.metricType, trend: clone(context.activeGoal?.readingTrend || null), source: context.activeGoal?.readingTrend ? "DETERMINISTIC_ANALYTICS" : "UNAVAILABLE" };
     else if (name === "getClinicalTarget") result = { metricType: args.metricType, target: clone(context.activeGoal?.clinicalTarget || null), source: context.activeGoal?.clinicalTarget ? "CARE_TEAM_CONFIGURATION" : "UNAVAILABLE" };
     else if (name === "getGoalProgress") result = { goalId: args.goalId, progress: clone(context.activeGoal?.progress || null), actions: clone(context.activeGoal?.actions || []), source: "PATIENT_RUNTIME" };
+    // The resolved shapes, handed over exactly as the goals screen received them. EMMI does no
+    // arithmetic on a baseline: whatever it says about 137 or 193.8 is the number the patient is
+    // looking at, or it is nothing.
+    else if (name === "getAccessBaseline") {
+      const baselines = clone(context.accessGoalBaselines || []);
+      const requested = args.goalType ? baselines.filter(item => item.goalType === args.goalType) : baselines;
+      result = { baselines: requested, source: requested.length ? "PATIENT_RUNTIME" : "UNAVAILABLE" };
+    }
     else if (name === "getEducationRecommendation") result = { goalId: args.goalId, topic: clone(context.activeGoal?.nextBestEducation || null), source: context.activeGoal?.nextBestEducation ? "APPROVED_TOPIC_CATALOG" : "UNAVAILABLE" };
     // The care team the patient actually has, built by careTeamDirectory from their own record,
     // rather than a single display name. EMMI can only name someone this list contains.

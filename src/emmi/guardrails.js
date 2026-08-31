@@ -101,9 +101,9 @@ const RULES = [
     ids: ["health-emmi-confirm"],
     match: /(confirm|correct|diagnos|confirmar|diagnóst|konfime|kòrèk|dyagnost)/i,
     answer: locale => pick(locale, {
-      EN: "I can help explain what the information means, but I can’t confirm a diagnosis or change your clinical record. If you’re unsure, choose ‘I need help reviewing this’ so your care team can review it with you.",
-      ES: "Puedo ayudarle a entender la información, pero no confirmar un diagnóstico ni cambiar su registro clínico. Si tiene dudas, elija “Necesito ayuda para revisarlo” para que su equipo lo revise con usted.",
-      KR: "Mwen ka ede eksplike enfòmasyon an, men mwen pa ka konfime yon dyagnostik ni chanje dosye klinik ou. Si ou pa sèten, chwazi “Mwen bezwen èd revize sa a” pou ekip swen ou ka revize li avèk ou."
+      EN: "I can help explain what the information means, but I can’t confirm a diagnosis or change your clinical record. If you’re unsure, choose ‘I need help reviewing it’ so your care team can review it with you.",
+      ES: "Puedo ayudarle a entender la información, pero no confirmar un diagnóstico ni cambiar su registro clínico. Si tiene dudas, elija “Necesito ayuda para revisarla” para que su equipo lo revise con usted.",
+      KR: "Mwen ka ede eksplike enfòmasyon an, men mwen pa ka konfime yon dyagnostik ni chanje dosye klinik ou. Si ou pa sèten, chwazi “Mwen bezwen èd pou revize li” pou ekip swen ou ka revize li avèk ou."
     })
   },
   {
@@ -118,6 +118,22 @@ const RULES = [
       EN: "That’s okay. Your care team can review the information with you. EMMI will not mark it as confirmed or change it automatically.",
       ES: "Está bien. Su equipo de atención puede revisar la información con usted. EMMI no la marcará como confirmada ni la cambiará automáticamente.",
       KR: "Sa pa yon pwoblèm. Ekip swen ou ka revize enfòmasyon an avèk ou. EMMI p ap make li kòm konfime ni chanje li otomatikman."
+    })
+  },
+  // A patient describing who is with them on the "Who is completing this?" screen is asking which of
+  // the three options in front of them to press. Their words match the Care Circle rule below —
+  // "mi hija me está ayudando" — so the answer they got was about inviting a supporter, which is a
+  // different feature on a different screen. Scoped here and placed first, so the screen the patient
+  // is on decides which question they are asking. The labels are quoted from that screen.
+  {
+    intent: "COMPLETION_ROLE",
+    screens: ["DECISION_MAKER"],
+    ids: ["decision-daughter-help", "decision-who-completes"],
+    match: /(daughter|son|wife|husband|family|someone).{0,40}(help|complet|fill)|(help|complet|fill).{0,40}(daughter|son|wife|husband|family)|which option|what should i (pick|choose|select)|(hija|hijo|esposa|esposo|familiar|alguien).{0,40}(ayud|complet|llen)|(ayud|complet|llen).{0,40}(hija|hijo|esposa|esposo|familiar)|qu[eé] opci[oó]n|cu[aá]l (opci[oó]n|elijo|escojo)|(pitit|madanm|mari|fanmi|moun).{0,40}(ede|ranpli)|ki opsyon/i,
+    answer: locale => pick(locale, {
+      EN: "On this screen that is “Helping the patient”. Choose it when someone else is filling this in while the patient is present and making their own decisions — the option says exactly that. Choose “For myself” only if the patient is the one working through the screens. “Personal representative” is a different thing: it is for someone legally authorized to make healthcare decisions for the patient, and it is not the right choice while the patient is deciding for themselves.",
+      ES: "En esta pantalla, esa opción es “Ayudando al paciente”. Elíjala cuando otra persona completa esto mientras el paciente está presente y toma sus propias decisiones — la opción lo dice así. Elija “Para mí” solo si es el paciente quien avanza por las pantallas. “Representante personal” es otra cosa: es para alguien autorizado legalmente a tomar decisiones médicas por el paciente, y no corresponde mientras el paciente decide por sí mismo.",
+      KR: "Nan ekran sa a, se “Ede pasyan an”. Chwazi li lè yon lòt moun ap ranpli sa a pandan pasyan an prezan epi l ap pran pwòp desizyon li — se egzakteman sa opsyon an di. Chwazi “Pou tèt mwen” sèlman si se pasyan an k ap pase nan ekran yo. “Reprezantan pèsonèl” se yon lòt bagay: li pou yon moun ki gen otorizasyon legal pou pran desizyon swen sante pou pasyan an, epi li pa bon chwa a pandan pasyan an ap deside pou tèt li."
     })
   },
   {
@@ -277,6 +293,54 @@ const RULES = [
       EN: "That’s okay. Open the goal check-in and choose that you’re having difficulty. We’ll help you name the barrier and, if you choose, send a support request to your care team.",
       ES: "Está bien. Abra el seguimiento de la meta e indique que tiene dificultades. Le ayudaremos a identificar la barrera y, si lo desea, enviar una solicitud de apoyo a su equipo.",
       KR: "Sa pa yon pwoblèm. Louvri tcheke objektif la epi chwazi ou gen difikilte. N ap ede w idantifye baryè a epi, si ou vle, voye yon demann sipò bay ekip swen ou."
+    })
+  },
+
+  // --- Assigned goals ------------------------------------------------------------------------
+  //
+  // An ACCESS goal is assigned by the pathway. It is not chosen and it is not a preference, and
+  // answering otherwise invites the patient to expect control they do not have.
+  {
+    intent: "GOAL_ASSIGNMENT",
+    ids: ["goals-did-i-choose"],
+    match: /did i (choose|pick|select) (these|those|my) goals|yo eleg[i]{1,2} estas metas|eske se mwen ki chwazi objektif|èske se mwen ki chwazi objektif/i,
+    answer: locale => pick(locale, {
+      EN: "No. These goals come with your ACCESS care — the programme assigns them based on your conditions and your care track. What you can choose is how we help you work on them, and what to tell us is getting in the way.",
+      ES: "No. Estas metas vienen con su cuidado ACCESS: el programa las asigna según sus condiciones y su vía de cuidado. Lo que usted sí elige es cómo le ayudamos a trabajarlas y qué nos cuenta que se lo dificulta.",
+      KR: "Non. Objektif sa yo vini ak swen ACCESS ou — pwogram nan bay yo dapre kondisyon ou ak wout swen ou. Sa ou ka chwazi se kijan nou ede w travay sou yo, ak sa ou di nou k ap anpeche w."
+    })
+  },
+  {
+    intent: "GOAL_ASSIGNMENT",
+    ids: ["goals-remove-bp"],
+    match: /can i (remove|delete|drop|cancel) (the |my )?(blood pressure|bp|weight) goal|puedo (quitar|eliminar) la meta|eske mwen ka retire objektif|èske mwen ka retire objektif/i,
+    answer: locale => pick(locale, {
+      EN: "That goal is part of the ACCESS care you enrolled in, so it is not something to switch off here. If it does not feel right for you, tell your care team — they can review what your care includes.",
+      ES: "Esa meta forma parte del cuidado ACCESS en el que se inscribió, así que no es algo que se desactive aquí. Si no le encaja, dígaselo a su equipo de cuidado: ellos pueden revisar lo que incluye su cuidado.",
+      KR: "Objektif sa a fè pati swen ACCESS ou enskri a, kidonk se pa yon bagay pou etenn isit la. Si li pa santi l bon pou ou, di ekip swen ou — yo ka revize sa swen ou genyen."
+    })
+  },
+
+  // --- Barriers ------------------------------------------------------------------------------
+  {
+    intent: "BARRIER_PURPOSE",
+    ids: ["barriers-why-asking"],
+    screens: ["ACCESS_SUPPORT_NEEDS"],
+    match: /why are you asking|por que me pregunt|poukisa n ap mande/i,
+    answer: locale => pick(locale, {
+      EN: "Your care plan is already in place — you do not have to build one. I am asking whether anything could make it harder to follow, so we can add the right support. If nothing is in the way, that is a complete answer.",
+      ES: "Su plan de cuidado ya está listo; usted no tiene que crearlo. Le pregunto si algo podría dificultar seguirlo, para agregar el apoyo adecuado. Si nada se lo dificulta, esa es una respuesta completa.",
+      KR: "Plan swen ou deja anplas — ou pa bezwen fè youn. M ap mande si gen yon bagay ki ka fè l pi difisil pou swiv, pou nou ka ajoute bon sipò a. Si anyen pa anpeche w, sa se yon repons konplè."
+    })
+  },
+  {
+    intent: "BARRIER_SUPPORT",
+    ids: ["barriers-forget-medication"],
+    match: /what happens if i say i forget|que pasa si digo que olvido|kisa k ap pase si mwen di mwen bliye/i,
+    answer: locale => pick(locale, {
+      EN: "We add support for it — reminders, and a follow-up from your care team if that would help. Nothing about your medications changes: what you take and when stays exactly as your clinician prescribed it.",
+      ES: "Agregamos apoyo para eso: recordatorios y un seguimiento de su equipo de cuidado si ayuda. Nada de su medicación cambia: qué toma y cuándo sigue exactamente como se lo indicó su profesional clínico.",
+      KR: "Nou ajoute sipò pou sa — rapèl, ak yon swivi nan men ekip swen ou si sa ta ede. Anyen nan medikaman ou pa chanje: sa ou pran ak kilè rete egzakteman jan doktè ou preskri l."
     })
   }
 ];

@@ -11,16 +11,30 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+// An invitation is not sent in the name of someone we have not confirmed, so pressing send before
+// identity takes the patient through it and sends on the other side. Their answers are kept.
+const confirmIdentity = async page => {
+  await expect(page.getByRole("heading", { name: /confirm it’s you/i })).toBeVisible();
+  await page.getByLabel("Date of birth", { exact: true }).fill("05 / 12 / 1954");
+  await page.getByLabel("ZIP code", { exact: true }).fill("33176");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+};
+
 test("patient invites a daughter while remaining the decision maker", async ({ page, context }) => {
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Choose from my contacts/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Add from contacts/i })).toHaveCount(0);
   await expect(page.getByText(/does not allow this person to consent, sign/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Angela Demo");
   await page.getByLabel("Mobile number").fill("3055550199");
   await page.getByLabel(/Relationship to you/).selectOption("child");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+
+  // Nothing has gone out yet: the invitation is held until we know who is sending it.
+  await expect(page.getByText(/confirm it’s you first, then send the invitation to Angela Demo/i)).toBeVisible();
+  expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("itera.care-circle.prototype.v1") || "{}").invites || []).length)).toBe(0);
+  await confirmIdentity(page);
 
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
   await expect(page.getByText(/No diagnosis, Medicare number, or clinical information/i)).toBeVisible();
@@ -30,13 +44,26 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
 
   const supportPage = await context.newPage();
   await supportPage.goto(supportLink);
-  await expect(supportPage.getByRole("heading", { name: "You’ve been invited to join a Care Circle" })).toBeVisible();
+  // The heading names who invited them. An invitation from nobody in particular is what this page
+  // used to be, and the first thing an invitee needs to know is whose Care Circle this is. Only the
+  // first name: the page is reachable by anyone holding the link.
+  await expect(supportPage.getByRole("heading", { name: /You’ve been invited to join .+’s Care Circle/ })).toBeVisible();
   await expect(supportPage.getByText(/does not make you a Personal Representative/i)).toBeVisible();
   await supportPage.getByRole("button", { name: /Accept invitation/i }).click();
+
+  // Accepting is not the same as being in. Membership waits on a code sent to the number the
+  // patient named, so someone who was forwarded the link cannot join by pressing accept.
+  await expect(supportPage.getByRole("heading", { name: /Confirm your phone number/i })).toBeVisible();
+  await expect(supportPage.getByRole("heading", { name: "You’re ready to help" })).toHaveCount(0);
+  await supportPage.locator("#care-circle-otp").fill("123456");
+  await supportPage.locator('[data-public-action="verify-support"]').click();
   await expect(supportPage.getByRole("heading", { name: "You’re ready to help" })).toBeVisible();
 
   const invite = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.care-circle.prototype.v1")).invites.at(-1));
   expect(invite.status).toBe("ACCEPTED");
+  // In, with no authority and nothing granted that the patient did not choose.
+  expect(invite.membership.status).toBe("ACTIVE");
+  expect(invite.membership.authority).toBe("NONE");
   expect(invite.supportRole).toBe("CARE_CIRCLE_MEMBER");
   expect(invite.completionRole).toBe("PATIENT");
 });
@@ -46,7 +73,7 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
-  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await page.getByRole("button", { name: /Add from contacts/i }).click();
   await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Manual Contact");
   await page.getByLabel("Mobile number").fill("3055550199");
@@ -68,7 +95,7 @@ test("Contact Picker is progressive, editable, and never sends automatically", a
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
-  await page.getByRole("button", { name: /Choose from my contacts/i }).click();
+  await page.getByRole("button", { name: /Add from contacts/i }).click();
   await expect(page.getByLabel("Their name")).toHaveValue("Maria Sample");
   await expect(page.getByText(/Which mobile number/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);
@@ -76,6 +103,7 @@ test("Contact Picker is progressive, editable, and never sends automatically", a
   await page.getByLabel("Their name").fill("Maria Edited");
   await page.getByLabel(/Relationship to you/).selectOption("friend");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
 });
 
@@ -102,7 +130,9 @@ test("Share ACCESS waits for a value moment instead of interrupting enrollment c
 test("Share ACCESS opens a public, unpersonalized landing after Getting Started completes", async ({ page, context }) => {
   await seedDraft(page, "ONBOARDING_COMPLETE");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "You’re off to a great start" })).toBeVisible();
+  // ACCESS ends on its care plan now, not on the generic completion screen. The share moment is
+  // the same moment either way: the patient has finished getting started.
+  await expect(page.getByRole("heading", { name: "Your ACCESS care is ready" })).toBeVisible();
   await expect(page.locator('[data-share-access-moment="GETTING_STARTED_COMPLETED"]')).toBeVisible();
   await expect(page.getByText("Know someone who may benefit from learning about ACCESS?")).toBeVisible();
   await page.getByRole("button", { name: "Share ACCESS" }).click();
@@ -189,8 +219,10 @@ test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or
   await expect(page.getByText("Dr. Fresner", { exact: true })).toBeVisible();
   await expect(page.getByText("Dr. Pedro Martinez", { exact: true })).toBeVisible();
   await expect(page.getByText("Cardiologist", { exact: false })).toBeVisible();
-  await expect(page.getByText("Care Manager", { exact: true })).toBeVisible();
-  await expect(page.getByText("ITERA HEALTH", { exact: true })).toHaveCount(0);
+  // The care manager is a person now, not the organization. ITERA HEALTH still appears, but as the
+  // practice behind her rather than as a card standing in for a human being.
+  await expect(page.getByText("Alicia Ramírez, RN", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Care coordination · ITERA HEALTH/)).toBeVisible();
   await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -230,7 +262,7 @@ test("My Care Team keeps patient-facing copy localized in Spanish and Kreyòl", 
   await expect(page.getByRole("heading", { name: "Mi equipo de cuidado" })).toBeVisible();
   await expect(page.getByText("Médico de atención primaria", { exact: false })).toBeVisible();
   await expect(page.getByText("Cardiólogo", { exact: false })).toBeVisible();
-  await expect(page.getByText("Coordinador de cuidado", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Coordinación de cuidado/)).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Ekip swen mwen" })).toBeVisible();
   await expect(page.getByText("Doktè prensipal", { exact: false })).toBeVisible();
@@ -273,4 +305,49 @@ for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${w
   expect(result.overflow).toBe(false);
   expect(result.overlaps, JSON.stringify(result)).toBe(false);
   expect(result.formWidth).toBeGreaterThan(width - 72);
+});
+
+// A Care Circle invitation belongs to the enrollment that sent it.
+//
+// The draft is deliberately not written until identity is verified, so an invitation sent before
+// that point leaves no enrollment behind it — while the invite record, which lives in its own
+// store, survives. Every demo enrollment is the same fictional patient, so the boot filter matched
+// all of them: the next person to open the app was shown "Invitation sent — Angela Demo can help
+// you" for an invitation they had never sent, on the first screen of the journey.
+test("a new patient does not inherit the previous enrollment's Care Circle", async ({ page }) => {
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
+  await page.getByLabel("Their name").fill("Angela Demo");
+  await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("child");
+  await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
+
+  // The enrollment is gone; the Care Circle store, which lives on its own, is not. Whoever opens
+  // the app next is a new patient and must not be told an invitation was sent on their behalf.
+  await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
+  await page.goto("/?scenario=access-happy");
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+
+  await expect(page.locator(".optional-support-status")).toHaveCount(0);
+  await expect(page.locator(".optional-support")).toContainText("Want support along the way?");
+  await expect(page.locator(".optional-support")).not.toContainText("Angela Demo");
+});
+
+test("an enrollment in progress keeps the invitation it sent", async ({ page }) => {
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
+  await page.getByLabel("Their name").fill("Angela Demo");
+  await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("child");
+  await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
+
+  await page.reload();
+  await page.locator("#screen-select").selectOption("DECISION_MAKER", { force: true });
+
+  await expect(page.locator(".optional-support-status")).toHaveCount(1);
+  await expect(page.locator(".optional-support")).toContainText("Angela Demo");
 });

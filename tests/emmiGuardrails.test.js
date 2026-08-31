@@ -98,3 +98,44 @@ describe("baseline reading counters", () => {
     expect(answer.trace.responseMode).toBe("DETERMINISTIC_GROUNDED_FALLBACK");
   });
 });
+
+// The live re-test asked, on "Who is completing this?", "Mi hija me está ayudando, pero yo tomo las
+// decisiones. ¿Qué opción elijo?" and was pointed at the option meaning the patient is completing
+// it. The words matched the Care Circle rule — inviting a supporter, a different feature on a
+// different screen — so the answer never mentioned the three options in front of the patient.
+describe("which of the visible options is the right one", () => {
+  const ask = (question, locale = "ES", currentScreen = "DECISION_MAKER") =>
+    emmiGuardrailAnswer({ question, locale, context: { currentScreen } });
+
+  const LABEL = { EN: "Helping the patient", ES: "Ayudando al paciente", KR: "Ede pasyan an" };
+
+  for (const [locale, question] of [
+    ["ES", "Mi hija me está ayudando, pero yo tomo las decisiones. ¿Qué opción elijo?"],
+    ["EN", "My daughter is helping me but I make the decisions. Which option should I choose?"],
+    ["KR", "Pitit fi mwen ap ede m, men se mwen ki pran desizyon yo. Ki opsyon?"]
+  ]) {
+    it(`names the option that is actually on the screen (${locale})`, () => {
+      const answer = ask(question, locale);
+      expect(answer?.intent).toBe("COMPLETION_ROLE");
+      expect(answer.text).toContain(LABEL[locale]);
+    });
+  }
+
+  it("separates helping from the authority the third option carries", () => {
+    const answer = ask("¿Qué opción elijo si mi hija me ayuda?");
+    expect(answer.text).toMatch(/Representante personal/);
+    expect(answer.text).toMatch(/autorizado legalmente|no corresponde/);
+  });
+
+  it("answers the screen's own quick questions with the option rather than with Care Circle", () => {
+    for (const questionId of ["decision-daughter-help", "decision-who-completes"]) {
+      const answer = emmiGuardrailAnswer({ questionId, locale: "ES", context: { currentScreen: "DECISION_MAKER" } });
+      expect(answer?.intent, questionId).toBe("COMPLETION_ROLE");
+    }
+  });
+
+  it("leaves the Care Circle answer alone everywhere else", () => {
+    expect(ask("¿Puede mi hija ayudarme con los recordatorios?", "ES", "CARE_CIRCLE_INVITE")?.intent).toBe("CARE_CIRCLE");
+    expect(ask("¿Puede mi hija ayudarme?", "ES", "MY_CARE")?.intent).toBe("CARE_CIRCLE");
+  });
+});

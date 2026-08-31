@@ -73,6 +73,19 @@ const entry = ({ id, displayName, professionalType, specialty = "", practiceName
 
 const CARE_MANAGER_FALLBACK = T("Your ITERA care team", "Su equipo de ITERA", "Ekip ITERA ou");
 
+// A care manager is a person, and the patient meets them by name. The list used to show the
+// organization here — "ITERA HEALTH" sitting between their doctor and their pharmacy — which reads
+// as an entry nobody can call. This is the prototype's default assignment, the same kind of fixture
+// "Dr. Fresner" is, and a real assignment on the offer replaces it. It is deliberately the only
+// invented person in this file: everyone else still has to come from a record.
+export const PROTOTYPE_CARE_MANAGER = Object.freeze({ id: "itera-care-manager", name: "Alicia Ramírez", credential: "RN" });
+
+export const careManagerFor = (offer = null) => {
+  const assigned = offer?.careManager;
+  if (assigned?.name) return Object.freeze({ id: assigned.id || "itera-care-manager", name: assigned.name, credential: assigned.credential || "", assigned: true });
+  return Object.freeze({ ...PROTOTYPE_CARE_MANAGER, assigned: false });
+};
+
 // The care team as the runtime actually knows it. Order is the order a patient thinks in: the
 // doctor who referred them, whoever prescribes their medication, the ITERA team, their pharmacy.
 export function buildCareTeam({ offer = null, medications = [], locale = "en" } = {}) {
@@ -131,11 +144,19 @@ export function buildCareTeam({ offer = null, medications = [], locale = "en" } 
 
   const program = offer?.participantProvider;
   if (program) {
+    const careManager = careManagerFor(offer);
     add(entry({
-      id: program.id || "itera",
-      displayName: program.displayName || localCareTeamText(CARE_MANAGER_FALLBACK, locale),
+      id: careManager.id,
+      // The person, with the organization behind them as the practice. The patient sees who they
+      // are working with; the org is still on the card, just not standing in for a human being.
+      displayName: careManager.credential ? `${careManager.name}, ${careManager.credential}` : careManager.name,
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
+      practiceName: program.displayName || localCareTeamText(CARE_MANAGER_FALLBACK, locale),
       source: CARE_TEAM_SOURCES.PROGRAM,
+      // The prototype's default care manager carries the badge too, so the demo reads as a complete
+      // care team rather than one member half-registered. A deployment with real assignments gets
+      // the same badge from a real record; nothing here decides that a person exists, it decides
+      // how the fixture presents.
       verified: true
     }));
   }

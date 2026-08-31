@@ -18,6 +18,19 @@ export const DEMO_BP_MONITORING_RULES = Object.freeze({
   stableDelta: Object.freeze({ systolic: 5, diastolic: 3 })
 });
 
+// The care team's own threshold for this prototype. It is a CONFIGURATION, not a measurement: it
+// is knowable on day one, it claims nothing about the patient, and it stays true whether or not a
+// single reading has ever arrived. That is what separates it from the demo readings below, which
+// are fabricated events and may only stand in for a feed that could actually exist.
+export const DEMO_BP_CLINICAL_TARGET = Object.freeze({
+  metricType: "BLOOD_PRESSURE",
+  label: "Less than 140/90 mmHg",
+  systolicMaximum: 139,
+  diastolicMaximum: 89,
+  source: "CARE_TEAM",
+  version: "demo-care-team-target-v1"
+});
+
 const isoAt = (date, hours, minutes) => {
   const value = new Date(date);
   value.setHours(hours, minutes, 0, 0);
@@ -53,14 +66,7 @@ export function createDemoBloodPressureRuntime(now = new Date()) {
       };
     }),
     monitoringRules: DEMO_BP_MONITORING_RULES,
-    clinicalTarget: {
-      metricType: "BLOOD_PRESSURE",
-      label: "Less than 140/90 mmHg",
-      systolicMaximum: 139,
-      diastolicMaximum: 89,
-      source: "CARE_TEAM",
-      version: "demo-care-team-target-v1"
-    }
+    clinicalTarget: DEMO_BP_CLINICAL_TARGET
   };
 }
 

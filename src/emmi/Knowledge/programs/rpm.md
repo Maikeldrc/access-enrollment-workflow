@@ -10,6 +10,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
+keywords: rpm, remote patient monitoring, monitoreo remoto, monitoreo, siveyans a distans, aparato conectado, dispositivo conectado
 ---
 
 # Remote Patient Monitoring (RPM)
@@ -26,3 +27,11 @@ Patient-facing concepts:
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+RPM, o Monitoreo Remoto del Paciente, usa un dispositivo médico conectado que envía mediciones —como su presión arterial— a su equipo de cuidado desde su casa. Usted no tiene que apuntar ni enviar nada: el aparato lo transmite.
+
+## Patient answer (KR)
+
+RPM, oswa Siveyans Pasyan a Distans, sèvi ak yon aparèy medikal konekte ki voye mezi — tankou tansyon ou — bay ekip swen ou depi lakay ou. Ou pa bezwen ekri ni voye anyen: aparèy la transmèt li.

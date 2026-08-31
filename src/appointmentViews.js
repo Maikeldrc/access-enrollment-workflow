@@ -888,12 +888,14 @@ export function appointmentPreferenceView(props = {}) {
     const question = provider
       ? t(`Is this for ${provider}?`, `¿Es para ${provider}?`, `Èske sa a se pou ${provider}?`)
       : t("Who would you like to see?", "¿A quién le gustaría ver?", "Ki moun ou ta renmen wè?");
+    // A name on its own does not say who someone is. Doctors carry a specialty; the care manager
+    // and the nurse carry none, so they were offered as a bare name next to two labelled doctors.
     const options = (Array.isArray(props.careTeam) ? props.careTeam : []).filter(Boolean);
     return `<div class="appointment-screen appointment-preference-screen" data-step="PROVIDER">
       ${screenTitle(props, question, "", t("Appointment", "Cita", "Randevou"))}
       <div class="appointment-choices">
         ${provider ? preferenceChoice(props, { field: "requestedProfessionalId", value: draft.requestedProfessionalId || "", glyphName: "check", label: t("Yes, that’s right", "Sí, así es", "Wi, se sa"), needId }) : ""}
-        ${options.map(member => preferenceChoice(props, { field: "requestedProfessionalId", value: member.id, glyphName: "doctor", label: [member.displayName, member.specialty].filter(Boolean).join(" · "), needId })).join("")}
+        ${options.map(member => preferenceChoice(props, { field: "requestedProfessionalId", value: member.id, glyphName: "doctor", label: [member.displayName, member.specialty || member.roleLabel].filter(Boolean).join(" · "), needId })).join("")}
         ${preferenceChoice(props, { field: "requestedProfessionalId", value: "", glyphName: "question", label: t("Someone else", "Otra persona", "Yon lòt moun"), needId })}
       </div>
       ${back}
