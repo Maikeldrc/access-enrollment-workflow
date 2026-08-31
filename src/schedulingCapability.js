@@ -146,6 +146,12 @@ export function decodeSlotId(slotId) {
 // gone. It is placed last, so the two or three cards a patient sees first are real ones.
 export const isPrototypeStaleSlot = slotId => decodeSlotId(slotId)?.tag === SLOT_TAG.STALE;
 
+// The stale fixture exists to prove that the booking flow handles a real race safely, but it is not
+// availability an assistant may promise to a patient. Conversational surfaces use this filter so
+// every time they name carries a live hold and can be booked when the patient confirms it.
+export const reservableAvailabilitySlots = (slots, now = new Date()) => (Array.isArray(slots) ? slots : [])
+  .filter(slot => slot?.slotId && !isPrototypeStaleSlot(slot.slotId) && new Date(slot.expiresAt).getTime() > new Date(now).getTime());
+
 const buildSlot = ({ providerId, start, minutes, modality, locationName, expiresMs, tag }) => {
   const startMs = start.getTime();
   return {

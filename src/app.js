@@ -18,7 +18,7 @@ import {
   MapPin, Video, TriangleAlert, CalendarClock
 } from "lucide";
 import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
-import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
+import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
@@ -137,7 +137,7 @@ let state = {
   representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0,
   phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false,
   accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", consentAcknowledgement: null, sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, sessionMetadata: { platform: navigator.userAgentData?.platform || navigator.platform || "unknown" }, ipMetadata: null, identityVerified: false,
-  identityAttempts: 0, consentSaved: false, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
+  identityAttempts: 0, consentSaved: false, consentSubmissionSelections: null, enrollmentConfirmed: false, accessEligible: false, accessOutcome: null,
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
@@ -1115,9 +1115,12 @@ function ensureEmmiRuntime() {
     // Availability comes from the scheduling source or it does not come at all. A failure here is
     // reported as a failure; it is never filled in with a plausible-looking time.
     onProviderAvailability: ({ providerId, preferredTimeOfDay, modality }) => {
-      const result = getProviderAvailability({ providerId: providerId || "", preferredTimeOfDay, modality, now: new Date() });
+      const now = new Date();
+      const result = getProviderAvailability({ providerId: providerId || "", preferredTimeOfDay, modality, now });
       if (!result.ok) return { ok: false, error: result.error };
-      return { ok: true, slots: result.slots.map(({ slotId, startAt, endAt, modality: slotModality, locationName }) => ({ slotId, startAt, endAt, modality: slotModality, locationName })) };
+      const heldSlots = reservableAvailabilitySlots(result.slots, now);
+      if (!heldSlots.length) return { ok: false, error: "AVAILABILITY_UNAVAILABLE" };
+      return { ok: true, slots: heldSlots.map(({ slotId, startAt, endAt, modality: slotModality, locationName, expiresAt }) => ({ slotId, startAt, endAt, modality: slotModality, locationName, expiresAt })) };
     },
     // Opening the flow requests nothing by itself, exactly like starting a refill review.
     onStartAppointmentRequest: ({ reasonCategory, providerId, reasonSummary }) => {
@@ -2223,6 +2226,7 @@ function accessFullDisclosure(cost, config = {}) {
 function consent() {
   const representativeRole = isPersonalRepresentative();
   const role = representativeRole ? L("Personal representative", "Representante personal", "Reprezantan pèsonèl") : L("Patient", "Paciente", "Pasyan");
+  const submittedSelections = state.consentSubmissionSelections || {};
   if (state.offer.pathway === "ACCESS") {
     const representative = representativeRole;
     // The screen is a decision, not a signature ceremony: it says so before the disclosures, and the
@@ -2239,7 +2243,7 @@ function consent() {
     ];
     if (config.showClaimsSharing) summaryRows.push(["document", L("Medicare claims information", "Información de reclamaciones de Medicare", "Enfòmasyon sou reklamasyon Medicare"), L("Medicare may share claims information with ITERA HEALTH to help coordinate your ACCESS care.", "Medicare puede compartir información de reclamaciones con ITERA HEALTH para ayudar a coordinar su cuidado ACCESS.", "Medicare ka pataje enfòmasyon sou reklamasyon avèk ITERA HEALTH pou ede kowòdone swen ACCESS ou.")]);
     if (config.showTempoDisclosure) summaryRows.push(["device", L("Connected device information", "Información del dispositivo conectado", "Enfòmasyon sou aparèy ki konekte"), config.tempoDisclosureText ? offerText(config.tempoDisclosureText) : L("A connected device may be used to support your ACCESS care. Your care team will explain what is required.", "Puede utilizarse un dispositivo conectado para apoyar su cuidado ACCESS. Su equipo le explicará lo necesario.", "Yo ka itilize yon aparèy konekte pou sipòte swen ACCESS ou. Ekip swen ou pral eksplike sa ki nesesè.")]);
-    const authorityAttestation = representative ? check("authority", L("I confirm that I’m authorized to make healthcare decisions for the patient.", "Confirmo que estoy autorizado para tomar decisiones médicas por el paciente.", "Mwen konfime ke mwen otorize pou pran desizyon swen sante pou pasyan an.")) : "";
+    const authorityAttestation = representative ? check("authority", L("I confirm that I’m authorized to make healthcare decisions for the patient.", "Confirmo que estoy autorizado para tomar decisiones médicas por el paciente.", "Mwen konfime ke mwen otorize pou pran desizyon swen sante pou pasyan an."), Boolean(submittedSelections.authority)) : "";
     const agreement = representative
       ? L("I have reviewed the information above and agree, on behalf of the patient, to enroll the patient in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto, en nombre del paciente, inscribir al paciente en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò, nan non pasyan an, pou enskri pasyan an nan ACCESS avèk ITERA HEALTH.")
       : L("I have reviewed the information above and agree to enroll in ACCESS with ITERA HEALTH.", "He revisado la información anterior y acepto inscribirme en ACCESS con ITERA HEALTH.", "Mwen te revize enfòmasyon ki anwo a epi mwen dakò pou enskri nan ACCESS avèk ITERA HEALTH.");
@@ -2247,14 +2251,14 @@ function consent() {
       <section class="consent-summary access-consent-summary">${summaryRows.map(([rowIcon, headline, copy, rowType]) => `<div class="consent-disclosure-row ${rowType === "cost" ? "access-cost-row" : ""}">${icon(rowIcon)}<div><strong>${headline}</strong><p>${copy}</p></div></div>`).join("")}</section>
       <details class="full-terms access-consent-terms"><summary>${L("View full ACCESS information", "Ver información completa de ACCESS", "Gade tout enfòmasyon ACCESS yo")} ${icon("externalLink")}</summary><div class="access-full-content">${accessFullDisclosure(cost, config)}</div></details>
       <p class="signer-role"><strong>${L("Signing as", "Firmando como", "Siyen kòm")}:</strong> ${role}</p>
-      <form id="consent-form" data-consent-shape="single">${authorityAttestation}${check("consent", agreement)}</form>
+      <form id="consent-form" data-consent-shape="single">${authorityAttestation}${check("consent", agreement, Boolean(submittedSelections.consent))}</form>
       <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Confirm and continue", "Confirmar y continuar", "Konfime epi kontinye"), true, "", true)}`;
   }
   const traditionalRepresentative = representativeRole;
   const traditionalIntro = traditionalRepresentative
     ? L(`I agree, on behalf of the patient, to enroll the patient in this recommended care with ITERA HEALTH, in coordination with ${physicianDisplayName()}.`, `Acepto, en nombre del paciente, inscribir al paciente en este cuidado recomendado con ITERA HEALTH, en coordinación con ${physicianDisplayName()}.`, `Mwen dakò, nan non pasyan an, pou enskri pasyan an nan swen rekòmande sa a avèk ITERA HEALTH, an kowòdinasyon avèk ${physicianDisplayName()}.`)
     : L(`I want to receive this recommended care from ITERA HEALTH, in coordination with ${physicianDisplayName()}.`, `Deseo recibir este cuidado recomendado de ITERA HEALTH, en coordinación con ${physicianDisplayName()}.`, `Mwen vle resevwa swen rekòmande sa a nan ITERA HEALTH, an kowòdinasyon avèk ${physicianDisplayName()}.`);
-  const traditionalAuthority = traditionalRepresentative ? check("authority", L("I confirm that I’m authorized to make healthcare decisions for the patient.", "Confirmo que estoy autorizado para tomar decisiones médicas por el paciente.", "Mwen konfime ke mwen otorize pou pran desizyon swen sante pou pasyan an.")) : "";
+  const traditionalAuthority = traditionalRepresentative ? check("authority", L("I confirm that I’m authorized to make healthcare decisions for the patient.", "Confirmo que estoy autorizado para tomar decisiones médicas por el paciente.", "Mwen konfime ke mwen otorize pou pran desizyon swen sante pou pasyan an."), Boolean(submittedSelections.authority)) : "";
   const traditionalAgreement = traditionalRepresentative
     ? L("I agree, on behalf of the patient, to enroll the patient in the services listed above", "Acepto, en nombre del paciente, inscribir al paciente en los servicios indicados", "Mwen dakò, nan non pasyan an, pou enskri pasyan an nan sèvis ki nan lis pi wo a")
     : L("I agree to enroll in the services listed above", "Acepto inscribirme en los servicios indicados", "Mwen dakò pou enskri nan sèvis ki nan lis pi wo a");
@@ -2269,7 +2273,7 @@ function consent() {
     <div class="service-chips">${state.offer.consent.services.map(x => `<span>${icon("check")} ${offerText(x)}</span>`).join("")}</div>
     ${disclosureSummary}
     <p class="signer-role"><strong>${L("Signer role", "Rol del firmante", "Wòl siyatè a")}:</strong> ${role}</p>
-    <form id="consent-form">${traditionalAuthority}${check("consent", localized(IMPORTANT_INFORMATION_COPY.acknowledgement))}${check("enroll", traditionalAgreement)}</form>
+    <form id="consent-form">${traditionalAuthority}${check("consent", localized(IMPORTANT_INFORMATION_COPY.acknowledgement), Boolean(submittedSelections.consent))}${check("enroll", traditionalAgreement, Boolean(submittedSelections.enroll))}</form>
     <p class="form-error" role="alert">${state.error}</p>${actions(state.busy ? L("Saving…", "Guardando…", "Ekonomize...") : L("Enroll now", "Inscribirme ahora", "Enskri kounye a"), true, "", true)}`;
 }
 
@@ -5909,6 +5913,13 @@ async function advance() {
     const authorityMissing = state.role === "representative" && !f.authority?.checked;
     const enrollMissing = Boolean(f.enroll) && !f.enroll.checked;
     if (authorityMissing || !f.consent.checked || enrollMissing) { state.error = L("Please complete each required confirmation to continue.", "Complete cada confirmación requerida para continuar.", "Tanpri ranpli tout konfimasyon ki nesesè pou kontinye."); render(); return; }
+    // render() replaces the form while the consent service is saving. Preserve the confirmations
+    // that were submitted so the loading state cannot visually revoke the choice the patient made.
+    state.consentSubmissionSelections = {
+      authority: Boolean(f.authority?.checked),
+      consent: Boolean(f.consent.checked),
+      enroll: Boolean(f.enroll?.checked)
+    };
     state.busy = true; render();
     if (state.offer.pathway === "ACCESS" && !state.disclosureAcknowledgedAt) {
       await service.saveAcknowledgement();
@@ -5917,6 +5928,7 @@ async function advance() {
       audit(state, "disclosure_acknowledged", "success", { disclosureVersion: state.disclosureVersion, acknowledgedOn: "CONSENT_REVIEW" });
     }
     await service.saveConsent(); state.busy = false; state.consentSaved = true;
+    state.consentSubmissionSelections = null;
     state.consentRole = isPersonalRepresentative() ? "PERSONAL_REPRESENTATIVE" : "PATIENT";
     state.consentVersion = state.offer.consent.version;
     state.consentTimestamp = new Date().toISOString();
@@ -6553,7 +6565,13 @@ function bindAssistantLayer() {
   trapFocusWithin(layer);
   layer.querySelector(".assistant-question-form")?.addEventListener("submit", event => {
     event.preventDefault();
-    askEmmi(new FormData(event.currentTarget).get("question")?.toString() || "");
+    const question = new FormData(event.currentTarget).get("question")?.toString() || "";
+    if (!question.trim() || state.assistantBusy) return;
+    // refreshAssistantLayer intentionally preserves an in-progress draft across unrelated panel
+    // updates. Once the patient submits, however, that text is no longer a draft: clear the live
+    // form before askEmmi re-renders the layer so it cannot restore the sent message into the input.
+    event.currentTarget.reset();
+    askEmmi(question);
   });
   layer.querySelectorAll("[data-assistant-question]").forEach(button => button.addEventListener("click", () => {
     // A tap can take the patient somewhere; typing and speaking cannot, so they get the answer the

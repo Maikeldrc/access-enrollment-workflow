@@ -556,6 +556,18 @@ test("consent is one unticked box, and the CTA waits for it", async ({ page }) =
   await expect(cta).toBeDisabled();
 });
 
+test("submitted consent stays visibly selected while it is saving", async ({ page }) => {
+  await openConsent(page);
+  const consentBox = page.locator("#consent-form input[type=checkbox]");
+  await consentBox.check();
+
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
+
+  await expect(page.getByRole("button", { name: "Saving…" })).toBeVisible();
+  await expect(consentBox).toBeChecked();
+  await expect(page.getByRole("heading", { name: "Review and choose" })).toHaveCount(0);
+});
+
 test("the signer is whoever is actually completing the enrollment", async ({ page }) => {
   await openConsent(page);
   await expect(page.locator(".signer-role")).toHaveText("Signing as: Patient");

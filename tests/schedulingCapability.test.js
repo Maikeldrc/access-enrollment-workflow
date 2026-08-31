@@ -9,6 +9,7 @@ import {
   decodeSlotId,
   getProviderAvailability,
   isPrototypeStaleSlot,
+  reservableAvailabilitySlots,
   resolveSchedulingCapability,
   submitAppointmentRequest
 } from "../src/schedulingCapability.js";
@@ -149,6 +150,14 @@ describe("availability", () => {
     expect(stale).toHaveLength(1);
     // It is last, so the two or three cards a patient is shown first are all bookable.
     expect(result.slots.at(-1).slotId).toBe(stale[0].slotId);
+  });
+
+  it("gives conversational surfaces only held slots that can be confirmed", () => {
+    const result = getProviderAvailability({ providerId: PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, now: NOW });
+    const offered = reservableAvailabilitySlots(result.slots, NOW);
+    expect(offered).toHaveLength(result.slots.length - 1);
+    expect(offered.every(slot => !isPrototypeStaleSlot(slot.slotId))).toBe(true);
+    offered.forEach(slot => expect(bookSlot({ appointment: need(), slotId: slot.slotId, now: NOW })).toMatchObject({ ok: true, status: APPOINTMENT_STATUS.CONFIRMED }));
   });
 
   it("carries everything a booking call needs inside the slot id", () => {

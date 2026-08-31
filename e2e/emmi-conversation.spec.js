@@ -64,6 +64,18 @@ test("EMMI opens on ways in, not on a help centre", async ({ page }) => {
   await expect(dialog.locator(".assistant-close")).toHaveAttribute("aria-label", "Close EMMI");
 });
 
+test("sending a typed question clears it from the composer", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  const input = dialog.getByPlaceholder("Ask a question…");
+  const question = "What is ACCESS?";
+  await input.fill(question);
+
+  await dialog.getByRole("button", { name: "Send question" }).click();
+
+  await expect(dialog.getByPlaceholder("Ask a question…")).toHaveValue("");
+  await expect(dialog.locator(".assistant-message.user").last()).toContainText(question);
+});
+
 test("browsing and human support are available without competing for the screen", async ({ page }) => {
   const dialog = await openEmmiOnHome(page);
 
