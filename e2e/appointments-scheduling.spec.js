@@ -110,45 +110,30 @@ const openDetail = (page, record) => openScreen(page, {
   activeAppointmentId: record.id
 });
 
-/* -------------------------------------------------------- BUG 1 — flow-entry workaround -- */
-//
-// Every control in appointmentPreferenceView carries data-need-id set to the DRAFT's own id
-// (src/appointmentViews.js:874), and src/app.js:6280 resolves data-need-id as an APPOINTMENT id.
-// The lookup fails and src/app.js:6294 bounces the patient to the appointments list, so today the
-// tap-driven scheduling flow dies on its very first question. The last test in this file pins
-// exactly that. Everything else still has to be able to reach the workflows behind that first
-// question, so it stamps on the appointment id the button should have carried and then tests what
-// the product really does once the flow is running.
-const repairNeedId = (page, selector, appointmentId = NEED_ID) => page.evaluate(({ sel, id }) => {
-  document.querySelectorAll(sel).forEach(node => { node.dataset.appointmentId = id; });
-}, { sel: selector, id: appointmentId });
-
-const answer = async (page, field, value, appointmentId = NEED_ID) => {
+const answer = async (page, field, value) => {
   const selector = `[data-action="appointment-preference-answer"][data-field="${field}"][data-value="${value}"]`;
   await expect(page.locator(selector).first()).toBeVisible();
-  await repairNeedId(page, selector, appointmentId);
   await page.locator(selector).first().click();
 };
 
-const submitRequest = async (page, appointmentId = NEED_ID) => {
+const submitRequest = async page => {
   const selector = '[data-action="appointment-submit-request"]';
   await expect(page.locator(selector)).toBeVisible();
-  await repairNeedId(page, selector, appointmentId);
   await page.locator(selector).click();
 };
 
 const stepIs = (page, step) => expect(page.locator(`.appointment-preference-screen[data-step="${step}"]`)).toBeVisible();
 
 // §26: one question per step, answered, then the next one. Nothing is sent along the way.
-const walkPreferences = async (page, { provider, reason, modality = "NO_PREFERENCE", timeOfDay = "NO_PREFERENCE", appointmentId = NEED_ID }) => {
+const walkPreferences = async (page, { provider, reason, modality = "NO_PREFERENCE", timeOfDay = "NO_PREFERENCE" }) => {
   await stepIs(page, "PROVIDER");
-  await answer(page, "requestedProfessionalId", provider, appointmentId);
+  await answer(page, "requestedProfessionalId", provider);
   await stepIs(page, "REASON");
-  await answer(page, "reasonCategory", reason, appointmentId);
+  await answer(page, "reasonCategory", reason);
   await stepIs(page, "MODALITY");
-  await answer(page, "preferredModality", modality, appointmentId);
+  await answer(page, "preferredModality", modality);
   await stepIs(page, "TIME_OF_DAY");
-  await answer(page, "preferredTimeOfDay", timeOfDay, appointmentId);
+  await answer(page, "preferredTimeOfDay", timeOfDay);
   if (await page.locator('[data-action="appointment-submit-request"][data-force="1"]').count()) return "DUPLICATE";
   await stepIs(page, "REVIEW");
   return "REVIEW";
@@ -171,18 +156,6 @@ const storedAppointment = async (page, id = NEED_ID) => {
 };
 
 const appointmentTasks = state => (state.careTeamTasks || []).filter(task => task.type === "APPOINTMENT_REQUEST");
-
-// BUG 4: appointment-submit-request renders without saving, and ensureAppointmentCareTeamTask
-// runs after saveAppointment, so a task created on that path exists only in memory. Any later
-// navigation that saves flushes it. Tests that need to inspect the task itself go through this.
-const flushPendingWrites = async page => {
-  const open = page.locator('#screen-content [data-action="appointment-open"]').first();
-  if (await open.count()) {
-    await open.click();
-    await expect(page.locator(".appointment-detail-screen")).toBeVisible();
-  }
-  return draft(page);
-};
 
 const screenText = page => page.locator("#screen-content").innerText();
 
@@ -284,10 +257,10 @@ test("§138 human coordination creates a care-team task and says a person is coo
   await submitRequest(page);
 
   const text = await screenText(page);
-  const rightAfterSubmit = appointmentTasks(await draft(page));
 
-  // §22: a structured task, not a transcript, and not a booking.
-  const tasks = appointmentTasks(await flushPendingWrites(page));
+  // §22: a structured task, not a transcript, and not a booking — and written to the store by the
+  // submit itself, so the care team can see it without some later screen happening to save.
+  const tasks = appointmentTasks(await draft(page));
   expect(tasks).toHaveLength(1);
   expect(tasks[0].needId).toBe(NEED_ID);
   expect(tasks[0].status).toBe("OPEN");
@@ -295,11 +268,8 @@ test("§138 human coordination creates a care-team task and says a person is coo
 
   // §21: the patient is told a person is arranging this — not that an office was written to.
   expect(text).not.toMatch(CONFIRMED_WORDS);
-  // Two independent defects live on this path, so both are reported rather than the first one only.
-  expect.soft(text, "the human-coordination path renders the office-request screen verbatim")
+  expect(text, "the human-coordination path renders the office-request screen verbatim")
     .toMatch(/care team|equipo|ekip/i);
-  // BUG 4: a task the care team cannot see until some later screen happens to save.
-  expect.soft(rightAfterSubmit, "the care-team task is never written to the draft store on submit").toHaveLength(1);
 });
 
 /* ============================================================ §23 no available channel ==== */
@@ -425,11 +395,10 @@ test("§125 double-tapping submit sends exactly one request", async ({ page }) =
   }));
 
   await walkPreferences(page, { provider: STRUCTURED_REQUEST_PROVIDER, reason: "ROUTINE_FOLLOW_UP" });
-  await repairNeedId(page, '[data-action="appointment-submit-request"]');
   await doubleTap(page, '[data-action="appointment-submit-request"]');
   await expect(page.locator(".appointment-request-screen")).toBeVisible();
 
-  const state = await flushPendingWrites(page);
+  const state = await draft(page);
   expect(state.appointments).toHaveLength(1);
   expect(countEvents(state.appointments[0], "REQUEST_SENT")).toBe(1);
   // §126's sibling: one intent, one task for the care team to work.
@@ -773,11 +742,10 @@ test("§31 “See more times” shows the times it found", async ({ page }) => {
   expect(await slots.count(), "the widened search never reaches the screen").toBeGreaterThan(initial);
 });
 
-/* ============================================== BUG 1 — the flow's own first question ==== */
+/* ================================================== §26 the flow's own first question ==== */
 
-// Nothing above this line can be reached by a patient today. This is the test that says so: the
-// unmodified button the product renders, tapped once, must move the patient to the next question.
-// See the repairNeedId comment for the mechanism every other test here has to work around.
+// The flow's entry point, pinned on its own: the button the product renders, tapped once, must
+// move the patient to the next question rather than dropping them out of the flow.
 test("§26 answering the first question moves the patient to the second one", async ({ page }) => {
   test.setTimeout(120000);
   await openScheduling(page, need({ requestedProfessionalId: DIRECT_BOOKING_PROVIDER, providerDisplayName: "Dr. Fresner" }));
