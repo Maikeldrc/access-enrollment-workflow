@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EmmiTextOrchestrator, expandEmmiQuery } from "../src/emmi/textOrchestrator.js";
+import { EmmiTextOrchestrator, expandEmmiQuery, resolveAppointmentPrepTopic } from "../src/emmi/textOrchestrator.js";
 import { EMMI_TOOL_DECLARATIONS, EmmiToolOrchestrator } from "../src/emmi/tools.js";
 import { DEMO_BASELINE_OBSERVATIONS } from "../src/config.js";
 import { accessProgressMeasure, patientStartingPoint } from "../src/accessCareActivation.js";
@@ -18,7 +18,7 @@ const passage = (program, text = "Approved patient-facing concepts") => ({ sourc
 // string, never an internal one, and only the fields the tool contract promises.
 const upcoming = (overrides = {}) => ({ id: "APPT-1", patientStatus: "Cita confirmada", providerDisplayName: "Dr. Martinez", specialty: "Cardiology", scheduledAt: "2026-09-08T14:00:00.000Z", modality: "IN_PERSON", ...overrides });
 
-function harness({ locale = "ES", program = "ACCESS", conversation = {}, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
+function harness({ locale = "ES", program = "ACCESS", conversation = {}, appointmentPrep = null, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
   const calls = [];
   const events = [];
   const executeTool = vi.fn(async (name, args) => {
@@ -68,7 +68,7 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, retriev
     throw new Error(`unexpected ${name}`);
   });
   const orchestrator = new EmmiTextOrchestrator({
-    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" } }),
+    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" }, appointmentPrep }),
     getConversation: () => ({ conversationSessionId: "conv-1", conversationSummary: conversation.summary || "", recentTurns: conversation.turns || [] }),
     executeTool,
     screenExplanation: () => locale === "ES" ? "Esta pantalla explica el cuidado disponible." : "This screen explains the available care.",
@@ -126,6 +126,72 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).toHaveBeenCalledWith(expectedTool, expect.any(Object));
     expect(answer.text).toMatch(relevance);
     expect(answer.trace.responseMode).toBe("RUNTIME_GROUNDED");
+  });
+
+  it.each([
+    ["ES", "BP Readings", /Su lectura más reciente fue 120\/80/],
+    ["ES", "Mis lecturas de presión arterial", /Su lectura más reciente fue 120\/80/],
+    ["EN", "Blood pressure readings", /Your latest reading was 120\/80/],
+    ["KR", "Mezi tansyon mwen yo", /Dènye lekti ou te 120\/80/]
+  ])("keeps the appointment-prep topic %s/%s on blood pressure despite stale chat context", async (locale, question, relevance) => {
+    const { orchestrator, executeTool } = harness({
+      locale,
+      conversation: {
+        summary: "user: What does an A1c result mean? | assistant: A1c is a blood test used in ACCESS. | assistant: Let’s prepare for your appointment and discuss BP Readings."
+      },
+      knowledgePassages: [{
+        sourceId: "access-a1c",
+        sourcePath: "care/access-a1c.md",
+        heading: "Why A1c is asked for",
+        text: "Being asked for an A1c does not mean the patient has diabetes."
+      }]
+    });
+
+    const answer = await orchestrator.answer(question);
+
+    expect(executeTool).toHaveBeenCalledWith("getLatestReading", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE" });
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+    expect(answer.text).toMatch(relevance);
+    expect(answer.text).not.toMatch(/A1c|diabetes/i);
+    expect(answer.trace.intent).toBe("LATEST_READING");
+  });
+
+  it("uses the structured appointment topic for a short conversational follow-up", async () => {
+    const conversation = {
+      summary: "user: What does an A1c result mean? | assistant: A1c is a blood test. | user: BP Readings | assistant: Su lectura más reciente fue 120/80.",
+      turns: [
+        { role: "user", text: "What does an A1c result mean?" },
+        { role: "assistant", text: "A1c is a blood test." },
+        { role: "user", text: "BP Readings" },
+        { role: "assistant", text: "Su lectura más reciente fue 120/80." }
+      ]
+    };
+    const appointmentPrep = { appointmentId: "APPT-1", providerDisplayName: "Dr. Fresner", topics: ["BP Readings", "medicamentos"] };
+    const { orchestrator, executeTool } = harness({ locale: "ES", conversation, appointmentPrep });
+
+    const answer = await orchestrator.answer("¿Qué significa eso?");
+
+    expect(resolveAppointmentPrepTopic({ question: "¿Qué significa eso?", conversation: { recentTurns: conversation.turns }, appointmentPrep })).toBe("BP Readings");
+    expect(executeTool).toHaveBeenCalledWith("getLatestReading", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE" });
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+    expect(answer.text).toMatch(/120\/80/);
+    expect(answer.text).not.toMatch(/A1c|diabetes/i);
+  });
+
+  it("uses the selected prep topic to understand a trend follow-up", async () => {
+    const conversation = { turns: [{ role: "user", text: "BP Readings" }] };
+    const appointmentPrep = { topics: ["BP Readings", "medicamentos"] };
+    const { orchestrator, executeTool } = harness({ locale: "ES", conversation, appointmentPrep });
+
+    const answer = await orchestrator.answer("¿Cómo han cambiado esta semana?");
+
+    expect(executeTool).toHaveBeenCalledWith("getReadingTrend", { patientId: "DEMO-P001", metricType: "BLOOD_PRESSURE", periodDays: 7 });
+    expect(answer.text).toMatch(/124\/81/);
+  });
+
+  it("does not guess between multiple prep topics before the patient selects one", () => {
+    const appointmentPrep = { topics: ["BP Readings", "medicamentos"] };
+    expect(resolveAppointmentPrepTopic({ question: "¿Qué significa eso?", conversation: {}, appointmentPrep })).toBe("");
   });
 
   it("uses screen context only for an actual screen-help question", async () => {

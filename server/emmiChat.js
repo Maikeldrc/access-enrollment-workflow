@@ -37,6 +37,13 @@ export async function handleEmmiChat(req, res, env = process.env) {
     program: clean(payload.program, 32) || null,
     currentScreen: clean(payload.currentScreen, 64) || null
   };
+  const appointmentPrep = payload.appointmentPrep && typeof payload.appointmentPrep === "object"
+    ? {
+        providerDisplayName: clean(payload.appointmentPrep.providerDisplayName, 120),
+        specialty: clean(payload.appointmentPrep.specialty, 120),
+        topics: Array.isArray(payload.appointmentPrep.topics) ? payload.appointmentPrep.topics.slice(0, 10).map(topic => clean(topic, 120)).filter(Boolean) : []
+      }
+    : null;
   let retrieval;
   try { retrieval = retrieveKnowledge({ query: clean(payload.retrievalQuery || question, 800), runtime, topK: 5 }); }
   catch { return json(res, 503, { error: "knowledge_unavailable" }); }
@@ -53,6 +60,7 @@ RESOLVED INTENT: ${retrieval.intent}
 CURRENT PROGRAM: ${runtime.program || "not specified"}
 CURRENT SCREEN: ${runtime.currentScreen || "not specified"}
 RECENT CONVERSATION SUMMARY: ${clean(payload.conversationSummary, 2400) || "none"}
+APPOINTMENT PREPARATION CONTEXT: ${appointmentPrep ? JSON.stringify(appointmentPrep) : "none"}
 TRUSTED RUNTIME EVIDENCE: ${payload.runtimeEvidence ? JSON.stringify(payload.runtimeEvidence).slice(0, 5000) : "none"}
 
 APPROVED KNOWLEDGE PASSAGES:

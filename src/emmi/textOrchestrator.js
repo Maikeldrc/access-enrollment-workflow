@@ -8,6 +8,7 @@ import { resolveRequestedProfessional } from "../careTeamDirectory.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
+const topicKey = value => lower(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
 // "Why do you need this?" is a question about the screen the patient is looking at, answered by
 // that screen's own explanation. It is deliberately narrow in two directions: asking why the
@@ -34,7 +35,11 @@ const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|register
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
 const DEVICE_FULFILLMENT = /ship|sent|arrive|deliver|env[ií]o|enviar|llegar|recibir|entregar|voye|rive|resevwa/i;
 const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
-const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|d[eè]nye lekti|tansyon mwen.*jodi/i;
+// A saved appointment-prep topic is often submitted verbatim (for example "BP Readings") after
+// EMMI asks which topic to discuss. Treat that short label as a request for the patient's actual
+// reading. Otherwise it falls through to knowledge retrieval, where an older conversation topic
+// can outrank these two words and produce an unrelated answer.
+const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|^(my )?(blood pressure|bp) readings?$|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|^(mis? )?lecturas? de (la )?presi[oó]n( arterial)?$|d[eè]nye lekti|tansyon mwen.*jodi|^(mezi|lekti) tansyon( mwen)?( yo)?$/i;
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
@@ -52,6 +57,27 @@ const ACCESS_MILESTONE = /\d+\s*(mmhg|points?|puntos?|pwen)\s*(lower|below|less|
 // baselines are reported rather than one of them being guessed at.
 const WEIGHT_SUBJECT = /weight|pounds?|\blbs?\b|bmi|%|percent|peso|libras?|imc|por ?ciento|pwa|liv/i;
 const BLOOD_PRESSURE_SUBJECT = /blood pressure|\bbp\b|systolic|mmhg|points?|presi[oó]n|sist[oó]lica|puntos?|tansyon|sistolik|pwen/i;
+const APPOINTMENT_PREP_FOLLOW_UP = /^(what|how|why|can|could|is|are|does|do|tell me|explain|que|qué|como|cómo|por que|por qué|puede|podria|podría|es|son|diga|digame|dígame|explique|kisa|kijan|poukisa|eske|èske|esplike)\b/i;
+const APPOINTMENT_PREP_TREND = /trend|this week|recently|changed|going|how (have|are|is)|tendencia|esta semana|[uú]ltimamente|cambiado|c[oó]mo (han|ha|va)|tandans|sem[eè]n|d[eè]ny[eè]man|chanje|kijan/i;
+
+// Resolve the patient's active subject from their saved prep list and their own recent turns. An
+// assistant message may mention every topic at once, so it is deliberately not evidence of which
+// one the patient selected. With one saved topic, a short follow-up can safely refer to that topic.
+export const resolveAppointmentPrepTopic = ({ question, conversation = {}, appointmentPrep = null } = {}) => {
+  const topics = Array.isArray(appointmentPrep?.topics) ? appointmentPrep.topics.map(clean).filter(Boolean) : [];
+  if (!topics.length) return "";
+  const questionKey = topicKey(question);
+  const direct = topics.find(topic => {
+    const key = topicKey(topic);
+    return key && (questionKey === key || questionKey.includes(key));
+  });
+  if (direct) return direct;
+  const shortFollowUp = questionKey.split(" ").length <= 10 && APPOINTMENT_PREP_FOLLOW_UP.test(questionKey);
+  if (!shortFollowUp) return "";
+  const recentUserTurns = [...(conversation.recentTurns || [])].reverse().filter(turn => turn?.role === "user");
+  const prior = topics.find(topic => recentUserTurns.some(turn => topicKey(turn.text).includes(topicKey(topic))));
+  return prior || (topics.length === 1 ? topics[0] : "");
+};
 const accessBaselineGoalType = text => {
   if (WEIGHT_SUBJECT.test(text)) return "WEIGHT_MANAGEMENT";
   return BLOOD_PRESSURE_SUBJECT.test(text) ? "BLOOD_PRESSURE_CONTROL" : "";
@@ -304,8 +330,10 @@ const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
   return `${prefix} ${base}`;
 };
 
-export const expandEmmiQuery = ({ question, conversation = {}, program = "" } = {}) => {
+export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null } = {}) => {
   const raw = clean(question);
+  const prepTopic = resolveAppointmentPrepTopic({ question: raw, conversation, appointmentPrep });
+  if (prepTopic && topicKey(raw) !== topicKey(prepTopic)) return `${raw} Appointment preparation topic: ${prepTopic}`;
   const context = `${conversation.conversationSummary || ""} ${(conversation.recentTurns || []).map(turn => turn.text).join(" ")}`;
   const mentioned = ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"].filter(item => new RegExp(`\\b${item}\\b`, "i").test(context));
   if (/(difference|different|compare|diferencia|diferente|comparar|diferans)/i.test(raw) && mentioned.length >= 2) return `${raw} ${mentioned.slice(-2).join(" ")}`;
@@ -671,7 +699,8 @@ export class EmmiTextOrchestrator {
     const context = this.getContext();
     const locale = context.locale || "EN";
     const conversation = this.getConversation?.() || {};
-    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program });
+    const appointmentPrepTopic = resolveAppointmentPrepTopic({ question, conversation, appointmentPrep: context.appointmentPrep });
+    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep });
     const trace = { turnId: `emmi_turn_${Date.now().toString(36)}`, conversationSessionId: conversation.conversationSessionId || "", screenId: context.currentScreen, retrievalQuery, intent: "UNKNOWN", knowledgeChunkIds: [], toolCalls: [], runtimeFactsUsed: [], responseMode: "UNKNOWN" };
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
@@ -944,9 +973,9 @@ export class EmmiTextOrchestrator {
     else if (ELIGIBILITY.test(asked)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(asked)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(asked)) tool = "getAssignedDevice";
-    else if (LATEST_HEALTH_READING.test(asked)) tool = "getLatestReading";
-    else if (HEALTH_TREND.test(asked)) tool = "getReadingTrend";
+    else if (HEALTH_TREND.test(asked) || (BLOOD_PRESSURE_SUBJECT.test(appointmentPrepTopic) && APPOINTMENT_PREP_TREND.test(asked))) tool = "getReadingTrend";
     else if (CLINICAL_TARGET.test(asked)) tool = "getClinicalTarget";
+    else if (LATEST_HEALTH_READING.test(asked) || BLOOD_PRESSURE_SUBJECT.test(appointmentPrepTopic)) tool = "getLatestReading";
     else if (GOAL_PROGRESS.test(asked)) tool = "getGoalProgress";
     else if (GOAL_STATUS.test(asked)) tool = "getPatientGoals";
     else if (DOCTOR_STATUS.test(asked)) tool = "getCareTeam";
@@ -993,7 +1022,7 @@ export class EmmiTextOrchestrator {
       const response = await this.fetch("/api/emmi/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, conversationSummary: conversation.conversationSummary || "" })
+        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
       });
       if (response.ok) {
         const generated = await response.json();

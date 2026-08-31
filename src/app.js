@@ -874,6 +874,15 @@ function assistantContext() {
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
   const activeGoalRecord = currentGoal();
   const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
+  const activeAppointmentRecord = activeAppointment();
+  const appointmentPrep = state.appointmentFlow?.view === "PREP" && activeAppointmentRecord
+    ? {
+        appointmentId: activeAppointmentRecord.id,
+        providerDisplayName: activeAppointmentRecord.providerDisplayName || "",
+        specialty: activeAppointmentRecord.specialty || "",
+        topics: (activeAppointmentRecord.prep?.topics || []).filter(Boolean).map(topic => String(topic).slice(0, 120))
+      }
+    : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
   if (!emmiConversationManager) {
     emmiConversationManager = new EmmiConversationManager({
@@ -935,6 +944,10 @@ function assistantContext() {
     deviceScenario,
     goalFlowStep: state.goalFlowStep,
     patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
+    // Appointment preparation is structured conversation context, not prose inferred from a prior
+    // bubble. It lets a short reply such as "BP readings" or "what does that mean?" stay attached
+    // to the topic the patient saved even when an older clinical topic remains in chat history.
+    appointmentPrep,
     // Where this patient started and what ACCESS will recognise as progress, resolved by the same
     // functions the goals screen and the care plan render. "What was my starting blood pressure"
     // is a question about this patient, and the knowledge base has no way to answer it: it knows
