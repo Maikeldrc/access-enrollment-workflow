@@ -2665,7 +2665,7 @@ function myCareScreen() {
 const careTeamRoleLabel = member => ({
   [PROFESSIONAL_TYPES.PRIMARY_CARE]: L("Primary care doctor", "Médico de atención primaria", "Doktè prensipal"),
   [PROFESSIONAL_TYPES.SPECIALIST]: member?.specialty === "Cardiology" ? L("Cardiologist", "Cardiólogo", "Kadyològ") : L("Specialist", "Especialista", "Espesyalis"),
-  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("Care coordination", "Coordinación de cuidado", "Kowòdinasyon swen"),
+  [PROFESSIONAL_TYPES.CARE_MANAGER]: L("Care Manager", "Coordinador de cuidado", "Jesyonè swen"),
   [PROFESSIONAL_TYPES.PHARMACIST]: L("Pharmacy", "Farmacia", "Famasi"),
   [PROFESSIONAL_TYPES.NURSE]: L("Nurse", "Enfermero o enfermera", "Enfimyè"),
   [PROFESSIONAL_TYPES.DEVICE_SUPPORT]: L("Device support", "Soporte de dispositivos", "Sipò aparèy"),

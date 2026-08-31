@@ -262,11 +262,12 @@ test("My Care Team keeps patient-facing copy localized in Spanish and Kreyòl", 
   await expect(page.getByRole("heading", { name: "Mi equipo de cuidado" })).toBeVisible();
   await expect(page.getByText("Médico de atención primaria", { exact: false })).toBeVisible();
   await expect(page.getByText("Cardiólogo", { exact: false })).toBeVisible();
-  await expect(page.getByText(/Coordinación de cuidado/)).toBeVisible();
+  await expect(page.getByText(/Coordinador de cuidado/)).toBeVisible();
   await page.locator('[data-action="language"]').first().click();
   await expect(page.getByRole("heading", { name: "Ekip swen mwen" })).toBeVisible();
   await expect(page.getByText("Doktè prensipal", { exact: false })).toBeVisible();
   await expect(page.getByText("Kadyològ", { exact: false })).toBeVisible();
+  await expect(page.getByText(/Jesyonè swen/)).toBeVisible();
 });
 
 for (const width of [320, 375, 384, 430]) test(`My Care Team remains readable and contained at ${width}px`, async ({ page }) => {
