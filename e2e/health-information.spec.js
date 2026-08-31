@@ -44,7 +44,7 @@ test("No, something changed creates a patient-reported update without altering t
   await expect(page.getByRole("heading", { name: "Here’s what you told us" })).toBeVisible();
   await page.getByRole("button", { name: "Save update" }).click();
   await expect(page.getByText("Update provided")).toBeVisible();
-  await expect(page.getByText(/high blood pressure/i)).toBeVisible();
+  await expect(page.getByText(/Hypertension/i)).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(saved.healthInformationReviewStatus).toBe("CHANGES_REPORTED");
   expect(saved.healthInformationStepStatus).toBe("COMPLETED");
@@ -153,7 +153,7 @@ const setTextScale = (page, scale) => page.evaluate(value => { document.document
 // diagnosis. If it ever becomes a control again this fails before anyone can tap it.
 test("the recorded condition renders as information rather than a selectable option", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Recorded condition" })).toBeVisible();
-  await expect(page.getByText(/high blood pressure/i)).toBeVisible();
+  await expect(page.getByText(/Hypertension/i)).toBeVisible();
   const card = await page.locator(".recorded-information").evaluate(node => ({
     tag: node.tagName,
     insideButton: Boolean(node.closest("button")),
