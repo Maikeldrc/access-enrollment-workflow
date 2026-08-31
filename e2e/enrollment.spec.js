@@ -567,31 +567,34 @@ test("ACCESS device-needed branch keeps enrollment complete and BP pending witho
   await expect(page.locator(".progress-meta span")).toHaveText("Getting started");
 });
 
-test("ACCESS cuff selection keeps exact arm measurement optional and auto-matches configured inventory", async ({ page }) => {
+test("ACCESS cuff selection offers the three stocked sizes and no way to type a measurement", async ({ page }) => {
   await openNeededMonitorDetails(page);
-  await page.getByRole("button", { name: "I know my arm measurement" }).click();
-  const circumference = page.getByLabel("Arm circumference");
-  await expect(circumference).toHaveAttribute("inputmode", "decimal");
-  await expect(circumference).toHaveAttribute("step", "0.1");
-  expect(await circumference.evaluate(input => ({ height: input.getBoundingClientRect().height, appearance: getComputedStyle(input).appearance }))).toMatchObject({ height: 58, appearance: "textfield" });
-  await circumference.fill("50");
-  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await expect(page.getByRole("button", { name: "I know my arm measurement" })).toHaveCount(0);
+  await expect(page.getByLabel("Arm circumference")).toHaveCount(0);
+  await expect(page.locator(".cuff-choice-list .choice-card")).toHaveCount(3);
+  await expect(page.locator(".cuff-choice-list .choice-card")).toContainText(["Extra Small", "Standard", "Extra Large"]);
+  // Manufacturer ranges stay on the cards: they are how a patient picks, now that the field that
+  // picked for them is gone.
+  await expect(page.locator('.choice-card:has(input[value="TENOVI_XL"])')).toContainText("32–52 cm");
+  const cta = page.getByRole("button", { name: "Request my monitor" });
+  await expect(cta).toBeDisabled();
+  await page.locator('.choice-card:has(input[value="TENOVI_XL"])').click();
+  await expect(cta).toBeEnabled();
+  await cta.click();
   const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
-  expect(lifecycle).toMatchObject({ armCircumferenceValue: "50", armCircumferenceUnit: "cm", armMeasurementStatus: "COMPLETED", cuffSelectionMethod: "ARM_MEASUREMENT", selectedCuffOption: "TENOVI_XL", cuffSelectionStatus: "AUTO_MATCHED", cuffSizeSelected: "extraLarge", deviceModelSelected: "TENOVI_BPM_GEN3" });
+  expect(lifecycle).toMatchObject({ armCircumferenceValue: "", armMeasurementStatus: "NOT_REQUIRED", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "TENOVI_XL", cuffSelectionStatus: "SELECTED", cuffSizeSelected: "extraLarge", deviceModelSelected: "TENOVI_BPM_GEN3" });
 });
 
-test("ACCESS monitor fulfillment allows cuff-selection help and creates a care team task", async ({ page }) => {
+test("ACCESS monitor request screen names the monitor once and never as always connected", async ({ page }) => {
   await openNeededMonitorDetails(page);
-  // The "I'm not sure" card is gone, but the path it opened is not: an arm measurement that fits no
-  // cuff in the configured inventory still asks the care team to confirm the size.
-  await page.getByRole("button", { name: "I know my arm measurement" }).click();
-  await page.getByLabel("Arm circumference").fill("60");
-  await page.getByRole("button", { name: "Request my monitor" }).click();
-  await page.getByRole("button", { name: "Request my monitor" }).click();
-  await expect(page.getByText("We’ll confirm the cuff size with you", { exact: true })).toBeVisible();
-  const lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
-  expect(lifecycle).toMatchObject({ armMeasurementStatus: "COMPLETED", cuffSelectionMethod: "ARM_MEASUREMENT", cuffSelectionStatus: "NEEDS_ASSISTANCE", bpBaselineStatus: "PENDING_DEVICE", enrollmentStatus: "COMPLETED" });
-  expect(lifecycle.careTeamTasks.map(task => task.type)).toEqual(expect.arrayContaining(["CUFF_SELECTION_ASSISTANCE", "CUFF_CONFIGURATION_REVIEW"]));
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
+  await expect(page.getByText("Keep your ACCESS care team informed about your progress.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your blood pressure monitor", { exact: true })).toBeVisible();
+  await expect(page.getByText("We’ll prepare your monitor for your ACCESS care and send it to the address you confirm.", { exact: true })).toBeVisible();
+  // A monitor described as "connected" on the screen that asks for a cuff size is what made
+  // patients read the device as something that has to stay plugged in to count.
+  const screen = await page.locator("#screen-content").innerText();
+  expect(screen).not.toMatch(/connected|conectad|konekte/i);
 });
 
 test("ACCESS monitor fulfillment validates and persists a different shipping address", async ({ page }) => {
@@ -614,13 +617,22 @@ test("ACCESS monitor fulfillment is localized in Spanish and Kreyòl", async ({ 
   await openNeededMonitorDetails(page);
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
   await expect(page.getByRole("heading", { name: "Controle su presión arterial desde casa" })).toBeVisible();
+  await expect(page.getByText("Mantenga a su equipo de cuidado ACCESS informado sobre su progreso.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Su monitor de presión arterial", { exact: true })).toBeVisible();
+  await expect(page.getByText("Prepararemos su monitor para el cuidado ACCESS y lo enviaremos a la dirección que confirme.", { exact: true })).toBeVisible();
   await expect(page.getByText("Elija la talla de brazalete correcta", { exact: true })).toBeVisible();
   await expect(page.getByText("Su información de salud está protegida", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Sé la medida de mi brazo" }).click();
-  await page.getByLabel("Circunferencia del brazo").fill("60");
-  await page.getByRole("button", { name: "Solicitar mi monitor" }).click();
-  await expect(page.getByRole("heading", { name: "¿Dónde desea recibir su monitor?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sé la medida de mi brazo" })).toHaveCount(0);
+  await expect(page.locator("#screen-content")).not.toContainText(/conectad/i);
   await page.getByRole("button", { name: "Cambiar idioma a criollo" }).click();
+  await expect(page.getByRole("heading", { name: "Swiv tansyon ou lakay ou" })).toBeVisible();
+  await expect(page.getByText("Kenbe ekip swen ACCESS ou enfòme sou pwogrè ou.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Aparèy tansyon ou a", { exact: true })).toBeVisible();
+  await expect(page.getByText("N ap prepare aparèy ou a pou swen ACCESS ou epi voye l nan adrès ou konfime a.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mwen konnen mezi bra mwen" })).toHaveCount(0);
+  await expect(page.locator("#screen-content")).not.toContainText(/konekte/i);
+  await page.locator('.choice-card:has(input[value="TENOVI_WIDE"])').click();
+  await page.getByRole("button", { name: "Mande aparèy mwen an" }).click();
   await expect(page.getByRole("heading", { name: "Ki kote ou vle resevwa aparèy ou a?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mande aparèy mwen an" })).toBeVisible();
 });

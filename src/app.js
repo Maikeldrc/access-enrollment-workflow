@@ -139,7 +139,7 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -4904,12 +4904,12 @@ function accessBpDeviceInfo() {
   // cuffs at different ranges, so a hardcoded "22-42 cm" would be a manufacturer claim about
   // whichever monitor this patient is not getting. Tenovi happens to have exactly three.
   const cuffOptions = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
-  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your connected blood pressure monitor", "Su monitor de presión arterial conectado", "Aparèy tansyon konekte ou a")}</strong><p>${L("We’ll arrange a monitor for your ACCESS care and send it to the address you confirm.", "Gestionaremos un monitor para su cuidado ACCESS y lo enviaremos a la dirección que confirme.", "N ap fè aranjman pou yon aparèy pou swen ACCESS ou epi voye l nan adrès ou konfime a.")}</p></div></aside>`;
+  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your blood pressure monitor", "Su monitor de presión arterial", "Aparèy tansyon ou a")}</strong><p>${L("We’ll prepare your monitor for your ACCESS care and send it to the address you confirm.", "Prepararemos su monitor para el cuidado ACCESS y lo enviaremos a la dirección que confirme.", "N ap prepare aparèy ou a pou swen ACCESS ou epi voye l nan adrès ou konfime a.")}</p></div></aside>`;
   // The size is all this screen needs to send the right box. How to wear the cuff is taught during
   // device setup, in front of the actual device, which is the only moment it is useful.
-  const cuffSection = `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Choose the right cuff size", "Elija la talla de brazalete correcta", "Chwazi bon gwosè manchèt la")}</legend><p class="fieldset-support">${L("Measure around your upper arm and select the size that matches your measurement.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda a su medida.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn ak mezi ou.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), cuffRangeLabel(option), state.selectedCuffOption === option.id)).join("")}</div></fieldset><button type="button" class="text-button exact-measurement-toggle" data-action="toggle-exact-arm-measurement" aria-expanded="${state.exactArmMeasurementOpen}">${L("I know my arm measurement", "Sé la medida de mi brazo", "Mwen konnen mezi bra mwen")}</button>${state.exactArmMeasurementOpen ? `<div class="exact-measurement-panel"><div class="field"><label for="arm-circumference">${L("Arm circumference", "Circunferencia del brazo", "Sikonferans bra")}</label><div class="measurement-input"><input id="arm-circumference" name="armCircumferenceValue" type="number" inputmode="decimal" step="0.1" min="0" value="${escapeHtml(state.armCircumferenceValue)}"><select name="armCircumferenceUnit" aria-label="${L("Measurement unit", "Unidad de medida", "Inite mezi")}"><option value="cm" ${state.armCircumferenceUnit === "cm" ? "selected" : ""}>cm</option><option value="in" ${state.armCircumferenceUnit === "in" ? "selected" : ""}>in</option></select></div><small>${L("We’ll use this measurement to recommend a compatible cuff.", "Usaremos esta medida para recomendar un brazalete compatible.", "N ap itilize mezi sa a pou rekòmande yon manchèt ki mache ak aparèy la.")}</small></div></div>` : ""}</section>`;
-  const hasCuffDecision = Boolean(state.selectedCuffOption) || state.exactArmMeasurementOpen;
-  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("Your connected monitor will help you track your blood pressure and share your readings with your ACCESS care team.", "Su monitor conectado le ayudará a controlar su presión arterial y a compartir sus mediciones con su equipo de cuidado ACCESS.", "Aparèy konekte ou a ap ede w swiv tansyon ou epi pataje mezi ou yo ak ekip swen ACCESS ou."))}${monitorCard}<form id="bp-device-info-form">${cuffSection}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Request my monitor", "Solicitar mi monitor", "Mande aparèy mwen an"), true, "", !hasCuffDecision)}</form>`;
+  const cuffSection = `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Choose the right cuff size", "Elija la talla de brazalete correcta", "Chwazi bon gwosè manchèt la")}</legend><p class="fieldset-support">${L("Measure around your upper arm and select the size that matches your measurement.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda a su medida.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn ak mezi ou.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), cuffRangeLabel(option), state.selectedCuffOption === option.id)).join("")}</div></fieldset></section>`;
+  const hasCuffDecision = Boolean(state.selectedCuffOption);
+  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("Keep your ACCESS care team informed about your progress.", "Mantenga a su equipo de cuidado ACCESS informado sobre su progreso.", "Kenbe ekip swen ACCESS ou enfòme sou pwogrè ou."))}${monitorCard}<form id="bp-device-info-form">${cuffSection}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Request my monitor", "Solicitar mi monitor", "Mande aparèy mwen an"), true, "", !hasCuffDecision)}</form>`;
 }
 
 function accessBpShippingAddress() {
@@ -5540,7 +5540,7 @@ async function launchPrototype() {
   localStorage.setItem("itera.prototype.config.v1", JSON.stringify(persistableConfig));
   history.replaceState({}, "", "?prototype=1");
   service = new MockEnrollmentService("prototype", prototypeConfig);
-    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
+    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
@@ -5908,32 +5908,18 @@ async function advance() {
     const deviceConfiguration = bpFulfillmentDeviceConfiguration();
     const availableCuffs = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
     state.deviceModelSelected = deviceConfiguration?.id || null;
-    if (state.exactArmMeasurementOpen) {
-      const value = Number(data.armCircumferenceValue);
-      const unit = data.armCircumferenceUnit === "in" ? "in" : "cm";
-      const valid = Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
-      if (!valid) { state.error = L("Enter a reasonable arm measurement.", "Ingrese una medida razonable del brazo.", "Antre yon mezi bra ki rezonab."); render(); return; }
-      const valueCm = unit === "in" ? value * 2.54 : value;
-      const matches = availableCuffs.filter(option => valueCm >= option.minArmCircumference && valueCm <= option.maxArmCircumference).sort((a, b) => Math.abs(valueCm - ((a.minArmCircumference + a.maxArmCircumference) / 2)) - Math.abs(valueCm - ((b.minArmCircumference + b.maxArmCircumference) / 2)));
-      state.armCircumferenceValue = String(value);
-      state.armCircumferenceUnit = unit;
-      state.armMeasurementStatus = "COMPLETED";
-      state.cuffSelectionMethod = "ARM_MEASUREMENT";
-      state.selectedCuffOption = matches[0]?.id || "";
-      state.cuffSizeSelected = matches[0]?.labelKey || null;
-      state.cuffSelectionStatus = matches.length ? "AUTO_MATCHED" : "NEEDS_ASSISTANCE";
-    } else {
-      const selectedId = data.choice || state.selectedCuffOption;
-      if (!selectedId) { state.error = L("Choose a cuff size.", "Elija una talla de brazalete.", "Chwazi yon gwosè manchèt."); render(); return; }
-      const selectedOption = availableCuffs.find(option => option.id === selectedId);
-      if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
-      state.cuffSelectionMethod = "PATIENT_SELECTED";
-      state.selectedCuffOption = selectedOption.id;
-      state.cuffSizeSelected = selectedOption.labelKey;
-      state.cuffSelectionStatus = "SELECTED";
-      state.armMeasurementStatus = "NOT_REQUIRED";
-      state.armCircumferenceValue = "";
-    }
+    // Entering centimetres left this screen together with the toggle that opened the field. The
+    // size the patient picks is the answer, so there is one way to answer and nothing to match.
+    const selectedId = data.choice || state.selectedCuffOption;
+    if (!selectedId) { state.error = L("Choose a cuff size.", "Elija una talla de brazalete.", "Chwazi yon gwosè manchèt."); render(); return; }
+    const selectedOption = availableCuffs.find(option => option.id === selectedId);
+    if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
+    state.cuffSelectionMethod = "PATIENT_SELECTED";
+    state.selectedCuffOption = selectedOption.id;
+    state.cuffSizeSelected = selectedOption.labelKey;
+    state.cuffSelectionStatus = "SELECTED";
+    state.armMeasurementStatus = "NOT_REQUIRED";
+    state.armCircumferenceValue = "";
     const tasks = [...(state.careTeamTasks || [])];
     const addTask = (type, reason) => { if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() }); };
     if (state.cuffSelectionStatus === "NEEDS_ASSISTANCE") addTask("CUFF_SELECTION_ASSISTANCE", state.cuffSelectionMethod);
@@ -6808,8 +6794,6 @@ function bind() {
       const form = document.querySelector("#bp-device-info-form");
       if (!form) return;
       const data = Object.fromEntries(new FormData(form));
-      state.armCircumferenceValue = String(data.armCircumferenceValue || state.armCircumferenceValue || "");
-      state.armCircumferenceUnit = data.armCircumferenceUnit || state.armCircumferenceUnit || "cm";
       state.armRestrictionReported = data.armRestrictionReported || state.armRestrictionReported;
       state.restrictedArm = state.armRestrictionReported === "YES" ? (data.restrictedArm || state.restrictedArm) : "NONE";
       state.selectedCuffOption = data.choice || state.selectedCuffOption || "";
@@ -8138,15 +8122,6 @@ function bind() {
       state.armHelpOpen = !state.armHelpOpen;
       state.error = ""; render();
     }
-    if (action === "toggle-exact-arm-measurement") {
-      preserveArmForm();
-      state.exactArmMeasurementOpen = !state.exactArmMeasurementOpen;
-      if (state.exactArmMeasurementOpen) state.selectedCuffOption = "";
-      state.cuffSelectionMethod = state.exactArmMeasurementOpen ? "ARM_MEASUREMENT" : "";
-      state.cuffSelectionStatus = "";
-      state.error = "";
-      render();
-    }
     if (["arm-help-no-tape", "arm-help-unsure", "arm-help-care-team"].includes(action)) {
       preserveArmForm();
       const clinicalReview = state.armRestrictionReported === "UNSURE" || state.restrictedArm === "BOTH";
@@ -8307,16 +8282,8 @@ function bind() {
   const updateBpDeviceInfoCta = () => {
     if (!bpDeviceInfoForm || !bpDeviceInfoCta) return;
     const data = new FormData(bpDeviceInfoForm);
-    const value = Number(data.get("armCircumferenceValue"));
-    const unit = data.get("armCircumferenceUnit") === "in" ? "in" : "cm";
-    const measurementReady = state.exactArmMeasurementOpen && Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
-    const cuffReady = !state.exactArmMeasurementOpen && Boolean(data.get("choice") || state.selectedCuffOption);
-    // The arm-restriction question was removed from this screen, but the gate still waited for its
-    // answer, so a patient who entered a measurement could never submit it — the field accepted
-    // their arm and then the button stayed dead with nothing saying why. A measurement outside every
-    // stocked cuff is not a reason to trap them either: it is recorded as needing the care team to
-    // confirm the size, which is what the engine already does with it.
-    bpDeviceInfoCta.disabled = !(measurementReady || cuffReady);
+    // A cuff size is the one answer this screen asks for, so it is the one thing the CTA waits on.
+    bpDeviceInfoCta.disabled = !(data.get("choice") || state.selectedCuffOption);
   };
   bpDeviceInfoForm?.addEventListener("input", updateBpDeviceInfoCta);
   bpDeviceInfoForm?.addEventListener("change", event => {
@@ -8337,10 +8304,8 @@ function bind() {
     }
     if (event.target.name === "choice") {
       state.selectedCuffOption = event.target.value;
-      state.exactArmMeasurementOpen = false;
       state.cuffSelectionMethod = event.target.value === "UNSURE" ? "CARE_TEAM_ASSISTANCE" : "PATIENT_SELECTED";
       state.cuffSelectionStatus = event.target.value === "UNSURE" ? "NEEDS_ASSISTANCE" : "";
-      state.armCircumferenceValue = "";
       state.error = "";
       draftStore.save(state);
       render();
