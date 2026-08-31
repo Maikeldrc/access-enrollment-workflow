@@ -20,6 +20,7 @@ import {
   appointmentPatientStatus,
   appointmentStatusTone,
   applyBookingConfirmation,
+  beginAppointmentPreferences,
   canActOnAppointment,
   canAdvanceAppointment,
   createAppointmentDraft,
@@ -128,6 +129,16 @@ describe("the status machine", () => {
     ]);
     expect(confirmed.confirmedAt).toBe(NOW);
     expect(confirmed.events).toHaveLength(8);
+  });
+
+  it("enters preference collection through DRAFT for a newly identified need", () => {
+    const collecting = beginAppointmentPreferences(need(), { actor: APPOINTMENT_ACTORS.PATIENT, at: NOW });
+    expect(collecting.status).toBe(APPOINTMENT_STATUS.COLLECTING_PREFERENCES);
+    expect(collecting.events.map(event => event.status)).toEqual([
+      APPOINTMENT_STATUS.NEED_IDENTIFIED,
+      APPOINTMENT_STATUS.DRAFT,
+      APPOINTMENT_STATUS.COLLECTING_PREFERENCES
+    ]);
   });
 
   it("walks the structured-request path from preferences to confirmed", () => {

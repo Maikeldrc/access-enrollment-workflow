@@ -250,11 +250,18 @@ test("§138 human coordination creates a care-team task and says a person is coo
   test.setTimeout(120000);
   await openScheduling(page, need({
     requestedProfessionalId: HUMAN_COORDINATION_PROVIDER,
-    providerDisplayName: "ITERA care manager"
+    providerDisplayName: "Alicia Ramírez, RN"
   }));
 
-  await walkPreferences(page, { provider: HUMAN_COORDINATION_PROVIDER, reason: "ROUTINE_FOLLOW_UP" });
+  await walkPreferences(page, {
+    provider: HUMAN_COORDINATION_PROVIDER,
+    reason: "MEDICATION_RENEWAL",
+    modality: "TELEHEALTH",
+    timeOfDay: "AFTERNOON"
+  });
   await submitRequest(page);
+
+  await expect(page.getByRole("heading", { name: "Your care team is coordinating this" })).toBeVisible();
 
   const text = await screenText(page);
 

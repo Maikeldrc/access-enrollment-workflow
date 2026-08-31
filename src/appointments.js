@@ -304,6 +304,20 @@ export function advanceAppointment(appointment, { status, source = "ITERA", acto
   });
 }
 
+// A newly identified need cannot skip DRAFT on its way to the preference questions. Keeping this
+// transition here makes UI-, EMMI- and workflow-created needs follow the same state-machine path.
+export function beginAppointmentPreferences(appointment, { source = "ITERA", actor = APPOINTMENT_ACTORS.SYSTEM, at = new Date().toISOString(), detail = null } = {}) {
+  if (!appointment) return appointment;
+  let current = appointment;
+  if (current.status === APPOINTMENT_STATUS.NEED_IDENTIFIED) {
+    current = advanceAppointment(current, { status: APPOINTMENT_STATUS.DRAFT, source, actor, at, detail });
+  }
+  if (current.status === APPOINTMENT_STATUS.DRAFT) {
+    current = advanceAppointment(current, { status: APPOINTMENT_STATUS.COLLECTING_PREFERENCES, source, actor, at, detail });
+  }
+  return current;
+}
+
 // Confirmation details arrive with the confirmation, never before it, and only ever from the system
 // that holds the calendar. Anything the booking result did not carry stays empty.
 export function applyBookingConfirmation(appointment, { confirmationNumber = "", scheduledAt = "", scheduledEndAt = "", modality = "", locationName = "", locationAddress = "", joinUrl = "", timezone = "", source = "SCHEDULING_SYSTEM", actor = APPOINTMENT_ACTORS.PATIENT, at = new Date().toISOString() } = {}) {
