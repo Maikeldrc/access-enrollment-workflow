@@ -8,6 +8,7 @@ import {
   appointmentBriefView,
   appointmentDetailView,
   appointmentFollowUpView,
+  appointmentPrepConversationOpening,
   appointmentPrepView,
   appointmentPreferenceView,
   appointmentShareView,
@@ -443,6 +444,19 @@ describe("appointment views — escaping (every interpolated value)", () => {
 });
 
 describe("appointment views — preparation, brief and sharing (§43-§47, §114)", () => {
+  it("opens EMMI from the appointment and prep topics in every supported language", () => {
+    const appointment = { ...confirmed, prep: { topics: ["readings", "medicamentos"] } };
+    expect(appointmentPrepConversationOpening({ locale: "en", appointment })).toBe("Let’s prepare for your appointment with Dr. Pedro Martinez. You wanted to discuss “readings”, “medicamentos”. Which topic would you like to start with?");
+    expect(appointmentPrepConversationOpening({ locale: "es", appointment })).toBe("Preparémonos para su cita con Dr. Pedro Martinez. Quería conversar sobre “readings”, “medicamentos”. ¿Con cuál tema le gustaría empezar?");
+    expect(appointmentPrepConversationOpening({ locale: "ht", appointment })).toBe("Ann prepare pou randevou ou ak Dr. Pedro Martinez. Ou te vle pale sou “readings”, “medicamentos”. Ak ki sijè ou ta renmen kòmanse?");
+  });
+
+  it("asks what to prepare when the patient has not added a topic yet", () => {
+    const opening = appointmentPrepConversationOpening({ locale: "en", appointment: confirmed });
+    expect(opening).toContain("Let’s prepare for your appointment with Dr. Pedro Martinez.");
+    expect(opening).toContain("What would you like help getting ready to discuss?");
+  });
+
   it("lists what the patient wanted to discuss and lets them add and remove topics", () => {
     const html = appointmentPrepView({ ...base, now: NOW, appointment: { ...confirmed, prep: { topics: ["My blood pressure", "A medication question"], sharedWithProvider: false } } });
     expect(html).toContain("My blood pressure");

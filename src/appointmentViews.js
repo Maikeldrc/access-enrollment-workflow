@@ -107,6 +107,31 @@ const localeOf = props => (props?.locale === "es" || props?.locale === "ht" ? pr
 // One question, three languages. Mirrors app.js's L() without reaching into app.js's state.
 const say = locale => (en, es, ht) => localAppointmentViewText(T(en, es, ht), locale);
 
+// Opening appointment preparation is a navigation event, not a clinical question the patient
+// typed. Give EMMI a grounded opening from the appointment record so an unrelated earlier topic
+// can never be replayed as the answer to the Prepare with EMMI button.
+export function appointmentPrepConversationOpening({ locale = "en", appointment = {} } = {}) {
+  const language = locale === "es" || locale === "ht" ? locale : "en";
+  const provider = String(appointment.providerDisplayName || "").trim();
+  const topics = Array.isArray(appointment.prep?.topics)
+    ? appointment.prep.topics.map(topic => String(topic || "").trim()).filter(Boolean)
+    : [];
+  const providerText = provider
+    ? localAppointmentViewText(T(` with ${provider}`, ` con ${provider}`, ` ak ${provider}`), language)
+    : "";
+  if (!topics.length) return localAppointmentViewText(T(
+    `Let’s prepare for your appointment${providerText}. What would you like help getting ready to discuss?`,
+    `Preparémonos para su cita${providerText}. ¿Sobre qué le gustaría prepararse para conversar?`,
+    `Ann prepare pou randevou ou${providerText}. Sou kisa ou ta renmen prepare pou pale?`
+  ), language);
+  const topicList = topics.map(topic => `“${topic}”`).join(", ");
+  return localAppointmentViewText(T(
+    `Let’s prepare for your appointment${providerText}. You wanted to discuss ${topicList}. Which topic would you like to start with?`,
+    `Preparémonos para su cita${providerText}. Quería conversar sobre ${topicList}. ¿Con cuál tema le gustaría empezar?`,
+    `Ann prepare pou randevou ou${providerText}. Ou te vle pale sou ${topicList}. Ak ki sijè ou ta renmen kòmanse?`
+  ), language);
+}
+
 /* ---------------------------------------------------------------------- date + time ------ */
 
 const MONTHS = {

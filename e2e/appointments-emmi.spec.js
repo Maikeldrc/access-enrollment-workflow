@@ -617,6 +617,47 @@ test("the patient writes what they want to discuss, removes what they change the
   expect((await draft(page)).careTeamTasks.at(-1)).toBeTruthy();
 });
 
+test("Prepare with EMMI opens the confirmed appointment conversation and preserves the prep list", async ({ page }) => {
+  await openAppointments(page, { appointments: [appointment()] });
+  const previousAnswer = await tellEmmi(page, "What does an A1c result mean?");
+  await expect(previousAnswer).toContainText(/A1c/i);
+  await closeEmmi(page);
+
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+
+  await page.locator("#appointment-prep-topic").fill("readings");
+  await page.locator('[data-action="appointment-add-prep-topic"]').click();
+  await page.locator("#appointment-prep-topic").fill("medicamentos");
+  await page.locator('[data-action="appointment-add-prep-topic"]').click();
+  await expect(page.locator(".appointment-topics")).toContainText("readings");
+  await expect(page.locator(".appointment-topics")).toContainText("medicamentos");
+
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+
+  const panel = page.locator(".assistant-layer");
+  await expect(panel).toBeVisible();
+  // The button is navigation, so it must not impersonate the patient with a generic question.
+  await expect(panel.locator(".assistant-message.user")).toHaveCount(1);
+  await expect(panel.locator(".assistant-message.user").last()).toContainText("What does an A1c result mean?");
+  const prepOpening = panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(prepOpening).toContainText("Let’s prepare for your appointment with Dr. Fresner.");
+  await expect(prepOpening).toContainText("readings");
+  await expect(prepOpening).toContainText("medicamentos");
+  await expect(prepOpening).toContainText("Which topic would you like to start with?");
+  await expect(prepOpening).not.toContainText("What a particular A1c result means");
+  await expect(panel.locator(".assistant-error")).toHaveCount(0);
+
+  const storedWhileOpen = await storedAppointments(page);
+  expect(storedWhileOpen[0].status).toBe("CONFIRMED");
+  expect(storedWhileOpen[0].prep.topics).toEqual(["readings", "medicamentos"]);
+
+  await closeEmmi(page);
+  await expect(page.locator(".appointment-prep-screen")).toBeVisible();
+  await expect(page.locator(".appointment-topics")).toContainText("readings");
+  await expect(page.locator(".appointment-topics")).toContainText("medicamentos");
+});
+
 /* ------------------------------------------------------------------------ §122 §123 §124 ---- */
 
 const startScheduling = async (page, { id, reason }) => {

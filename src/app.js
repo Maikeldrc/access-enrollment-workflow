@@ -21,7 +21,7 @@ import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS,
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
@@ -7159,7 +7159,19 @@ function bind() {
       if (action === "appointment-back") { state.screen = "MY_CARE"; state.appointmentFlow = null; draftStore.save(state); render(); return; }
       if (action === "appointment-ask-emmi") {
         if (appointmentId) state.activeAppointmentId = appointmentId;
+        const openedFromPrep = Boolean(el.closest(".appointment-prep-screen"));
         showHelp(el);
+        if (openedFromPrep && record) {
+          const text = appointmentPrepConversationOpening({ locale: state.language, appointment: record });
+          state.assistantMessages.push({ role: "assistant", text, intent: "APPOINTMENT_PREP", appointmentId: record.id });
+          emmiConversationManager?.recordTurn("assistant", text, { screen: state.screen, appointmentId: record.id, source: "appointment-prep" });
+          emmiConversationManager?.markGreeted();
+          ensureEmmiRuntime().audit.transcript("assistant", text);
+          audit(state, "appointment_prep_emmi_opened", "success", { appointmentId: record.id, topicCount: record.prep?.topics?.length || 0 });
+          draftStore.save(state);
+          refreshAssistantLayer();
+          return;
+        }
         await askEmmi(record?.providerDisplayName
           ? L(`I have a question about my appointment with ${record.providerDisplayName}.`, `Tengo una pregunta sobre mi cita con ${record.providerDisplayName}.`, `Mwen gen yon kesyon sou randevou mwen ak ${record.providerDisplayName}.`)
           : L("I need help with an appointment.", "Necesito ayuda con una cita.", "Mwen bezwen èd ak yon randevou."), { questionId: "appointment-question", source: "appointment" });
