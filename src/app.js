@@ -139,7 +139,7 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -5540,7 +5540,7 @@ async function launchPrototype() {
   localStorage.setItem("itera.prototype.config.v1", JSON.stringify(persistableConfig));
   history.replaceState({}, "", "?prototype=1");
   service = new MockEnrollmentService("prototype", prototypeConfig);
-    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
+    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
@@ -5925,7 +5925,7 @@ async function advance() {
     if (state.cuffSelectionStatus === "NEEDS_ASSISTANCE") addTask("CUFF_SELECTION_ASSISTANCE", state.cuffSelectionMethod);
     state.careTeamTasks = tasks;
     state.baselineResumeScreen = "ACCESS_BP_SHIPPING_ADDRESS";
-    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
+    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
   }
   if (state.screen === "ACCESS_BP_SHIPPING_ADDRESS") {
     const form = document.querySelector("#bp-shipping-form");
@@ -5940,7 +5940,7 @@ async function advance() {
     state.shippingAddressMode = mode;
     state.shippingAddress = address;
     state.busy = true; state.error = ""; render();
-    const result = await service.createBpDeviceFulfillment({ shippingAddress: address, armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: state.armRestrictionReported, cuffSelectionMethod: state.cuffSelectionMethod, selectedCuffOption: state.selectedCuffOption, cuffSelectionStatus: state.cuffSelectionStatus, deviceModelSelected: state.deviceModelSelected });
+    const result = await service.createBpDeviceFulfillment({ shippingAddress: address, armMeasurementStatus: state.armMeasurementStatus, cuffSelectionMethod: state.cuffSelectionMethod, selectedCuffOption: state.selectedCuffOption, cuffSelectionStatus: state.cuffSelectionStatus, deviceModelSelected: state.deviceModelSelected });
     state.busy = false;
     if (result.status !== "requested") { state.error = L("We couldn’t complete the request yet. Please try again or talk with your care team.", "Aún no pudimos completar la solicitud. Inténtelo de nuevo o hable con su equipo.", "Nou poko kapab ranpli demann lan. Eseye ankò oswa pale ak ekip swen ou."); render(); return; }
     state.shippingAddressConfirmed = true;
@@ -6794,14 +6794,7 @@ function bind() {
       const form = document.querySelector("#bp-device-info-form");
       if (!form) return;
       const data = Object.fromEntries(new FormData(form));
-      state.armRestrictionReported = data.armRestrictionReported || state.armRestrictionReported;
-      state.restrictedArm = state.armRestrictionReported === "YES" ? (data.restrictedArm || state.restrictedArm) : "NONE";
       state.selectedCuffOption = data.choice || state.selectedCuffOption || "";
-    };
-    const addArmCareTask = (type, reason) => {
-      const tasks = [...(state.careTeamTasks || [])];
-      if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() });
-      state.careTeamTasks = tasks;
     };
     if (action === "open-care-circle") {
       state.growthReturnScreen = state.screen;
@@ -8117,44 +8110,6 @@ function bind() {
       audit(state, "bp_device_verification_help_requested", "success", { deviceVerificationStatus: state.deviceVerificationStatus, assignedDeviceId: state.assignedDeviceId });
       draftStore.save(state); showHelp();
     }
-    if (action === "arm-help-toggle") {
-      preserveArmForm();
-      state.armHelpOpen = !state.armHelpOpen;
-      state.error = ""; render();
-    }
-    if (["arm-help-no-tape", "arm-help-unsure", "arm-help-care-team"].includes(action)) {
-      preserveArmForm();
-      const clinicalReview = state.armRestrictionReported === "UNSURE" || state.restrictedArm === "BOTH";
-      state.armMeasurementStatus = clinicalReview ? "PENDING_CLINICAL_REVIEW" : "NEEDS_ASSISTANCE";
-      state.measurementArm = clinicalReview ? "PENDING" : state.restrictedArm === "LEFT" ? "RIGHT" : state.restrictedArm === "RIGHT" ? "LEFT" : "PENDING";
-      state.armMeasurementHelpReason = action === "arm-help-no-tape" ? "NO_MEASURING_TAPE" : action === "arm-help-unsure" ? "MEASUREMENT_INSTRUCTIONS" : "CARE_TEAM_REQUEST";
-      addArmCareTask(clinicalReview ? "ARM_CLINICAL_REVIEW" : "ARM_MEASUREMENT_ASSISTANCE", state.armMeasurementHelpReason);
-      state.baselineReminderStatus = "CARE_TEAM_ASSISTANCE";
-      state.armHelpOpen = false;
-      state.error = "";
-      draftStore.save(state);
-      render();
-      if (action === "arm-help-care-team") showHelp();
-    }
-    if (action === "arm-review-continue") {
-      preserveArmForm();
-      state.armMeasurementStatus = "PENDING_CLINICAL_REVIEW";
-      state.measurementArm = "PENDING";
-      state.cuffSelectionMethod = "CARE_TEAM_ASSISTANCE";
-      state.selectedCuffOption = "";
-      state.cuffSelectionStatus = "NEEDS_ASSISTANCE";
-      state.deviceModelSelected = bpFulfillmentDeviceConfiguration()?.id || null;
-      state.enrollmentStatus = "COMPLETED";
-      state.baselineStatus = "IN_PROGRESS";
-      state.bpBaselineStatus = "DEVICE_VERIFICATION";
-      state.baselineResumeScreen = "ACCESS_BP_DEVICE_INFO";
-      state.baselineReminderStatus = "CARE_TEAM_ASSISTANCE";
-      addArmCareTask("ARM_CLINICAL_REVIEW", state.armRestrictionReported === "UNSURE" ? "RESTRICTION_UNSURE" : "BOTH_ARMS_RESTRICTED");
-      addArmCareTask("CUFF_SELECTION_ASSISTANCE", "ARM_RESTRICTION_REVIEW");
-      audit(state, "bp_arm_clinical_review_requested", "success", { armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm });
-      state.screen = "ONBOARDING";
-      draftStore.save(state); render();
-    }
     if (action === "bp-defer-health-check") {
       state.enrollmentStatus = "COMPLETED";
       state.baselineStatus = "IN_PROGRESS";
@@ -8287,25 +8242,14 @@ function bind() {
   };
   bpDeviceInfoForm?.addEventListener("input", updateBpDeviceInfoCta);
   bpDeviceInfoForm?.addEventListener("change", event => {
-    if (["armRestrictionReported", "restrictedArm"].includes(event.target.name)) {
-      const data = Object.fromEntries(new FormData(bpDeviceInfoForm));
-      state.armCircumferenceValue = String(data.armCircumferenceValue || state.armCircumferenceValue || "");
-      state.armCircumferenceUnit = data.armCircumferenceUnit || state.armCircumferenceUnit || "cm";
-      state.armRestrictionReported = data.armRestrictionReported || "";
-      state.restrictedArm = state.armRestrictionReported === "YES" ? (data.restrictedArm || "NONE") : "NONE";
-      state.measurementArm = state.restrictedArm === "LEFT" ? "RIGHT" : state.restrictedArm === "RIGHT" ? "LEFT" : "PENDING";
-      state.armMeasurementStatus = "";
-      state.armMeasurementHelpReason = "";
-      state.armHelpOpen = false;
-      state.error = "";
-      draftStore.save(state);
-      render();
-      return;
-    }
     if (event.target.name === "choice") {
       state.selectedCuffOption = event.target.value;
-      state.cuffSelectionMethod = event.target.value === "UNSURE" ? "CARE_TEAM_ASSISTANCE" : "PATIENT_SELECTED";
-      state.cuffSelectionStatus = event.target.value === "UNSURE" ? "NEEDS_ASSISTANCE" : "";
+      // Every radio here is a cuff from the device record, so the only thing a change means is that
+      // the patient picked a size. The "I'm not sure" card that used to sit among them is gone; the
+      // service still guards CARE_TEAM_ASSISTANCE for drafts saved before it was removed.
+      state.cuffSelectionMethod = "PATIENT_SELECTED";
+      state.cuffSelectionStatus = "";
+      state.armCircumferenceValue = "";
       state.error = "";
       draftStore.save(state);
       render();
@@ -8558,7 +8502,6 @@ async function boot() {
       if (!saved.deviceVerificationStatus) state.deviceVerificationStatus = saved.bpDeviceVerificationStatus === "VERIFIED_COMPATIBLE" ? "ASSIGNED" : saved.bpDeviceVerificationStatus === "VERIFIED_INCOMPATIBLE" ? "UNSUPPORTED" : saved.bpDeviceVerificationStatus === "ASSISTANCE_REQUESTED" ? "NEEDS_REVIEW" : state.deviceVerificationStatus;
       if (state.deviceVerificationStatus === "CONNECTED") state.deviceVerificationStatus = state.patientDeviceConfirmed ? "PATIENT_CONFIRMED" : "ASSIGNED";
       if (!saved.deviceSource) state.deviceSource = saved.bpDevicePath === "owned" ? "UNKNOWN" : state.deviceSource;
-      if (!saved.measurementArm) state.measurementArm = saved.preferredMeasurementArm === "LEFT" || saved.preferredMeasurementArm === "RIGHT" ? saved.preferredMeasurementArm : "PENDING";
       if (!Number.isInteger(saved.bpReadingCount)) state.bpReadingCount = state.bpReadingReceipts.length;
       if (!saved.bpMeasurementPhase) state.bpMeasurementPhase = "WAITING";
       if (!saved.flowProgress?.GETTING_STARTED) state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };

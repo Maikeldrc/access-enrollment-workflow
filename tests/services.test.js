@@ -113,8 +113,8 @@ describe("ACCESS assigned device lookup", () => {
 
   it("validates cuff selection against the configured device and available inventory", async () => {
     const service = new MockEnrollmentService("access-happy");
-    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", armRestrictionReported: "NO", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "TENOVI_WIDE", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "SELECTED", selectedCuffOption: "TENOVI_WIDE", deviceModelSelected: "TENOVI_BPM_GEN3" });
-    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", armRestrictionReported: "NO", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "PYLO_XL", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "CARE_TEAM_REVIEW_REQUIRED", selectedCuffOption: null, deviceModelSelected: "TENOVI_BPM_GEN3" });
+    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "TENOVI_WIDE", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "SELECTED", selectedCuffOption: "TENOVI_WIDE", deviceModelSelected: "TENOVI_BPM_GEN3" });
+    await expect(service.createBpDeviceFulfillment({ shippingAddress: { zip: "33176" }, armMeasurementStatus: "NOT_REQUIRED", cuffSelectionMethod: "PATIENT_SELECTED", selectedCuffOption: "PYLO_XL", cuffSelectionStatus: "SELECTED", deviceModelSelected: "TENOVI_BPM_GEN3" })).resolves.toMatchObject({ status: "requested", cuffSelectionStatus: "CARE_TEAM_REVIEW_REQUIRED", selectedCuffOption: null, deviceModelSelected: "TENOVI_BPM_GEN3" });
   });
 });
 
