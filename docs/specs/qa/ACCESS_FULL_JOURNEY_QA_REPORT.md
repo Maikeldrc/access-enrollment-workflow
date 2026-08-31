@@ -183,6 +183,15 @@ Closed since this was written, and how:
 - **e2e** — **459 passing, 0 failing, 5 skipped**, from 396 passing and 49 failing when this was
   written. Unit: 995 passing across 47 files.
 
+## Where this stands
+
+**Demonstrable prototype: yes.** The journey runs end to end without breaking, and it is walked
+rather than seeded to prove it. 491 end-to-end tests passing and 0 failing, 1018 unit tests passing
+across 48 files, from 396 and 49 when this work began.
+
+**Certified for patient use: no, and deliberately not claimed.** Two things stand between the two
+bars, both named below, and neither can be closed from here.
+
 Still open, and a certification cannot be issued over them:
 
 - **Accessibility beyond the structural checks.** Touch targets, labels, tab order, reduced motion
@@ -190,3 +199,7 @@ Still open, and a certification cannot be issued over them:
   what "audited" should mean.
 - **Voice.** Handed to the session with a microphone; see `VOICE_HANDOFF.md`. Its blocker — speaking
   producing no patient transcript — is unaddressed, and everything behind it is uncertified.
+
+The screen reader pass is scripted and ready to run: `SCREEN_READER_SCRIPT.md`, half an hour, five
+things to listen for. It is written as things to hear rather than things to check, because that is
+the half of accessibility a machine cannot decide.
