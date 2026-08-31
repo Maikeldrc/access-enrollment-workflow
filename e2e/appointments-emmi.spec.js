@@ -170,7 +170,7 @@ test("a patient with no appointment is told so, and is never told about one", as
   expect(await storedAppointments(page)).toHaveLength(0);
 });
 
-test("Continue with this appointment opens the request EMMI just created", async ({ page }) => {
+test("Continue with this appointment starts with provider when EMMI has not identified one", async ({ page }) => {
   await openAppointments(page, { appointments: [] });
   const answer = await tellEmmi(page, "I need help with an appointment.");
   const continueButton = answer.getByRole("button", { name: "Continue with this appointment" });
@@ -183,8 +183,9 @@ test("Continue with this appointment opens the request EMMI just created", async
   await continueButton.click();
 
   await expect(page.locator(".assistant-layer")).toHaveCount(0);
-  await expect(page.locator('.appointment-preference-screen[data-step="REASON"]')).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What would you like to be seen for?" })).toBeVisible();
+  await expect(page.locator('.appointment-preference-screen[data-step="PROVIDER"]')).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Who would you like to see?" })).toBeVisible();
+  await expect(page.locator('[data-action="appointment-preference-answer"][data-field="requestedProfessionalId"]')).toHaveCount(4);
   await expect(page.locator(".appointment-list-screen")).toHaveCount(0);
 });
 

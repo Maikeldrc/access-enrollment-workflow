@@ -18,6 +18,7 @@ import {
   appointmentIsOpen,
   appointmentNextStep,
   appointmentPatientStatus,
+  appointmentPreferenceResumeStep,
   appointmentStatusTone,
   applyBookingConfirmation,
   beginAppointmentPreferences,
@@ -397,6 +398,24 @@ describe("the draft", () => {
     const ready = updateAppointmentDraft(partial, { reasonSummary: "I want to talk about my readings", now: NOW });
     expect(draftIsSubmittable(ready)).toEqual({ ok: true, missing: [] });
     expect(draftIsSubmittable(null).ok).toBe(false);
+  });
+
+  it("resumes an EMMI-created request at provider when no real professional was selected", () => {
+    const emmiNeed = createAppointmentDraft({
+      needId: "emmi-need",
+      requestedProfessionalType: "UNKNOWN",
+      reasonCategory: "OTHER"
+    });
+
+    expect(appointmentPreferenceResumeStep(emmiNeed, "REASON")).toBe("PROVIDER");
+    expect(appointmentPreferenceResumeStep(emmiNeed, "REVIEW")).toBe("PROVIDER");
+    expect(draftIsSubmittable(emmiNeed)).toEqual({ ok: false, missing: ["requestedProfessionalId"] });
+  });
+
+  it("keeps a genuinely partial request on its first missing required step", () => {
+    const providerOnly = createAppointmentDraft({ needId: "partial", requestedProfessionalId: "dr-fresner" });
+    expect(appointmentPreferenceResumeStep(providerOnly, "REVIEW")).toBe("REASON");
+    expect(appointmentPreferenceResumeStep({ ...providerOnly, reasonCategory: "ROUTINE_FOLLOW_UP" }, "MODALITY")).toBe("MODALITY");
   });
 
   it("serialises a draft and a record to plain objects for persistence", () => {

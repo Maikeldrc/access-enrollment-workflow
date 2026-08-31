@@ -17,7 +17,7 @@ import {
   // needs the patient's attention.
   MapPin, Video, TriangleAlert, CalendarClock
 } from "lucide";
-import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
+import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentPreferenceResumeStep, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
@@ -1145,7 +1145,7 @@ function ensureEmmiRuntime() {
         ? findUpcomingAppointmentWithProvider(appointmentRecords(), started.record.requestedProfessionalId, new Date())
         : null;
       const { record } = classifyAppointmentPath(started.record);
-      openAppointmentScheduling(record, "REASON");
+      openAppointmentScheduling(record, "PROVIDER");
       // EMMI moved the patient somewhere real; closing the panel lands them on it.
       state.assistantPendingNavigation = true;
       draftStore.save(state);
@@ -4074,7 +4074,11 @@ const openAppointmentDetail = (id, view = "") => {
 
 const openAppointmentScheduling = (record, step = "REASON") => {
   state.activeAppointmentId = record.id;
-  state.appointmentDraft = updateAppointmentDraft(state.appointmentDraft || createAppointmentDraft({ needId: record.id }), { needId: record.id });
+  // A draft belongs to one need. Reusing the prior appointment's draft leaks its choices into this
+  // request; creating only { needId } loses what EMMI already captured. Hydrate from this record on
+  // first entry, then preserve the patient's in-progress answers on later entries.
+  const existingDraft = state.appointmentDraft?.needId === record.id ? state.appointmentDraft : null;
+  state.appointmentDraft = existingDraft || createAppointmentDraft({ ...record, needId: record.id });
   state.appointmentFlow = { appointmentId: record.id, step, view: "" };
   state.screen = "APPOINTMENT_SCHEDULING";
   draftStore.save(state);
@@ -6647,9 +6651,10 @@ function bindAssistantLayer() {
       // the EMMI message and reopen the same draft here; otherwise this CTA can only fall back to
       // the Requests list, forcing the patient to locate and open the request a second time.
       const record = appointmentById(button.dataset.needId || button.dataset.appointmentId || "");
-      const resumeStep = state.appointmentFlow?.appointmentId === record?.id && state.appointmentFlow?.step
+      const requestedStep = state.appointmentFlow?.appointmentId === record?.id && state.appointmentFlow?.step
         ? state.appointmentFlow.step
-        : "REASON";
+        : "PROVIDER";
+      const resumeStep = appointmentPreferenceResumeStep(record, requestedStep);
       if (record) openAppointmentScheduling(record, resumeStep);
       else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "REQUESTS" }; draftStore.save(state); }
       render();

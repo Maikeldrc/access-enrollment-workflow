@@ -538,12 +538,30 @@ export function updateAppointmentDraft(draft, patch = {}) {
   });
 }
 
+const APPOINTMENT_REQUEST_STEPS = Object.freeze(["PROVIDER", "REASON", "MODALITY", "TIME_OF_DAY", "REVIEW"]);
+const hasRequestedProfessional = draft => Boolean(
+  draft?.requestedProfessionalId
+  || draft?.requestedSpecialty
+  || (draft?.requestedProfessionalType && draft.requestedProfessionalType !== "UNKNOWN")
+);
+
+// Re-entry follows the information that actually exists, not a stale UI step. EMMI can identify a
+// need before it knows who should handle it; in that case the first screen must be PROVIDER even if
+// an earlier transition happened to store REASON. A generic UNKNOWN classification is not a person.
+export function appointmentPreferenceResumeStep(draft, requestedStep = "PROVIDER") {
+  const requested = APPOINTMENT_REQUEST_STEPS.includes(requestedStep) ? requestedStep : "PROVIDER";
+  if (!hasRequestedProfessional(draft)) return "PROVIDER";
+  const hasReason = Boolean(draft?.reasonCategory || draft?.reasonSummary);
+  if (!hasReason && APPOINTMENT_REQUEST_STEPS.indexOf(requested) > APPOINTMENT_REQUEST_STEPS.indexOf("REASON")) return "REASON";
+  return requested;
+}
+
 // The gate on the submit button, not the submit itself. §81: a patient may always stop, and a
 // draft is never sent because it happens to be complete.
 export function draftIsSubmittable(draft) {
   const missing = [];
   if (!draft) return { ok: false, missing: ["requestedProfessionalId", "reasonCategory"] };
-  if (!draft.requestedProfessionalId && !draft.requestedProfessionalType && !draft.requestedSpecialty) missing.push("requestedProfessionalId");
+  if (!hasRequestedProfessional(draft)) missing.push("requestedProfessionalId");
   if (!draft.reasonCategory && !draft.reasonSummary) missing.push("reasonCategory");
   return { ok: missing.length === 0, missing };
 }
