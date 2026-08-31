@@ -16,12 +16,13 @@
 // EMMI's voice-guidance setting and where the assistant sits on screen, the growth prompt
 // cooldowns, and the QA console's own configuration. Wiping those would punish somebody for
 // starting a second enrollment by making them pick their language again, and none of them can
-// carry a fact about the previous patient.
+// carry a fact about the previous patient. Conversation continuity is different: whether EMMI has
+// already been introduced belongs to the enrollment and is cleared with the transcript.
 
 // The two demo enrollments are the same fictional patient, so nothing here can be scoped by
 // patient id: A and B share one. The enrollment boundary is the session itself, which is why each
 // store is cleared whole rather than filtered.
-export function resetEnrollmentSession({ draftStore, growthStore, clearConversation, clearAuditLog } = {}) {
+export function resetEnrollmentSession({ draftStore, growthStore, clearConversation, clearAuditLog, clearAssistantContinuity } = {}) {
   const cleared = [];
   const attempt = (name, run) => {
     if (typeof run !== "function") return;
@@ -36,5 +37,6 @@ export function resetEnrollmentSession({ draftStore, growthStore, clearConversat
   attempt("careCircleAndShares", growthStore && (() => growthStore.clearEnrollmentData()));
   attempt("emmiConversation", clearConversation);
   attempt("emmiAuditLog", clearAuditLog);
+  attempt("emmiAssistantContinuity", clearAssistantContinuity);
   return { cleared };
 }

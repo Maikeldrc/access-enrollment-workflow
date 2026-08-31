@@ -88,6 +88,8 @@ test("/new opens the first screen of a new enrollment and carries nothing over f
   // Preferences belong to the person, not to the enrollment they were in.
   expect(stores.language).toBe("es");
   expect(stores.emmiPreferences).toContain("emmiVoiceGuidance");
+  expect(stores.emmiPreferences).not.toContain("emmiWelcomeAcknowledged");
+  await expect(page.getByRole("heading", { name: "Hola, soy EMMI." })).toBeVisible();
 });
 
 // "/new" is a command that has been carried out. Leaving it in the address bar would make every

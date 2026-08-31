@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DraftStore } from "../src/services.js";
 import { GrowthStore } from "../src/growth.js";
 import { clearEmmiConversation } from "../src/emmi/conversationManager.js";
+import { clearEmmiEnrollmentContinuity } from "../src/emmi/preferences.js";
 import { resetEnrollmentSession } from "../src/enrollmentSession.js";
 
 // A localStorage that behaves like the real one, so a test can say what a browser holds before the
@@ -51,7 +52,8 @@ describe("starting a new enrollment", () => {
     draftStore: new DraftStore(),
     growthStore: new GrowthStore(storage),
     clearConversation: () => clearEmmiConversation({ storage, sessionStorage: session }),
-    clearAuditLog: () => session.removeItem("itera.emmi.prototype.audit.v1")
+    clearAuditLog: () => session.removeItem("itera.emmi.prototype.audit.v1"),
+    clearAssistantContinuity: () => clearEmmiEnrollmentContinuity(storage)
   });
 
   // The five stores an enrollment writes to. A reset that reached four of them would produce the
@@ -63,14 +65,15 @@ describe("starting a new enrollment", () => {
     }
     expect(session.getItem("itera.emmi.conversation.session.v1")).toBeNull();
     expect(session.getItem("itera.emmi.visit.v1")).toBeNull();
-    expect(result.cleared).toEqual(["draft", "careCircleAndShares", "emmiConversation", "emmiAuditLog"]);
+    expect(result.cleared).toEqual(["draft", "careCircleAndShares", "emmiConversation", "emmiAuditLog", "emmiAssistantContinuity"]);
   });
 
-  // Language, voice guidance, where EMMI sits and "stop asking me this" belong to the person
-  // holding the browser. Starting a second enrollment must not make them set those up again.
-  it("keeps the preferences that belong to the person rather than to the enrollment", () => {
+  // Language, voice guidance and where EMMI sits belong to the browser. Having already met EMMI
+  // belongs to the prior patient's conversation and must not make the new chat look resumed.
+  it("keeps browser preferences but clears EMMI conversation continuity", () => {
     reset();
-    for (const [key, value] of Object.entries(PREFERENCE_KEYS)) {
+    const expected = { ...PREFERENCE_KEYS, "itera.emmi.preferences.v1": JSON.stringify({ emmiVoiceGuidance: true }) };
+    for (const [key, value] of Object.entries(expected)) {
       expect(storage.getItem(key), `${key} is a preference and should survive`).toBe(value);
     }
     expect(storage.keys()).toEqual(Object.keys(PREFERENCE_KEYS).sort());
@@ -92,10 +95,11 @@ describe("starting a new enrollment", () => {
       draftStore: { clear: () => { throw new Error("storage unavailable"); } },
       growthStore: new GrowthStore(storage),
       clearConversation: () => clearEmmiConversation({ storage, sessionStorage: session }),
-      clearAuditLog: () => {}
+      clearAuditLog: () => {},
+      clearAssistantContinuity: () => clearEmmiEnrollmentContinuity(storage)
     });
     expect(result.cleared).not.toContain("draft");
-    expect(result.cleared).toEqual(["careCircleAndShares", "emmiConversation", "emmiAuditLog"]);
+    expect(result.cleared).toEqual(["careCircleAndShares", "emmiConversation", "emmiAuditLog", "emmiAssistantContinuity"]);
     expect(storage.getItem("itera.care-circle.prototype.v1")).toBeNull();
     expect(storage.getItem("itera.emmi.conversation.v1")).toBeNull();
   });

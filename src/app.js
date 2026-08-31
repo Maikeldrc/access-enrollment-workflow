@@ -30,6 +30,7 @@ import { emmiVoiceIsSupported, resolveEmmiLanguage } from "./emmi/messages.js";
 import { buildHomeNarration, buildNarration, buildTransitionNarration } from "./emmi/narrative.js";
 import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transitionManager.js";
 import { EmmiConversationManager, clearEmmiConversation } from "./emmi/conversationManager.js";
+import { EMMI_PREFERENCES_KEY, clearEmmiEnrollmentContinuity, readEmmiPreferences } from "./emmi/preferences.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
@@ -111,19 +112,16 @@ if (startingNewEnrollment) {
     draftStore,
     growthStore,
     clearConversation: clearEmmiConversation,
-    clearAuditLog: clearEmmiAuditLog
+    clearAuditLog: clearEmmiAuditLog,
+    clearAssistantContinuity: clearEmmiEnrollmentContinuity
   });
   history.replaceState(null, "", `/${location.search}${location.hash}`);
 }
-const EMMI_PREFERENCES_KEY = "itera.emmi.preferences.v1";
 // The demo pharmacy fill dates are relative to today so the prototype always shows one medication
 // approaching a refill and one comfortably stocked, whenever it is opened.
 const daysBeforeToday = days => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 const PROTOTYPE_DISPENSE_DATES = Object.freeze({ lisinopril: daysBeforeToday(25), atorvastatin: daysBeforeToday(6) });
-const savedEmmiPreferences = (() => {
-  try { return JSON.parse(localStorage.getItem(EMMI_PREFERENCES_KEY) || "null") || {}; }
-  catch { return {}; }
-})();
+const savedEmmiPreferences = readEmmiPreferences();
 let eligibilityRequest = null;
 const savedPrototypeConfig = (() => { try { return JSON.parse(localStorage.getItem("itera.prototype.config.v1") || "null"); } catch { return null; } })();
 // A saved console configuration belongs to the console. It never reaches the invitation: the
@@ -8258,7 +8256,7 @@ function bind() {
     // The console's reset is the same reset the patient's "/new" performs. It used to drop the
     // draft alone, which left EMMI still remembering the cleared patient and their Care Circle
     // still on file — a demo that looked reset and was not.
-    if (action === "clear") { resetEnrollmentSession({ draftStore, growthStore, clearConversation: clearEmmiConversation, clearAuditLog: clearEmmiAuditLog }); location.reload(); }
+    if (action === "clear") { resetEnrollmentSession({ draftStore, growthStore, clearConversation: clearEmmiConversation, clearAuditLog: clearEmmiAuditLog, clearAssistantContinuity: clearEmmiEnrollmentContinuity }); location.reload(); }
   }));
   const goalDiscoveryForm = document.querySelector("#care-goals-form");
   goalDiscoveryForm?.addEventListener("change", event => {
