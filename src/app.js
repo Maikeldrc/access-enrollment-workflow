@@ -139,7 +139,7 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -172,6 +172,10 @@ let state = {
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
+  // "Nothing right now" leaves no barrier behind, so without recording the answer itself the care
+  // team cannot tell a patient who said their care is going fine from one who never got the
+  // question. Keyed by goal: RAISED, NONE, or absent for a goal left untouched.
+  supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "",
   patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "",
   supportRole: "NONE", careCircleStatus: "NONE", careCircleInvitePending: false, careCircleJustSent: false, careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
@@ -2820,7 +2824,11 @@ function onboarding() {
     { section: "health", itemIcon: "shield", title: L("Confirm your health information", "Confirme su información de salud", "Konfime enfòmasyon sante ou"), description: L("Review what we already have on file", "Revise lo que ya tenemos", "Revize sa nou deja genyen nan dosye a"), status: state.healthInformationStepStatus },
     { section: "medications", itemIcon: "pill", title: L("Confirm your medications", "Confirme sus medicamentos", "Konfime medikaman ou yo"), description: L("Tell us if anything changed", "Indique si algo cambió", "Di nou si anyen chanje"), status: state.medicationsReviewStatus },
     { section: "preferences", itemIcon: "phone", title: L("Care preferences", "Preferencias de cuidado", "Preferans swen"), description: L("Choose how we should contact you", "Elija cómo debemos contactarle", "Chwazi kijan nou dwe kontakte ou"), status: state.carePreferencesStatus },
-    { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus }
+    { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus },
+    // The barriers question had no home on this list, so a patient who deferred it lost it: nothing
+    // else leads back there, and what makes their care harder is exactly what the care team needs.
+    // It sits beside the goals because it is asked about them, and only ACCESS asks it at all.
+    ...(state.offer?.pathway === "ACCESS" ? [{ section: "support", itemIcon: "people", title: L("Support you need", "Apoyo que necesita", "Sipò ou bezwen"), description: L("Tell us what makes care harder", "Díganos qué dificulta su cuidado", "Di nou sa ki fè swen pi difisil"), status: state.supportNeedsStatus }] : [])
   ];
   const careCircleSupport = state.careCircleStatus === "ACTIVE"
     ? `<aside class="growth-card care-circle-status">${icon("people")}<div><strong>${L(`${state.supportPersonName} is in your Care Circle`, `${state.supportPersonName} forma parte de su Círculo de cuidado`, `${state.supportPersonName} nan Sèk swen ou`)}</strong><p>${L("They can help with the care tasks you authorized.", "Puede ayudar con las tareas de cuidado que usted autorizó.", "Moun nan ka ede ak travay swen ou te otorize yo.")}</p></div></aside>`
@@ -4896,12 +4904,12 @@ function accessBpDeviceInfo() {
   // cuffs at different ranges, so a hardcoded "22-42 cm" would be a manufacturer claim about
   // whichever monitor this patient is not getting. Tenovi happens to have exactly three.
   const cuffOptions = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
-  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your connected blood pressure monitor", "Su monitor de presión arterial conectado", "Aparèy tansyon konekte ou a")}</strong><p>${L("We’ll arrange a monitor for your ACCESS care and send it to the address you confirm.", "Gestionaremos un monitor para su cuidado ACCESS y lo enviaremos a la dirección que confirme.", "N ap fè aranjman pou yon aparèy pou swen ACCESS ou epi voye l nan adrès ou konfime a.")}</p></div></aside>`;
+  const monitorCard = `<aside class="note device-intro-card">${icon("device")}<div><strong>${L("Your blood pressure monitor", "Su monitor de presión arterial", "Aparèy tansyon ou a")}</strong><p>${L("We’ll prepare your monitor for your ACCESS care and send it to the address you confirm.", "Prepararemos su monitor para el cuidado ACCESS y lo enviaremos a la dirección que confirme.", "N ap prepare aparèy ou a pou swen ACCESS ou epi voye l nan adrès ou konfime a.")}</p></div></aside>`;
   // The size is all this screen needs to send the right box. How to wear the cuff is taught during
   // device setup, in front of the actual device, which is the only moment it is useful.
-  const cuffSection = `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Choose the right cuff size", "Elija la talla de brazalete correcta", "Chwazi bon gwosè manchèt la")}</legend><p class="fieldset-support">${L("Measure around your upper arm and select the size that matches your measurement.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda a su medida.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn ak mezi ou.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), cuffRangeLabel(option), state.selectedCuffOption === option.id)).join("")}</div></fieldset><button type="button" class="text-button exact-measurement-toggle" data-action="toggle-exact-arm-measurement" aria-expanded="${state.exactArmMeasurementOpen}">${L("I know my arm measurement", "Sé la medida de mi brazo", "Mwen konnen mezi bra mwen")}</button>${state.exactArmMeasurementOpen ? `<div class="exact-measurement-panel"><div class="field"><label for="arm-circumference">${L("Arm circumference", "Circunferencia del brazo", "Sikonferans bra")}</label><div class="measurement-input"><input id="arm-circumference" name="armCircumferenceValue" type="number" inputmode="decimal" step="0.1" min="0" value="${escapeHtml(state.armCircumferenceValue)}"><select name="armCircumferenceUnit" aria-label="${L("Measurement unit", "Unidad de medida", "Inite mezi")}"><option value="cm" ${state.armCircumferenceUnit === "cm" ? "selected" : ""}>cm</option><option value="in" ${state.armCircumferenceUnit === "in" ? "selected" : ""}>in</option></select></div><small>${L("We’ll use this measurement to recommend a compatible cuff.", "Usaremos esta medida para recomendar un brazalete compatible.", "N ap itilize mezi sa a pou rekòmande yon manchèt ki mache ak aparèy la.")}</small></div></div>` : ""}</section>`;
-  const hasCuffDecision = Boolean(state.selectedCuffOption) || state.exactArmMeasurementOpen;
-  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("Your connected monitor will help you track your blood pressure and share your readings with your ACCESS care team.", "Su monitor conectado le ayudará a controlar su presión arterial y a compartir sus mediciones con su equipo de cuidado ACCESS.", "Aparèy konekte ou a ap ede w swiv tansyon ou epi pataje mezi ou yo ak ekip swen ACCESS ou."))}${monitorCard}<form id="bp-device-info-form">${cuffSection}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Request my monitor", "Solicitar mi monitor", "Mande aparèy mwen an"), true, "", !hasCuffDecision)}</form>`;
+  const cuffSection = `<section class="cuff-selection-section" aria-labelledby="cuff-selection-title"><fieldset class="cuff-choice-group"><legend id="cuff-selection-title">${L("Choose the right cuff size", "Elija la talla de brazalete correcta", "Chwazi bon gwosè manchèt la")}</legend><p class="fieldset-support">${L("Measure around your upper arm and select the size that matches your measurement.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda a su medida.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn ak mezi ou.")}</p><div class="choice-list cuff-choice-list">${cuffOptions.map(option => choice(option.id, "device", cuffOptionLabel(option), cuffRangeLabel(option), state.selectedCuffOption === option.id)).join("")}</div></fieldset></section>`;
+  const hasCuffDecision = Boolean(state.selectedCuffOption);
+  return `${art("device")}${titleBlock(L("Track your blood pressure from home", "Controle su presión arterial desde casa", "Swiv tansyon ou lakay ou"), L("Keep your ACCESS care team informed about your progress.", "Mantenga a su equipo de cuidado ACCESS informado sobre su progreso.", "Kenbe ekip swen ACCESS ou enfòme sou pwogrè ou."))}${monitorCard}<form id="bp-device-info-form">${cuffSection}<p class="form-error" role="alert">${state.error || ""}</p>${actions(L("Request my monitor", "Solicitar mi monitor", "Mande aparèy mwen an"), true, "", !hasCuffDecision)}</form>`;
 }
 
 function accessBpShippingAddress() {
@@ -5084,8 +5092,13 @@ function accessSupportNeeds() {
     const options = barrierOptionsFor({ goal: withActions, hasDevice: barrierCapabilities().hasDevice, hasMedications: Boolean((state.careMedications || []).length), locale: state.language })
       .filter(option => option.category !== "OTHER");
     const name = escapeHtml(localGoalText(GOAL_CONFIG[goal.goalType].displayName, state.language));
-    const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}"><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
-    return `<fieldset class="support-need-group"><legend>${name}</legend><p class="support-need-question">${L("Anything that could make this goal harder?", "¿Algo que pueda dificultar esta meta?", "Èske gen anyen ki ka fè objektif sa a pi difisil?")}</p><div class="support-need-options">${choices}<label class="support-need-option support-need-none"><input type="checkbox" name="barrier:${goal.id}" value="NONE"><span>${icon("check")}<span>${L("Nothing right now", "Nada por ahora", "Anyen pou kounye a")}</span></span></label></div></fieldset>`;
+    // The difficulties the patient already raised come back ticked. Re-entering this screen — from
+    // Back, or from the care setup list — used to show every box empty, telling a patient who had
+    // just answered that nothing of theirs had been recorded.
+    const raised = new Set(activeGoalBarriers(goal).map(barrier => barrier.category));
+    const answeredNone = state.supportNeedsAnswers?.[goal.id] === "NONE";
+    const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}" ${raised.has(option.category) ? "checked" : ""}><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
+    return `<fieldset class="support-need-group"><legend>${name}</legend><p class="support-need-question">${L("Anything that could make this goal harder?", "¿Algo que pueda dificultar esta meta?", "Èske gen anyen ki ka fè objektif sa a pi difisil?")}</p><div class="support-need-options">${choices}<label class="support-need-option support-need-none"><input type="checkbox" name="barrier:${goal.id}" value="NONE" ${answeredNone ? "checked" : ""}><span>${icon("check")}<span>${L("Nothing right now", "Nada por ahora", "Anyen pou kounye a")}</span></span></label></div></fieldset>`;
   }).join("");
   return `${art("people")}${titleBlock(L("Is anything making your care harder?", "¿Hay algo que dificulte su cuidado?", "Èske gen yon bagay ki fè swen ou pi difisil?"), L("Tell us if there’s anything that could make it harder to follow your care plan. We can help you find the right support.", "Díganos si hay algo que pueda dificultar seguir su plan de cuidado. Podemos ayudarle a encontrar el apoyo adecuado.", "Di nou si gen yon bagay ki ka fè li pi difisil pou swiv plan swen ou. Nou ka ede w jwenn bon sipò a."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}
     <form id="support-needs-form">${groups}
@@ -5527,11 +5540,11 @@ async function launchPrototype() {
   localStorage.setItem("itera.prototype.config.v1", JSON.stringify(persistableConfig));
   history.replaceState({}, "", "?prototype=1");
   service = new MockEnrollmentService("prototype", prototypeConfig);
-    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", armMeasurementHelpReason: "", armRestrictionReported: "", restrictedArm: "NONE", measurementArm: "PENDING", armHelpOpen: false, exactArmMeasurementOpen: false, cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
+    state = { ...state, scenarioId: "prototype", screen: "OFFER_LOADING", offer: null, language: prototypeConfig.language, role: "patient", completionRole: "patient", representativeFullName: "", representativeRelationship: "", representativeAuthorityType: "", representativePhone: "", representativeOtpDeliveryId: "", representativeOtpResendAvailableAt: 0, phoneVerified: false, phoneVerificationMethod: "", phoneVerifiedAt: "", representativeAuthorityAttested: false, authorityAttestation: false, authorityAttestedAt: "", authorityVerificationMethod: AUTHORITY_VERIFICATION_METHODS[0], authorityAdditionalVerificationRequired: false, accessNoticeAcknowledgedAt: "", disclosureAcknowledgedAt: "", disclosureVersion: "", accessDisclosureView: null, consentRole: "", consentVersion: "", consentTimestamp: "", sessionId: globalThis.crypto?.randomUUID?.() || `session_${Date.now().toString(36)}`, identityVerified: false, accessEligible: false, accessOutcome: null, eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "", devicePath: null, enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED", bpBaselineStatus: "NOT_STARTED", bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null, audit: [], error: "" };
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
-  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [] });
+  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "" });
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
   state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
@@ -5895,38 +5908,24 @@ async function advance() {
     const deviceConfiguration = bpFulfillmentDeviceConfiguration();
     const availableCuffs = (deviceConfiguration?.cuffOptions || []).filter(option => option.inventoryStatus === "AVAILABLE" && option.compatibleDeviceModels.includes(deviceConfiguration.id));
     state.deviceModelSelected = deviceConfiguration?.id || null;
-    if (state.exactArmMeasurementOpen) {
-      const value = Number(data.armCircumferenceValue);
-      const unit = data.armCircumferenceUnit === "in" ? "in" : "cm";
-      const valid = Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
-      if (!valid) { state.error = L("Enter a reasonable arm measurement.", "Ingrese una medida razonable del brazo.", "Antre yon mezi bra ki rezonab."); render(); return; }
-      const valueCm = unit === "in" ? value * 2.54 : value;
-      const matches = availableCuffs.filter(option => valueCm >= option.minArmCircumference && valueCm <= option.maxArmCircumference).sort((a, b) => Math.abs(valueCm - ((a.minArmCircumference + a.maxArmCircumference) / 2)) - Math.abs(valueCm - ((b.minArmCircumference + b.maxArmCircumference) / 2)));
-      state.armCircumferenceValue = String(value);
-      state.armCircumferenceUnit = unit;
-      state.armMeasurementStatus = "COMPLETED";
-      state.cuffSelectionMethod = "ARM_MEASUREMENT";
-      state.selectedCuffOption = matches[0]?.id || "";
-      state.cuffSizeSelected = matches[0]?.labelKey || null;
-      state.cuffSelectionStatus = matches.length ? "AUTO_MATCHED" : "NEEDS_ASSISTANCE";
-    } else {
-      const selectedId = data.choice || state.selectedCuffOption;
-      if (!selectedId) { state.error = L("Choose a cuff size.", "Elija una talla de brazalete.", "Chwazi yon gwosè manchèt."); render(); return; }
-      const selectedOption = availableCuffs.find(option => option.id === selectedId);
-      if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
-      state.cuffSelectionMethod = "PATIENT_SELECTED";
-      state.selectedCuffOption = selectedOption.id;
-      state.cuffSizeSelected = selectedOption.labelKey;
-      state.cuffSelectionStatus = "SELECTED";
-      state.armMeasurementStatus = "NOT_REQUIRED";
-      state.armCircumferenceValue = "";
-    }
+    // Entering centimetres left this screen together with the toggle that opened the field. The
+    // size the patient picks is the answer, so there is one way to answer and nothing to match.
+    const selectedId = data.choice || state.selectedCuffOption;
+    if (!selectedId) { state.error = L("Choose a cuff size.", "Elija una talla de brazalete.", "Chwazi yon gwosè manchèt."); render(); return; }
+    const selectedOption = availableCuffs.find(option => option.id === selectedId);
+    if (!selectedOption) { state.error = L("That cuff is not currently available for this monitor. Choose another option.", "Ese brazalete no está disponible actualmente para este monitor. Elija otra opción.", "Manchèt sa a pa disponib kounye a pou aparèy sa a. Chwazi yon lòt opsyon."); render(); return; }
+    state.cuffSelectionMethod = "PATIENT_SELECTED";
+    state.selectedCuffOption = selectedOption.id;
+    state.cuffSizeSelected = selectedOption.labelKey;
+    state.cuffSelectionStatus = "SELECTED";
+    state.armMeasurementStatus = "NOT_REQUIRED";
+    state.armCircumferenceValue = "";
     const tasks = [...(state.careTeamTasks || [])];
     const addTask = (type, reason) => { if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() }); };
     if (state.cuffSelectionStatus === "NEEDS_ASSISTANCE") addTask("CUFF_SELECTION_ASSISTANCE", state.cuffSelectionMethod);
     state.careTeamTasks = tasks;
     state.baselineResumeScreen = "ACCESS_BP_SHIPPING_ADDRESS";
-    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
+    audit(state, "bp_device_information_saved", "success", { armMeasurementStatus: state.armMeasurementStatus, cuffSelectionMethod: state.cuffSelectionMethod, cuffSelectionStatus: state.cuffSelectionStatus, selectedCuffOption: state.selectedCuffOption, deviceModelSelected: state.deviceModelSelected });
   }
   if (state.screen === "ACCESS_BP_SHIPPING_ADDRESS") {
     const form = document.querySelector("#bp-shipping-form");
@@ -5941,7 +5940,7 @@ async function advance() {
     state.shippingAddressMode = mode;
     state.shippingAddress = address;
     state.busy = true; state.error = ""; render();
-    const result = await service.createBpDeviceFulfillment({ shippingAddress: address, armMeasurementStatus: state.armMeasurementStatus, armRestrictionReported: state.armRestrictionReported, cuffSelectionMethod: state.cuffSelectionMethod, selectedCuffOption: state.selectedCuffOption, cuffSelectionStatus: state.cuffSelectionStatus, deviceModelSelected: state.deviceModelSelected });
+    const result = await service.createBpDeviceFulfillment({ shippingAddress: address, armMeasurementStatus: state.armMeasurementStatus, cuffSelectionMethod: state.cuffSelectionMethod, selectedCuffOption: state.selectedCuffOption, cuffSelectionStatus: state.cuffSelectionStatus, deviceModelSelected: state.deviceModelSelected });
     state.busy = false;
     if (result.status !== "requested") { state.error = L("We couldn’t complete the request yet. Please try again or talk with your care team.", "Aún no pudimos completar la solicitud. Inténtelo de nuevo o hable con su equipo.", "Nou poko kapab ranpli demann lan. Eseye ankò oswa pale ak ekip swen ou."); render(); return; }
     state.shippingAddressConfirmed = true;
@@ -6090,9 +6089,12 @@ async function advance() {
       medicationsReviewStatus: state.medicationsReviewStatus,
       carePreferencesStatus: state.carePreferencesStatus,
       goalsStatus: state.goalsStatus,
+      supportNeedsStatus: state.supportNeedsStatus,
       savedAt: new Date().toISOString()
     };
-    audit(state, "care_setup_saved", "success", { completedSections: [state.healthInformationStepStatus, state.medicationsReviewStatus, state.carePreferencesStatus, state.goalsStatus].filter(status => status === "COMPLETED").length, healthInformationReviewStatus: state.healthInformationReviewStatus });
+    // The barriers question is a section of this list now, so it counts towards it. Only ACCESS
+    // asks it, and on every other programme the status stays NOT_STARTED and counts as nothing.
+    audit(state, "care_setup_saved", "success", { completedSections: [state.healthInformationStepStatus, state.medicationsReviewStatus, state.carePreferencesStatus, state.goalsStatus, state.supportNeedsStatus].filter(status => status === "COMPLETED").length, healthInformationReviewStatus: state.healthInformationReviewStatus });
     state.screen = "ONBOARDING_COMPLETE";
     draftStore.save(state); render(); return;
   }
@@ -6129,10 +6131,17 @@ async function advance() {
     state.supportNeedsOther = String(data.get("otherConcern") || "").trim();
     const now = new Date().toISOString();
     const created = [];
+    const answers = { ...(state.supportNeedsAnswers || {}) };
     activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType)).forEach(goal => {
       // "Nothing right now" is an answer, not a barrier. Selecting it alongside a difficulty is a
       // contradiction the patient did not mean, so an explicit difficulty wins.
-      const picked = data.getAll(`barrier:${goal.id}`).filter(value => value !== "NONE");
+      const answered = data.getAll(`barrier:${goal.id}`);
+      const picked = answered.filter(value => value !== "NONE");
+      // The answer is kept even when it creates nothing, so the care team can tell "my care is
+      // going fine" from a goal the patient scrolled past, and so the box comes back ticked.
+      if (picked.length) answers[goal.id] = "RAISED";
+      else if (answered.includes("NONE")) answers[goal.id] = "NONE";
+      else delete answers[goal.id];
       picked.forEach(category => {
         if (findReusableBarrier(goal.barriers || [], { category, goalId: goal.id })) return;
         const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
@@ -6140,6 +6149,7 @@ async function advance() {
         created.push({ goalType: goal.goalType, category });
       });
     });
+    state.supportNeedsAnswers = answers;
     if (state.supportNeedsOther) {
       const goal = activePatientGoals()[0];
       if (goal) {
@@ -6148,8 +6158,17 @@ async function advance() {
         created.push({ goalType: goal.goalType, category: "OTHER" });
       }
     }
-    audit(state, "access_support_needs_recorded", "success", { barrierCount: created.length, categories: created.map(item => item.category) });
-    state.screen = nextScreen(state);
+    state.supportNeedsStatus = "COMPLETED";
+    audit(state, "access_support_needs_recorded", "success", { barrierCount: created.length, categories: created.map(item => item.category), goalsAnsweredNone: Object.values(answers).filter(answer => answer === "NONE").length });
+    // Opened from the care setup list, this hands the patient back to it, the way every other
+    // section of that list already does.
+    if (state.returnScreen === "ONBOARDING") {
+      state.returnScreen = "";
+      state.baselineResumeScreen = "ONBOARDING";
+      state.screen = "ONBOARDING";
+    } else {
+      state.screen = nextScreen(state);
+    }
     draftStore.save(state); render(); return;
   }
   // GOALS uses its own multi-step actions so discovery, priority and planning remain auditable.
@@ -6159,7 +6178,22 @@ async function advance() {
   if (state.screen === "GOALS") {
     if (state.offer?.pathway !== "ACCESS") return;
     ensureAssignedAccessGoals();
-    state.screen = nextScreen(state);
+    // Being shown the goals the track assigned is the whole of this step, so carrying on finishes
+    // it. Only the goal chooser used to record that, which no ACCESS patient ever sees, so their
+    // care setup list kept "Your goals" on Not completed however far through the journey they were.
+    state.goalsStatus = "COMPLETED";
+    // A patient who opened this from the care setup list is returned to it, the way the health,
+    // medication and preference sections already do. Sending them on to the barriers question and
+    // everything after it walked them back through the segment they had just completed. On the
+    // journey itself the barriers question still follows, so the resume route is left pointing at
+    // it rather than at a hub that does not list it.
+    if (state.returnScreen === "ONBOARDING" && state.goalFlowOrigin !== "MY_GOALS") {
+      state.returnScreen = "";
+      state.baselineResumeScreen = "ONBOARDING";
+      state.screen = "ONBOARDING";
+    } else {
+      state.screen = nextScreen(state);
+    }
     draftStore.save(state); render(); return;
   }
   if (state.screen === "RPM_DEVICE_PATH") { state.devicePath = new FormData(document.querySelector("form")).get("choice"); if (state.devicePath === "help" || !state.devicePath) { showHelp(); return; } }
@@ -6760,16 +6794,7 @@ function bind() {
       const form = document.querySelector("#bp-device-info-form");
       if (!form) return;
       const data = Object.fromEntries(new FormData(form));
-      state.armCircumferenceValue = String(data.armCircumferenceValue || state.armCircumferenceValue || "");
-      state.armCircumferenceUnit = data.armCircumferenceUnit || state.armCircumferenceUnit || "cm";
-      state.armRestrictionReported = data.armRestrictionReported || state.armRestrictionReported;
-      state.restrictedArm = state.armRestrictionReported === "YES" ? (data.restrictedArm || state.restrictedArm) : "NONE";
       state.selectedCuffOption = data.choice || state.selectedCuffOption || "";
-    };
-    const addArmCareTask = (type, reason) => {
-      const tasks = [...(state.careTeamTasks || [])];
-      if (!tasks.some(task => task.type === type && task.status === "OPEN")) tasks.push({ id: `${type.toLowerCase()}_${Date.now().toString(36)}`, type, reason, status: "OPEN", createdAt: new Date().toISOString() });
-      state.careTeamTasks = tasks;
     };
     if (action === "open-care-circle") {
       state.growthReturnScreen = state.screen;
@@ -7826,7 +7851,7 @@ function bind() {
         state.screen = "MY_CARE"; render();
       } else if (state.screen === "CARE_CIRCLE_REMOVE_CONFIRMATION") {
         state.screen = "MY_CARE_CIRCLE"; render();
-      } else if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
+      } else if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ACCESS_SUPPORT_NEEDS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
         state.screen = "ONBOARDING";
         state.baselineResumeScreen = "ONBOARDING";
         draftStore.save(state); render();
@@ -7850,8 +7875,11 @@ function bind() {
       }
     }
     if (action === "care-setup-section") {
-      const destination = { health: "CLINICAL_VERIFICATION", medications: "MEDICATIONS_REVIEW", preferences: "CARE_PREFERENCES", goals: "GOALS" }[el.dataset.section];
+      const destination = { health: "CLINICAL_VERIFICATION", medications: "MEDICATIONS_REVIEW", preferences: "CARE_PREFERENCES", goals: "GOALS", support: "ACCESS_SUPPORT_NEEDS" }[el.dataset.section];
       if (!destination) return;
+      // The list is the origin now, whatever opened the goals last time. A stale "MY_GOALS" left
+      // over from the patient's own goal list would otherwise decide where continuing sends them.
+      if (destination === "GOALS") state.goalFlowOrigin = "ONBOARDING";
       state.returnScreen = "ONBOARDING";
       state.baselineResumeScreen = destination;
       state.screen = destination;
@@ -8082,53 +8110,6 @@ function bind() {
       audit(state, "bp_device_verification_help_requested", "success", { deviceVerificationStatus: state.deviceVerificationStatus, assignedDeviceId: state.assignedDeviceId });
       draftStore.save(state); showHelp();
     }
-    if (action === "arm-help-toggle") {
-      preserveArmForm();
-      state.armHelpOpen = !state.armHelpOpen;
-      state.error = ""; render();
-    }
-    if (action === "toggle-exact-arm-measurement") {
-      preserveArmForm();
-      state.exactArmMeasurementOpen = !state.exactArmMeasurementOpen;
-      if (state.exactArmMeasurementOpen) state.selectedCuffOption = "";
-      state.cuffSelectionMethod = state.exactArmMeasurementOpen ? "ARM_MEASUREMENT" : "";
-      state.cuffSelectionStatus = "";
-      state.error = "";
-      render();
-    }
-    if (["arm-help-no-tape", "arm-help-unsure", "arm-help-care-team"].includes(action)) {
-      preserveArmForm();
-      const clinicalReview = state.armRestrictionReported === "UNSURE" || state.restrictedArm === "BOTH";
-      state.armMeasurementStatus = clinicalReview ? "PENDING_CLINICAL_REVIEW" : "NEEDS_ASSISTANCE";
-      state.measurementArm = clinicalReview ? "PENDING" : state.restrictedArm === "LEFT" ? "RIGHT" : state.restrictedArm === "RIGHT" ? "LEFT" : "PENDING";
-      state.armMeasurementHelpReason = action === "arm-help-no-tape" ? "NO_MEASURING_TAPE" : action === "arm-help-unsure" ? "MEASUREMENT_INSTRUCTIONS" : "CARE_TEAM_REQUEST";
-      addArmCareTask(clinicalReview ? "ARM_CLINICAL_REVIEW" : "ARM_MEASUREMENT_ASSISTANCE", state.armMeasurementHelpReason);
-      state.baselineReminderStatus = "CARE_TEAM_ASSISTANCE";
-      state.armHelpOpen = false;
-      state.error = "";
-      draftStore.save(state);
-      render();
-      if (action === "arm-help-care-team") showHelp();
-    }
-    if (action === "arm-review-continue") {
-      preserveArmForm();
-      state.armMeasurementStatus = "PENDING_CLINICAL_REVIEW";
-      state.measurementArm = "PENDING";
-      state.cuffSelectionMethod = "CARE_TEAM_ASSISTANCE";
-      state.selectedCuffOption = "";
-      state.cuffSelectionStatus = "NEEDS_ASSISTANCE";
-      state.deviceModelSelected = bpFulfillmentDeviceConfiguration()?.id || null;
-      state.enrollmentStatus = "COMPLETED";
-      state.baselineStatus = "IN_PROGRESS";
-      state.bpBaselineStatus = "DEVICE_VERIFICATION";
-      state.baselineResumeScreen = "ACCESS_BP_DEVICE_INFO";
-      state.baselineReminderStatus = "CARE_TEAM_ASSISTANCE";
-      addArmCareTask("ARM_CLINICAL_REVIEW", state.armRestrictionReported === "UNSURE" ? "RESTRICTION_UNSURE" : "BOTH_ARMS_RESTRICTED");
-      addArmCareTask("CUFF_SELECTION_ASSISTANCE", "ARM_RESTRICTION_REVIEW");
-      audit(state, "bp_arm_clinical_review_requested", "success", { armRestrictionReported: state.armRestrictionReported, restrictedArm: state.restrictedArm, measurementArm: state.measurementArm });
-      state.screen = "ONBOARDING";
-      draftStore.save(state); render();
-    }
     if (action === "bp-defer-health-check") {
       state.enrollmentStatus = "COMPLETED";
       state.baselineStatus = "IN_PROGRESS";
@@ -8256,39 +8237,18 @@ function bind() {
   const updateBpDeviceInfoCta = () => {
     if (!bpDeviceInfoForm || !bpDeviceInfoCta) return;
     const data = new FormData(bpDeviceInfoForm);
-    const value = Number(data.get("armCircumferenceValue"));
-    const unit = data.get("armCircumferenceUnit") === "in" ? "in" : "cm";
-    const measurementReady = state.exactArmMeasurementOpen && Number.isFinite(value) && (unit === "cm" ? value >= 10 && value <= 80 : value >= 4 && value <= 32);
-    const cuffReady = !state.exactArmMeasurementOpen && Boolean(data.get("choice") || state.selectedCuffOption);
-    // The arm-restriction question was removed from this screen, but the gate still waited for its
-    // answer, so a patient who entered a measurement could never submit it — the field accepted
-    // their arm and then the button stayed dead with nothing saying why. A measurement outside every
-    // stocked cuff is not a reason to trap them either: it is recorded as needing the care team to
-    // confirm the size, which is what the engine already does with it.
-    bpDeviceInfoCta.disabled = !(measurementReady || cuffReady);
+    // A cuff size is the one answer this screen asks for, so it is the one thing the CTA waits on.
+    bpDeviceInfoCta.disabled = !(data.get("choice") || state.selectedCuffOption);
   };
   bpDeviceInfoForm?.addEventListener("input", updateBpDeviceInfoCta);
   bpDeviceInfoForm?.addEventListener("change", event => {
-    if (["armRestrictionReported", "restrictedArm"].includes(event.target.name)) {
-      const data = Object.fromEntries(new FormData(bpDeviceInfoForm));
-      state.armCircumferenceValue = String(data.armCircumferenceValue || state.armCircumferenceValue || "");
-      state.armCircumferenceUnit = data.armCircumferenceUnit || state.armCircumferenceUnit || "cm";
-      state.armRestrictionReported = data.armRestrictionReported || "";
-      state.restrictedArm = state.armRestrictionReported === "YES" ? (data.restrictedArm || "NONE") : "NONE";
-      state.measurementArm = state.restrictedArm === "LEFT" ? "RIGHT" : state.restrictedArm === "RIGHT" ? "LEFT" : "PENDING";
-      state.armMeasurementStatus = "";
-      state.armMeasurementHelpReason = "";
-      state.armHelpOpen = false;
-      state.error = "";
-      draftStore.save(state);
-      render();
-      return;
-    }
     if (event.target.name === "choice") {
       state.selectedCuffOption = event.target.value;
-      state.exactArmMeasurementOpen = false;
-      state.cuffSelectionMethod = event.target.value === "UNSURE" ? "CARE_TEAM_ASSISTANCE" : "PATIENT_SELECTED";
-      state.cuffSelectionStatus = event.target.value === "UNSURE" ? "NEEDS_ASSISTANCE" : "";
+      // Every radio here is a cuff from the device record, so the only thing a change means is that
+      // the patient picked a size. The "I'm not sure" card that used to sit among them is gone; the
+      // service still guards CARE_TEAM_ASSISTANCE for drafts saved before it was removed.
+      state.cuffSelectionMethod = "PATIENT_SELECTED";
+      state.cuffSelectionStatus = "";
       state.armCircumferenceValue = "";
       state.error = "";
       draftStore.save(state);
@@ -8542,7 +8502,6 @@ async function boot() {
       if (!saved.deviceVerificationStatus) state.deviceVerificationStatus = saved.bpDeviceVerificationStatus === "VERIFIED_COMPATIBLE" ? "ASSIGNED" : saved.bpDeviceVerificationStatus === "VERIFIED_INCOMPATIBLE" ? "UNSUPPORTED" : saved.bpDeviceVerificationStatus === "ASSISTANCE_REQUESTED" ? "NEEDS_REVIEW" : state.deviceVerificationStatus;
       if (state.deviceVerificationStatus === "CONNECTED") state.deviceVerificationStatus = state.patientDeviceConfirmed ? "PATIENT_CONFIRMED" : "ASSIGNED";
       if (!saved.deviceSource) state.deviceSource = saved.bpDevicePath === "owned" ? "UNKNOWN" : state.deviceSource;
-      if (!saved.measurementArm) state.measurementArm = saved.preferredMeasurementArm === "LEFT" || saved.preferredMeasurementArm === "RIGHT" ? saved.preferredMeasurementArm : "PENDING";
       if (!Number.isInteger(saved.bpReadingCount)) state.bpReadingCount = state.bpReadingReceipts.length;
       if (!saved.bpMeasurementPhase) state.bpMeasurementPhase = "WAITING";
       if (!saved.flowProgress?.GETTING_STARTED) state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };

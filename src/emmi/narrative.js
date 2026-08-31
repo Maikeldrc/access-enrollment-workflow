@@ -439,12 +439,12 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_BP_DEVICE_INFO: objective({
-    summary: T("We are arranging your connected blood pressure monitor.", "Estamos gestionando su monitor de presión conectado.", "N ap fè aranjman pou aparèy tansyon konekte ou."),
+    summary: T("We are preparing your blood pressure monitor.", "Estamos preparando su monitor de presión arterial.", "N ap prepare aparèy tansyon ou a."),
     tone: "reassuring",
     purpose: T(
-      "This step arranges the connected monitor your ACCESS care uses. You only need to choose the cuff size that fits you.",
-      "Este paso gestiona el monitor conectado que usa su cuidado ACCESS. Solo necesita elegir la talla de brazalete que le queda.",
-      "Etap sa a fè aranjman pou aparèy konekte swen ACCESS ou itilize a. Ou sèlman bezwen chwazi gwosè manchèt ki bon pou ou."
+      "This step prepares the monitor your ACCESS care uses. You only need to choose the cuff size that fits you.",
+      "Este paso prepara el monitor que usa su cuidado ACCESS. Solo necesita elegir la talla de brazalete que le queda.",
+      "Etap sa a prepare aparèy swen ACCESS ou itilize a. Ou sèlman bezwen chwazi gwosè manchèt ki bon pou ou."
     ),
     benefit: T(
       "Your readings reach your care team on their own, so they can see how you are doing between visits without you sending anything.",

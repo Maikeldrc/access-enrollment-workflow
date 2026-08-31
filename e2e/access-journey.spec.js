@@ -921,3 +921,136 @@ test("both goal cards carry the starting point the rest of the journey showed", 
   await expect(page.locator(".goal-summary-baseline").first()).toContainText("Punto de partida");
   await expect(page.locator("#screen-content")).toContainText("IMC 31.0");
 });
+
+// ---------------------------------------------------------------------------------------------
+// The care setup list, after the goals segment
+// ---------------------------------------------------------------------------------------------
+
+// Only the goal chooser used to record that goals were done, and no ACCESS patient sees it. So a
+// patient who had walked their goals, answered the barriers question and confirmed their health
+// information landed on a list that still said "Your goals: Not completed" — and tapped it looking
+// for the part they had missed.
+test("finishing the goals segment marks the goals section of the care setup list complete", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();
+
+  // The patient raises real difficulties, the way the reported flow did.
+  const raised = ["FORGETFULNESS_ROUTINE", "DEVICE_TECHNOLOGY", "UNDERSTANDING"];
+  for (const category of raised) await page.locator(`#support-needs-form input[value="${category}"]`).first().check();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(page.getByRole("heading", { name: "Confirm your health information" })).toBeVisible();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
+
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  const goalsCard = page.locator('[data-action="care-setup-section"][data-section="goals"]');
+  await expect(goalsCard).toHaveClass(/completed/);
+  await expect(goalsCard).toContainText("✓ Completed");
+  await expect(page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")).goalsStatus)).resolves.toBe("COMPLETED");
+});
+
+// Health, medications and preferences all hand the patient back to the list they came from. Goals
+// did not: continuing walked them onto the barriers question and every screen after it, round the
+// same segment they had just finished.
+test("opening goals from the care setup list returns there rather than round the journey again", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+
+  await page.locator('[data-action="care-setup-section"][data-section="goals"]').click();
+  await expect(page.getByRole("heading", { name: "Your ACCESS health goals" })).toBeVisible();
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toHaveCount(0);
+});
+
+// Coming back to the barriers question — by Back, or from the care setup list — used to show every
+// box empty, telling a patient who had just answered that none of it had been recorded.
+test("the barriers question comes back with the difficulties the patient already raised", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+  const bloodPressureGroup = page.locator('.support-need-group:has-text("Keep my blood pressure under control")');
+  await bloodPressureGroup.locator('input[value="FORGETFULNESS_ROUTINE"]').check();
+  await bloodPressureGroup.locator('input[value="UNDERSTANDING"]').check();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Confirm your health information" })).toBeVisible();
+
+  await page.locator('.actions [data-action="back"]').click();
+  await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();
+  await expect(bloodPressureGroup.locator('input[value="FORGETFULNESS_ROUTINE"]')).toBeChecked();
+  await expect(bloodPressureGroup.locator('input[value="UNDERSTANDING"]')).toBeChecked();
+  // A difficulty belongs to the goal it was raised against, so the weight goal is left alone.
+  await expect(page.locator('.support-need-group:has-text("Reach or maintain a healthy weight") input[value="FORGETFULNESS_ROUTINE"]')).not.toBeChecked();
+});
+
+// The barriers question used to exist only inside the journey. A patient who walked past it had no
+// way back, and what makes their care harder is exactly what the care team needs to hear.
+test("the barriers question is a section of the care setup list, and completes like one", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await openAccessCareScreen(page, "GOALS");
+  await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
+
+  const bloodPressure = page.locator('.support-need-group:has-text("Keep my blood pressure under control")');
+  const weight = page.locator('.support-need-group:has-text("Reach or maintain a healthy weight")');
+  await bloodPressure.locator('input[value="FORGETFULNESS_ROUTINE"]').check();
+  // One goal is going fine. That is an answer, and it has to survive as one.
+  await weight.locator('input[value="NONE"]').check();
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
+  await page.getByRole("button", { name: "Confirm and continue" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+
+  const supportCard = page.locator('[data-action="care-setup-section"][data-section="support"]');
+  await expect(supportCard).toContainText("Support you need");
+  await expect(supportCard).toHaveClass(/completed/);
+  await expect(supportCard).toContainText("✓ Completed");
+
+  // Reopening it shows the patient their own answers back, including the goal they said was fine.
+  await supportCard.click();
+  await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();
+  await expect(bloodPressure.locator('input[value="FORGETFULNESS_ROUTINE"]')).toBeChecked();
+  await expect(weight.locator('input[value="NONE"]')).toBeChecked();
+  await expect(weight.locator('input[value="FORGETFULNESS_ROUTINE"]')).not.toBeChecked();
+
+  // And continuing hands them back to the list, not round the journey again.
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(saved.supportNeedsStatus).toBe("COMPLETED");
+  const byType = Object.fromEntries(saved.patientGoals.map(goal => [goal.goalType, saved.supportNeedsAnswers[goal.id]]));
+  expect(byType.BLOOD_PRESSURE_CONTROL).toBe("RAISED");
+  // "Nothing right now" leaves no barrier behind, so only the recorded answer separates it from a
+  // goal the patient never answered for.
+  expect(byType.WEIGHT_MANAGEMENT).toBe("NONE");
+  expect(saved.patientGoals.find(goal => goal.goalType === "WEIGHT_MANAGEMENT").barriers || []).toEqual([]);
+});
+
+// Only ACCESS asks the barriers question, so only ACCESS lists it. A CCM patient offered a section
+// that leads to an empty form would be worse off than one who never saw it.
+test("the barriers section belongs to ACCESS and appears on no other programme", async ({ page }) => {
+  await page.setViewportSize({ width: 384, height: 824 });
+  await page.goto("/?scenario=ccm-happy");
+  await page.evaluate(() => {
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
+      scenarioId: "ccm-happy", screen: "ONBOARDING", role: "patient", completionRole: "patient",
+      identityVerified: true, consentSaved: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED",
+      language: "en", audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: []
+    }));
+  });
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+
+  await expect(page.locator('[data-action="care-setup-section"]')).toHaveCount(4);
+  await expect(page.locator('[data-action="care-setup-section"][data-section="support"]')).toHaveCount(0);
+});

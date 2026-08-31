@@ -675,7 +675,6 @@ p { margin:0; }
 .health-information-review-screen { padding-bottom:118px; }
 .health-information-card { display:grid;gap:10px;margin:16px 0 18px;padding:14px;background:var(--surface-secondary); }
 .health-information-card article { display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center; }
-.health-information-card article+.health-information-card article { padding-top:10px;border-top:1px solid var(--border-default); }
 .health-information-card .icon { width:34px;height:34px;color:var(--primary-600);background:var(--primary-50); }
 .health-information-card span { display:grid;gap:3px;min-width:0; }.health-information-card strong { font-size:18px;line-height:1.35; }.health-information-card small { color:var(--text-secondary);font-size:16px;line-height:1.4; }
 .health-information-card.recorded-information { border-left:4px solid var(--primary-600);box-shadow:none;cursor:default; }
@@ -712,34 +711,7 @@ p { margin:0; }
 .bp-reading-status>strong { font-size:1.08rem; line-height:1.4; }
 .bp-reading-status>p,.reading-card>p { margin:0; color:var(--text-muted); font-size:1rem; line-height:1.48; }
 .stacked-actions { grid-template-columns:1fr; }
-.arm-measure-card { display:flex; gap:15px; align-items:center; margin:16px 0; padding:14px; border:1px solid var(--border-default); border-radius:14px; background:var(--surface-secondary); }
-.arm-measure-card h2 { margin:0 0 5px; font-size:1.05rem; line-height:1.35; }
-.arm-measure-card p { color:var(--text-muted); font-size:.96rem; line-height:1.48; }
-.arm-measure-illustration { position:relative; flex:0 0 72px; width:72px; height:92px; }
-.arm-shape { position:absolute; left:25px; top:4px; width:27px; height:84px; border-radius:18px 18px 23px 23px; background:linear-gradient(160deg,#f3c7ad,#d99d7d); transform:rotate(5deg); }
-.measure-tape { position:absolute; left:15px; top:40px; width:49px; height:17px; border:3px solid var(--primary-500); border-radius:50%; box-shadow:0 0 0 3px var(--surface-primary); }
-.measure-tape::after { content:""; position:absolute; right:-9px; top:4px; width:13px; height:3px; border-radius:2px; background:var(--primary-500); }
-.measurement-input { display:grid; grid-template-columns:minmax(0,1fr) 88px; gap:9px; }
-.measurement-input input,.measurement-input select { min-height:58px; font-size:1.125rem; }
-.measurement-input input[type="number"] { appearance:textfield; -moz-appearance:textfield; }
-.measurement-input input[type="number"]::-webkit-inner-spin-button,
-.measurement-input input[type="number"]::-webkit-outer-spin-button { margin:0; -webkit-appearance:none; appearance:none; }
-.measurement-help-actions { display:flex; flex-wrap:wrap; gap:8px 16px; margin:-7px 0 18px; }
-.measurement-help-actions .text-button { min-height:44px; text-align:left; }
-.measurement-help-actions .text-button.selected { color:var(--primary-700); text-decoration:underline; }
-.centered-help-action { justify-content:center; margin:8px 0 0; }
-.centered-help-action .button { width:auto; min-height:48px; }
-.measurement-help-menu { display:grid; gap:8px; margin:-8px 0 18px; padding:10px; border:1px solid var(--border-default); border-radius:12px; background:var(--surface-secondary); }
-.measurement-help-menu button { display:flex; align-items:center; gap:10px; min-height:48px; padding:10px 12px; border:1px solid var(--border-default); border-radius:10px; color:var(--text-primary); background:var(--surface-primary); font:inherit; font-weight:700; text-align:left; cursor:pointer; }
-.measurement-help-menu button:hover,.measurement-help-menu button:focus-visible { border-color:var(--primary-500); background:var(--primary-50); }
-.measurement-help-menu svg { flex:0 0 22px; width:22px; height:22px; color:var(--primary-600); }
-.arm-clinical-review { margin:18px 0; }
-.arm-clinical-review p { margin:4px 0 0; }
 .cuff-selection-section { display:grid; gap:16px; margin:20px 0 4px; }
-.cuff-placement-card { display:grid; grid-template-columns:132px minmax(0,1fr); gap:14px; align-items:center; padding:12px; border:1px solid var(--border-default); border-radius:14px; background:var(--surface-secondary); overflow:hidden; }
-.cuff-placement-card img { display:block; width:132px; height:96px; border-radius:10px; object-fit:cover; object-position:center; background:#f7faff; }
-.cuff-placement-card strong { display:block; margin-bottom:4px; font-size:1rem; line-height:1.35; }
-.cuff-placement-card p { margin:0; color:var(--text-muted); font-size:.94rem; line-height:1.45; }
 .cuff-choice-group { margin:0; padding:0; border:0; }
 .cuff-choice-group legend { color:var(--text-primary); font-family:"Manrope"; font-size:1.12rem; font-weight:800; line-height:1.38; }
 .fieldset-support { margin:6px 0 12px; color:var(--text-muted); font-size:1rem; line-height:1.5; }
@@ -748,10 +720,6 @@ p { margin:0; }
 .cuff-choice-list .choice-card small { font-size:.96rem; line-height:1.45; }
 .cuff-manufacturer-range { display:block; margin-top:3px; color:var(--primary-700); font-weight:700; }
 .cuff-assistance-note { margin:0; }
-.exact-measurement-toggle { justify-self:start; min-height:44px; margin-top:-2px; font-size:1rem; }
-.exact-measurement-panel { padding:14px; border:1px solid var(--border-default); border-radius:14px; background:var(--surface-secondary); }
-.exact-measurement-panel .field { margin:0; }
-.exact-measurement-panel small { display:block; margin-top:7px; color:var(--text-muted); font-size:.92rem; line-height:1.45; }
 .inline-question { margin:18px 0; padding:0; border:0; }
 .inline-question legend { margin-bottom:10px; color:var(--text-primary); font-size:1rem; font-weight:700; line-height:1.45; }
 .segmented-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
@@ -764,7 +732,7 @@ p { margin:0; }
 .segmented-options.keep-one-row span { width:100%;height:52px;min-height:52px;padding:5px 2px;font-size:clamp(.78rem,3.55vw,.9rem);font-weight:600;line-height:1.1;white-space:nowrap;box-sizing:border-box; }
 .shipping-fields { margin-top:16px; }
 .shipping-short-fields { display:grid; grid-template-columns:1fr 1.25fr; gap:10px; }
-@media (max-width:360px) { .arm-measure-card { align-items:flex-start; }.arm-measure-illustration { flex-basis:58px; transform:scale(.85); transform-origin:top left; }.segmented-options:not(.keep-one-row) { grid-template-columns:1fr; }.cuff-placement-card { grid-template-columns:105px minmax(0,1fr);gap:10px;padding:10px; }.cuff-placement-card img { width:105px;height:88px; }.cuff-placement-card p { font-size:.88rem; } }
+@media (max-width:360px) { .segmented-options:not(.keep-one-row) { grid-template-columns:1fr; } }
 .instruction-list + .button.primary { margin-top:clamp(20px,4vh,40px); }
 .instruction-list + .button.primary + .button.secondary { margin-top:9px; }
 .waiting { min-height:180px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:9px; text-align:center; }.waiting strong { font-family:"Manrope"; }.waiting small { max-width:30ch; color:var(--muted); }.pulse-ring { width:62px;height:62px;border:5px solid #d9d3ff;border-top-color:var(--violet);border-radius:50%;animation:spin 1.2s linear infinite; }
@@ -1844,13 +1812,10 @@ body { font-size:var(--font-body);line-height:var(--line-body); }
 .shell:not(:has(.prototype-console)) .address-card { font-size:var(--font-helper);line-height:var(--line-helper); }
 .shell:not(:has(.prototype-console)) .accordion-list strong,
 .shell:not(:has(.prototype-console)) .instruction-list li,
-.shell:not(:has(.prototype-console)) .cuff-placement-card strong,
 .shell:not(:has(.prototype-console)) .inline-question legend { font-size:var(--font-card-title);line-height:1.42; }
 .shell:not(:has(.prototype-console)) .accordion-list small,
 .shell:not(:has(.prototype-console)) .instruction-list small,
-.shell:not(:has(.prototype-console)) .cuff-placement-card p,
-.shell:not(:has(.prototype-console)) .fieldset-support,
-.shell:not(:has(.prototype-console)) .exact-measurement-panel small { font-size:17px;line-height:1.5; }
+.shell:not(:has(.prototype-console)) .fieldset-support { font-size:17px;line-height:1.5; }
 .shell:not(:has(.prototype-console)) .segmented-options span { min-height:52px;font-size:var(--font-helper);line-height:1.3; }
 .shell:not(:has(.prototype-console)) .segmented-options.keep-one-row span { height:52px;font-size:var(--font-helper);line-height:1.2; }
 .shell:not(:has(.prototype-console)) .waiting small { font-size:17px;line-height:1.5; }

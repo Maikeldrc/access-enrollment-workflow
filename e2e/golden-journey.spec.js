@@ -93,7 +93,7 @@ test("a patient reaches active ACCESS care from the invitation without help", as
   // action and has to arrive at active care rather than at a dead end.
   // Health information: the patient says what they see is right before the step will let them on.
   await expect(page.getByRole("heading", { name: /Confirm your health information/i })).toBeVisible();
-  await page.getByText("Everything looks right").click();
+  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();
 
   // Medications and preferences: whatever each asks, the patient keeps taking the primary action
