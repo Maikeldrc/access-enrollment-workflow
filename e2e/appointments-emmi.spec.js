@@ -170,6 +170,24 @@ test("a patient with no appointment is told so, and is never told about one", as
   expect(await storedAppointments(page)).toHaveLength(0);
 });
 
+test("Continue with this appointment opens the request EMMI just created", async ({ page }) => {
+  await openAppointments(page, { appointments: [] });
+  const answer = await tellEmmi(page, "I need help with an appointment.");
+  const continueButton = answer.getByRole("button", { name: "Continue with this appointment" });
+
+  await expect(continueButton).toBeVisible();
+  const needId = await continueButton.getAttribute("data-need-id");
+  expect(needId).toBeTruthy();
+  expect((await storedAppointments(page)).map(item => item.id)).toContain(needId);
+
+  await continueButton.click();
+
+  await expect(page.locator(".assistant-layer")).toHaveCount(0);
+  await expect(page.locator('.appointment-preference-screen[data-step="REASON"]')).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What would you like to be seen for?" })).toBeVisible();
+  await expect(page.locator(".appointment-list-screen")).toHaveCount(0);
+});
+
 test("a request that is waiting for the office is never described as confirmed", async ({ page }) => {
   await openAppointments(page, {
     appointments: [appointment({

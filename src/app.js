@@ -2001,7 +2001,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -6503,7 +6503,7 @@ async function askEmmi(question, { questionId = "", source = "input", replay = f
     const response = await assistantAnswer(cleaned, assistantContext(), { questionId });
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
     if (response.pendingAction) state.assistantPendingAppointmentId = response.appointmentId || "";
-    state.assistantMessages.push({ role: "assistant", text: response.text, intent: response.trace?.intent || "", emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "", appointmentId: response.appointmentId || "" });
+    state.assistantMessages.push({ role: "assistant", text: response.text, intent: response.trace?.intent || "", emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "", appointmentId: response.appointmentId || "", needId: response.needId || "" });
     emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
     emmiConversationManager?.markGreeted();
     runtime.audit.transcript("assistant", response.text);
@@ -6630,8 +6630,14 @@ function bindAssistantLayer() {
       return;
     }
     if (growthAction === "appointment-request") {
-      const record = appointmentById(button.dataset.appointmentId || "");
-      if (record) openAppointmentScheduling(record, "PROVIDER");
+      // startAppointmentRequest returns the id of the draft need it just created. Keep that id on
+      // the EMMI message and reopen the same draft here; otherwise this CTA can only fall back to
+      // the Requests list, forcing the patient to locate and open the request a second time.
+      const record = appointmentById(button.dataset.needId || button.dataset.appointmentId || "");
+      const resumeStep = state.appointmentFlow?.appointmentId === record?.id && state.appointmentFlow?.step
+        ? state.appointmentFlow.step
+        : "REASON";
+      if (record) openAppointmentScheduling(record, resumeStep);
       else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "REQUESTS" }; draftStore.save(state); }
       render();
       return;
