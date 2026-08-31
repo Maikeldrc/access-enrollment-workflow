@@ -457,15 +457,15 @@ _Sources: ITERA-IQMP / Product_
 
 ### Care setup
 **Q: ¿Qué pasa si mi información de salud está correcta?**
-A: Seleccione “Everything looks right”. Eso confirma la información mostrada y registra la revisión.
+A: Seleccione “Yes, everything is correct”. Eso confirma la información mostrada y registra la revisión.
 _Sources: Product_
 
 **Q: ¿Qué pasa si algo cambió en mis diagnósticos?**
-A: Seleccione “Something has changed”. La app debe capturar qué cambió como información reportada por usted y enviarla a revisión; no debe borrar ni añadir diagnósticos clínicos silenciosamente.
+A: Seleccione “No, something changed”. La app debe capturar qué cambió como información reportada por usted y enviarla a revisión; no debe borrar ni añadir diagnósticos clínicos silenciosamente.
 _Sources: Product / Clinical governance_
 
 **Q: ¿Qué pasa si no estoy seguro de mi información de salud?**
-A: Seleccione “I need help reviewing this”. Puede pedir ayuda a EMMI o al care team. El step puede quedar revisado como NEEDS_HELP sin fingir que la información fue confirmada.
+A: Seleccione “I need help reviewing it”. Puede pedir ayuda a EMMI o al care team. El step puede quedar revisado como NEEDS_HELP sin fingir que la información fue confirmada.
 _Sources: Product_
 
 ### Medicamentos
