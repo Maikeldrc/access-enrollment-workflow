@@ -135,6 +135,35 @@ describe("retrieval", () => {
     expect(result.requiredTool).toBe("getExpectedAccessCost");
     expect(result.chunks.some(chunk => chunk.requiresToolWhenPersonalized)).toBe(true);
   });
+
+  it("retrieves the ACCESS beneficiary overview across natural patient phrasings", () => {
+    for (const question of ["What is ACCESS?", "What is this ACCESS thing?", "What program did my doctor refer me to?"]) {
+      expect(sourcesFor(question, { program: "ACCESS" }), question).toContain("programs/access-beneficiary-overview.md");
+    }
+  });
+
+  it("retrieves comparison-group rules across paraphrases", () => {
+    for (const question of ["What is the comparison group?", "Why was I randomly selected?", "Why can’t I join for 12 months?"]) {
+      expect(sourcesFor(question, { program: "ACCESS" }), question).toContain("programs/access-eligibility-tracks.md");
+    }
+  });
+
+  it("retrieves eCKM blood-pressure outcome semantics and arithmetic context", () => {
+    for (const question of ["What is the ACCESS blood pressure target?", "What does 15 mmHg improvement mean?", "Is 137 my target if I started at 152?"]) {
+      expect(sourcesFor(question, { program: "ACCESS" }), question).toContain("programs/access-eckm-outcomes.md");
+    }
+  });
+
+  it("retrieves eCKM baseline-lab applicability without inventing a diagnosis", () => {
+    for (const question of ["Why do you need A1c if I’m not diabetic?", "Why do you need cholesterol if I have hypertension?"]) {
+      expect(sourcesFor(question, { program: "ACCESS" }), question).toContain("programs/access-eckm-outcomes.md");
+    }
+  });
+
+  it("retrieves connected-device technique and provider-coordination guidance", () => {
+    expect(sourcesFor("How do I use my blood pressure monitor correctly?", { program: "ACCESS" })).toContain("devices/access-connected-bp-monitor.md");
+    expect(sourcesFor("Will my doctor get care updates?", { program: "ACCESS" })).toContain("programs/access-provider-coordination.md");
+  });
 });
 
 describe("source hierarchy and wiring", () => {
