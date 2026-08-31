@@ -8,7 +8,9 @@
 
 :root {
   --primary-700:#004E89;
-  --primary-600:#0873D7;
+  /* 4.33:1 on --primary-50 before this: under AA for normal text, and this pair carries real
+     copy, not just decoration. #0A6BC5 reads the same blue and clears 4.5 on both backgrounds. */
+  --primary-600:#0A6BC5;
   --primary-500:#1B98E0;
   --primary-400:#8CBDFF;
   --primary-300:#A7D4FF;
@@ -108,7 +110,7 @@ a { color:var(--violet); }
 .shell { position:relative; display:flex; flex-direction:column; width:100%; max-width:var(--patient-shell-width); min-height:100dvh; margin:0 auto; background:var(--surface-primary); box-shadow:none; overflow-x:clip; overflow-y:visible; }
 .app-header { position:relative; z-index:4; padding:calc(14px + env(safe-area-inset-top)) max(var(--patient-page-gutter),env(safe-area-inset-right)) 0 max(var(--patient-page-gutter),env(safe-area-inset-left)); background:var(--surface-secondary); }
 .brand-row { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; width:100%; min-height:44px; }
-.brand { justify-self:center; color:#8b92ad; text-decoration:none; font-size:.78rem; letter-spacing:.045em; font-weight:600; }
+.brand { justify-self:center; color:#666D87; text-decoration:none; font-size:.78rem; letter-spacing:.045em; font-weight:600; }
 .brand b { color:var(--navy); }
 .icon-button,.language { min-width:44px; min-height:44px; border:0; background:transparent; cursor:pointer; }
 .back-button { justify-self:start; font-size:1.5rem; }
@@ -1159,7 +1161,7 @@ p { margin:0; }
 .emmi-voice-debug { display:grid;gap:3px;margin:10px 0;padding:9px;border:1px solid #69708c;border-radius:6px;overflow-wrap:anywhere; }.emmi-voice-debug strong { margin-bottom:3px;font-size:12px; }.emmi-voice-debug span { color:#d7dced;font-size:10px;line-height:1.35; }
 
 /* ITERA enrollment color system — shared by ACCESS, CCM, PCM and RPM. */
-.brand { color:var(--text-placeholder); }
+.brand { color:#666D87; }
 .brand b,.language,.back-button { color:var(--text-primary); }
 .lead,.invitation-copy .lead { color:var(--text-secondary); }
 .eyebrow { color:var(--primary-700); background:var(--surface-purple); }
