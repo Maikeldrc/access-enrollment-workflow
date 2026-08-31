@@ -675,7 +675,6 @@ p { margin:0; }
 .health-information-review-screen { padding-bottom:118px; }
 .health-information-card { display:grid;gap:10px;margin:16px 0 18px;padding:14px;background:var(--surface-secondary); }
 .health-information-card article { display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center; }
-.health-information-card article+.health-information-card article { padding-top:10px;border-top:1px solid var(--border-default); }
 .health-information-card .icon { width:34px;height:34px;color:var(--primary-600);background:var(--primary-50); }
 .health-information-card span { display:grid;gap:3px;min-width:0; }.health-information-card strong { font-size:18px;line-height:1.35; }.health-information-card small { color:var(--text-secondary);font-size:16px;line-height:1.4; }
 .health-information-card.recorded-information { border-left:4px solid var(--primary-600);box-shadow:none;cursor:default; }
