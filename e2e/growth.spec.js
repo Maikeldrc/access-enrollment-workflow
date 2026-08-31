@@ -291,3 +291,48 @@ for (const width of [320, 375, 430]) test(`Care Circle remains responsive at ${w
   expect(result.overlaps, JSON.stringify(result)).toBe(false);
   expect(result.formWidth).toBeGreaterThan(width - 72);
 });
+
+// A Care Circle invitation belongs to the enrollment that sent it.
+//
+// The draft is deliberately not written until identity is verified, so an invitation sent before
+// that point leaves no enrollment behind it — while the invite record, which lives in its own
+// store, survives. Every demo enrollment is the same fictional patient, so the boot filter matched
+// all of them: the next person to open the app was shown "Invitation sent — Angela Demo can help
+// you" for an invitation they had never sent, on the first screen of the journey.
+test("a new patient does not inherit the previous enrollment's Care Circle", async ({ page }) => {
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
+  await page.getByLabel("Their name").fill("Angela Demo");
+  await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("child");
+  await page.getByRole("button", { name: /Send invitation/i }).click();
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
+
+  // Nothing was verified, so nothing was enrolled: opening the app again is a new patient.
+  await page.goto("/?scenario=access-happy");
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+
+  await expect(page.locator(".optional-support-status")).toHaveCount(0);
+  await expect(page.locator(".optional-support")).toContainText("Want support along the way?");
+  await expect(page.locator(".optional-support")).not.toContainText("Angela Demo");
+});
+
+test("an enrollment in progress keeps the invitation it sent", async ({ page }) => {
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
+  await page.getByLabel("Their name").fill("Angela Demo");
+  await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("child");
+  await page.getByRole("button", { name: /Send invitation/i }).click();
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
+
+  // Identity verified is what makes an enrollment resumable, and what the invitation belongs to.
+  await page.evaluate(() => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
+    scenarioId: "access-happy", screen: "DECISION_MAKER", role: "patient", completionRole: "patient",
+    identityVerified: true, language: "en", audit: []
+  })));
+  await page.reload();
+
+  await expect(page.locator(".optional-support-status")).toHaveCount(1);
+  await expect(page.locator(".optional-support")).toContainText("Angela Demo");
+});

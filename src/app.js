@@ -8502,7 +8502,18 @@ async function boot() {
       if (["en", "es", "ht"].includes(preferredLanguage)) state.language = preferredLanguage;
       if (state.offer.fixture.representative) { state.role = "representative"; state.completionRole = "personalRepresentative"; }
     }
-    const storedInvite = patientShareSource ? null : growthStore.allSupportInvites().filter(invite => invite.inviterPatientId === state.offer.patient.id).at(-1);
+    // A Care Circle invitation belongs to an enrollment. The draft is deliberately not written
+    // until identity is verified, so an invitation sent before that point leaves no enrollment
+    // behind it — and the invite record, which lives in its own store, outlives the enrollment that
+    // sent it. Every demo enrollment is the same fictional patient, so filtering by patient id
+    // matches all of them: the next person to open the app was shown "Invitation sent — Angela Demo
+    // can help you" for an invitation they never sent.
+    //
+    // With no draft to resume there is no enrollment for the invitation to belong to, so the stale
+    // record is cleared rather than adopted. Started again means started again.
+    const resumableEnrollment = Boolean(saved?.scenarioId === scenarioId && (saved.identityVerified || saved.completionRole === "personalRepresentative"));
+    if (!patientShareSource && !resumableEnrollment) growthStore.clearEnrollmentData();
+    const storedInvite = patientShareSource || !resumableEnrollment ? null : growthStore.allSupportInvites().filter(invite => invite.inviterPatientId === state.offer.patient.id).at(-1);
     if (storedInvite && !state.supportInviteId) Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: storedInvite.careCircleStatus || (storedInvite.status === "ACCEPTED" ? "ACTIVE" : "INVITED"), supportPersonName: storedInvite.supportPerson.name, supportPersonPhone: formatPhone(storedInvite.supportPerson.phone), supportPersonRelationship: storedInvite.supportPerson.relationship, supportInviteId: storedInvite.inviteId, supportInviteToken: storedInvite.token, supportInviteStatus: storedInvite.status, supportInviteSentAt: storedInvite.sentAt, supportInviteAcceptedAt: storedInvite.acceptedAt || "", careCirclePermissions: storedInvite.careCirclePermissions || state.careCirclePermissions });
     if (!patientShareSource && !storedInvite && state.careCircleStatus === "NONE") {
       const demoPatient = EMMI_DEMO_PATIENTS[selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario: service.getScenarioDeviceContext?.() || null })];
