@@ -10,6 +10,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: CMS / Medicare.gov
 owner: ITERA HEALTH
+keywords: deducible, coseguro, copago, coinsurance, copay, deductible, dediktib, koasirans, kopeman, cuanto pago, cuánto pago, diferencia
 ---
 
 # Deductible, coinsurance, copay and premium
@@ -41,3 +42,11 @@ When a patient is told their expected payment for a specific service is $0, that
 ## EMMI response rule
 
 Explain these in plain language and only when the patient asks. Never state what a specific patient's deductible, coinsurance or premium is from this page: that is patient-specific and must come from verified coverage data.
+
+## Patient answer (ES)
+
+Son cuatro palabras distintas y conviene no confundirlas. El deducible es lo que puede tener que pagar usted antes de que su cobertura empiece a pagar su parte. El coseguro es un porcentaje del costo de un servicio. El copago es una cantidad fija por un servicio. Y la prima es lo que se paga por tener la cobertura, se use o no. Cuál de ellos le aplica y por cuánto depende del servicio y de su cobertura.
+
+## Patient answer (KR)
+
+Se kat mo diferan epi li bon pou pa konfonn yo. Dediktib la se sa ou ka gen pou peye anvan kouvèti ou kòmanse peye pati pa l. Koasirans se yon pousantaj nan pri yon sèvis. Kopeman se yon montan fiks pou yon sèvis. Epi prim nan se sa yo peye pou gen kouvèti a, kit ou sèvi avè l kit ou pa sèvi. Kilès ki aplike pou ou ak konbyen depann de sèvis la ak kouvèti ou.

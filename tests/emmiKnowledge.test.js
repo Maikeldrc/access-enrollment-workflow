@@ -361,3 +361,28 @@ describe("answering in the patient's language", () => {
     expect(vague.chunks.some(chunk => chunk.sourcePath.startsWith("care/"))).toBe(true);
   });
 });
+
+// Every page a patient can land on answers in their language.
+//
+// The corpus is English. Coverage is what stops a Spanish or Creole patient getting the generic
+// fallback where an English speaker gets the page, so it is asserted rather than sampled.
+describe("translation coverage", () => {
+  const NO_PATIENT_ANSWER = ["core/emmi-master-knowledge.md"];
+
+  it("gives every page its own answer in Spanish and Creole", () => {
+    const missing = index.documents
+      .filter(doc => !NO_PATIENT_ANSWER.includes(doc.path))
+      .filter(doc => {
+        const lead = index.chunks.find(chunk => chunk.sourcePath === doc.path);
+        return !lead?.localizedAnswers?.ES || !lead?.localizedAnswers?.KR;
+      })
+      .map(doc => doc.path);
+    // The master file is the fallback for everything and answers no single question, so it has none.
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps a combined-programme page from claiming the single programme's question", () => {
+    expect(sourcesFor("¿Qué es CCM?", { program: "ACCESS" })[0]).toBe("programs/ccm.md");
+    expect(sourcesFor("¿Qué es RPM?", { program: "ACCESS" })[0]).toBe("programs/rpm.md");
+  });
+});

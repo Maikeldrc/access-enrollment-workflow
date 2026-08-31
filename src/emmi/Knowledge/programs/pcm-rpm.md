@@ -22,3 +22,11 @@ Device state and personalized next steps come from runtime.
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+PCM + RPM combina el seguimiento enfocado en una condición principal con el monitoreo conectado de sus mediciones, cuando ambas cosas son apropiadas para usted.
+
+## Patient answer (KR)
+
+PCM + RPM konbine swivi konsantre sou yon kondisyon prensipal ak siveyans konekte mezi ou yo, lè toude apwopriye pou ou.

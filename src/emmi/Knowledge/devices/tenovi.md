@@ -9,6 +9,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
+keywords: tenovi
 ---
 
 # Tenovi devices
@@ -19,3 +20,11 @@ Never claim a patient has a Tenovi monitor unless the assigned device record con
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+Tenovi es uno de los fabricantes de dispositivos conectados que ITERA admite. Si le asignan un monitor Tenovi, envía sus mediciones a su equipo de cuidado por sí solo.
+
+## Patient answer (KR)
+
+Tenovi se youn nan konpayi aparèy konekte ITERA sipòte. Si yo ba ou yon monitè Tenovi, li voye mezi ou yo bay ekip swen ou poukont li.

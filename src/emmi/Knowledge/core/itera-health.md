@@ -9,6 +9,7 @@ requires_tool_when_personalized: false
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
+keywords: itera health apoyo, entre visitas, ant vizit, coordinacion, coordinación
 ---
 
 # About ITERA HEALTH
@@ -22,3 +23,11 @@ Official patient support contact currently configured for this project:
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (ES)
+
+ITERA HEALTH da apoyo y coordinación entre las visitas al consultorio, con equipos de cuidado y herramientas digitales. No reemplaza a sus médicos: trabaja con ellos.
+
+## Patient answer (KR)
+
+ITERA HEALTH bay sipò ak kowòdinasyon ant vizit nan biwo a, ak ekip swen ak zouti dijital. Li pa ranplase doktè ou yo: li travay ak yo.
