@@ -50,7 +50,7 @@ import { DEMO_BP_CLINICAL_TARGET, DEMO_BP_MONITORING_RULES, buildBloodPressureGo
 import { BloodPressureSimulator, SIMULATION_STATUS, SIMULATION_TARGET, simulationAllowed } from "./bpSimulator.js";
 import { REFILL_TRIGGER_POLICY, SIGNAL_STATUS, answerSupplySignal, detectLowSupply, estimateMedicationSupply, openSignalFor, supersedeSignalsForDispense, supplyPhrase, supplySignalAnalytics } from "./medicationSupply.js";
 import { REFILL_BLOCKERS, REFILL_PATHS, REFILL_STATUS, SUPPLY_ANSWERS, TAKING_ANSWERS, advanceRefill, createRefillEpisode, openRefillFor, refillAnalytics, refillCareTeamSummary, refillIdempotencyKey, refillIsOpen, refillNextStep, refillPatientStatus, resolveRefillPath, statusForPath } from "./medicationRefill.js";
-import { BARRIER_SOURCES, BARRIER_STATUS, INTERVENTION_TYPES, RESOLUTION_OUTCOMES, applyIntervention, barrierAnalytics, barrierCategoryConfig, barrierIcon, barrierIsActive, barrierOptionsFor, barrierPatientStatus, barrierPatientSummary, careTeamEscalationSummary, classifyBarrierText, confirmBarrier, createGoalBarrier, findReusableBarrier, localBarrierText, normalizeBarrierRecord, recordInterventionOutcome, reopenBarrier, resolveBarrier } from "./goalBarriers.js";
+import { BARRIER_CATEGORIES, BARRIER_SOURCES, BARRIER_STATUS, INTERVENTION_TYPES, RESOLUTION_OUTCOMES, applyIntervention, barrierAnalytics, barrierCategoryConfig, barrierIcon, barrierIsActive, barrierOptionsFor, barrierPatientStatus, barrierPatientSummary, careTeamEscalationSummary, classifyBarrierText, confirmBarrier, createGoalBarrier, findReusableBarrier, localBarrierText, normalizeBarrierRecord, recordInterventionOutcome, reopenBarrier, resolveBarrier } from "./goalBarriers.js";
 
 const app = document.querySelector("#app");
 // What the patient is actually looking at right now. render() runs after the handlers have
@@ -2824,11 +2824,7 @@ function onboarding() {
     { section: "health", itemIcon: "shield", title: L("Confirm your health information", "Confirme su información de salud", "Konfime enfòmasyon sante ou"), description: L("Review what we already have on file", "Revise lo que ya tenemos", "Revize sa nou deja genyen nan dosye a"), status: state.healthInformationStepStatus },
     { section: "medications", itemIcon: "pill", title: L("Confirm your medications", "Confirme sus medicamentos", "Konfime medikaman ou yo"), description: L("Tell us if anything changed", "Indique si algo cambió", "Di nou si anyen chanje"), status: state.medicationsReviewStatus },
     { section: "preferences", itemIcon: "phone", title: L("Care preferences", "Preferencias de cuidado", "Preferans swen"), description: L("Choose how we should contact you", "Elija cómo debemos contactarle", "Chwazi kijan nou dwe kontakte ou"), status: state.carePreferencesStatus },
-    { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus },
-    // The barriers question had no home on this list, so a patient who deferred it lost it: nothing
-    // else leads back there, and what makes their care harder is exactly what the care team needs.
-    // It sits beside the goals because it is asked about them, and only ACCESS asks it at all.
-    ...(state.offer?.pathway === "ACCESS" ? [{ section: "support", itemIcon: "people", title: L("Support you need", "Apoyo que necesita", "Sipò ou bezwen"), description: L("Tell us what makes care harder", "Díganos qué dificulta su cuidado", "Di nou sa ki fè swen pi difisil"), status: state.supportNeedsStatus }] : [])
+    { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus }
   ];
   const careCircleSupport = state.careCircleStatus === "ACTIVE"
     ? `<aside class="growth-card care-circle-status">${icon("people")}<div><strong>${L(`${state.supportPersonName} is in your Care Circle`, `${state.supportPersonName} forma parte de su Círculo de cuidado`, `${state.supportPersonName} nan Sèk swen ou`)}</strong><p>${L("They can help with the care tasks you authorized.", "Puede ayudar con las tareas de cuidado que usted autorizó.", "Moun nan ka ede ak travay swen ou te otorize yo.")}</p></div></aside>`
@@ -3215,6 +3211,29 @@ const goalIcon = (goal, extra = "") =>
 const activePatientGoals = () => (state.patientGoals || []).filter(goal => goal.status !== "REMOVED");
 const patientGoalById = id => activePatientGoals().find(goal => goal.id === id);
 const currentGoal = () => patientGoalById(state.activeGoalId || state.goalPlanningGoalId) || activePatientGoals()[0];
+const assignedAccessPatientGoals = () => activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType));
+const accessSupportAssessment = goal => {
+  const assessment = goal?.supportNeedsAssessment;
+  const selectedCategories = Array.isArray(assessment?.selectedCategories)
+    ? [...new Set(assessment.selectedCategories.filter(category => category === "NONE" || BARRIER_CATEGORIES[category]))]
+    : [];
+  return {
+    status: assessment?.status === "COMPLETED" ? "COMPLETED" : "NOT_STARTED",
+    selectedCategories,
+    reviewedAt: assessment?.reviewedAt || ""
+  };
+};
+const accessGoalSupportIsComplete = goal => {
+  const assessment = accessSupportAssessment(goal);
+  return assessment.status === "COMPLETED" && Boolean(assessment.reviewedAt) && assessment.selectedCategories.length > 0;
+};
+const syncAccessGoalsStatus = () => {
+  const goals = assignedAccessPatientGoals();
+  const completed = goals.filter(accessGoalSupportIsComplete).length;
+  state.goalsStatus = goals.length && completed === goals.length ? "COMPLETED" : completed ? "IN_PROGRESS" : "NOT_STARTED";
+  state.supportNeedsStatus = state.goalsStatus;
+  return state.goalsStatus;
+};
 const goalHistoryEvent = (goalId, type, details = {}) => {
   const occurredAt = new Date().toISOString();
   state.goalHistory = [...(state.goalHistory || []), { id: `goal_event_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, goalId, type, details, occurredAt, actor: "PATIENT" }];
@@ -5082,7 +5101,11 @@ function applyFirstIntervention(barrier, now) {
 }
 
 function accessSupportNeeds() {
-  const goals = activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType));
+  const assignedGoals = assignedAccessPatientGoals();
+  const pendingGoals = assignedGoals.filter(goal => !accessGoalSupportIsComplete(goal));
+  // A partial review resumes only what is still unanswered. Once every goal is complete, reopening
+  // the section becomes a review: all saved answers are shown instead of an empty questionnaire.
+  const goals = pendingGoals.length ? pendingGoals : assignedGoals;
   const groups = goals.map(goal => {
     // A goal that was just assigned has no actions yet — those arrive when a plan is personalized —
     // and barrierOptionsFor reads action templates to decide what to offer. Without the goal's own
@@ -5092,18 +5115,14 @@ function accessSupportNeeds() {
     const options = barrierOptionsFor({ goal: withActions, hasDevice: barrierCapabilities().hasDevice, hasMedications: Boolean((state.careMedications || []).length), locale: state.language })
       .filter(option => option.category !== "OTHER");
     const name = escapeHtml(localGoalText(GOAL_CONFIG[goal.goalType].displayName, state.language));
-    // The difficulties the patient already raised come back ticked. Re-entering this screen — from
-    // Back, or from the care setup list — used to show every box empty, telling a patient who had
-    // just answered that nothing of theirs had been recorded.
-    const raised = new Set(activeGoalBarriers(goal).map(barrier => barrier.category));
-    const answeredNone = state.supportNeedsAnswers?.[goal.id] === "NONE";
-    const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}" ${raised.has(option.category) ? "checked" : ""}><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
-    return `<fieldset class="support-need-group"><legend>${name}</legend><p class="support-need-question">${L("Anything that could make this goal harder?", "¿Algo que pueda dificultar esta meta?", "Èske gen anyen ki ka fè objektif sa a pi difisil?")}</p><div class="support-need-options">${choices}<label class="support-need-option support-need-none"><input type="checkbox" name="barrier:${goal.id}" value="NONE" ${answeredNone ? "checked" : ""}><span>${icon("check")}<span>${L("Nothing right now", "Nada por ahora", "Anyen pou kounye a")}</span></span></label></div></fieldset>`;
+    const selected = new Set(state.supportNeedsDraft?.[goal.id] || accessSupportAssessment(goal).selectedCategories);
+    const choices = options.map(option => `<label class="support-need-option"><input type="checkbox" name="barrier:${goal.id}" value="${option.category}" ${selected.has(option.category) ? "checked" : ""}><span>${icon(option.icon)}<span>${escapeHtml(option.label)}</span></span></label>`).join("");
+    return `<fieldset class="support-need-group" data-goal-id="${escapeHtml(goal.id)}"><input type="hidden" name="supportGoalId" value="${escapeHtml(goal.id)}"><legend>${name}</legend><p class="support-need-question">${L("Anything that could make this goal harder?", "¿Algo que pueda dificultar esta meta?", "Èske gen anyen ki ka fè objektif sa a pi difisil?")}</p><div class="support-need-options">${choices}<label class="support-need-option support-need-none"><input type="checkbox" name="barrier:${goal.id}" value="NONE" ${selected.has("NONE") ? "checked" : ""}><span>${icon("check")}<span>${L("Nothing right now", "Nada por ahora", "Anyen pou kounye a")}</span></span></label></div></fieldset>`;
   }).join("");
   return `${art("people")}${titleBlock(L("Is anything making your care harder?", "¿Hay algo que dificulte su cuidado?", "Èske gen yon bagay ki fè swen ou pi difisil?"), L("Tell us if there’s anything that could make it harder to follow your care plan. We can help you find the right support.", "Díganos si hay algo que pueda dificultar seguir su plan de cuidado. Podemos ayudarle a encontrar el apoyo adecuado.", "Di nou si gen yon bagay ki ka fè li pi difisil pou swiv plan swen ou. Nou ka ede w jwenn bon sipò a."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}
     <form id="support-needs-form">${groups}
     <label class="field support-need-other">${L("Anything else? (optional)", "¿Algo más? (opcional)", "Yon lòt bagay? (opsyonèl)")}<textarea name="otherConcern" rows="2" maxlength="280">${escapeHtml(state.supportNeedsOther || "")}</textarea></label>
-    </form>${actions(t().continue)}`;
+    </form><p class="form-error" role="alert">${state.error || ""}</p>${actions(pendingGoals.length ? t().continue : L("Save changes", "Guardar cambios", "Sove chanjman yo"))}`;
 }
 
 function onboardingComplete() {
@@ -6131,44 +6150,43 @@ async function advance() {
     state.supportNeedsOther = String(data.get("otherConcern") || "").trim();
     const now = new Date().toISOString();
     const created = [];
-    const answers = { ...(state.supportNeedsAnswers || {}) };
-    activePatientGoals().filter(goal => assignedAccessGoals(state.offer).includes(goal.goalType)).forEach(goal => {
+    const reviewedGoalIds = [...new Set(data.getAll("supportGoalId").map(String))];
+    const reviewedGoals = reviewedGoalIds.map(patientGoalById).filter(Boolean);
+    const answers = reviewedGoals.map((goal, index) => {
       // "Nothing right now" is an answer, not a barrier. Selecting it alongside a difficulty is a
       // contradiction the patient did not mean, so an explicit difficulty wins.
-      const answered = data.getAll(`barrier:${goal.id}`);
-      const picked = answered.filter(value => value !== "NONE");
-      // The answer is kept even when it creates nothing, so the care team can tell "my care is
-      // going fine" from a goal the patient scrolled past, and so the box comes back ticked.
-      if (picked.length) answers[goal.id] = "RAISED";
-      else if (answered.includes("NONE")) answers[goal.id] = "NONE";
-      else delete answers[goal.id];
+      const raw = data.getAll(`barrier:${goal.id}`).map(String);
+      const picked = raw.filter(value => value !== "NONE");
+      if (index === 0 && state.supportNeedsOther) picked.push("OTHER");
+      return { goal, raw, picked: [...new Set(picked)] };
+    });
+    state.supportNeedsDraft = Object.fromEntries(answers.map(({ goal, raw, picked }) => [goal.id, picked.length ? picked : raw.includes("NONE") ? ["NONE"] : []]));
+    const unanswered = answers.filter(({ raw, picked }) => !raw.includes("NONE") && !picked.length);
+    const answered = answers.filter(({ raw, picked }) => raw.includes("NONE") || picked.length);
+    if (!reviewedGoals.length || !answered.length) {
+      state.error = L("Choose an answer for each goal, including ‘Nothing right now’ if nothing is making it harder.", "Elija una respuesta para cada objetivo, incluso ‘Nada por ahora’ si nada lo dificulta.", "Chwazi yon repons pou chak objektif, menm ‘Anyen pou kounye a’ si pa gen anyen ki fè li pi difisil.");
+      render(); return;
+    }
+    answered.forEach(({ goal, raw, picked }, index) => {
       picked.forEach(category => {
         if (findReusableBarrier(goal.barriers || [], { category, goalId: goal.id })) return;
-        const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
+        const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category, patientDescription: category === "OTHER" && index === 0 ? state.supportNeedsOther : "", source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
         goal.barriers = [...(goal.barriers || []), applyFirstIntervention(barrier, now)];
         created.push({ goalType: goal.goalType, category });
       });
+      const selectedCategories = picked.length ? picked : ["NONE"];
+      goal.supportNeedsAssessment = { status: "COMPLETED", selectedCategories, reviewedAt: now };
+      goal.updatedAt = now;
     });
-    state.supportNeedsAnswers = answers;
-    if (state.supportNeedsOther) {
-      const goal = activePatientGoals()[0];
-      if (goal) {
-        const barrier = createGoalBarrier({ patientId: state.offer?.patient?.id || "", goalId: goal.id, category: "OTHER", patientDescription: state.supportNeedsOther, source: BARRIER_SOURCES.PATIENT, status: BARRIER_STATUS.OPEN, detectedAt: now });
-        goal.barriers = [...(goal.barriers || []), applyFirstIntervention(barrier, now)];
-        created.push({ goalType: goal.goalType, category: "OTHER" });
-      }
+    state.error = "";
+    state.supportNeedsDraft = {};
+    syncAccessGoalsStatus();
+    audit(state, "access_support_needs_recorded", "success", { barrierCount: created.length, categories: created.map(item => item.category), reviewedGoalCount: answered.length, goalsStatus: state.goalsStatus });
+    if (unanswered.length) {
+      state.error = L("Continue with the remaining goal.", "Continúe con el objetivo pendiente.", "Kontinye ak objektif ki rete a.");
+      draftStore.save(state); render(); return;
     }
-    state.supportNeedsStatus = "COMPLETED";
-    audit(state, "access_support_needs_recorded", "success", { barrierCount: created.length, categories: created.map(item => item.category), goalsAnsweredNone: Object.values(answers).filter(answer => answer === "NONE").length });
-    // Opened from the care setup list, this hands the patient back to it, the way every other
-    // section of that list already does.
-    if (state.returnScreen === "ONBOARDING") {
-      state.returnScreen = "";
-      state.baselineResumeScreen = "ONBOARDING";
-      state.screen = "ONBOARDING";
-    } else {
-      state.screen = nextScreen(state);
-    }
+    state.screen = state.returnScreen === "ONBOARDING" ? "ONBOARDING" : nextScreen(state);
     draftStore.save(state); render(); return;
   }
   // GOALS uses its own multi-step actions so discovery, priority and planning remain auditable.
@@ -6178,22 +6196,9 @@ async function advance() {
   if (state.screen === "GOALS") {
     if (state.offer?.pathway !== "ACCESS") return;
     ensureAssignedAccessGoals();
-    // Being shown the goals the track assigned is the whole of this step, so carrying on finishes
-    // it. Only the goal chooser used to record that, which no ACCESS patient ever sees, so their
-    // care setup list kept "Your goals" on Not completed however far through the journey they were.
-    state.goalsStatus = "COMPLETED";
-    // A patient who opened this from the care setup list is returned to it, the way the health,
-    // medication and preference sections already do. Sending them on to the barriers question and
-    // everything after it walked them back through the segment they had just completed. On the
-    // journey itself the barriers question still follows, so the resume route is left pointing at
-    // it rather than at a hub that does not list it.
-    if (state.returnScreen === "ONBOARDING" && state.goalFlowOrigin !== "MY_GOALS") {
-      state.returnScreen = "";
-      state.baselineResumeScreen = "ONBOARDING";
-      state.screen = "ONBOARDING";
-    } else {
-      state.screen = nextScreen(state);
-    }
+    // Viewing assigned goals is not completion. The barriers review that follows records an answer
+    // for each goal and is the only place that can complete this setup section.
+    state.screen = nextScreen(state);
     draftStore.save(state); render(); return;
   }
   if (state.screen === "RPM_DEVICE_PATH") { state.devicePath = new FormData(document.querySelector("form")).get("choice"); if (state.devicePath === "help" || !state.devicePath) { showHelp(); return; } }
@@ -8486,10 +8491,14 @@ async function boot() {
         // Barriers restore through the shared normalizer so a draft written before this model, or
         // by an older build, still renders with a category, a status and its intervention history.
         barriers: Array.isArray(goal.barriers) ? goal.barriers.map(normalizeBarrierRecord).filter(Boolean) : [],
+        supportNeedsAssessment: goal.supportNeedsAssessment && typeof goal.supportNeedsAssessment === "object"
+          ? accessSupportAssessment(goal)
+          : null,
         reminderPreference: goal.reminderPreference || null,
         supportRequests: Array.isArray(goal.supportRequests) ? goal.supportRequests : [],
         reviews: Array.isArray(goal.reviews) ? goal.reviews : []
       }));
+      if (state.offer?.pathway === "ACCESS") syncAccessGoalsStatus();
       state.goalFlowStep ||= "DISCOVERY";
       state.goalFlowOrigin ||= "ONBOARDING";
       state.goalPlanDraft = state.goalPlanDraft && typeof state.goalPlanDraft === "object" ? { actionIds: Array.isArray(state.goalPlanDraft.actionIds) ? state.goalPlanDraft.actionIds : [], customAction: state.goalPlanDraft.customAction || "", frequency: state.goalPlanDraft.frequency || "few-days", remindersEnabled: Boolean(state.goalPlanDraft.remindersEnabled), whyItMatters: state.goalPlanDraft.whyItMatters || "" } : { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" };

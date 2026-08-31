@@ -222,7 +222,7 @@ test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or
   // The care manager is a person now, not the organization. ITERA HEALTH still appears, but as the
   // practice behind her rather than as a card standing in for a human being.
   await expect(page.getByText("Alicia Ramírez, RN", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Care coordination · ITERA HEALTH/)).toBeVisible();
+  await expect(page.getByText(/Care Manager · ITERA HEALTH/)).toBeVisible();
   await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

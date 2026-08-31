@@ -38,6 +38,7 @@ const finishCareSetup = async page => {
   await page.getByRole("button", { name: /See my health goals/i }).click();
   await page.getByRole("button", { name: /make this harder/i }).click();
   await page.locator(".support-need-group").first().locator('input[value="FORGETFULNESS_ROUTINE"]').check();
+  await page.locator(".support-need-group").nth(1).locator('input[value="NONE"]').check();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Yes, everything is correct" }).click();
   await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();

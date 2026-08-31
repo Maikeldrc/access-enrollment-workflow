@@ -86,6 +86,7 @@ test("a patient reaches active ACCESS care from the invitation without help", as
   await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();
   await expect(page.locator(".support-need-group")).toHaveCount(2);
   await page.locator('.support-need-group').first().locator('input[value="FORGETFULNESS_ROUTINE"]').check();
+  await page.locator('.support-need-group').nth(1).locator('input[value="NONE"]').check();
   await continueOn();
 
   // --- Personalisation --------------------------------------------------------------------

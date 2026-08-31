@@ -91,6 +91,7 @@ for (const width of WIDTHS) {
     await checkHere(page, "support needs", width);
 
     await page.locator(".support-need-group").first().locator('input[value="FORGETFULNESS_ROUTINE"]').check();
+    await page.locator(".support-need-group").nth(1).locator('input[value="NONE"]').check();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
     await page.getByRole("button", { name: "Yes, everything is correct" }).click();
     await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();
