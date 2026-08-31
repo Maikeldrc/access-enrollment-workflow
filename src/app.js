@@ -183,7 +183,7 @@ let state = {
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
-  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantSupportOpen: false, emmiOfferedLocale: "", emmiLanguageStreak: 0, emmiDeclinedLocales: [], assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
+  assistantOpen: false, assistantOriginScreen: null, assistantScrollY: 0, assistantMessages: [], assistantFaqOpen: false, assistantSupportOpen: false, emmiOfferedLocale: "", emmiPendingLanguageQuestion: "", emmiLanguageStreak: 0, emmiDeclinedLocales: [], assistantLanguageChanged: false, assistantPendingAction: "", assistantPendingAppointmentId: "", assistantBusy: false, assistantDemoPatientId: "", assistantPatientContextKey: "", assistantVoiceState: "DISCONNECTED", assistantVoiceDetail: "", assistantVoiceError: "", assistantVoiceMuted: false, assistantVoiceOptionsOpen: false, assistantError: "", assistantRetryQuestion: "",
   emmiVoiceGuidance: typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean" ? savedEmmiPreferences.emmiVoiceGuidance : false,
   emmiVoiceGuidancePaused: false, emmiWelcomeAcknowledged: Boolean(savedEmmiPreferences.emmiWelcomeAcknowledged), emmiLastGuidanceScreen: "", emmiGuidanceTranscript: "", emmiTranscriptOpen: false, emmiVoiceOptionsOpen: false, emmiIntroSeen: false, emmiTransitionStatus: "IDLE"
 };
@@ -6403,8 +6403,9 @@ const languageSwitchCopy = locale => ({
   en: "Of course — I’ll continue in English."
 })[locale];
 
-// Returns true when the turn was answered by the language flow and must not also go to the
-// orchestrator: an accepted offer is an answer about language, not a question about care.
+// Returns whether the language flow consumed this turn and, after an accepted offer, the original
+// care question that is still owed an answer. The question is kept in memory only for the open
+// conversation; it is not patient data persisted into the enrollment draft.
 function handlePatientLanguage(text) {
   const activeLocale = EMMI_LOCALE_KEYS[state.language] || "en";
   const offered = state.emmiOfferedLocale;
@@ -6412,13 +6413,16 @@ function handlePatientLanguage(text) {
   // A standing offer the patient answered in words rather than by carrying on.
   if (offered && offered !== activeLocale) {
     if (isLanguageOfferAccepted(text)) {
+      const replayQuestion = state.emmiPendingLanguageQuestion;
+      state.emmiPendingLanguageQuestion = "";
       applyEmmiLanguage(offered);
-      return true;
+      return { handled: true, replayQuestion };
     }
     if (isLanguageOfferDeclined(text)) {
       state.emmiDeclinedLocales = [...new Set([...state.emmiDeclinedLocales, offered])];
       state.emmiOfferedLocale = "";
-      return false;
+      state.emmiPendingLanguageQuestion = "";
+      return { handled: true, replayQuestion: "" };
     }
   }
 
@@ -6428,20 +6432,21 @@ function handlePatientLanguage(text) {
     offeredLocale: offered,
     consecutiveMatches: state.emmiLanguageStreak
   });
-  if (!detected || detected === activeLocale) { state.emmiLanguageStreak = 0; return false; }
+  if (!detected || detected === activeLocale) { state.emmiLanguageStreak = 0; return { handled: false, replayQuestion: "" }; }
   // Declining is remembered, so the same offer is never made twice in one session.
-  if (state.emmiDeclinedLocales.includes(detected)) return false;
+  if (state.emmiDeclinedLocales.includes(detected)) return { handled: false, replayQuestion: "" };
 
-  if (action === "switch") { applyEmmiLanguage(detected); return false; }
+  if (action === "switch") { state.emmiPendingLanguageQuestion = ""; applyEmmiLanguage(detected); return { handled: false, replayQuestion: "" }; }
   if (action === "offer") {
     state.emmiOfferedLocale = detected;
+    state.emmiPendingLanguageQuestion = text;
     state.emmiLanguageStreak = 1;
     state.assistantMessages.push({ role: "assistant", text: languageOfferCopy(detected), intent: "LANGUAGE_OFFER" });
     emmiConversationManager?.recordTurn("assistant", languageOfferCopy(detected), { screen: state.screen });
     refreshAssistantLayer();
-    return true;
+    return { handled: true, replayQuestion: "" };
   }
-  return false;
+  return { handled: false, replayQuestion: "" };
 }
 
 // One activeLocale for text and voice. setLanguage already rebuilds the live voice session in the
@@ -6463,17 +6468,25 @@ function applyEmmiLanguage(locale) {
   refreshAssistantLayer();
 }
 
-async function askEmmi(question, { questionId = "", source = "input" } = {}) {
+async function askEmmi(question, { questionId = "", source = "input", replay = false } = {}) {
   const cleaned = question.trim();
   if (!cleaned || state.assistantBusy) return;
   const runtime = ensureEmmiRuntime();
   state.assistantError = "";
   state.assistantRetryQuestion = "";
-  state.assistantMessages.push({ role: "user", text: cleaned, questionId });
-  emmiConversationManager?.recordTurn("user", cleaned, { screen: state.screen });
+  if (!replay) {
+    state.assistantMessages.push({ role: "user", text: cleaned, questionId });
+    emmiConversationManager?.recordTurn("user", cleaned, { screen: state.screen });
+  }
   // A quick question is EMMI's own words in EMMI's own language, so it is never evidence about
   // which language the patient prefers. Only what they wrote or said themselves counts.
-  if (source !== "quick-question" && handlePatientLanguage(cleaned)) return;
+  if (source !== "quick-question" && !replay) {
+    const language = handlePatientLanguage(cleaned);
+    if (language.handled) {
+      if (language.replayQuestion) await askEmmi(language.replayQuestion, { questionId, source: "language-replay", replay: true });
+      return;
+    }
+  }
   runtime.audit.transcript("user", cleaned);
   // Analytics record that a question was asked and where it came from, never what was asked.
   audit(state, source === "quick-question" ? "emmi_quick_question_selected" : "emmi_question_submitted", "success", { screen: state.screen, source, questionId });

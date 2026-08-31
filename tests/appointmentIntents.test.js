@@ -45,6 +45,7 @@ describe("appointment intent classification", () => {
     ["Can I see my cardiologist?", "en"],
     ["When can I get an appointment?", "en"],
     ["Necesito una cita", "es"],
+    ["necesito un appointment", "es"],
     ["Quiero hacer una cita", "es"],
     ["¿Puedo agendar una cita?", "es"],
     ["Necesito ver a mi cardiólogo", "es"],

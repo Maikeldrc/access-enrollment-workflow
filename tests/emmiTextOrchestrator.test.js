@@ -267,6 +267,31 @@ describe("Ask EMMI appointment coordination", () => {
     expect(answer.text).not.toMatch(/\bconfirmed\b|\bbooked\b|\brequest has been sent\b/i);
   });
 
+  it("keeps an explicit Spanish ACCESS definition on topic when retrieval ranks an unrelated page first", async () => {
+    const { orchestrator } = harness({
+      locale: "ES",
+      knowledgePassages: [{
+        sourceId: "emergency",
+        sourcePath: "safety/emergencies.md",
+        heading: "Emergencies",
+        text: "EMMI is not an emergency service.",
+        localizedAnswers: { ES: "EMMI no es un servicio de emergencias." }
+      }]
+    });
+    const answer = await orchestrator.answer("¿Qué es ACCESS y cómo me ayuda?");
+    expect(answer.text).toMatch(/ACCESS es una opción de cuidado de Medicare/i);
+    expect(answer.text).not.toMatch(/emergencia/i);
+  });
+
+  it("routes a bilingual Spanish appointment request instead of returning generic knowledge", async () => {
+    const { orchestrator, executeTool } = harness({ locale: "ES" });
+    const answer = await orchestrator.answer("necesito un appointment");
+    expect(executeTool).toHaveBeenCalledWith("startAppointmentRequest", expect.objectContaining({ reasonSummary: "necesito un appointment" }));
+    expect(answer.trace.intent).toBe("APPOINTMENT_NEED");
+    expect(answer.text).toMatch(/solicitud de cita/i);
+    expect(answer.text).not.toMatch(/_Sources_|Q:|A:/i);
+  });
+
   it("carries the part of the day the patient asked for into the opener", async () => {
     const { orchestrator } = harness({ locale: "EN" });
     const answer = await orchestrator.answer("I need an appointment in the morning");

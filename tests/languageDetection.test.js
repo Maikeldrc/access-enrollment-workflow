@@ -27,6 +27,12 @@ describe("detecting the language a patient is using", () => {
     expect(detectPatientLanguage("tansyon mwen wo anpil")).toBe("ht");
   });
 
+  it("recognises Spanish grammar when a bilingual patient keeps an English care term", () => {
+    expect(detectPatientLanguage("necesito un appointment")).toBe("es");
+    expect(detectPatientLanguage("quiero hablar con mi care manager")).toBe("es");
+    expect(detectPatientLanguage("appointment with Dr. Fresner")).toBe("en");
+  });
+
   it("never returns Korean, because KR here is Haitian Creole", () => {
     expect(detectPatientLanguage("Mwen bezwen èd ak tansyon mwen")).toBe("ht");
     expect(["en", "es", "ht"]).toContain(detectPatientLanguage("Bonjou, mwen vle pale ak doktè mwen"));

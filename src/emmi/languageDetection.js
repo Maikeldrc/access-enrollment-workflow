@@ -53,6 +53,13 @@ const MARKERS = {
 const SPANISH_CHARACTERS = /[ñ¿¡]|[áíóú]/;
 const CREOLE_CHARACTERS = /[èòà]/;
 
+// Patients commonly keep the English name of a healthcare service inside an otherwise Spanish
+// sentence ("necesito un appointment", "quiero hablar con mi care manager"). Counting isolated
+// words makes those turns look tied even though the grammar and the request are Spanish. This
+// narrow bridge only applies when a distinctive Spanish intent phrase owns an English care noun;
+// it does not guess from the borrowed noun by itself.
+const SPANISH_WITH_ENGLISH_CARE_TERM = /\b(necesito|quiero|quisiera|tengo que|puedo|ay[uú]dame|ayuda)\b[^.!?]{0,80}\b(appointments?|visits?|doctors?|medications?|refills?|insurance|care manager|care team)\b/i;
+
 const normalize = text => String(text || "")
   .toLowerCase()
   .replace(/[.,;:!?"'()]/g, " ")
@@ -70,6 +77,7 @@ export function detectPatientLanguage(text) {
   if (!normalized) return null;
   const words = normalized.split(" ");
   if (words.length < MINIMUM_WORDS) return null;
+  if (SPANISH_WITH_ENGLISH_CARE_TERM.test(normalized)) return "es";
 
   const scores = { en: 0, es: 0, ht: 0 };
   for (const [language, markers] of Object.entries(MARKERS)) {

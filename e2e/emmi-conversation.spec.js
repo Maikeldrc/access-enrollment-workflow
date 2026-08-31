@@ -403,10 +403,28 @@ test("saying yes naturally moves the whole conversation without starting a new o
   await expect(panel.getByPlaceholder("Haga una pregunta…")).toBeVisible();
   await expect(panel.locator(".language")).toContainText("ES");
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  // Accepting the language offer must answer the care question that triggered it. Previously the
+  // switch consumed that question, leaving the patient to ask it a second time.
+  await expect(panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last()).toContainText(/ACCESS le brinda|ACCESS es/i);
   // Same conversation: the English turns are still there and EMMI does not say hello again.
   await expect(panel.locator(".assistant-message.user").first()).toContainText("What is ACCESS?");
   await expect(panel).not.toContainText("Hola, soy EMMI");
   await expect(panel).toHaveAttribute("data-assistant-mode", "conversation");
+});
+
+test("a bilingual Spanish appointment request is offered in Spanish and answered after acceptance", async ({ page }) => {
+  const dialog = await openEmmiOnHome(page);
+  await dialog.getByPlaceholder("Ask a question…").fill("necesito un appointment");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  await expect(dialog.locator(".assistant-message").last()).toContainText("¿Quiere que continuemos en español?");
+
+  await dialog.getByPlaceholder("Ask a question…").fill("Sí.");
+  await dialog.getByRole("button", { name: "Send question" }).click();
+  const panel = page.locator(".assistant-layer");
+  const answer = panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(answer).toContainText(/solicitud de cita/i);
+  await expect(answer).not.toContainText(/_Sources_|Q:|A:/i);
+  await expect(panel.getByRole("button", { name: /Continuar con esta cita/i })).toBeVisible();
 });
 
 test("Spanish monitor shipping questions use fulfillment data and never invent a date", async ({ page }) => {

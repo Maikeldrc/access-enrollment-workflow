@@ -108,6 +108,9 @@ const NEED_PATTERNS = [
   new RegExp(`\\b(need|needs|want|wants|would like|have|got)\\s+to\\s+(?:see|visit|talk to|speak (?:to|with))\\s+(?:my|the|a|an|his|her)?\\s*${CARE_PERSON}`, "i"),
   new RegExp(`\\b(can|could|may|should)\\s+i\\s+see\\s+(?:my|the)\\s+${CARE_PERSON}`, "i"),
   new RegExp(`\\b(necesito|quiero|quisiera|me gustar[ií]a|puedo|pedir|sacar|hacer|agendar|programar|solicitar|conseguir|reservar)\\s+${GAP}(?:una\\s+|otra\\s+|la\\s+|nueva\\s+|mi\\s+)?(citas?|consultas?)\\b`, "i"),
+  // Code-switching is normal in bilingual care conversations. Spanish intent still owns the turn
+  // when the patient uses the familiar English noun ("necesito un appointment").
+  new RegExp(`\\b(necesito|quiero|quisiera|me gustar[ií]a|puedo|pedir|sacar|hacer|agendar|programar|solicitar|conseguir|reservar)\\s+${GAP}(?:un\\s+|una\\s+|otro\\s+|otra\\s+|mi\\s+)?(appointments?|appts?|visits?)\\b`, "i"),
   new RegExp(`\\b(necesito|quiero|quisiera|tengo que|puedo)\\s+ver\\s+(?:a\\s+)?(?:mi|el|la|un|una)?\\s*${CARE_PERSON}`, "i"),
   new RegExp(`\\b(bezwen|vle|mande|pran|f[eè]|jwenn)\\s+${GAP}(?:yon l[oò]t\\s+|yon\\s+)?(randevou|vizit)\\b`, "i"),
   new RegExp(`\\b(bezwen|vle)\\s+w[eè]\\s+${CARE_PERSON}`, "i")

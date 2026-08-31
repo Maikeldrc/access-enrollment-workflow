@@ -86,6 +86,10 @@ const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\
   || (/presi[oó]n/i.test(text) && /otra vez|ahora/i.test(text))
   || (/tansyon/i.test(text) && /ank[oò]|kounye a/i.test(text));
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+// A direct programme definition already has reviewed copy in programAnswers. Sending that simple
+// question through generation can replace a relevant retrieval with an unrelated but fluent
+// paragraph (the production defect returned emergency-service copy for "¿Qué es ACCESS?").
+const PROGRAM_DEFINITION = /\b(what is|what's|explain|tell me about|qu[eé] es|qu[eé] significa|expl[ií](?:ca|que|came)|kisa)\b[^?.!]{0,80}\b(ACCESS|CCM|RPM|PCM|APCM|ASM)\b/i;
 const leaveProgramAnswer = locale => pick(locale, {
   EN: "Participation is voluntary. You can choose whether to enroll, and you can ask to end your participation later. The current program information explains any timing or switching rules that apply, and the ITERA care team can help you review them.",
   ES: "La participación es voluntaria. Usted decide si desea inscribirse y puede solicitar terminar su participación después. La información vigente del programa explica cualquier regla de tiempo o cambio que aplique, y el equipo de ITERA puede ayudarle a revisarla.",
@@ -973,6 +977,17 @@ export class EmmiTextOrchestrator {
     if (!(retrieval.passages || []).length) {
       emit("EMMI_EMPTY_GROUNDED_CONTEXT");
       return { text: unavailable(locale), trace };
+    }
+    if (PROGRAM_DEFINITION.test(retrievalQuery)) {
+      trace.responseMode = "DETERMINISTIC_GROUNDED_FALLBACK";
+      trace.modelVersion = "deterministic-grounded-v1";
+      const programName = retrievalQuery.match(PROGRAM_DEFINITION)?.[2]?.toUpperCase();
+      // The named programme is explicit in the patient's own words. Do not let a mis-ranked
+      // focused passage (for example the emergency page) outrank that direct subject.
+      const text = programAnswers[programName] ? pick(locale, programAnswers[programName])
+        : fallbackKnowledgeAnswer({ question: retrievalQuery, retrieval, locale, program: context.program });
+      emit("EMMI_ANSWER_ROUTED");
+      return { text, trace };
     }
     try {
       const response = await this.fetch("/api/emmi/chat", {
