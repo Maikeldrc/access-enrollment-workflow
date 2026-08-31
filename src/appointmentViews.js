@@ -124,6 +124,11 @@ export function appointmentPrepConversationOpening({ locale = "en", appointment 
     `Preparémonos para su cita${providerText}. ¿Sobre qué le gustaría prepararse para conversar?`,
     `Ann prepare pou randevou ou${providerText}. Sou kisa ou ta renmen prepare pou pale?`
   ), language);
+  if (topics.length === 1) return localAppointmentViewText(T(
+    `Let’s prepare for your appointment${providerText}. You wanted to discuss “${topics[0]}”, so we’ll start there.`,
+    `Preparémonos para su cita${providerText}. Quería conversar sobre “${topics[0]}”, así que empezaremos por ese tema.`,
+    `Ann prepare pou randevou ou${providerText}. Ou te vle pale sou “${topics[0]}”, kidonk n ap kòmanse ak sijè sa a.`
+  ), language);
   const topicList = topics.map(topic => `“${topic}”`).join(", ");
   return localAppointmentViewText(T(
     `Let’s prepare for your appointment${providerText}. You wanted to discuss ${topicList}. Which topic would you like to start with?`,

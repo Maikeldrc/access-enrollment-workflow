@@ -457,6 +457,14 @@ describe("appointment views — preparation, brief and sharing (§43-§47, §114
     expect(opening).toContain("What would you like help getting ready to discuss?");
   });
 
+  it("starts the only saved topic instead of asking the patient to select it again", () => {
+    const appointment = { ...confirmed, prep: { topics: ["BP readings"] } };
+    const opening = appointmentPrepConversationOpening({ locale: "es", appointment });
+    expect(opening).toContain("Quería conversar sobre “BP readings”");
+    expect(opening).toContain("empezaremos por ese tema");
+    expect(opening).not.toMatch(/cu[aá]l tema|con cu[aá]l/i);
+  });
+
   it("lists what the patient wanted to discuss and lets them add and remove topics", () => {
     const html = appointmentPrepView({ ...base, now: NOW, appointment: { ...confirmed, prep: { topics: ["My blood pressure", "A medication question"], sharedWithProvider: false } } });
     expect(html).toContain("My blood pressure");

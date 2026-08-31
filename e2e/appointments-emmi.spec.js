@@ -659,6 +659,26 @@ test("Prepare with EMMI opens the confirmed appointment conversation and preserv
   await expect(page.locator(".appointment-topics")).toContainText("medicamentos");
 });
 
+test("Prepare with EMMI answers the only saved BP topic instead of asking for it again", async ({ page }) => {
+  await openAppointments(page, {
+    language: "es",
+    appointments: [appointment({ prep: { topics: ["BP readings"], notes: "", sharedWithProvider: false } })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await expect(page.locator(".appointment-topics")).toContainText("BP readings");
+
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+
+  const panel = page.locator(".assistant-layer");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator(".assistant-message.user").last()).toContainText("BP readings");
+  const answer = panel.locator(".assistant-message.assistant:not(.assistant-thinking)").last();
+  await expect(answer).toContainText(/lectura.*\d{2,3}\/\d{2,3}|no puedo confirmar una lectura/i, { timeout: 25000 });
+  await expect(answer).not.toContainText(/¿Con cuál tema le gustaría empezar\?|A1c|diabetes/i);
+  await expect(panel.locator(".assistant-error")).toHaveCount(0);
+});
+
 /* ------------------------------------------------------------------------ §122 §123 §124 ---- */
 
 const startScheduling = async (page, { id, reason }) => {

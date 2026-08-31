@@ -7180,12 +7180,23 @@ function bind() {
         const openedFromPrep = Boolean(el.closest(".appointment-prep-screen"));
         showHelp(el);
         if (openedFromPrep && record) {
+          const topics = (record.prep?.topics || []).map(topic => String(topic || "").trim()).filter(Boolean);
+          // One saved topic is already the patient's selection. Sending it through the normal EMMI
+          // answer path gives a grounded response immediately; asking which topic they want would
+          // only repeat the choice they made on the preparation screen. With several topics EMMI
+          // still asks which one to start with instead of guessing.
+          if (topics.length === 1) {
+            audit(state, "appointment_prep_emmi_opened", "success", { appointmentId: record.id, topicCount: 1, topicAutoSelected: true });
+            await askEmmi(topics[0], { questionId: "appointment-prep-topic", source: "appointment-prep" });
+            draftStore.save(state);
+            return;
+          }
           const text = appointmentPrepConversationOpening({ locale: state.language, appointment: record });
           state.assistantMessages.push({ role: "assistant", text, intent: "APPOINTMENT_PREP", appointmentId: record.id });
           emmiConversationManager?.recordTurn("assistant", text, { screen: state.screen, appointmentId: record.id, source: "appointment-prep" });
           emmiConversationManager?.markGreeted();
           ensureEmmiRuntime().audit.transcript("assistant", text);
-          audit(state, "appointment_prep_emmi_opened", "success", { appointmentId: record.id, topicCount: record.prep?.topics?.length || 0 });
+          audit(state, "appointment_prep_emmi_opened", "success", { appointmentId: record.id, topicCount: topics.length, topicAutoSelected: false });
           draftStore.save(state);
           refreshAssistantLayer();
           return;
