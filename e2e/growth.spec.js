@@ -11,6 +11,15 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+// An invitation is not sent in the name of someone we have not confirmed, so pressing send before
+// identity takes the patient through it and sends on the other side. Their answers are kept.
+const confirmIdentity = async page => {
+  await expect(page.getByRole("heading", { name: /confirm it’s you/i })).toBeVisible();
+  await page.getByLabel("Date of birth", { exact: true }).fill("05 / 12 / 1954");
+  await page.getByLabel("ZIP code", { exact: true }).fill("33176");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+};
+
 test("patient invites a daughter while remaining the decision maker", async ({ page, context }) => {
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
@@ -21,6 +30,11 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
   await page.getByLabel("Mobile number").fill("3055550199");
   await page.getByLabel(/Relationship to you/).selectOption("child");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+
+  // Nothing has gone out yet: the invitation is held until we know who is sending it.
+  await expect(page.getByText(/confirm it’s you first, then send the invitation to Angela Demo/i)).toBeVisible();
+  expect(await page.evaluate(() => (JSON.parse(localStorage.getItem("itera.care-circle.prototype.v1") || "{}").invites || []).length)).toBe(0);
+  await confirmIdentity(page);
 
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
   await expect(page.getByText(/No diagnosis, Medicare number, or clinical information/i)).toBeVisible();
@@ -89,6 +103,7 @@ test("Contact Picker is progressive, editable, and never sends automatically", a
   await page.getByLabel("Their name").fill("Maria Edited");
   await page.getByLabel(/Relationship to you/).selectOption("friend");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
 });
 
@@ -306,9 +321,12 @@ test("a new patient does not inherit the previous enrollment's Care Circle", asy
   await page.getByLabel("Mobile number").fill("3055550199");
   await page.getByLabel(/Relationship to you/).selectOption("child");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
 
-  // Nothing was verified, so nothing was enrolled: opening the app again is a new patient.
+  // The enrollment is gone; the Care Circle store, which lives on its own, is not. Whoever opens
+  // the app next is a new patient and must not be told an invitation was sent on their behalf.
+  await page.evaluate(() => localStorage.removeItem("itera.enrollment.safe-draft.v2"));
   await page.goto("/?scenario=access-happy");
   await page.getByRole("button", { name: /Start your care journey/i }).click();
 
@@ -324,14 +342,11 @@ test("an enrollment in progress keeps the invitation it sent", async ({ page }) 
   await page.getByLabel("Mobile number").fill("3055550199");
   await page.getByLabel(/Relationship to you/).selectOption("child");
   await page.getByRole("button", { name: /Send invitation/i }).click();
+  await confirmIdentity(page);
   await expect(page.getByRole("heading", { name: "Invitation sent" })).toBeVisible();
 
-  // Identity verified is what makes an enrollment resumable, and what the invitation belongs to.
-  await page.evaluate(() => localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
-    scenarioId: "access-happy", screen: "DECISION_MAKER", role: "patient", completionRole: "patient",
-    identityVerified: true, language: "en", audit: []
-  })));
   await page.reload();
+  await page.locator("#screen-select").selectOption("DECISION_MAKER", { force: true });
 
   await expect(page.locator(".optional-support-status")).toHaveCount(1);
   await expect(page.locator(".optional-support")).toContainText("Angela Demo");

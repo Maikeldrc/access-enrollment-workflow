@@ -173,7 +173,7 @@ let state = {
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
   goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
   patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "",
-  supportRole: "NONE", careCircleStatus: "NONE", careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
+  supportRole: "NONE", careCircleStatus: "NONE", careCircleInvitePending: false, careCircleJustSent: false, careCircleContext: "ENROLLMENT", supportPersonName: "", supportPersonPhone: "", supportPersonRelationship: "", supportPersonRelationshipOther: "", supportInviteId: "", supportInviteToken: "", supportInviteStatus: "NONE", supportInviteSentAt: "", supportInviteAcceptedAt: "", careCircleContactNumbers: [], careCircleContactPickerStatus: "IDLE", careCircleContactSource: "MANUAL", careCircleManualEntryTracked: false, careCircleManageInviteId: "", careCircleRemovePendingId: "", careCircleNotice: "", careCirclePermissions: { receiveReminders: false, helpWithDeviceSetup: false, helpWithAppointments: false, receiveCareTasks: false, viewLimitedCareProgress: false }, careCirclePromptDismissedAt: "",
   accessShares: [], activeAccessShare: null, shareAccessPromptDismissedAt: "", growthReturnScreen: "", growthContext: "", growthNotice: "",
   audit: [], busy: false, error: "", devOpen: false,
   eligibilityPhase: "checkingEnrollment", eligibilityError: false, eligibilityRequestKey: "",
@@ -578,6 +578,26 @@ function decisionMaker() {
 // personal representative is already a second person in the room.
 const completionRoleAcceptsCareCircle = () => state.completionRole === "patient" && state.role !== "representative";
 
+// An invitation the patient asked for before we knew who they were. It is held rather than sent,
+// and goes out the moment identity is confirmed — so nothing is sent in the name of an unverified
+// person, and the patient does not have to type their friend's details a second time.
+function sendPendingCareCircleInvite() {
+  if (!state.careCircleInvitePending || !state.identityVerified) return;
+  state.careCircleInvitePending = false;
+  const supportPersonPhone = phoneDigits(state.supportPersonPhone);
+  try {
+    const invite = growthStore.createSupportInvite({ inviterPatientId: state.offer.patient.id, patientFirstName: patientFirstName(), supportPersonName: state.supportPersonName, phone: supportPersonPhone, relationship: state.supportPersonRelationship, relationshipOther: state.supportPersonRelationshipOther, context: state.careCircleContext, sessionId: state.sessionId, origin: location.origin });
+    Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: "INVITED", supportInviteId: invite.inviteId, supportInviteToken: invite.token, supportInviteStatus: invite.status, supportInviteSentAt: invite.sentAt, careCircleNotice: "", error: "", careCircleJustSent: true });
+    audit(state, "invite_sent", "success", { inviteId: invite.inviteId, context: state.careCircleContext, source: state.careCircleContactSource, deferredUntilIdentity: true });
+    draftStore.save(state);
+  } catch {
+    // The patient has just verified who they are; losing their invitation silently here would be
+    // the worst moment for it. It stays pending so the Care Circle screen can offer it again.
+    state.careCircleInvitePending = true;
+    audit(state, "invite_failed", "storage_or_delivery", { context: state.careCircleContext, deferredUntilIdentity: true });
+  }
+}
+
 function optionalSupportPrompt() {
   const hidden = completionRoleAcceptsCareCircle() ? "" : "hidden";
   const label = `<span class="optional-support-label">${L("Optional support", "Apoyo opcional", "Sipò opsyonèl")}</span>`;
@@ -605,12 +625,16 @@ function careCircleInvite() {
   const supporting = ongoing
     ? (state.offer?.pathway === "RPM" || String(state.offer?.pathway || "").includes("RPM") ? L("They can help with reminders and monitor setup. You stay in control of your care.", "Puede ayudar con recordatorios y la configuración del monitor. Usted mantiene el control de su cuidado.", "Moun nan ka ede ak rapèl ak konfigirasyon monitè a. Se ou ki kontwole swen ou.") : L("They can help with reminders and everyday care tasks. You stay in control of your care.", "Puede ayudar con recordatorios y tareas cotidianas de cuidado. Usted mantiene el control de su cuidado.", "Moun nan ka ede ak rapèl ak travay swen chak jou. Se ou ki kontwole swen ou."))
     : L("They can help you through enrollment, but you’ll still make the decisions about your care.", "Puede ayudarle durante la inscripción, pero usted seguirá tomando las decisiones sobre su cuidado.", "Moun nan ka ede w pandan enskripsyon an, men se ou menm k ap toujou pran desizyon sou swen ou.");
+  // These two fields hold another person's details. They used to declare autocomplete="name" and
+  // "tel", which mean the details of whoever is filling the form in — so the browser offered the
+  // patient their own name and number on a form for inviting somebody else, and accepting that
+  // offer invites yourself. The contact picker below is the deliberate way in where it exists.
   const pickerSupported = Boolean(globalThis.navigator?.contacts?.select);
   const ready = state.supportPersonName.trim() && phoneDigits(state.supportPersonPhone).length === 10 && state.supportPersonRelationship && (state.supportPersonRelationship !== "other" || state.supportPersonRelationshipOther.trim());
   const numberChoices = state.careCircleContactNumbers?.length > 1 ? `<fieldset class="contact-number-choices"><legend>${L("Which mobile number should we use?", "¿Qué número celular debemos usar?", "Ki nimewo mobil nou dwe itilize?")}</legend>${state.careCircleContactNumbers.map((item, index) => `<label><input type="radio" name="careCircleContactPhone" value="${escapeHtml(item.value)}" ${phoneDigits(state.supportPersonPhone) === phoneDigits(item.value) ? "checked" : ""}><span><strong>${escapeHtml(item.label || L("Mobile", "Celular", "Mobil"))}</strong><small>${formatPhone(item.value)}</small></span></label>`).join("")}</fieldset>` : "";
   return `${titleBlock(title, supporting, L("Care Circle", "Círculo de cuidado", "Sèk swen"))}
     ${pickerSupported ? `<button type="button" class="contact-picker-button" data-action="choose-care-circle-contact">${icon("people")}<span><strong>${L("Add from contacts", "Agregar desde contactos", "Ajoute nan kontak yo")}</strong><small>${L("You choose which contact to share.", "Usted elige qué contacto compartir.", "Se ou ki chwazi ki kontak pou pataje.")}</small></span></button><div class="growth-divider"><span>${L("or enter manually", "o ingrese manualmente", "oswa antre manyèlman")}</span></div>` : `<p class="contact-picker-unavailable">${L("Contacts aren’t available on this device. You can enter the information below.", "Los contactos no están disponibles en este dispositivo. Puede ingresar la información abajo.", "Kontak yo pa disponib sou aparèy sa a. Ou ka antre enfòmasyon an anba a.")}</p>`}
-    ${numberChoices}<form id="care-circle-invite-form" class="growth-form" novalidate><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="name" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="tel" maxlength="14" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")}<select name="supportPersonRelationship" required><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>${state.supportPersonRelationship === "other" ? `<label class="field">${L("Relationship", "Relación", "Relasyon")}<input name="supportPersonRelationshipOther" value="${escapeHtml(state.supportPersonRelationshipOther)}" required></label>` : ""}</form>
+    ${numberChoices}<form id="care-circle-invite-form" class="growth-form" novalidate><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="off" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="off" maxlength="14" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")}<select name="supportPersonRelationship" required><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>${state.supportPersonRelationship === "other" ? `<label class="field">${L("Relationship", "Relación", "Relasyon")}<input name="supportPersonRelationshipOther" value="${escapeHtml(state.supportPersonRelationshipOther)}" required></label>` : ""}</form>
     <aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("You remain in control", "Usted mantiene el control", "Se ou ki gen kontwòl")}</strong><span>${L("Care Circle support does not allow this person to consent, sign, or make healthcare decisions for you. It does not make them a Personal Representative.", "El apoyo del Círculo de cuidado no permite que esta persona dé consentimiento, firme ni tome decisiones médicas por usted. No la convierte en Representante personal.", "Sipò Sèk swen pa pèmèt moun sa a bay konsantman, siyen, oswa pran desizyon swen sante pou ou. Sa pa fè moun nan yon Reprezantan pèsonèl.")}</span></p></aside><p class="growth-notice" role="status" aria-live="polite">${state.careCircleNotice || ""}</p><p class="form-error" role="alert">${state.error || ""}</p><div class="actions care-circle-sticky-actions">${cta(L("Back", "Atrás", "Retounen"), "growth-return", true)}${cta(L("Send invitation", "Enviar invitación", "Voye envitasyon"), "send-care-circle-invite", false, !ready)}</div>`;
 }
 
@@ -682,6 +706,12 @@ function representativeAuthorityEscalation() {
 
 function identity() {
   const representative = isPersonalRepresentative();
+  // A patient who arrived here by pressing "Send invitation" needs to know why the screen changed
+  // and that their invitation is waiting rather than lost. Without this the form appears out of
+  // nowhere and the invitation looks like it failed.
+  const held = state.careCircleInvitePending && state.careCircleNotice
+    ? `<aside class="growth-boundary-note identity-pending-invite">${icon("shield")}<p><span>${escapeHtml(state.careCircleNotice)}</span></p></aside>`
+    : "";
   return `<h1 tabindex="-1">${representative ? L("Let’s securely confirm the patient’s identity", "Confirmemos de forma segura la identidad del paciente", "Ann konfime idantite pasyan an an sekirite") : L("Let’s securely confirm it’s you", "Confirmemos su identidad de forma segura", "Ann konfime se ou an sekirite")}</h1>
     <p class="identity-support">${representative ? L("Confirm the patient’s date of birth and ZIP code so we can match them to their care invitation.", "Confirme la fecha de nacimiento y el código postal del paciente para poder vincularlo con su invitación de cuidado.", "Konfime dat nesans ak kòd postal pasyan an pou nou ka konekte l ak envitasyon swen li.") : L("Confirm your date of birth and ZIP code so we can match you to your care invitation.", "Confirme su fecha de nacimiento y código postal para poder vincularle con su invitación de cuidado.", "Konfime dat nesans ou ak kòd postal ou pou nou ka konekte w ak envitasyon swen ou.")}</p>
     <p class="identity-helper" id="identity-helper">${representative ? L("Their information is protected and used only to securely verify their identity.", "Su información está protegida y se usa únicamente para verificar su identidad de forma segura.", "Enfòmasyon li pwoteje epi yo sèvi avè l sèlman pou verifye idantite l an sekirite.") : L("Your information is protected and used only to securely verify your identity.", "Su información está protegida y se usa únicamente para verificar su identidad de forma segura.", "Enfòmasyon ou pwoteje epi yo sèvi avè l sèlman pou verifye idantite ou an sekirite.")}</p>
@@ -689,7 +719,7 @@ function identity() {
       <div class="field"><label for="dob">${L("Date of birth", "Fecha de nacimiento", "Dat nesans")}</label><div class="date-control"><input id="dob" class="date-text" name="dob" type="text" inputmode="numeric" autocomplete="bday" maxlength="14" value="${displayDate(invitationIdentity().dobIso)}" placeholder="MM / DD / YYYY" aria-describedby="identity-helper identity-error"><input class="date-picker-native" type="date" min="1900-01-01" max="${localToday()}" value="${invitationIdentity().dobIso}" aria-label="${L("Choose date of birth from calendar", "Elegir fecha de nacimiento del calendario", "Chwazi dat nesans nan kalandriye a")}">${icon("calendar", "date-picker-icon")}</div><small class="field-helper">${L("Use MM / DD / YYYY.", "Use MM / DD / AAAA.", "Itilize MM / JJ / AAAA.")}</small></div>
       <div class="field"><label for="zip">${L("ZIP code", "Código postal", "Kòd postal")}</label><input id="zip" class="zip-input" name="zip" type="text" inputmode="numeric" pattern="[0-9]{5}" autocomplete="postal-code" maxlength="5" value="${invitationIdentity().zip}" placeholder="${L("5-digit ZIP code", "Código postal de 5 dígitos", "Kòd postal 5 chif")}" aria-describedby="identity-helper identity-error"><small class="field-helper">${L("Enter your home ZIP code.", "Ingrese el código postal de su domicilio.", "Antre kòd postal lakay ou.")}</small></div>
       <p class="form-error" id="identity-error" role="alert">${state.error}</p>
-    </form>${actions(state.busy ? L("Checking…", "Verificando…", "Tcheke") : t().continue)}`;
+    </form>${held}${actions(state.busy ? L("Checking…", "Verificando…", "Tcheke") : t().continue)}`;
 }
 
 function conditionSupportDescription(offer) {
@@ -5780,6 +5810,7 @@ async function advance() {
     state.busy = true; render(); const result = await service.verifyIdentity(data); state.busy = false;
     if (!result.verified) { state.identityAttempts += 1; state.error = L(`We couldn’t match that information. ${result.remainingAttempts} attempts remain.`, `No pudimos verificar la información. Quedan ${result.remainingAttempts} intentos.`, `Nou pa t kapab verifye enfòmasyon sa yo. Ou gen ${result.remainingAttempts} tantativ ki rete.`); render(); return; }
     state.identityVerified = true; audit(state, "identity_verified");
+    sendPendingCareCircleInvite();
   }
   if (state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE") {
     if (!document.querySelector('[name="accessNotice"]')?.checked) { state.error = L("Please acknowledge this information to continue.", "Reconozca esta información para continuar.", "Tanpri rekonèt enfòmasyon sa yo pou kontinye."); render(); return; }
@@ -6137,7 +6168,15 @@ async function advance() {
     if (result.status !== "received") { state.error = "reading"; audit(state, "first_reading", "not_received"); render(); return; }
     state.readingReceived = true; state.reading = result; audit(state, "first_reading", "received");
   }
-  state.screen = nextScreen(state); draftStore.save(state); render();
+  state.screen = nextScreen(state);
+  // A patient who pressed "Send invitation" and was taken through identity first has not seen it
+  // go. They see the confirmation, and Done carries them on to where the enrollment was heading.
+  if (state.careCircleJustSent) {
+    state.careCircleJustSent = false;
+    state.growthReturnScreen = state.screen;
+    state.screen = "CARE_CIRCLE_INVITE_SENT";
+  }
+  draftStore.save(state); render();
   if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING") runEligibility();
   if (state.screen === "ENROLLMENT_PROCESSING") runEnrollment();
   if (state.screen === "ACCESS_ALIGNMENT_PROCESSING") runAlignment();
@@ -6817,6 +6856,22 @@ function bind() {
         state.supportPersonRelationship = supportPersonRelationship;
         state.error = L("Enter their name, a 10-digit mobile number, and their relationship to you.", "Ingrese su nombre, un número celular de 10 dígitos y su relación con usted.", "Antre non moun nan, yon nimewo mobil 10 chif, ak relasyon li avèk ou.");
         audit(state, "invite_failed", "validation", { context: state.careCircleContext }); render(); return;
+      }
+      // Nothing goes out in the name of somebody we have not confirmed. The details are kept and
+      // the patient is taken to confirm who they are; the invitation is sent on the other side of
+      // that, which is also what gives it an enrollment to belong to.
+      if (!state.identityVerified) {
+        Object.assign(state, { supportPersonName, supportPersonPhone: formatPhone(supportPersonPhone), supportPersonRelationship, supportPersonRelationshipOther, careCircleInvitePending: true });
+        state.error = "";
+        state.careCircleNotice = L(
+          `We’ll confirm it’s you first, then send the invitation to ${supportPersonName}.`,
+          `Primero confirmaremos que es usted y luego enviaremos la invitación a ${supportPersonName}.`,
+          `N ap konfime se ou anvan, apre sa n ap voye envitasyon an bay ${supportPersonName}.`
+        );
+        audit(state, "invite_deferred", "identity_not_verified", { context: state.careCircleContext });
+        state.screen = "IDENTITY_VERIFICATION";
+        render();
+        return;
       }
       try {
         const invite = growthStore.createSupportInvite({ inviterPatientId: state.offer.patient.id, patientFirstName: patientFirstName(), supportPersonName, phone: supportPersonPhone, relationship: supportPersonRelationship, relationshipOther: supportPersonRelationshipOther, context: state.careCircleContext, sessionId: state.sessionId, origin: location.origin });
