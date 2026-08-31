@@ -14,9 +14,9 @@ owner: ITERA HEALTH
 # Health information review
 
 Three patient responses must remain distinct:
-- Everything looks right = patient confirms the information shown.
-- Something has changed = capture a patient-reported update for review; do not silently overwrite the clinical record.
-- I need help reviewing this = record uncertainty/help request; do not treat it as confirmation.
+- Yes, everything is correct = patient confirms the information shown.
+- No, something changed = capture a patient-reported update for review; do not silently overwrite the clinical record.
+- I need help reviewing it = record uncertainty/help request; do not treat it as confirmation.
 A care-setup step may be completed even when the information itself is not clinically confirmed.
 
 ## EMMI response rule

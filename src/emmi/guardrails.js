@@ -101,9 +101,9 @@ const RULES = [
     ids: ["health-emmi-confirm"],
     match: /(confirm|correct|diagnos|confirmar|diagnóst|konfime|kòrèk|dyagnost)/i,
     answer: locale => pick(locale, {
-      EN: "I can help explain what the information means, but I can’t confirm a diagnosis or change your clinical record. If you’re unsure, choose ‘I need help reviewing this’ so your care team can review it with you.",
-      ES: "Puedo ayudarle a entender la información, pero no confirmar un diagnóstico ni cambiar su registro clínico. Si tiene dudas, elija “Necesito ayuda para revisarlo” para que su equipo lo revise con usted.",
-      KR: "Mwen ka ede eksplike enfòmasyon an, men mwen pa ka konfime yon dyagnostik ni chanje dosye klinik ou. Si ou pa sèten, chwazi “Mwen bezwen èd revize sa a” pou ekip swen ou ka revize li avèk ou."
+      EN: "I can help explain what the information means, but I can’t confirm a diagnosis or change your clinical record. If you’re unsure, choose ‘I need help reviewing it’ so your care team can review it with you.",
+      ES: "Puedo ayudarle a entender la información, pero no confirmar un diagnóstico ni cambiar su registro clínico. Si tiene dudas, elija “Necesito ayuda para revisarla” para que su equipo lo revise con usted.",
+      KR: "Mwen ka ede eksplike enfòmasyon an, men mwen pa ka konfime yon dyagnostik ni chanje dosye klinik ou. Si ou pa sèten, chwazi “Mwen bezwen èd pou revize li” pou ekip swen ou ka revize li avèk ou."
     })
   },
   {
