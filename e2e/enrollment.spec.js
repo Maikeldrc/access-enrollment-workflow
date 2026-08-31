@@ -2150,8 +2150,18 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   await expect(dialog.getByText(/urgent medical attention/i)).toBeVisible();
   await expect(dialog.getByRole("link", { name: "Call 911" })).toHaveAttribute("href", "tel:911");
 
-  // And once something urgent is open, it outranks everything else the patient asks next. Asking
-  // for a callback here is answered by the safety episode, not by a scheduling confirmation.
+  // While an episode is open, a turn that is not a resolution is answered by the episode: a
+  // callback request is a scheduling request, so it does not end an emergency and does not get a
+  // scheduling confirmation.
+  //
+  // This comment used to say the episode "outranks everything else the patient asks next", which
+  // read as a design guarantee. It was not. Nothing called resolveSafetyEpisode, so the episode
+  // never ended — one classified message and every later turn returned the 911 copy, through
+  // reloads, for good. The assertion this block replaced had expected a callback confirmation
+  // here, and was the only thing in the suite noticing the assistant never came back; it was
+  // rewritten on the belief that the lock was intended. `src/emmi/safetyPolicy.js` now ends an
+  // episode when the patient says help arrived or the symptoms passed, and expires it after four
+  // hours, so "everything else" is no longer literally everything.
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
   await expect(dialog.locator(".assistant-message.assistant").last()).toContainText(/urgent/i);
   await expect(dialog.getByRole("link", { name: "Call 911" }).last()).toBeVisible();
