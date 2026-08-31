@@ -31,7 +31,7 @@ const screenText = page => screen(page).innerText();
 // (activeAppointmentId, appointmentDraft, identityVerified), so the patch is merged on top of
 // the seed and the page reloaded once, exactly like the helper does.
 const openWith = async (page, options = {}, patch = {}, invites = null) => {
-  await page.goto("/?scenario=access-happy");
+  await page.goto("/?scenario=access-happy&appointmentService=manual");
   // The app writes its own draft during boot; seeding before that settles lets it clobber the seed.
   await page.waitForSelector(".shell", { state: "attached", timeout: 30000 });
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -1135,5 +1135,4 @@ test("a preference answer advances the scheduling flow instead of dropping the p
     "answering a preference question must keep the patient in the scheduling flow"
   ).toBeVisible();
 });
-
 

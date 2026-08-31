@@ -132,7 +132,7 @@ const DRAFT_KEY = "itera.enrollment.safe-draft.v2";
 // `activeAppointmentId` are — seeding those two is the only supported way into
 // APPOINTMENT_SCHEDULING without walking the medication refill flow.
 const openScreen = async (page, { screen = "MY_CARE", activeAppointmentId = "", careCircle = null, ...options } = {}) => {
-  await page.goto("/?scenario=access-happy");
+  await page.goto("/?scenario=access-happy&appointmentService=manual");
   // The app writes its own draft during boot; seeding before that settles lets it clobber the seed.
   await page.waitForSelector(".shell", { state: "attached", timeout: 30000 });
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));

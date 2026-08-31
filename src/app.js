@@ -22,6 +22,7 @@ import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, resolveSchedu
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, clearEmmiAuditLog, selectDemoPatientId } from "./emmi/tools.js";
@@ -60,6 +61,7 @@ let paintedScreen = null;
 let paintedError = "";
 claimHistoryScrollRestoration();
 const params = new URLSearchParams(location.search);
+const simulatedAppointmentServiceEnabled = params.get("appointmentService") !== "manual";
 const prototypeMode = params.get("prototype") === "1";
 const patientShareSource = params.get("source") === "patient-share";
 // ---------------------------------------------------------------------------------------------
@@ -3867,6 +3869,53 @@ function escalateAppointmentToCoordinator(record, { viaEmmi = false, capability 
   return { ok: true, record: escalated };
 }
 
+let appointmentResponseTimer = null;
+
+function applySimulatedAppointmentResponse(record, now = new Date()) {
+  if (!simulatedAppointmentResponseIsDue(record, now)) return null;
+  const response = simulateAppointmentServiceResponse(record, { now });
+  if (!response.ok) return null;
+  const { ok: _responseAccepted, ...confirmation } = response;
+  const waiting = record.status === APPOINTMENT_STATUS.REQUEST_SENT
+    ? advanceAppointment(record, { status: APPOINTMENT_STATUS.WAITING_FOR_OFFICE, source: "SIMULATED_SCHEDULING_SERVICE", actor: APPOINTMENT_ACTORS.SYSTEM, at: now.toISOString() })
+    : record;
+  const confirmed = advanceAppointment({ ...waiting, ...confirmation }, {
+    status: APPOINTMENT_STATUS.CONFIRMED,
+    source: "SIMULATED_SCHEDULING_SERVICE",
+    actor: APPOINTMENT_ACTORS.SYSTEM,
+    at: now.toISOString(),
+    detail: { confirmationNumber: response.confirmationNumber }
+  });
+  if (confirmed === waiting) return null;
+  saveAppointment(confirmed);
+  auditAppointment(APPOINTMENT_AUDIT_EVENTS.BOOKING_CONFIRMED, confirmed, { simulatedService: true });
+  return confirmed;
+}
+
+function scheduleSimulatedAppointmentResponses() {
+  if (appointmentResponseTimer) clearTimeout(appointmentResponseTimer);
+  appointmentResponseTimer = null;
+  if (!simulatedAppointmentServiceEnabled) return;
+  const pending = appointmentRecords().filter(record => record && [APPOINTMENT_STATUS.REQUEST_SENT, APPOINTMENT_STATUS.WAITING_FOR_OFFICE].includes(record.status));
+  if (!pending.length) return;
+  const now = Date.now();
+  const nextDueAt = Math.min(...pending.map(record => simulatedAppointmentResponseDueAt(record, SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS) ?? now));
+  appointmentResponseTimer = setTimeout(() => {
+    appointmentResponseTimer = null;
+    const responseTime = new Date();
+    const confirmed = appointmentRecords().map(record => applySimulatedAppointmentResponse(record, responseTime)).filter(Boolean);
+    if (confirmed.length) {
+      state.appointmentNotice = L("Your appointment has been confirmed.", "Su cita ha sido confirmada.", "Randevou ou konfime.");
+      if (state.screen === "APPOINTMENT_SCHEDULING" && confirmed.some(record => record.id === state.activeAppointmentId)) {
+        state.appointmentFlow = { appointmentId: state.activeAppointmentId, step: "BOOKED", error: "" };
+      }
+      draftStore.save(state);
+      render();
+    }
+    scheduleSimulatedAppointmentResponses();
+  }, Math.max(0, nextDueAt - now));
+}
+
 function requestAppointmentReschedule(record, { viaEmmi = false } = {}) {
   const permission = guardAppointment("RESCHEDULE", { viaEmmi });
   if (!permission.allowed) return { ok: false, error: permission.reason };
@@ -7265,7 +7314,7 @@ function bind() {
           step: capability.capability === SCHEDULING_CAPABILITY.STRUCTURED_REQUEST ? "REQUESTED" : "COORDINATING",
           error: ""
         };
-        draftStore.save(state); render(); return;
+        draftStore.save(state); scheduleSimulatedAppointmentResponses(); render(); return;
       }
       // §23: the only action offered when there is no scheduling channel at all.
       if (action === "appointment-ask-care-team") {
@@ -8464,6 +8513,10 @@ async function boot() {
       if (!saved.appointmentDraft || typeof saved.appointmentDraft !== "object") state.appointmentDraft = null;
       state.appointmentFlow = null;
       if (typeof saved.activeAppointmentId !== "string") state.activeAppointmentId = "";
+      if (state.screen === "APPOINTMENT_SCHEDULING"
+        && state.appointments.some(record => record.id === state.activeAppointmentId && record.status === APPOINTMENT_STATUS.CONFIRMED)) {
+        state.screen = "APPOINTMENT_DETAIL";
+      }
       state.refillFlow = { medicationId: "", step: "", answer: "" };
       if (!saved.medicationReviews || typeof saved.medicationReviews !== "object") state.medicationReviews = {};
       if (!Array.isArray(saved.additionalMedications)) state.additionalMedications = [];
@@ -8546,6 +8599,7 @@ async function boot() {
     }
     state.accessShares = patientShareSource ? [] : growthStore.allShares();
     document.documentElement.lang = htmlLanguage(state.language); render();
+    scheduleSimulatedAppointmentResponses();
     if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING" && !state.eligibilityError) runEligibility();
     startAssignedDeviceLookupIfPending();
   } catch (error) { state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID"; render(); }

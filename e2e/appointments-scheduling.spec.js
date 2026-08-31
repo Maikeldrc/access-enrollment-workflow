@@ -277,6 +277,48 @@ test("§138 human coordination creates a care-team task and says a person is coo
   expect(text).not.toMatch(CONFIRMED_WORDS);
   expect(text, "the human-coordination path renders the office-request screen verbatim")
     .toMatch(/care team|equipo|ekip/i);
+
+  await expect(page.getByRole("heading", { name: "Appointment confirmed" })).toBeVisible({ timeout: 10000 });
+  const confirmed = await storedAppointment(page);
+  expect(confirmed).toMatchObject({ status: "CONFIRMED", modality: "TELEHEALTH", timezone: "America/New_York" });
+  expect(confirmed.scheduledAt).toBeTruthy();
+  expect(confirmed.confirmationNumber).toMatch(/^ITERA-[0-9A-Z]{7}$/);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Appointment confirmed" })).toBeVisible();
+  const restored = await storedAppointment(page);
+  expect(restored.scheduledAt).toBe(confirmed.scheduledAt);
+  expect(restored.confirmationNumber).toBe(confirmed.confirmationNumber);
+});
+
+test("a pending appointment receives the simulated service confirmation and survives reload", async ({ page }) => {
+  test.setTimeout(120000);
+  const requestedAt = new Date(Date.now() - 60_000).toISOString();
+  const pending = need({
+    status: "REQUEST_SENT",
+    requestedProfessionalId: HUMAN_COORDINATION_PROVIDER,
+    requestedProfessionalType: "CARE_MANAGER",
+    providerDisplayName: "Alicia Ramírez, RN",
+    reasonCategory: "MEDICATION_RENEWAL",
+    preferredModality: "TELEHEALTH",
+    preferredTimeOfDay: "AFTERNOON",
+    requestSentAt: requestedAt,
+    updatedAt: requestedAt,
+    events: [{ status: "REQUEST_SENT", source: "ITERA", actor: "PATIENT", at: requestedAt, detail: null }]
+  });
+  await openScreen(page, { appointments: [pending], screen: "MY_APPOINTMENTS" });
+
+  await expect(page.getByText("Appointment confirmed")).toBeVisible({ timeout: 10000 });
+  const confirmed = await storedAppointment(page);
+  expect(confirmed.status).toBe("CONFIRMED");
+  expect(confirmed.scheduledAt).toBeTruthy();
+  expect(confirmed.confirmationNumber).toMatch(/^ITERA-[0-9A-Z]{7}$/);
+
+  await page.reload();
+  await expect(page.getByText("Appointment confirmed")).toBeVisible();
+  const restored = await storedAppointment(page);
+  expect(restored.scheduledAt).toBe(confirmed.scheduledAt);
+  expect(restored.confirmationNumber).toBe(confirmed.confirmationNumber);
 });
 
 /* ============================================================ §23 no available channel ==== */
