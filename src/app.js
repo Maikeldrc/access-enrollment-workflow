@@ -906,7 +906,9 @@ function assistantContext() {
         appointmentId: activeAppointmentRecord.id,
         providerDisplayName: activeAppointmentRecord.providerDisplayName || "",
         specialty: activeAppointmentRecord.specialty || "",
-        topics: (activeAppointmentRecord.prep?.topics || []).filter(Boolean).map(topic => String(topic).slice(0, 120))
+        topics: (activeAppointmentRecord.prep?.topics || []).filter(Boolean).map(topic => String(topic).slice(0, 120)),
+        medications: (activeAppointmentRecord.prep?.medications || []).filter(item => item?.medicationId && item?.name).map(item => ({ medicationId: String(item.medicationId), name: String(item.name).slice(0, 120), details: String(item.details || "").slice(0, 160) })),
+        emmiPreparation: activeAppointmentRecord.prep?.emmiPreparation && typeof activeAppointmentRecord.prep.emmiPreparation === "object" ? activeAppointmentRecord.prep.emmiPreparation : null
       }
     : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
@@ -6611,6 +6613,19 @@ async function askEmmi(question, { questionId = "", source = "input", replay = f
     const response = await assistantAnswer(cleaned, assistantContext(), { questionId });
     state.assistantPendingAction = response.pendingAction || state.assistantPendingAction;
     if (response.pendingAction) state.assistantPendingAppointmentId = response.appointmentId || "";
+    if (response.appointmentPrepUpdate && response.appointmentId) {
+      const appointment = appointmentById(response.appointmentId);
+      if (appointment) {
+        saveAppointment({
+          ...appointment,
+          prep: { ...(appointment.prep || {}), emmiPreparation: response.appointmentPrepUpdate, updatedAt: new Date().toISOString() },
+          updatedAt: new Date().toISOString()
+        });
+        state.assistantPendingNavigation = true;
+        audit(state, "appointment_prep_conversation_updated", "success", { appointmentId: appointment.id, status: response.appointmentPrepUpdate.status || "IN_PROGRESS", reviewedTopicCount: response.appointmentPrepUpdate.reviewedTopics?.length || 0 });
+        draftStore.save(state);
+      }
+    }
     state.assistantMessages.push({ role: "assistant", text: response.text, intent: response.trace?.intent || "", emergency: response.emergency, quickAction: response.quickAction || "", barrierId: response.barrierId || "", medicationId: response.medicationId || "", appointmentId: response.appointmentId || "", needId: response.needId || "" });
     emmiConversationManager?.recordTurn("assistant", response.text, { screen: state.screen });
     emmiConversationManager?.markGreeted();
@@ -6717,14 +6732,15 @@ function bindAssistantLayer() {
           details: medicationDetails(medication) || medicationSig(medication),
           addedAt: now
         }],
+        emmiPreparation: { ...(appointment.prep?.emmiPreparation || {}), status: "IN_PROGRESS", updatedAt: now },
         updatedAt: now
       },
       updatedAt: now
     });
     const confirmation = L(
-      `I added ${label} to your visit list. You can choose another medication or continue preparing other questions.`,
-      `Agregué ${label} a su lista para la cita. Puede elegir otro medicamento o seguir preparando otras preguntas.`,
-      `Mwen ajoute ${label} nan lis vizit ou. Ou ka chwazi yon lòt medikaman oswa kontinye prepare lòt kesyon.`
+      `I added ${label} to your visit list. Choose another medication if needed, or say “that’s all” and I’ll organize your full agenda.`,
+      `Agregué ${label} a su lista para la cita. Elija otro medicamento si lo necesita o diga “eso es todo” y organizaré su agenda completa.`,
+      `Mwen ajoute ${label} nan lis vizit ou. Chwazi yon lòt medikaman si sa nesesè, oswa di “se tout” epi m ap òganize tout ajanda ou.`
     );
     state.assistantMessages.push({ role: "assistant", text: confirmation, intent: "APPOINTMENT_PREP_MEDICATION_ADDED", appointmentId: appointment.id, medicationId: medication.id });
     emmiConversationManager?.recordTurn("assistant", confirmation, { screen: state.screen, appointmentId: appointment.id, medicationId: medication.id, source: "appointment-prep" });
@@ -7375,19 +7391,22 @@ function bind() {
         const topic = (input?.value || "").trim().slice(0, 200);
         if (!topic) return;
         const prep = record.prep || { topics: [], notes: "", sharedWithProvider: false, updatedAt: "" };
-        saveAppointment({ ...record, prep: { ...prep, topics: [...(prep.topics || []), topic], updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        const now = new Date().toISOString();
+        saveAppointment({ ...record, prep: { ...prep, topics: [...(prep.topics || []), topic], emmiPreparation: { ...(prep.emmiPreparation || {}), status: "IN_PROGRESS", currentTopic: "", completedAt: "", updatedAt: now }, updatedAt: now }, updatedAt: now });
         openAppointmentDetail(record.id, "PREP"); render(); return;
       }
       if (action === "appointment-remove-prep-topic") {
         const index = Number(el.dataset.topicIndex);
         const prep = record.prep || { topics: [] };
-        saveAppointment({ ...record, prep: { ...prep, topics: (prep.topics || []).filter((_, position) => position !== index), updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        const now = new Date().toISOString();
+        saveAppointment({ ...record, prep: { ...prep, topics: (prep.topics || []).filter((_, position) => position !== index), emmiPreparation: { ...(prep.emmiPreparation || {}), status: "IN_PROGRESS", currentTopic: "", completedAt: "", updatedAt: now }, updatedAt: now }, updatedAt: now });
         openAppointmentDetail(record.id, "PREP"); render(); return;
       }
       if (action === "appointment-remove-prep-medication") {
         const medicationId = el.dataset.medicationId || "";
         const prep = record.prep || { topics: [], medications: [] };
-        saveAppointment({ ...record, prep: { ...prep, medications: (prep.medications || []).filter(item => item.medicationId !== medicationId), updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        const now = new Date().toISOString();
+        saveAppointment({ ...record, prep: { ...prep, medications: (prep.medications || []).filter(item => item.medicationId !== medicationId), emmiPreparation: { ...(prep.emmiPreparation || {}), status: "IN_PROGRESS", completedAt: "", updatedAt: now }, updatedAt: now }, updatedAt: now });
         openAppointmentDetail(record.id, "PREP"); render(); return;
       }
       // §47: the brief goes to the provider only because the patient chose to send it.

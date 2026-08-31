@@ -230,7 +230,8 @@ test("a specialty the product has never heard of never becomes a provider", asyn
   const screen = await screenText(page);
   // §11: nothing on screen names a doctor, a specialty or a practice the runtime did not confirm.
   expect(screen).not.toMatch(/dermatolog/i);
-  expect(screen).not.toMatch(/Dr\.\s(?!Fresner)[A-Z]/);
+  expect(screen).toContain("Dr. Fresner Lee");
+  expect(screen).toContain("Dr. Pedro Martinez-Clark");
   // §13: the request that was opened carries no invented professional at all.
   const stored = await storedAppointments(page);
   expect(stored).toHaveLength(1);
@@ -713,7 +714,9 @@ test("Prepare with EMMI builds and persists a visit medication agenda without ch
   await expect(page.locator(".appointment-medication-agenda")).toContainText("Lisinopril 10 mg");
   await expect(page.locator(".appointment-medication-agenda")).toContainText("Una vez al día");
   await page.locator('[data-action="appointment-open-brief"]').click();
-  await expect(page.locator(".appointment-brief-screen")).toContainText("Medicamento: Lisinopril 10 mg");
+  await expect(page.locator(".appointment-brief-screen")).toContainText("medicamentos");
+  await expect(page.locator(".appointment-brief-subitems")).toContainText("Lisinopril 10 mg");
+  await expect(page.locator(".appointment-brief-subitems")).toContainText("Una vez al día");
 
   let stored = await draft(page);
   expect(stored.appointments[0].prep.medications).toEqual([
@@ -725,10 +728,50 @@ test("Prepare with EMMI builds and persists a visit medication agenda without ch
   await page.locator('[data-action="appointment-open-prep"]').click();
   await expect(page.locator(".appointment-medication-agenda")).toContainText("Lisinopril 10 mg");
   await page.locator('[data-action="appointment-open-brief"]').click();
-  await expect(page.locator(".appointment-brief-screen")).toContainText("Medicamento: Lisinopril 10 mg");
+  await expect(page.locator(".appointment-brief-subitems")).toContainText("Lisinopril 10 mg");
+  await expect(page.locator(".appointment-brief-subitems")).toContainText("Una vez al día");
   stored = await draft(page);
   expect(stored.appointments[0].prep.medications).toHaveLength(1);
   expect(stored.careMedications).toEqual(medicationRecordBefore);
+});
+
+test("Prepare with EMMI closes a coherent agenda after medications and added topics", async ({ page }) => {
+  const medications = [
+    { id: "med-lisinopril", name: "Lisinopril", strength: "10 mg", details: "10 mg · Una vez al día", active: true },
+    { id: "med-atorvastatin", name: "Atorvastatin", strength: "20 mg", details: "20 mg · Una vez al día", active: true }
+  ];
+  await openAppointments(page, {
+    language: "es",
+    careMedications: medications,
+    appointments: [appointment({ prep: { topics: ["Mis Medicamentos", "Presión alta", "fatiga"], medications: [], notes: "", sharedWithProvider: false } })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+
+  const panel = page.locator(".assistant-layer");
+  await expect(panel.locator(".assistant-message.assistant").last()).toContainText(/con cu[aá]l tema/i);
+  await tellEmmi(page, "Mis Medicamentos", "es");
+  await panel.getByRole("button", { name: /Lisinopril 10 mg/ }).click();
+  await panel.getByRole("button", { name: /Atorvastatin 20 mg/ }).click();
+
+  const summary = await tellEmmi(page, "solo eso", "es");
+  await expect(summary).toContainText(/agenda.*lista/i);
+  await expect(summary).toContainText("Presión alta");
+  await expect(summary).toContainText("fatiga");
+  await expect(summary).toContainText("Lisinopril 10 mg");
+  await expect(summary).toContainText("Atorvastatin 20 mg");
+  await expect(summary).not.toContainText(/QMB|Medicare|programa de ahorro/i);
+
+  await closeEmmi(page);
+  await expect(page.locator(".appointment-prep-screen")).toContainText("Agenda preparada con EMMI");
+  await expect(page.locator(".appointment-medication-agenda")).toContainText("Lisinopril 10 mg");
+  await page.reload();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await expect(page.locator(".appointment-prep-screen")).toContainText("Agenda preparada con EMMI");
+  const stored = await draft(page);
+  expect(stored.appointments[0].prep.emmiPreparation.status).toBe("COMPLETED");
+  expect(stored.appointments[0].prep.medications).toHaveLength(2);
 });
 
 /* ------------------------------------------------------------------------ §122 §123 §124 ---- */

@@ -80,7 +80,7 @@ describe("the appointment record", () => {
       preferredTimeOfDay: TIME_OF_DAY.NO_PREFERENCE
     });
     expect(record.events).toHaveLength(1);
-    expect(record.prep).toEqual({ topics: [], medications: [], notes: "", sharedWithProvider: false, updatedAt: "" });
+    expect(record.prep).toEqual({ topics: [], medications: [], notes: "", emmiPreparation: { status: "NOT_STARTED", currentTopic: "", reviewedTopics: [], notesByTopic: {}, updatedAt: "", completedAt: "" }, sharedWithProvider: false, updatedAt: "" });
     expect(record.reminder).toBeNull();
     expect(record.sharedWith).toEqual([]);
   });
@@ -452,6 +452,7 @@ describe("the draft", () => {
           { medicationId: "med-2", name: "Atorvastatin 20 mg", details: "At night", addedAt: NOW }
         ],
         notes: "",
+        emmiPreparation: { status: "COMPLETED", currentTopic: "", reviewedTopics: ["Review my medications"], notesByTopic: { "Review my medications": ["Ask about timing"] }, updatedAt: NOW, completedAt: NOW },
         sharedWithProvider: false,
         updatedAt: NOW
       }
@@ -463,6 +464,8 @@ describe("the draft", () => {
       { medicationId: "med-2", name: "Atorvastatin 20 mg", details: "At night", addedAt: NOW }
     ]);
     expect(Object.isFrozen(restored.prep.medications)).toBe(true);
+    expect(restored.prep.emmiPreparation).toEqual({ status: "COMPLETED", currentTopic: "", reviewedTopics: ["Review my medications"], notesByTopic: { "Review my medications": ["Ask about timing"] }, updatedAt: NOW, completedAt: NOW });
+    expect(Object.isFrozen(restored.prep.emmiPreparation.notesByTopic["Review my medications"])).toBe(true);
   });
 });
 

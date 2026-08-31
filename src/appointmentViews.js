@@ -117,20 +117,33 @@ export function appointmentPrepConversationOpening({ locale = "en", appointment 
   const topics = Array.isArray(appointment.prep?.topics)
     ? appointment.prep.topics.map(topic => String(topic || "").trim()).filter(Boolean)
     : [];
+  const medications = Array.isArray(appointment.prep?.medications)
+    ? appointment.prep.medications.map(item => String(item?.name || "").trim()).filter(Boolean)
+    : [];
   const providerText = provider
     ? localAppointmentViewText(T(` with ${provider}`, ` con ${provider}`, ` ak ${provider}`), language)
     : "";
-  if (!topics.length) return localAppointmentViewText(T(
+  if (appointment.prep?.emmiPreparation?.status === "COMPLETED") {
+    const agenda = [...topics, ...medications.map(name => localAppointmentViewText(T(`Medication: ${name}`, `Medicamento: ${name}`, `Medikaman: ${name}`), language))].map(item => `“${item}”`).join(", ");
+    return localAppointmentViewText(T(
+      `Your agenda for the appointment${providerText} is ready${agenda ? `: ${agenda}` : ""}. You can review it under “See my list.”`,
+      `Su agenda para la cita${providerText} está lista${agenda ? `: ${agenda}` : ""}. Puede revisarla en “Ver mi lista”.`,
+      `Ajanda ou pou randevou a${providerText} pare${agenda ? `: ${agenda}` : ""}. Ou ka revize li nan “Gade lis mwen”.`
+    ), language);
+  }
+  const medicationTopics = medications.map(name => localAppointmentViewText(T(`medication ${name}`, `medicamento ${name}`, `medikaman ${name}`), language));
+  const agendaTopics = [...topics, ...medicationTopics];
+  if (!agendaTopics.length) return localAppointmentViewText(T(
     `Let’s prepare for your appointment${providerText}. What would you like help getting ready to discuss?`,
     `Preparémonos para su cita${providerText}. ¿Sobre qué le gustaría prepararse para conversar?`,
     `Ann prepare pou randevou ou${providerText}. Sou kisa ou ta renmen prepare pou pale?`
   ), language);
-  if (topics.length === 1) return localAppointmentViewText(T(
-    `Let’s prepare for your appointment${providerText}. You wanted to discuss “${topics[0]}”, so we’ll start there.`,
-    `Preparémonos para su cita${providerText}. Quería conversar sobre “${topics[0]}”, así que empezaremos por ese tema.`,
-    `Ann prepare pou randevou ou${providerText}. Ou te vle pale sou “${topics[0]}”, kidonk n ap kòmanse ak sijè sa a.`
+  if (agendaTopics.length === 1) return localAppointmentViewText(T(
+    `Let’s prepare for your appointment${providerText}. You wanted to discuss “${agendaTopics[0]}”, so we’ll start there.`,
+    `Preparémonos para su cita${providerText}. Quería conversar sobre “${agendaTopics[0]}”, así que empezaremos por ese tema.`,
+    `Ann prepare pou randevou ou${providerText}. Ou te vle pale sou “${agendaTopics[0]}”, kidonk n ap kòmanse ak sijè sa a.`
   ), language);
-  const topicList = topics.map(topic => `“${topic}”`).join(", ");
+  const topicList = agendaTopics.map(topic => `“${topic}”`).join(", ");
   return localAppointmentViewText(T(
     `Let’s prepare for your appointment${providerText}. You wanted to discuss ${topicList}. Which topic would you like to start with?`,
     `Preparémonos para su cita${providerText}. Quería conversar sobre ${topicList}. ¿Con cuál tema le gustaría empezar?`,
@@ -371,6 +384,12 @@ const askEmmiButton = (props, appointmentId = "") => {
   return `<button type="button" class="appointment-inline-link" data-action="appointment-ask-emmi" data-appointment-id="${esc(appointmentId)}">${t("Ask EMMI about this", "Preguntar a EMMI sobre esto", "Mande EMMI sou sa")} ${iconOf(props)("arrowRight")}</button>`;
 };
 
+const viewListButton = (props, appointmentId = "", className = "appointment-inline-link") => {
+  const t = say(localeOf(props));
+  const esc = escaper(props);
+  return `<button type="button" class="${className}" data-action="appointment-open-brief" data-appointment-id="${esc(appointmentId)}"><span>${t("See my list", "Ver mi lista", "Gade lis mwen")}</span>${iconOf(props)("arrowRight")}</button>`;
+};
+
 const backButton = props => {
   const t = say(localeOf(props));
   return `<button type="button" class="appointment-back" data-action="appointment-back">${iconOf(props)("arrowLeft")}<span>${t("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</span></button>`;
@@ -404,7 +423,7 @@ const appointmentCard = (appointment, props, kind) => {
     ${statusLine(appointment, props)}
     ${kind === "request" ? preferenceLine(appointment, props) : ""}
     ${nextStepLine(appointment, props)}
-    <button type="button" class="appointment-card-action" data-action="appointment-open" data-appointment-id="${esc(appointment?.id)}"><span>${label}</span>${glyph("arrowRight")}</button>
+    <div class="appointment-card-actions"><button type="button" class="appointment-card-action" data-action="appointment-open" data-appointment-id="${esc(appointment?.id)}"><span>${label}</span>${glyph("arrowRight")}</button>${kind === "appointment" ? viewListButton(props, appointment?.id, "appointment-card-action") : ""}</div>
   </article>`;
 };
 
@@ -555,7 +574,7 @@ export function appointmentDetailView(props = {}) {
         <p class="appointment-hero-date">${esc(formatLongDate(parts, locale))}</p>
         <p class="appointment-hero-time">${esc(formatTime(parts, locale))}</p>
         ${whereBlock(appointment, props)}
-        ${appointment.confirmationNumber ? `<p class="appointment-meta">${t("Confirmation number", "Número de confirmación", "Nimewo konfimasyon")}: ${esc(appointment.confirmationNumber)}</p>` : ""}
+        ${viewListButton(props, appointment.id)}
       </section>
       ${capabilityNote}
       <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
@@ -663,7 +682,7 @@ export function bookingConfirmationView(props = {}) {
       <p class="appointment-hero-date">${esc(formatLongDate(parts, locale))}</p>
       <p class="appointment-hero-time">${esc(formatTime(parts, locale))}</p>
       ${whereBlock(appointment, props)}
-      ${appointment.confirmationNumber ? `<p class="appointment-meta">${t("Confirmation number", "Número de confirmación", "Nimewo konfimasyon")}: ${esc(appointment.confirmationNumber)}</p>` : ""}
+      ${viewListButton(props, appointment.id)}
     </section>
     <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
     ${askEmmiButton(props, appointment.id)}
@@ -707,6 +726,8 @@ export function appointmentPrepView(props = {}) {
   const when = relativeDay(appointment.scheduledAt, appointment.timezone, props.now, locale);
   const topics = Array.isArray(appointment.prep?.topics) ? appointment.prep.topics.filter(Boolean) : [];
   const prepMedications = Array.isArray(appointment.prep?.medications) ? appointment.prep.medications.filter(item => item?.medicationId && item?.name) : [];
+  const emmiPreparation = appointment.prep?.emmiPreparation && typeof appointment.prep.emmiPreparation === "object" ? appointment.prep.emmiPreparation : {};
+  const notesFor = topic => Array.isArray(emmiPreparation.notesByTopic?.[topic]) ? emmiPreparation.notesByTopic[topic].filter(Boolean) : [];
   return `<div class="appointment-screen appointment-prep-screen">
     ${screenTitle(props, t("Get ready", "Prepárese", "Prepare w"), t("EMMI can help you remember what you want to discuss.", "EMMI puede ayudarle a recordar lo que quiere conversar.", "EMMI ka ede w sonje sa ou vle pale sou li."), t("Appointment", "Cita", "Randevou"))}
     <section class="appointment-prep-context">
@@ -714,9 +735,10 @@ export function appointmentPrepView(props = {}) {
       <div class="appointment-identity">${identityBlock(appointment, props)}</div>
       ${parts ? `<p class="appointment-meta">${esc(formatTime(parts, locale))}</p>` : ""}
     </section>
+    ${emmiPreparation.status === "COMPLETED" ? `<p class="appointment-status" data-tone="CONFIRMED">${glyph("check")}<span>${t("Agenda prepared with EMMI", "Agenda preparada con EMMI", "Ajanda prepare ak EMMI")}</span></p>` : ""}
     <h2 class="appointment-question">${t("Things you wanted to discuss", "Lo que quería conversar", "Bagay ou te vle pale sou yo")}</h2>
     ${topics.length
-      ? `<ul class="appointment-topics">${topics.map((topic, index) => `<li><span class="appointment-topic-text">${esc(topic)}</span><button type="button" class="appointment-topic-remove" data-action="appointment-remove-prep-topic" data-appointment-id="${esc(appointment.id)}" data-topic-index="${index}"><span class="appointment-visually-hidden">${t("Remove", "Eliminar", "Retire")}</span>${glyph("rotate")}</button></li>`).join("")}</ul>`
+      ? `<ul class="appointment-topics">${topics.map((topic, index) => `<li><span class="appointment-topic-text">${esc(topic)}${notesFor(topic).map(note => `<small>${esc(note)}</small>`).join("")}</span><button type="button" class="appointment-topic-remove" data-action="appointment-remove-prep-topic" data-appointment-id="${esc(appointment.id)}" data-topic-index="${index}"><span class="appointment-visually-hidden">${t("Remove", "Eliminar", "Retire")}</span>${glyph("rotate")}</button></li>`).join("")}</ul>`
       : `<p class="appointment-empty">${t("Nothing added yet.", "Todavía no hay nada.", "Poko gen anyen.")}</p>`}
     ${prepMedications.length ? `<section class="appointment-prep-medications">
       <h2 class="appointment-question">${t("Medications to review", "Medicamentos para revisar", "Medikaman pou revize")}</h2>
@@ -744,7 +766,13 @@ export function appointmentBriefView(props = {}) {
   const t = say(locale);
   const topics = Array.isArray(appointment.prep?.topics) ? appointment.prep.topics.filter(Boolean) : [];
   const prepMedications = Array.isArray(appointment.prep?.medications) ? appointment.prep.medications.filter(item => item?.medicationId && item?.name) : [];
+  const emmiPreparation = appointment.prep?.emmiPreparation && typeof appointment.prep.emmiPreparation === "object" ? appointment.prep.emmiPreparation : {};
+  const notesFor = topic => Array.isArray(emmiPreparation.notesByTopic?.[topic]) ? emmiPreparation.notesByTopic[topic].filter(Boolean) : [];
   const shared = appointment.prep?.sharedWithProvider === true;
+  const medicationTopicIndex = topics.findIndex(topic => /medication|medicine|medicamento|medikaman/i.test(String(topic)));
+  const medicationItems = prepMedications.map(item => `<li class="appointment-brief-medication"><strong>${esc(item.name)}</strong>${item.details ? `<small>${esc(item.details)}</small>` : ""}</li>`).join("");
+  const topicItems = topics.map((topic, index) => `<li class="appointment-brief-item"><span>${esc(topic)}</span>${notesFor(topic).map(note => `<small>${esc(note)}</small>`).join("")}${index === medicationTopicIndex && medicationItems ? `<ul class="appointment-brief-subitems">${medicationItems}</ul>` : ""}</li>`).join("");
+  const ungroupedMedicationItem = medicationItems && medicationTopicIndex < 0 ? `<li class="appointment-brief-item appointment-brief-medication-group"><span>${t("Medications to review", "Medicamentos para revisar", "Medikaman pou revize")}</span><ul class="appointment-brief-subitems">${medicationItems}</ul></li>` : "";
   // §46: only fields the record actually carries. Nothing is invented, nothing is a transcript.
   const contextRows = [
     appointment.reasonCategory ? [t("Reason", "Motivo", "Rezon"), reasonLabel(appointment.reasonCategory, locale)] : null,
@@ -755,8 +783,9 @@ export function appointmentBriefView(props = {}) {
   return `<div class="appointment-screen appointment-brief-screen">
     ${screenTitle(props, t("Things I want to discuss", "Lo que quiero conversar", "Bagay mwen vle pale sou yo"), "", t("Appointment", "Cita", "Randevou"))}
     <div class="appointment-identity">${identityBlock(appointment, props)}</div>
+    ${emmiPreparation.status === "COMPLETED" ? `<p class="appointment-status" data-tone="CONFIRMED">${glyph("check")}<span>${t("Agenda prepared with EMMI", "Agenda preparada con EMMI", "Ajanda prepare ak EMMI")}</span></p>` : ""}
     ${topics.length || prepMedications.length
-      ? `<ol class="appointment-brief-list">${topics.map(topic => `<li class="appointment-brief-item">${esc(topic)}</li>`).join("")}${prepMedications.map(item => `<li class="appointment-brief-item appointment-brief-medication"><strong>${t("Medication", "Medicamento", "Medikaman")}: ${esc(item.name)}</strong>${item.details ? `<small>${esc(item.details)}</small>` : ""}</li>`).join("")}</ol>`
+      ? `<ol class="appointment-brief-list">${topicItems}${ungroupedMedicationItem}</ol>`
       : `<p class="appointment-empty">${t("You haven’t added anything yet.", "Todavía no ha agregado nada.", "Ou poko ajoute anyen.")}</p>`}
     <button type="button" class="appointment-inline-link" data-action="appointment-open-prep" data-appointment-id="${esc(appointment.id)}">${t("Edit", "Editar", "Modifye")} ${glyph("arrowRight")}</button>
     ${contextRows.length ? `<section class="appointment-brief-context">

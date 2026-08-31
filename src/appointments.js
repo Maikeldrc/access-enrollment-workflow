@@ -153,6 +153,16 @@ function freezeAppointment(record) {
     details: bounded(item?.details, 240),
     addedAt: item?.addedAt || ""
   })).filter(item => item.medicationId && item.name);
+  const rawPreparation = record.prep?.emmiPreparation && typeof record.prep.emmiPreparation === "object" ? record.prep.emmiPreparation : {};
+  const preparationNotes = Object.fromEntries(Object.entries(rawPreparation.notesByTopic || {}).slice(0, 20).map(([topic, notes]) => [bounded(topic, 120), Object.freeze((Array.isArray(notes) ? notes : []).slice(-5).map(note => bounded(note, 400)).filter(Boolean))]).filter(([topic]) => topic));
+  const emmiPreparation = Object.freeze({
+    status: ["IN_PROGRESS", "COMPLETED"].includes(rawPreparation.status) ? rawPreparation.status : "NOT_STARTED",
+    currentTopic: bounded(rawPreparation.currentTopic, 120),
+    reviewedTopics: Object.freeze((rawPreparation.reviewedTopics || []).slice(0, 20).map(topic => bounded(topic, 120)).filter(Boolean)),
+    notesByTopic: Object.freeze(preparationNotes),
+    updatedAt: rawPreparation.updatedAt || "",
+    completedAt: rawPreparation.completedAt || ""
+  });
   return Object.freeze({
     ...record,
     preferredDateRange: record.preferredDateRange ? Object.freeze({ ...record.preferredDateRange }) : null,
@@ -160,7 +170,7 @@ function freezeAppointment(record) {
     events: Object.freeze((record.events || []).map(event => Object.freeze({ ...event }))),
     sharedWith: Object.freeze((record.sharedWith || []).map(share => Object.freeze({ ...share }))),
     reminder: record.reminder ? Object.freeze({ ...record.reminder }) : null,
-    prep: Object.freeze({ topics: Object.freeze([...(record.prep?.topics || [])]), medications: Object.freeze(prepMedications), notes: record.prep?.notes || "", sharedWithProvider: record.prep?.sharedWithProvider === true, updatedAt: record.prep?.updatedAt || "" })
+    prep: Object.freeze({ topics: Object.freeze([...(record.prep?.topics || [])]), medications: Object.freeze(prepMedications), notes: record.prep?.notes || "", emmiPreparation, sharedWithProvider: record.prep?.sharedWithProvider === true, updatedAt: record.prep?.updatedAt || "" })
   });
 }
 
@@ -237,7 +247,7 @@ export function createAppointmentNeed({
     attendanceOutcome: "",
     followUpAskedAt: "",
     reminder: null,
-    prep: { topics: [], medications: [], notes: "", sharedWithProvider: false, updatedAt: "" },
+    prep: { topics: [], medications: [], notes: "", emmiPreparation: { status: "NOT_STARTED", currentTopic: "", reviewedTopics: [], notesByTopic: {}, updatedAt: "", completedAt: "" }, sharedWithProvider: false, updatedAt: "" },
     sharedWith: []
   });
 }
@@ -630,6 +640,11 @@ export const serializeAppointmentForDraft = record => (record
       topics: [...(record.prep?.topics || [])],
       medications: (record.prep?.medications || []).map(item => ({ ...item })),
       notes: record.prep?.notes || "",
+      emmiPreparation: record.prep?.emmiPreparation && typeof record.prep.emmiPreparation === "object" ? {
+        ...record.prep.emmiPreparation,
+        reviewedTopics: [...(record.prep.emmiPreparation.reviewedTopics || [])],
+        notesByTopic: Object.fromEntries(Object.entries(record.prep.emmiPreparation.notesByTopic || {}).map(([topic, notes]) => [topic, [...(notes || [])]]))
+      } : { status: "NOT_STARTED", currentTopic: "", reviewedTopics: [], notesByTopic: {}, updatedAt: "", completedAt: "" },
       sharedWithProvider: record.prep?.sharedWithProvider === true,
       updatedAt: record.prep?.updatedAt || ""
     },

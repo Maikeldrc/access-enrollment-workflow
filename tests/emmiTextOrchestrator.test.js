@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EmmiTextOrchestrator, expandEmmiQuery, resolveAppointmentPrepTopic } from "../src/emmi/textOrchestrator.js";
+import { EmmiTextOrchestrator, appointmentPrepConversationResponse, expandEmmiQuery, resolveAppointmentPrepTopic } from "../src/emmi/textOrchestrator.js";
 import { EMMI_TOOL_DECLARATIONS, EmmiToolOrchestrator } from "../src/emmi/tools.js";
 import { DEMO_BASELINE_OBSERVATIONS } from "../src/config.js";
 import { accessProgressMeasure, patientStartingPoint } from "../src/accessCareActivation.js";
@@ -192,6 +192,56 @@ describe("Ask EMMI answer-first orchestration", () => {
   it("does not guess between multiple prep topics before the patient selects one", () => {
     const appointmentPrep = { topics: ["BP Readings", "medicamentos"] };
     expect(resolveAppointmentPrepTopic({ question: "¿Qué significa eso?", conversation: {}, appointmentPrep })).toBe("");
+  });
+
+  it("closes a Spanish appointment agenda instead of falling into stale QMB context", async () => {
+    const appointmentPrep = {
+      appointmentId: "APPT-1",
+      providerDisplayName: "Dr. Fresner Lee",
+      topics: ["Mis Medicamentos", "Presión alta", "fatiga"],
+      medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg" }, { medicationId: "med-2", name: "Atorvastatin 20 mg" }]
+    };
+    const { orchestrator, executeTool } = harness({
+      locale: "ES",
+      appointmentPrep,
+      conversation: { summary: "user: ¿Qué es QMB? | assistant: QMB es un programa de ahorro de Medicare." }
+    });
+
+    const answer = await orchestrator.answer("solo eso");
+
+    expect(answer.text).toMatch(/agenda.*lista/i);
+    expect(answer.text).toContain("Presión alta");
+    expect(answer.text).toContain("Lisinopril 10 mg");
+    expect(answer.text).not.toMatch(/QMB|Medicare|programa de ahorro/i);
+    expect(answer.appointmentPrepUpdate.status).toBe("COMPLETED");
+    expect(answer.trace.intent).toBe("APPOINTMENT_PREPARATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("continues a saved appointment topic and turns the patient's detail into an agenda note", () => {
+    const appointmentPrep = { providerDisplayName: "Dr. Fresner Lee", topics: ["Presión alta", "fatiga"], medications: [] };
+    const selected = appointmentPrepConversationResponse({ question: "fatiga", locale: "ES", appointmentPrep });
+    expect(selected.text).toMatch(/cuándo comenzó|detalle principal/i);
+    expect(selected.update.currentTopic).toBe("fatiga");
+
+    const noted = appointmentPrepConversationResponse({
+      question: "Me pasa principalmente por las tardes",
+      locale: "ES",
+      appointmentPrep: { ...appointmentPrep, emmiPreparation: selected.update }
+    });
+    expect(noted.update.notesByTopic.fatiga).toEqual(["Me pasa principalmente por las tardes"]);
+    expect(noted.update.reviewedTopics).toContain("fatiga");
+    expect(noted.text).toContain("Presión alta");
+  });
+
+  it("answers a generic appointment-prep continuation from the saved agenda", async () => {
+    const appointmentPrep = { appointmentId: "APPT-1", providerDisplayName: "Dr. Fresner Lee", topics: ["Presión alta", "fatiga"], medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg" }] };
+    const { orchestrator, executeTool } = harness({ locale: "ES", appointmentPrep });
+    const answer = await orchestrator.answer("Tengo una pregunta sobre mi cita con Dr. Fresner Lee");
+    expect(answer.text).toMatch(/lista para la cita|qué punto/i);
+    expect(answer.text).toContain("fatiga");
+    expect(answer.text).toContain("Lisinopril 10 mg");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
   it("uses screen context only for an actual screen-help question", async () => {

@@ -122,15 +122,22 @@ describe("appointment views — request is never a confirmed appointment (§7, �
     const requestCard = html.slice(html.indexOf('data-kind="request"'));
     expect(requestCard).not.toContain("appointment-card-when");
     expect(requestCard).toContain("View request");
+    expect(html).toContain('class="appointment-card-actions"');
+    expect(html).toContain('data-action="appointment-open-brief"');
+    expect(html).toContain("See my list");
   });
 
   it("renders a real confirmation with confirmed formatting", () => {
-    const html = bookingConfirmationView({ ...base, appointment: confirmed });
+    const html = bookingConfirmationView({ ...base, appointment: { ...confirmed, confirmationNumber: "ITERA-INTERNAL-123" } });
     expect(html).toContain('data-kind="appointment"');
     expect(html).toContain('data-tone="CONFIRMED"');
     expect(html).toContain('data-icon="check"');
     expect(html).toContain("Tuesday, September 8");
     expect(html).toContain("2:30 PM");
+    expect(html).not.toContain("ITERA-INTERNAL-123");
+    expect(html).not.toContain("Confirmation number");
+    expect(html).toContain('data-action="appointment-open-brief"');
+    expect(html).toContain("See my list");
   });
 });
 
@@ -477,7 +484,7 @@ describe("appointment views — preparation, brief and sharing (§43-§47, §114
 
   it("shows medications selected with EMMI in both the editable prep and visit-day brief", () => {
     const prep = {
-      topics: ["My blood pressure"],
+      topics: ["My medications"],
       medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg", details: "Once daily" }],
       sharedWithProvider: false
     };
@@ -488,8 +495,25 @@ describe("appointment views — preparation, brief and sharing (§43-§47, §114
     expect(prepHtml).toContain('data-action="appointment-remove-prep-medication"');
 
     const briefHtml = appointmentBriefView({ ...base, appointment: { ...confirmed, prep } });
-    expect(briefHtml).toContain("Medication: Lisinopril 10 mg");
+    expect(briefHtml).toContain("Lisinopril 10 mg");
     expect(briefHtml).toContain("Once daily");
+    expect(briefHtml).toContain("appointment-brief-subitems");
+    expect(briefHtml).toMatch(/My medications[\s\S]*appointment-brief-subitems[\s\S]*Lisinopril 10 mg/);
+  });
+
+  it("restores the completed EMMI agenda and its conversational notes in the UI", () => {
+    const prep = {
+      topics: ["fatigue"],
+      medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg", details: "Once daily" }],
+      emmiPreparation: { status: "COMPLETED", reviewedTopics: ["fatigue"], notesByTopic: { fatigue: ["Mostly in the afternoon"] } }
+    };
+    const appointment = { ...confirmed, prep };
+    expect(appointmentPrepConversationOpening({ locale: "en", appointment })).toContain("agenda for the appointment with Dr. Pedro Martinez is ready");
+    for (const html of [appointmentPrepView({ ...base, now: NOW, appointment }), appointmentBriefView({ ...base, appointment })]) {
+      expect(html).toContain("Agenda prepared with EMMI");
+      expect(html).toContain("Mostly in the afternoon");
+      expect(html).toContain("Lisinopril 10 mg");
+    }
   });
 
   it("says the appointment is tomorrow when it is tomorrow (§112)", () => {

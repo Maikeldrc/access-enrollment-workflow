@@ -59,6 +59,9 @@ const WEIGHT_SUBJECT = /weight|pounds?|\blbs?\b|bmi|%|percent|peso|libras?|imc|p
 const BLOOD_PRESSURE_SUBJECT = /blood pressure|\bbp\b|systolic|mmhg|points?|presi[oó]n|sist[oó]lica|puntos?|tansyon|sistolik|pwen/i;
 const APPOINTMENT_PREP_FOLLOW_UP = /^(what|how|why|can|could|is|are|does|do|tell me|explain|que|qué|como|cómo|por que|por qué|puede|podria|podría|es|son|diga|digame|dígame|explique|kisa|kijan|poukisa|eske|èske|esplike)\b/i;
 const APPOINTMENT_PREP_TREND = /trend|this week|recently|changed|going|how (have|are|is)|tendencia|esta semana|[uú]ltimamente|cambiado|c[oó]mo (han|ha|va)|tandans|sem[eè]n|d[eè]ny[eè]man|chanje|kijan/i;
+const APPOINTMENT_PREP_DONE = /^(solo eso|eso es todo|nada m[aá]s|no m[aá]s|solamente eso|that'?s all|that is all|just that|nothing else|i'?m done|se tout|sa s[eè]lman|pa gen anyen ank[oò])[.! ]*$/i;
+const APPOINTMENT_PREP_CONTINUE = /pregunta sobre (mi|la) cita|ay[uú]dame a preparar|seguir preparando|preparar (mi|la) cita|question about my appointment|help me prepare|continue preparing|prepare for my appointment|kesyon sou randevou|ede m prepare|kontinye prepare/i;
+const APPOINTMENT_PREP_QUESTION = /\?$|^(what|why|how|when|where|who|can|could|is|are|does|do|qu[eé]|por qu[eé]|c[oó]mo|cu[aá]ndo|d[oó]nde|qui[eé]n|puede|es|son|kisa|poukisa|kijan|kil[eè]|ki kote|eske|[eè]ske)\b/i;
 
 // Resolve the patient's active subject from their saved prep list and their own recent turns. An
 // assistant message may mention every topic at once, so it is deliberately not evidence of which
@@ -78,6 +81,84 @@ export const resolveAppointmentPrepTopic = ({ question, conversation = {}, appoi
   const prior = topics.find(topic => recentUserTurns.some(turn => topicKey(turn.text).includes(topicKey(topic))));
   return prior || (topics.length === 1 ? topics[0] : "");
 };
+
+const appointmentPrepSummary = (appointmentPrep, locale) => {
+  const topics = (appointmentPrep?.topics || []).map(clean).filter(Boolean).filter(topic => !/medication|medicine|medicamento|medikaman/i.test(topic));
+  const medications = (appointmentPrep?.medications || []).map(item => clean(item?.name)).filter(Boolean);
+  const parts = [
+    ...topics.map(topic => `“${topic}”`),
+    ...(medications.length ? [pick(locale, { EN: `medications: ${medications.join(", ")}`, ES: `medicamentos: ${medications.join(", ")}`, KR: `medikaman: ${medications.join(", ")}` })] : [])
+  ];
+  return parts.join(", ");
+};
+
+// Visit preparation is a small conversation with durable state, not a general knowledge search.
+// This resolver handles only turns that clearly belong to that conversation. Safety, medication
+// changes and appointment actions are still routed before it by answer().
+export const appointmentPrepConversationResponse = ({ question, locale = "EN", appointmentPrep = null } = {}) => {
+  if (!appointmentPrep) return null;
+  const asked = clean(question);
+  const topics = (appointmentPrep.topics || []).map(clean).filter(Boolean);
+  const preparation = appointmentPrep.emmiPreparation && typeof appointmentPrep.emmiPreparation === "object"
+    ? appointmentPrep.emmiPreparation
+    : {};
+  const reviewedTopics = [...new Set((preparation.reviewedTopics || []).map(clean).filter(Boolean))];
+  const notesByTopic = preparation.notesByTopic && typeof preparation.notesByTopic === "object" ? { ...preparation.notesByTopic } : {};
+  const provider = clean(appointmentPrep.providerDisplayName) || pick(locale, { EN: "your clinician", ES: "su profesional clínico", KR: "pwofesyonèl klinik ou" });
+  const directTopic = topics.find(topic => {
+    const topicId = topicKey(topic);
+    const questionId = topicKey(asked);
+    return topicId && (questionId === topicId || questionId.includes(topicId));
+  });
+  const remaining = topics.filter(topic => !reviewedTopics.some(reviewed => topicKey(reviewed) === topicKey(topic)) && !isMedicationTopic(topic));
+  const summary = appointmentPrepSummary(appointmentPrep, locale) || pick(locale, { EN: "the items on your visit list", ES: "los elementos de su lista para la cita", KR: "bagay ki nan lis vizit ou" });
+  const completed = APPOINTMENT_PREP_DONE.test(asked);
+
+  if (completed) return {
+    text: pick(locale, {
+      EN: `Perfect — your agenda for ${provider} is ready: ${summary}. You can open “See my list” on the day of the appointment, and you can add or change anything before then.`,
+      ES: `Perfecto. Su agenda para ${provider} está lista: ${summary}. El día de la cita puede abrir “Ver mi lista”, y puede agregar o cambiar cualquier punto antes de ese momento.`,
+      KR: `Trè byen. Ajanda ou pou ${provider} pare: ${summary}. Jou randevou a, ou ka louvri “Gade lis mwen”, epi ou ka ajoute oswa chanje nenpòt bagay anvan sa.`
+    }),
+    update: { ...preparation, status: "COMPLETED", currentTopic: "", reviewedTopics: topics, notesByTopic, completedAt: new Date().toISOString() }
+  };
+
+  if (directTopic && !BLOOD_PRESSURE_SUBJECT.test(directTopic) && !isMedicationTopic(directTopic)) return {
+    text: pick(locale, {
+      EN: `Let’s prepare “${directTopic}.” It can help ${provider} if you note when it started, how often it happens, and what makes it better or worse. What is the main detail you want your doctor to know?`,
+      ES: `Preparemos “${directTopic}”. Puede ayudarle a ${provider} saber cuándo comenzó, con qué frecuencia ocurre y qué lo mejora o empeora. ¿Cuál es el detalle principal que quiere que su médico conozca?`,
+      KR: `Ann prepare “${directTopic}”. Sa ka ede ${provider} si ou note kilè li te kòmanse, konbyen fwa sa rive, ak sa ki fè l pi byen oswa pi mal. Ki detay prensipal ou vle doktè ou konnen?`
+    }),
+    update: { ...preparation, status: "IN_PROGRESS", currentTopic: directTopic, reviewedTopics, notesByTopic, updatedAt: new Date().toISOString() }
+  };
+
+  if (preparation.currentTopic && asked && !APPOINTMENT_PREP_CONTINUE.test(asked) && !APPOINTMENT_PREP_QUESTION.test(asked)) {
+    const currentTopic = clean(preparation.currentTopic);
+    const existingNotes = Array.isArray(notesByTopic[currentTopic]) ? notesByTopic[currentTopic] : [];
+    notesByTopic[currentTopic] = [...existingNotes, asked].slice(-5);
+    const nextReviewed = [...new Set([...reviewedTopics, currentTopic])];
+    const nextTopic = topics.find(topic => !nextReviewed.some(reviewed => topicKey(reviewed) === topicKey(topic)) && !isMedicationTopic(topic));
+    return {
+      text: nextTopic
+        ? pick(locale, { EN: `I added that under “${currentTopic}.” Next is “${nextTopic}.” What would you like ${provider} to know about it?`, ES: `Agregué eso bajo “${currentTopic}”. El siguiente punto es “${nextTopic}”. ¿Qué quiere que ${provider} sepa sobre este tema?`, KR: `Mwen ajoute sa anba “${currentTopic}”. Pwochen pwen an se “${nextTopic}”. Kisa ou vle ${provider} konnen sou li?` })
+        : pick(locale, { EN: `I added that under “${currentTopic}.” We have covered every topic on your list. Is there anything else, or is that all?`, ES: `Agregué eso bajo “${currentTopic}”. Ya revisamos todos los temas de su lista. ¿Desea agregar algo más o eso es todo?`, KR: `Mwen ajoute sa anba “${currentTopic}”. Nou revize tout sijè ki nan lis ou. Èske gen yon lòt bagay, oswa se tout?` }),
+      update: { ...preparation, status: "IN_PROGRESS", currentTopic: nextTopic || "", reviewedTopics: nextReviewed, notesByTopic, updatedAt: new Date().toISOString() }
+    };
+  }
+
+  if (APPOINTMENT_PREP_CONTINUE.test(asked)) return {
+    text: remaining.length
+      ? pick(locale, { EN: `Of course. Your visit list has ${summary}. Which item would you like to prepare first?`, ES: `Claro. Su lista para la cita incluye ${summary}. ¿Qué punto le gustaría preparar primero?`, KR: `Byen antandi. Lis vizit ou gen ${summary}. Ki pwen ou ta renmen prepare an premye?` })
+      : pick(locale, { EN: `Your agenda for ${provider} already includes ${summary}. Would you like to add something else, or is that all?`, ES: `Su agenda para ${provider} ya incluye ${summary}. ¿Desea agregar algo más o eso es todo?`, KR: `Ajanda ou pou ${provider} deja gen ${summary}. Èske ou vle ajoute yon lòt bagay, oswa se tout?` }),
+    update: { ...preparation, status: "IN_PROGRESS", currentTopic: "", reviewedTopics, notesByTopic, updatedAt: new Date().toISOString() }
+  };
+
+  return null;
+};
+
+function isMedicationTopic(topic) {
+  return /medication|medicine|medicamento|medikaman/i.test(String(topic || ""));
+}
 const accessBaselineGoalType = text => {
   if (WEIGHT_SUBJECT.test(text)) return "WEIGHT_MANAGEMENT";
   return BLOOD_PRESSURE_SUBJECT.test(text) ? "BLOOD_PRESSURE_CONTROL" : "";
@@ -945,6 +1026,13 @@ export class EmmiTextOrchestrator {
       // Nothing was opened, so nothing is claimed and nothing is described as requested.
       return { text: appointmentRequestUnavailable(locale), trace };
     }
+    const prepConversation = appointmentPrepConversationResponse({ question, locale, appointmentPrep: context.appointmentPrep });
+    if (prepConversation) {
+      trace.intent = "APPOINTMENT_PREPARATION";
+      trace.responseMode = "DETERMINISTIC_APPOINTMENT_CONTEXT";
+      emit("EMMI_ANSWER_ROUTED", { appointmentPrepStatus: prepConversation.update?.status || "IN_PROGRESS" });
+      return { text: prepConversation.text, appointmentPrepUpdate: prepConversation.update, appointmentId: context.appointmentPrep?.appointmentId || "", trace };
+    }
     // A patient describing something that is getting in their way is not asking a question. It is
     // told after the safety and medication checks above, so a symptom is never filed as a
     // difficulty, and it produces the same record the goal screen writes.
@@ -990,7 +1078,17 @@ export class EmmiTextOrchestrator {
               : ["getEnrollmentContext", "getMedicationList", "getAssignedDevice", "getPatientGoals", "getCareTeam", "getNextBestAction"].includes(tool) ? { patientId: context.patientId } : {};
         const result = await this.executeTool(tool, args);
         trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push(tool); emit("EMMI_ANSWER_ROUTED");
-        return { text: runtimeAnswer({ tool, result, locale, context, question: asked }), trace };
+        const text = runtimeAnswer({ tool, result, locale, context, question: asked });
+        if (context.appointmentPrep && ["getLatestReading", "getReadingTrend"].includes(tool) && appointmentPrepTopic) {
+          const preparation = context.appointmentPrep.emmiPreparation || {};
+          return {
+            text: `${text} ${pick(locale, { EN: "For your appointment, you may also want to note whether the readings changed at a particular time or came with symptoms. What detail would you like your doctor to know?", ES: "Para su cita, también puede anotar si las lecturas cambiaron en algún momento o estuvieron acompañadas de síntomas. ¿Qué detalle quiere que su médico conozca?", KR: "Pou randevou ou, ou ka note tou si mezi yo te chanje nan yon moman oswa si te gen sentòm avèk yo. Ki detay ou vle doktè ou konnen?" })}`,
+            appointmentPrepUpdate: { ...preparation, status: "IN_PROGRESS", currentTopic: appointmentPrepTopic, reviewedTopics: preparation.reviewedTopics || [], notesByTopic: preparation.notesByTopic || {}, updatedAt: new Date().toISOString() },
+            appointmentId: context.appointmentPrep.appointmentId || "",
+            trace
+          };
+        }
+        return { text, trace };
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool, error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
 
