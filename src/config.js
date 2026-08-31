@@ -75,7 +75,7 @@ export const DEMO_BASELINE_OBSERVATIONS = Object.freeze({
 const shared = {
   id: "offer_demo_2026",
   patient: { id: "patient_demo", displayName: "John S.", zipCodeMasked: "••176", phoneMasked: "(***) ***-4567", language: "en", identityMatch: { dobIso: "1954-05-12", zip: "33176" }, shippingAddress: { line1: "123 Oak Avenue", unit: "Apt 4B", city: "Miami", state: "FL", zip: "33176" }, baselineObservations: DEMO_BASELINE_OBSERVATIONS },
-  referringProvider: { id: "dr-fresner", name: "Dr. Fresner", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
+  referringProvider: { id: "dr-fresner", name: "Dr. Fresner Lee", specialty: "Primary Care", practiceName: "Fresner Medical Group", verifiedPhotoUrl: "/assets/doctor-portrait-v2.png" },
   participantProvider: { id: "itera", legalName: "ITERA HEALTH LLC", displayName: "ITERA HEALTH", supportPhone: "(305) 394-8070" },
   qualifyingCondition: { name: "Hypertension", patientFriendlyName: "high blood pressure" },
   payer: { type: "OriginalMedicare", mbiAvailable: true, mbiConfidence: "trusted" },
@@ -199,7 +199,7 @@ export function resolveAccessCost(track = "eCKM", secondaryCoverageStatus = null
 export const DEFAULT_PROTOTYPE_CONFIG = {
   program: "ACCESS", source: "ITERA Direct Outreach", conditions: ["Hypertension"],
   referralOrigin: null,
-  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner", bpDeviceScenario: "itera-tenovi",
+  coverage: "Original Medicare", language: "en", accessTrack: "eCKM", accessEligibilityResult: "eligible", physicianDisplayName: "Dr. Fresner Lee", bpDeviceScenario: "itera-tenovi",
   physicianPhotoUrl: "/assets/doctor-portrait-v2.png", secondaryCoverageStatus: null, accessCostSharingType: "COST_SHARING_APPLIES", accessCostSharingAmount: null,
   showAccessClaimsSharing: false, showAccessTempoDisclosure: false, accessTempoDisclosureText: ""
 };
@@ -223,7 +223,12 @@ export const isProviderReferralSource = source => source === "Physician Referral
 export const scenarioRequiresPhysician = (program, source) => isProviderReferralSource(source) || program !== "ACCESS";
 // One rule for turning a display name into the id the care team directory matches on, so a
 // prescriber, a referring provider and the offer physician cannot drift into three ids.
-export const physicianIdFor = displayName => String(displayName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+export const physicianIdFor = displayName => {
+  const slug = String(displayName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  // The display name changed, but the provider record did not. Keep its durable identifier stable
+  // so existing appointments, prescriptions and scheduling capabilities still resolve correctly.
+  return slug === "dr-fresner-lee" ? "dr-fresner" : slug;
+};
 // The demo prescriptions were written by the physician who referred the patient, so a prescriber
 // resolves from the same record the offer's physician does. Exported rather than inlined at the
 // call site so a test can hold the two to each other: the medications live in runtime state, and
@@ -239,7 +244,7 @@ export const prescriberFor = (config = {}) => {
 // The public link is not a configurable demo: it is ONE patient's invitation. Every value the
 // patient experience needs before it can render — program, condition, care track, coverage,
 // referral source and the referring physician — is declared once, here, and read from the offer
-// everywhere else. Nothing downstream hardcodes "Dr. Fresner" or "Hypertension"; they come from
+// everywhere else. Nothing downstream hardcodes "Dr. Fresner Lee" or "Hypertension"; they come from
 // this record through createPrototypeOffer, so changing the invited patient means changing this
 // object and nothing else.
 //
@@ -257,7 +262,7 @@ export const CANONICAL_PATIENT_SCENARIO = Object.freeze({
   // named referring provider rather than a generic ITERA campaign.
   source: ACCESS_PROVIDER_REFERRAL,
   referralOrigin: "physician",
-  physicianDisplayName: "Dr. Fresner",
+  physicianDisplayName: "Dr. Fresner Lee",
   // The invited patient has no connected monitor yet. Arranging one is the first tangible thing
   // ACCESS does for them, which is why care activation opens with the device rather than asking a
   // question whose answer their record already holds.

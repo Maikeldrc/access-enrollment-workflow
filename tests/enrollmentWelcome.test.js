@@ -26,6 +26,16 @@ describe("shared enrollment welcome configuration", () => {
     }
   });
 
+  it("has EMMI congratulate and welcome every enrolled patient in every language", () => {
+    for (const program of programs) {
+      const welcome = enrollmentWelcomeFor(program).emmiWelcome;
+      expect(welcome.en, `${program}/en`).toMatch(/congratulations.*welcome/i);
+      expect(welcome.es, `${program}/es`).toMatch(/felicidades.*bienvenido/i);
+      expect(welcome.ht, `${program}/ht`).toMatch(/felisitasyon.*byenveni/i);
+      for (const copy of localized(welcome)) expect(copy, program).toMatch(/enrollment|inscripci.n|enskripsyon/i);
+    }
+  });
+
   it("promises no call as the next step, and offers ACCESS care activation instead", () => {
     // ACCESS used to open with "your care team will call you within 2 business days". The patient
     // can continue on their own now, so neither the promise nor the window it templated remain.

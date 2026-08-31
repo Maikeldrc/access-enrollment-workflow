@@ -49,7 +49,7 @@ describe("building the care team", () => {
   it("keeps specialty and practice when the record really is that provider", () => {
     const team = buildCareTeam({ offer: fixtureOffer, medications, locale: "en" });
     expect(find(team, "dr-fresner")).toMatchObject({
-      displayName: "Dr. Fresner",
+      displayName: "Dr. Fresner Lee",
       professionalType: PROFESSIONAL_TYPES.PRIMARY_CARE,
       specialty: "Primary Care",
       practiceName: "Fresner Medical Group",
@@ -64,6 +64,7 @@ describe("building the care team", () => {
     const physician = find(team, "dr-ana-ruiz");
     expect(physician).toMatchObject({
       displayName: "Dr. Ana Ruiz",
+      photoUrl: "",
       professionalType: PROFESSIONAL_TYPES.PRIMARY_CARE,
       specialty: "",
       practiceName: "",
@@ -84,6 +85,7 @@ describe("building the care team", () => {
     expect(team).toEqual([{
       id: "dr-ana-ruiz",
       displayName: "Dr. Ana Ruiz",
+      photoUrl: "",
       professionalType: PROFESSIONAL_TYPES.PRIMARY_CARE,
       specialty: "",
       practiceName: "",
@@ -128,6 +130,7 @@ describe("building the care team", () => {
     expect(find(team, "itera-care-manager")).toMatchObject({
       displayName: "Alicia Ramírez, RN",
       practiceName: "ITERA HEALTH",
+      photoUrl: "/images/Care%20Team/care-manager-alicia-v2.png",
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
       source: CARE_TEAM_SOURCES.PROGRAM,
       verified: true
@@ -146,7 +149,7 @@ describe("building the care team", () => {
 
   it("gives every entry the same shape", () => {
     buildCareTeam({ offer: fixtureOffer, medications, locale: "en" }).forEach(member => {
-      expect(Object.keys(member).sort()).toEqual(["displayName", "id", "practiceName", "professionalType", "source", "specialty", "verified"]);
+      expect(Object.keys(member).sort()).toEqual(["displayName", "id", "photoUrl", "practiceName", "professionalType", "source", "specialty", "verified"]);
       expect(PROFESSIONAL_TYPES[member.professionalType]).toBe(member.professionalType);
       expect(typeof member.verified).toBe("boolean");
     });

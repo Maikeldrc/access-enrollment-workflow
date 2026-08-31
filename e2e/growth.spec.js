@@ -24,7 +24,8 @@ test("patient invites a daughter while remaining the decision maker", async ({ p
   await page.getByRole("button", { name: /Start your care journey/i }).click();
   await page.getByRole("button", { name: /Want support along the way/i }).click();
   await expect(page.getByRole("heading", { name: "Invite someone you trust" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Add from contacts/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Add from contacts/i })).toBeVisible();
+  await expect(page.getByLabel("Choose contact card")).toHaveAttribute("accept", /\.vcf/);
   await expect(page.getByText(/does not allow this person to consent, sign/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Angela Demo");
   await page.getByLabel("Mobile number").fill("3055550199");
@@ -77,6 +78,23 @@ test("Contact Picker denial keeps the manual fallback fully usable", async ({ pa
   await expect(page.getByText(/Contacts are not available/i)).toBeVisible();
   await page.getByLabel("Their name").fill("Manual Contact");
   await page.getByLabel("Mobile number").fill("3055550199");
+  await page.getByLabel(/Relationship to you/).selectOption("family");
+  await expect(page.getByRole("button", { name: /Send invitation/i })).toBeEnabled();
+});
+
+test("a browser without Contact Picker can import an exported address-book contact", async ({ page }) => {
+  await page.getByRole("button", { name: /Start your care journey/i }).click();
+  await page.getByRole("button", { name: /Want support along the way/i }).click();
+  await expect(page.getByRole("button", { name: /Add from contacts/i })).toBeVisible();
+  await page.getByLabel("Choose contact card").setInputFiles({
+    name: "maria-rivera.vcf",
+    mimeType: "text/vcard",
+    buffer: Buffer.from("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:María Rivera\r\nTEL;TYPE=CELL:+1-305-555-0199\r\nEND:VCARD")
+  });
+
+  await expect(page.getByLabel("Their name")).toHaveValue("María Rivera");
+  await expect(page.getByLabel("Mobile number")).toHaveValue("(305) 555-0199");
+  await expect(page.getByRole("heading", { name: "Invitation sent" })).toHaveCount(0);
   await page.getByLabel(/Relationship to you/).selectOption("family");
   await expect(page.getByRole("button", { name: /Send invitation/i })).toBeEnabled();
 });
@@ -216,13 +234,19 @@ test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or
 
   await expect(page.getByRole("heading", { name: "My Care Team" })).toBeVisible();
   await expect(page.locator(".care-team-member-card")).toHaveCount(3);
-  await expect(page.getByText("Dr. Fresner", { exact: true })).toBeVisible();
-  await expect(page.getByText("Dr. Pedro Martinez", { exact: true })).toBeVisible();
+  await expect(page.getByText("Dr. Fresner Lee", { exact: true })).toBeVisible();
+  await expect(page.getByText("Dr. Pedro Martinez-Clark", { exact: true })).toBeVisible();
   await expect(page.getByText("Cardiologist", { exact: false })).toBeVisible();
   // The care manager is a person now, not the organization. ITERA HEALTH still appears, but as the
   // practice behind her rather than as a card standing in for a human being.
   await expect(page.getByText("Alicia Ramírez, RN", { exact: true })).toBeVisible();
   await expect(page.getByText(/Care Manager · ITERA HEALTH/)).toBeVisible();
+  const pedroPhoto = page.locator(".care-team-member-card", { hasText: "Dr. Pedro Martinez-Clark" }).locator("img");
+  const careManagerPhoto = page.locator(".care-team-member-card", { hasText: "Alicia Ramírez, RN" }).locator("img");
+  await expect(pedroPhoto).toHaveAttribute("src", "/images/Care%20Team/Martinez-Clark-Pedro.jpg");
+  await expect(careManagerPhoto).toHaveAttribute("src", "/images/Care%20Team/care-manager-alicia-v2.png");
+  expect(await pedroPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  expect(await careManagerPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

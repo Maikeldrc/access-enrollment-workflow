@@ -128,6 +128,9 @@ describe("runtime facts", () => {
     expect(buildNarration({ screen: "ACCESS_BP_DEVICE_RESULT", locale: "EN", runtime: { deviceVendor: "Tenovi" } }).narrationText).toMatch(/Tenovi monitor/);
     const confirmed = buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "EN" }).narrationText;
     expect(confirmed).not.toMatch(/about\s+(undefined|null)|minutes/i);
+    expect(confirmed).toMatch(/congratulations.*welcome/i);
+    expect(buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "ES" }).narrationText).toMatch(/felicidades.*bienvenido/i);
+    expect(buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "KR" }).narrationText).toMatch(/felisitasyon.*byenveni/i);
     expect(buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "EN", runtime: { estimatedDuration: "a few minutes", nextStepLabel: "Start my health check" } }).narrationText)
       .toMatch(/about a few minutes.*Start my health check/s);
   });

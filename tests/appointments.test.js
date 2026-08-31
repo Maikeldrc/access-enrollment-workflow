@@ -80,7 +80,7 @@ describe("the appointment record", () => {
       preferredTimeOfDay: TIME_OF_DAY.NO_PREFERENCE
     });
     expect(record.events).toHaveLength(1);
-    expect(record.prep).toEqual({ topics: [], notes: "", sharedWithProvider: false, updatedAt: "" });
+    expect(record.prep).toEqual({ topics: [], medications: [], notes: "", sharedWithProvider: false, updatedAt: "" });
     expect(record.reminder).toBeNull();
     expect(record.sharedWith).toEqual([]);
   });
@@ -440,6 +440,29 @@ describe("the draft", () => {
     expect(restored.events).toHaveLength(2);
     expect(restored.reasonSummary).toBe(record.reasonSummary);
     expect(restoreAppointment(null)).toBeNull();
+  });
+
+  it("persists a separate medication agenda for the visit", () => {
+    const stored = serializeAppointmentForDraft({
+      ...need(),
+      prep: {
+        topics: ["Review my medications"],
+        medications: [
+          { medicationId: "med-1", name: "Lisinopril 10 mg", details: "Once daily", addedAt: NOW },
+          { medicationId: "med-2", name: "Atorvastatin 20 mg", details: "At night", addedAt: NOW }
+        ],
+        notes: "",
+        sharedWithProvider: false,
+        updatedAt: NOW
+      }
+    });
+    const restored = restoreAppointment(JSON.parse(JSON.stringify(stored)));
+
+    expect(restored.prep.medications).toEqual([
+      { medicationId: "med-1", name: "Lisinopril 10 mg", details: "Once daily", addedAt: NOW },
+      { medicationId: "med-2", name: "Atorvastatin 20 mg", details: "At night", addedAt: NOW }
+    ]);
+    expect(Object.isFrozen(restored.prep.medications)).toBe(true);
   });
 });
 

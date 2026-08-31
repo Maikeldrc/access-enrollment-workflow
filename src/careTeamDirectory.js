@@ -36,7 +36,7 @@ export const CARE_TEAM_SOURCES = Object.freeze({
 // only `name`, so a configured physician display name arrives wearing this provider's id,
 // specialty and practice. Recognising the literal is how we refuse to repeat them.
 export const SUBSTITUTABLE_PROVIDER_ID = "dr-fresner";
-export const SUBSTITUTABLE_PROVIDER_NAME = "Dr. Fresner";
+export const SUBSTITUTABLE_PROVIDER_NAME = "Dr. Fresner Lee";
 
 const slug = value => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
@@ -61,12 +61,13 @@ function identityWasSubstituted(referringProvider, physician) {
   return false;
 }
 
-const entry = ({ id, displayName, professionalType, specialty = "", practiceName = "", source, verified = false }) => ({
+const entry = ({ id, displayName, professionalType, specialty = "", practiceName = "", photoUrl = "", source, verified = false }) => ({
   id,
   displayName,
   professionalType: PROFESSIONAL_TYPES[professionalType] ? professionalType : PROFESSIONAL_TYPES.UNKNOWN,
   specialty,
   practiceName,
+  photoUrl,
   source,
   verified: verified === true
 });
@@ -76,13 +77,13 @@ const CARE_MANAGER_FALLBACK = T("Your ITERA care team", "Su equipo de ITERA", "E
 // A care manager is a person, and the patient meets them by name. The list used to show the
 // organization here — "ITERA HEALTH" sitting between their doctor and their pharmacy — which reads
 // as an entry nobody can call. This is the prototype's default assignment, the same kind of fixture
-// "Dr. Fresner" is, and a real assignment on the offer replaces it. It is deliberately the only
+// "Dr. Fresner Lee" is, and a real assignment on the offer replaces it. It is deliberately the only
 // invented person in this file: everyone else still has to come from a record.
-export const PROTOTYPE_CARE_MANAGER = Object.freeze({ id: "itera-care-manager", name: "Alicia Ramírez", credential: "RN" });
+export const PROTOTYPE_CARE_MANAGER = Object.freeze({ id: "itera-care-manager", name: "Alicia Ramírez", credential: "RN", photoUrl: "/images/Care%20Team/care-manager-alicia-v2.png" });
 
 export const careManagerFor = (offer = null) => {
   const assigned = offer?.careManager;
-  if (assigned?.name) return Object.freeze({ id: assigned.id || "itera-care-manager", name: assigned.name, credential: assigned.credential || "", assigned: true });
+  if (assigned?.name) return Object.freeze({ id: assigned.id || "itera-care-manager", name: assigned.name, credential: assigned.credential || "", photoUrl: assigned.photoUrl || "", assigned: true });
   return Object.freeze({ ...PROTOTYPE_CARE_MANAGER, assigned: false });
 };
 
@@ -112,6 +113,7 @@ export function buildCareTeam({ offer = null, medications = [], locale = "en" } 
       // here would be the product inventing a fact about a real person.
       specialty: substituted ? "" : referring.specialty || "",
       practiceName: substituted ? "" : referring.practiceName || "",
+      photoUrl: substituted ? "" : referring.verifiedPhotoUrl || "",
       source: CARE_TEAM_SOURCES.REFERRING_PROVIDER,
       verified: !substituted && Boolean(referring.id)
     }));
@@ -152,6 +154,7 @@ export function buildCareTeam({ offer = null, medications = [], locale = "en" } 
       displayName: careManager.credential ? `${careManager.name}, ${careManager.credential}` : careManager.name,
       professionalType: PROFESSIONAL_TYPES.CARE_MANAGER,
       practiceName: program.displayName || localCareTeamText(CARE_MANAGER_FALLBACK, locale),
+      photoUrl: careManager.photoUrl || "",
       source: CARE_TEAM_SOURCES.PROGRAM,
       // The prototype's default care manager carries the badge too, so the demo reads as a complete
       // care team rather than one member half-registered. A deployment with real assignments gets

@@ -263,22 +263,22 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
 
   ENROLLMENT_CONFIRMED: objective({
     summary: T(
-      "Your enrollment is complete. Here is what comes next.",
-      "Su inscripción está completa. Esto es lo que sigue.",
-      "Enskripsyon ou fini. Men sa k ap vini apre."
+      "Congratulations, and welcome to your care with ITERA. Your enrollment is complete, and I’m happy to be here with you as you get started.",
+      "¡Felicidades y bienvenido a su cuidado con ITERA! Su inscripción está completa y me alegra acompañarle mientras comienza.",
+      "Felisitasyon, epi byenveni nan swen ou avèk ITERA. Enskripsyon ou fini, epi mwen kontan la avè w pandan w ap kòmanse."
     ),
     tone: "celebratory",
     length: "TRANSITION",
     dynamic: ["nextStepLabel", "estimatedDuration"],
     purpose: T(
-      "You did it — your enrollment is complete.",
-      "Lo logró: su inscripción está completa.",
-      "Ou fè l — enskripsyon ou fini."
+      "Congratulations, and welcome to your care with ITERA. You did it — this is an important step for your health, and you are now enrolled.",
+      "¡Felicidades y bienvenido a su cuidado con ITERA! Lo logró: este es un paso importante para su salud y ya está inscrito.",
+      "Felisitasyon, epi byenveni nan swen ou avèk ITERA. Ou fè l — sa se yon etap enpòtan pou sante ou, epi kounye a ou enskri."
     ),
     benefit: T(
-      "You now have ongoing support from your ITERA care team.",
-      "Ahora cuenta con el apoyo continuo de su equipo de cuidado de ITERA.",
-      "Kounye a ou gen sipò kontinyèl ekip swen ITERA ou."
+      "Your ITERA care team and I are here to support you, answer questions, and help make each next step feel manageable.",
+      "Su equipo de cuidado de ITERA y yo estamos aquí para apoyarle, responder sus preguntas y ayudarle a avanzar paso a paso.",
+      "Ekip swen ITERA ou ak mwen la pou sipòte w, reponn kesyon ou, epi ede chak pwochen etap vin pi fasil."
     ),
     reassurance: T(
       "You can continue now or come back when you are ready.",
@@ -907,9 +907,9 @@ const TRANSITIONS = Object.freeze({
     "Ou revize pwen prensipal yo. Kounye a ou ka wè tout bagay ansanm, ansanm ak nenpòt depans yo prevwa, anvan ou deside si w vle enskri."
   ),
   "ENROLLMENT_PROCESSING>ENROLLMENT_CONFIRMED": T(
-    "Your enrollment is complete. You now have access to support from your ITERA care team, and you may start the next step now or later.",
-    "Listo, su inscripción está completa. Ahora tiene acceso al apoyo de su equipo de ITERA y puede comenzar el siguiente paso ahora o más tarde.",
-    "Enskripsyon ou fini. Kounye a ou gen sipò ekip swen ITERA ou, epi ou ka kòmanse pwochen etap la kounye a oswa pita."
+    "Congratulations, and welcome to your care with ITERA. You did it — your enrollment is complete. Your care team and I are glad to be here with you, and you can begin the next step now or whenever you are ready.",
+    "¡Felicidades y bienvenido a su cuidado con ITERA! Lo logró: su inscripción está completa. A su equipo de cuidado y a mí nos alegra acompañarle; puede comenzar el próximo paso ahora o cuando esté listo.",
+    "Felisitasyon, epi byenveni nan swen ou avèk ITERA. Ou fè l — enskripsyon ou fini. Ekip swen ou ak mwen kontan la avè w; ou ka kòmanse pwochen etap la kounye a oswa lè ou pare."
   ),
   "ENROLLMENT_CONFIRMED>ONBOARDING": T(
     "Perfect. Your enrollment is already complete. Now we will learn a little more about your health so your care can be personalized.",

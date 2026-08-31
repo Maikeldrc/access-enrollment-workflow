@@ -390,6 +390,63 @@ test("CCM can defer Getting Started without reopening enrollment and resume from
   expect(lifecycle.audit.some(event => event.eventType === "next_flow_resumed")).toBe(true);
 });
 
+test("ACCESS resumes the first incomplete care setup section instead of restarting completed device setup", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("ENROLLMENT_CONFIRMED", { force: true });
+  await page.getByRole("button", { name: "Set up my care" }).click();
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toBeVisible();
+
+  await page.evaluate(() => {
+    const key = "itera.enrollment.safe-draft.v2";
+    const saved = JSON.parse(localStorage.getItem(key));
+    Object.assign(saved, {
+      screen: "MY_CARE",
+      enrollmentStatus: "COMPLETED",
+      activationStatus: "IN_PROGRESS",
+      baselineStatus: "IN_PROGRESS",
+      baselineResumeScreen: "ONBOARDING",
+      bpDevicePath: "needed",
+      deviceFulfillmentStatus: "REQUESTED",
+      bpDeviceFulfillmentStatus: "REQUESTED",
+      healthInformationStepStatus: "COMPLETED",
+      healthInformationReviewStatus: "CONFIRMED",
+      medicationsReviewStatus: "NOT_STARTED",
+      carePreferencesStatus: "NOT_STARTED",
+      goalsStatus: "COMPLETED",
+      supportNeedsStatus: "COMPLETED",
+      onboarding: { ...(saved.onboarding || {}), savedAt: new Date().toISOString() },
+      flowProgress: {
+        ...(saved.flowProgress || {}),
+        GETTING_STARTED: {
+          flowType: "GETTING_STARTED",
+          status: "IN_PROGRESS",
+          startedAt: new Date().toISOString(),
+          completedAt: "",
+          deferredAt: "",
+          // This is the stale route produced when Getting Started originally opened.
+          resumeRoute: "ACCESS_BP_DEVICE_INFO"
+        }
+      }
+    });
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload();
+
+  await page.getByRole("button", { name: "Continue where you left off" }).click();
+  await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Track your blood pressure from home" })).toHaveCount(0);
+
+  let lifecycle = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
+  expect(lifecycle).toMatchObject({
+    screen: "MEDICATIONS_REVIEW",
+    baselineResumeScreen: "MEDICATIONS_REVIEW",
+    flowProgress: { GETTING_STARTED: { status: "IN_PROGRESS", resumeRoute: "MEDICATIONS_REVIEW" } }
+  });
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
+});
+
 test("ACCESS enrollment confirmation does not invent physician involvement for direct outreach", async ({ page }) => {
   await page.goto("/?admin=1");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();

@@ -679,6 +679,58 @@ test("Prepare with EMMI answers the only saved BP topic instead of asking for it
   await expect(panel.locator(".assistant-error")).toHaveCount(0);
 });
 
+test("Prepare with EMMI builds and persists a visit medication agenda without changing the medication record", async ({ page }) => {
+  const medications = [
+    { id: "med-lisinopril", name: "Lisinopril", strength: "10 mg", details: "10 mg · Una vez al día", active: true },
+    { id: "med-atorvastatin", name: "Atorvastatin", strength: "20 mg", details: "20 mg · Por la noche", active: true },
+    { id: "med-old", name: "Medicamento anterior", details: "Suspendido", active: false }
+  ];
+  await openAppointments(page, {
+    language: "es",
+    careMedications: medications,
+    appointments: [appointment({ prep: { topics: ["presión arterial", "medicamentos"], medications: [], notes: "", sharedWithProvider: false } })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+  const medicationRecordBefore = (await draft(page)).careMedications;
+
+  const panel = page.locator(".assistant-layer");
+  await expect(panel.locator(".assistant-message.assistant").last()).toContainText(/con cu[aá]l tema/i);
+  await tellEmmi(page, "medicamentos", "es");
+  await expect(panel.locator(".assistant-message.user").last()).toContainText("medicamentos");
+  await expect(panel.locator(".assistant-message.assistant").last()).toContainText(/medicamentos activos.*Elija/i);
+  await expect(panel.locator('[data-assistant-prep-medication]')).toHaveCount(2);
+  await expect(panel.getByRole("button", { name: /Lisinopril 10 mg/ })).toBeVisible();
+  await expect(panel).not.toContainText("Medicamento anterior");
+
+  await panel.getByRole("button", { name: /Lisinopril 10 mg/ }).click();
+  await expect(panel.getByRole("button", { name: /Lisinopril 10 mg/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.locator(".assistant-message.assistant").last()).toContainText(/Agregué Lisinopril 10 mg/i);
+  await closeEmmi(page);
+
+  await expect(page.locator(".appointment-prep-screen")).toContainText("Medicamentos para revisar");
+  await expect(page.locator(".appointment-medication-agenda")).toContainText("Lisinopril 10 mg");
+  await expect(page.locator(".appointment-medication-agenda")).toContainText("Una vez al día");
+  await page.locator('[data-action="appointment-open-brief"]').click();
+  await expect(page.locator(".appointment-brief-screen")).toContainText("Medicamento: Lisinopril 10 mg");
+
+  let stored = await draft(page);
+  expect(stored.appointments[0].prep.medications).toEqual([
+    expect.objectContaining({ medicationId: "med-lisinopril", name: "Lisinopril 10 mg", details: "10 mg · Una vez al día" })
+  ]);
+  expect(stored.careMedications).toEqual(medicationRecordBefore);
+
+  await page.reload();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await expect(page.locator(".appointment-medication-agenda")).toContainText("Lisinopril 10 mg");
+  await page.locator('[data-action="appointment-open-brief"]').click();
+  await expect(page.locator(".appointment-brief-screen")).toContainText("Medicamento: Lisinopril 10 mg");
+  stored = await draft(page);
+  expect(stored.appointments[0].prep.medications).toHaveLength(1);
+  expect(stored.careMedications).toEqual(medicationRecordBefore);
+});
+
 /* ------------------------------------------------------------------------ §122 §123 §124 ---- */
 
 const startScheduling = async (page, { id, reason }) => {

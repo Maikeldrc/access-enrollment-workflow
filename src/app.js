@@ -41,9 +41,10 @@ import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
 import { enrollmentWelcomeFor } from "./enrollmentWelcome.js";
 import { resolveNextBestAction } from "./nextBestAction.js";
-import { FLOW_STATUS, emptyFlowProgress, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "./flowTransitions.js";
+import { FLOW_STATUS, emptyFlowProgress, resolveCareSetupResumeRoute, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "./flowTransitions.js";
 import { CARE_CIRCLE_COPY, GROWTH_MOMENTS, SHARE_ACCESS_COPY, shareAccessEligibility } from "./growthMoments.js";
 import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
+import { parseContactCard } from "./contactCard.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
 import { EXPLANATION_CODES, accessTrackCost, resolveExpectedPatientResponsibility } from "./financialResponsibility.js";
 import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
@@ -622,6 +623,29 @@ function careCircleEarlyPrompt(compact = false) {
   return `<button type="button" class="growth-card care-circle-early ${compact ? "compact" : ""}" data-action="open-care-circle" data-growth-context="early">${icon("userPlus")}<span><strong>${L("Want support along the way?", "¿Quiere apoyo durante el proceso?", "Ou vle sipò pandan wout la?")}</strong><span class="care-circle-support-copy">${L("Invite someone you trust to support you during your care journey.", "Invite a alguien de confianza para que le apoye durante su recorrido de cuidado.", "Envite yon moun ou fè konfyans pou sipòte w pandan pwosesis swen ou.")}</span><span class="care-circle-support-action">${L("Invite someone", "Invitar a alguien", "Envite yon moun")} ${icon("arrowRight")}</span></span></button>`;
 }
 
+const careCirclePhoneTypeLabel = type => ({
+  mobile: L("Mobile", "Celular", "Mobil"), cell: L("Mobile", "Celular", "Mobil"),
+  home: L("Home", "Casa", "Lakay"), work: L("Work", "Trabajo", "Travay"), other: L("Other", "Otro", "Lòt")
+})[String(type || "").toLowerCase()] || (type ? String(type).charAt(0).toUpperCase() + String(type).slice(1) : L("Mobile", "Celular", "Mobil"));
+
+const applyCareCircleContact = (contact, source) => {
+  const rawNumbers = (contact?.tel || []).map(item => {
+    const original = typeof item === "string" ? item : item.value || "";
+    const digits = String(original).replace(/\D/g, "");
+    const value = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : original;
+    return { value, label: careCirclePhoneTypeLabel(typeof item === "string" ? "mobile" : item.type?.[0] || item.type) };
+  }).filter(item => phoneDigits(item.value).length === 10);
+  const contactName = Array.isArray(contact?.name) ? contact.name[0] : contact?.name;
+  state.supportPersonName = String(contactName || "").trim();
+  state.careCircleContactNumbers = rawNumbers;
+  state.careCircleContactSource = source;
+  state.supportPersonPhone = rawNumbers.length === 1 ? formatPhone(rawNumbers[0].value) : "";
+  state.careCircleNotice = rawNumbers.length
+    ? ""
+    : L("This contact has no mobile number. Please enter one below.", "Este contacto no tiene un número celular. Ingrese uno abajo.", "Kontak sa a pa gen nimewo mobil. Tanpri antre youn anba a.");
+  return rawNumbers;
+};
+
 function careCircleInvite() {
   const relationships = [["spouse", L("Spouse", "Cónyuge", "Konjwen")], ["child", L("Child", "Hijo o hija", "Pitit")], ["family", L("Family member", "Familiar", "Manm fanmi")], ["caregiver", L("Caregiver", "Cuidador", "Moun k ap bay swen")], ["friend", L("Friend", "Amigo o amiga", "Zanmi")], ["other", L("Other", "Otro", "Lòt")]];
   const ongoing = state.careCircleContext === "ONGOING_CARE";
@@ -637,7 +661,9 @@ function careCircleInvite() {
   const ready = state.supportPersonName.trim() && phoneDigits(state.supportPersonPhone).length === 10 && state.supportPersonRelationship && (state.supportPersonRelationship !== "other" || state.supportPersonRelationshipOther.trim());
   const numberChoices = state.careCircleContactNumbers?.length > 1 ? `<fieldset class="contact-number-choices"><legend>${L("Which mobile number should we use?", "¿Qué número celular debemos usar?", "Ki nimewo mobil nou dwe itilize?")}</legend>${state.careCircleContactNumbers.map((item, index) => `<label><input type="radio" name="careCircleContactPhone" value="${escapeHtml(item.value)}" ${phoneDigits(state.supportPersonPhone) === phoneDigits(item.value) ? "checked" : ""}><span><strong>${escapeHtml(item.label || L("Mobile", "Celular", "Mobil"))}</strong><small>${formatPhone(item.value)}</small></span></label>`).join("")}</fieldset>` : "";
   return `${titleBlock(title, supporting, L("Care Circle", "Círculo de cuidado", "Sèk swen"))}
-    ${pickerSupported ? `<button type="button" class="contact-picker-button" data-action="choose-care-circle-contact">${icon("people")}<span><strong>${L("Add from contacts", "Agregar desde contactos", "Ajoute nan kontak yo")}</strong><small>${L("You choose which contact to share.", "Usted elige qué contacto compartir.", "Se ou ki chwazi ki kontak pou pataje.")}</small></span></button><div class="growth-divider"><span>${L("or enter manually", "o ingrese manualmente", "oswa antre manyèlman")}</span></div>` : `<p class="contact-picker-unavailable">${L("Contacts aren’t available on this device. You can enter the information below.", "Los contactos no están disponibles en este dispositivo. Puede ingresar la información abajo.", "Kontak yo pa disponib sou aparèy sa a. Ou ka antre enfòmasyon an anba a.")}</p>`}
+    <button type="button" class="contact-picker-button" data-action="choose-care-circle-contact">${icon("people")}<span><strong>${L("Add from contacts", "Agregar desde contactos", "Ajoute nan kontak yo")}</strong><small>${pickerSupported ? L("You choose which contact to share.", "Usted elige qué contacto compartir.", "Se ou ki chwazi ki kontak pou pataje.") : L("Choose a contact card exported from your address book.", "Elija una tarjeta de contacto exportada de su libreta.", "Chwazi yon kat kontak ou ekspòte nan lis kontak ou.")}</small></span></button>
+    ${pickerSupported ? "" : `<input id="care-circle-contact-file" class="sr-only" type="file" accept=".vcf,text/vcard,text/x-vcard" aria-label="${L("Choose contact card", "Elegir tarjeta de contacto", "Chwazi kat kontak")}">`}
+    <div class="growth-divider"><span>${L("or enter manually", "o ingrese manualmente", "oswa antre manyèlman")}</span></div>
     ${numberChoices}<form id="care-circle-invite-form" class="growth-form" novalidate><label class="field">${L("Their name", "Su nombre", "Non moun nan")}<input name="supportPersonName" autocomplete="off" value="${escapeHtml(state.supportPersonName)}" required></label><label class="field">${L("Mobile number", "Número de celular", "Nimewo telefòn mobil")}<input name="supportPersonPhone" type="tel" inputmode="tel" autocomplete="off" maxlength="14" value="${escapeHtml(state.supportPersonPhone)}" placeholder="(305) 555-0199" required></label><label class="field">${L("Relationship to you", "Relación con usted", "Relasyon li avèk ou")}<select name="supportPersonRelationship" required><option value="">${L("Select relationship", "Seleccione la relación", "Chwazi relasyon an")}</option>${relationships.map(([value, label]) => `<option value="${value}" ${state.supportPersonRelationship === value ? "selected" : ""}>${label}</option>`).join("")}</select></label>${state.supportPersonRelationship === "other" ? `<label class="field">${L("Relationship", "Relación", "Relasyon")}<input name="supportPersonRelationshipOther" value="${escapeHtml(state.supportPersonRelationshipOther)}" required></label>` : ""}</form>
     <aside class="growth-boundary-note">${icon("shield")}<p><strong>${L("You remain in control", "Usted mantiene el control", "Se ou ki gen kontwòl")}</strong><span>${L("Care Circle support does not allow this person to consent, sign, or make healthcare decisions for you. It does not make them a Personal Representative.", "El apoyo del Círculo de cuidado no permite que esta persona dé consentimiento, firme ni tome decisiones médicas por usted. No la convierte en Representante personal.", "Sipò Sèk swen pa pèmèt moun sa a bay konsantman, siyen, oswa pran desizyon swen sante pou ou. Sa pa fè moun nan yon Reprezantan pèsonèl.")}</span></p></aside><p class="growth-notice" role="status" aria-live="polite">${state.careCircleNotice || ""}</p><p class="form-error" role="alert">${state.error || ""}</p><div class="actions care-circle-sticky-actions">${cta(L("Back", "Atrás", "Retounen"), "growth-return", true)}${cta(L("Send invitation", "Enviar invitación", "Voye envitasyon"), "send-care-circle-invite", false, !ready)}</div>`;
 }
@@ -2009,12 +2035,23 @@ const assistantMessageAvatar = role => {
 // badges. The name stays in the DOM for screen readers, which have no avatar to go by.
 const assistantMessageRow = (role, body, { startsGroup = true, extraClass = "", attrs = "" } = {}) => `<div class="assistant-message ${role}${startsGroup ? "" : " continues"}${extraClass ? ` ${extraClass}` : ""}"${attrs}>${startsGroup ? assistantMessageAvatar(role) : `<span class="assistant-message-avatar-spacer" aria-hidden="true"></span>`}<div class="assistant-message-bubble"><strong${startsGroup ? "" : ` class="sr-only"`}>${role === "user" ? L("You", "Usted", "Ou") : "EMMI"}</strong>${body}</div></div>`;
 
+const assistantPrepMedicationChoices = message => {
+  if (!Array.isArray(message.prepMedicationOptions) || !message.prepMedicationOptions.length) return "";
+  const appointment = appointmentById(message.appointmentId);
+  const selectedIds = new Set((appointment?.prep?.medications || []).map(item => item.medicationId));
+  const label = L("Choose medications to add to your visit list", "Elija medicamentos para agregarlos a su lista para la cita", "Chwazi medikaman pou ajoute nan lis vizit ou");
+  return `<div class="assistant-prep-options" role="group" aria-label="${escapeHtml(label)}">${message.prepMedicationOptions.map(option => {
+    const selected = selectedIds.has(option.medicationId);
+    return `<button type="button" class="assistant-prep-choice" data-assistant-prep-medication data-appointment-id="${escapeHtml(message.appointmentId)}" data-medication-id="${escapeHtml(option.medicationId)}" aria-pressed="${selected}"><strong>${escapeHtml(option.name)}</strong>${option.details ? `<small>${escapeHtml(option.details)}</small>` : ""}</button>`;
+  }).join("")}</div>`;
+};
+
 function assistantLayer() {
   const context = assistantContext();
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -2725,7 +2762,7 @@ function careTeamAddForm() {
   </section>`;
 }
 
-// "Alicia Ramírez, RN" becomes AR; "Dr. Fresner" becomes F. Honorifics and trailing credentials are
+// "Alicia Ramírez, RN" becomes AR; "Dr. Fresner Lee" becomes FL. Honorifics and trailing credentials are
 // dropped because they are shared by half the list and initials that all read DR distinguish nobody.
 const careTeamInitials = name => String(name || "")
   .split(",")[0]
@@ -2737,6 +2774,7 @@ const careTeamInitials = name => String(name || "")
 // not people at all. A pharmacy given initials would read as a person who does not exist, which is
 // the same invention this file spends its comments refusing to make.
 function careTeamMemberAvatar(member) {
+  if (member.photoUrl) return `<img class="care-team-member-photo" src="${escapeHtml(member.photoUrl)}" alt="">`;
   const initials = member.professionalType === PROFESSIONAL_TYPES.PHARMACIST ? "" : careTeamInitials(member.displayName);
   return initials
     ? `<span class="care-team-member-initials" aria-hidden="true">${escapeHtml(initials)}</span>`
@@ -2748,9 +2786,8 @@ function myCareTeamScreen() {
   const verifiedLabel = L("Verified", "Verificado", "Verifye");
   const members = team.length ? team.map(member => {
     const detail = [careTeamRoleLabel(member), member.practiceName].filter(Boolean).join(" · ");
-    const physicianPhoto = member.displayName === state.offer?.referringProvider?.name ? state.offer.referringProvider.verifiedPhotoUrl || "" : "";
     return `<article class="care-team-member-card">
-      ${physicianPhoto ? `<img class="care-team-member-photo" src="${escapeHtml(physicianPhoto)}" alt="">` : careTeamMemberAvatar(member)}
+      ${careTeamMemberAvatar(member)}
       <div class="care-team-member-copy"><div class="care-team-member-name"><strong>${escapeHtml(member.displayName)}</strong>${member.verified ? `<span class="care-team-verified">${icon("check")}<span>${verifiedLabel}</span></span>` : ""}</div><p>${escapeHtml(detail)}</p></div>
     </article>`;
   }).join("") : `<div class="care-team-empty">${icon("people")}<strong>${L("Your care team details are not available yet", "Los detalles de su equipo de cuidado aún no están disponibles", "Detay ekip swen ou poko disponib")}</strong><p>${L("ITERA can help you review who supports your care.", "ITERA puede ayudarle a revisar quién apoya su cuidado.", "ITERA ka ede w revize kiyès k ap sipòte swen ou.")}</p></div>`;
@@ -2978,6 +3015,7 @@ const medicationPrescriber = medication => {
 };
 
 const medicationLabel = medication => (medication ? `${medication.name}${medication.strength ? ` ${medication.strength}` : ""}` : "");
+const isMedicationPrepTopic = topic => /\b(medication|medications|medicine|medicines|medicamento|medicamentos|pastilla|pastillas|medikaman|grenn)\b/i.test(String(topic || ""));
 // The record keeps the sig exactly as the prescriber documented it, because that is what travels to
 // the care team and to the refill episode. What the patient reads is a translation of it, so a
 // Spanish screen stops handing out directions in English.
@@ -3626,10 +3664,11 @@ const auditAppointment = (event, record, extra = {}) => {
 // professional is left blank rather than borrowed from another record.
 const defaultCardiologist = () => ({
   id: "dr-martinez-cardiology",
-  displayName: "Dr. Pedro Martinez",
+  displayName: "Dr. Pedro Martinez-Clark",
   professionalType: PROFESSIONAL_TYPES.SPECIALIST,
   specialty: "Cardiology",
   practiceName: "Coral Gables Cardiology",
+  photoUrl: "/images/Care%20Team/Martinez-Clark-Pedro.jpg",
   source: CARE_TEAM_SOURCES.CARE_RECORD,
   verified: false
 });
@@ -3882,6 +3921,28 @@ function escalateAppointmentToCoordinator(record, { viaEmmi = false, capability 
   ensureAppointmentCareTeamTask(escalated);
   auditAppointment(APPOINTMENT_AUDIT_EVENTS.CARE_TEAM_TASK_CREATED, escalated, { path: capability });
   return { ok: true, record: escalated };
+}
+
+function gettingStartedResumeRoute() {
+  const progress = gettingStartedProgress();
+  // Reaching the checklist means the monitor/device portion is already behind the patient. From
+  // here onward the persisted section statuses are canonical: an old flowProgress route can still
+  // name the very first device screen, while baselineResumeScreen correctly says ONBOARDING.
+  const reachedCareSetup = state.baselineResumeScreen === "ONBOARDING" || Boolean(state.onboarding?.savedAt);
+  if (reachedCareSetup) {
+    return resolveCareSetupResumeRoute({
+      healthInformationStepStatus: state.healthInformationStepStatus,
+      medicationsReviewStatus: state.medicationsReviewStatus,
+      carePreferencesStatus: state.carePreferencesStatus,
+      goalsStatus: state.goalsStatus
+    });
+  }
+  return resolveGettingStartedEntryRoute({
+    pathway: state.offer.pathway,
+    journey: journeyFor(state),
+    savedResumeRoute: state.baselineResumeScreen || progress.resumeRoute,
+    configuredRoute: currentFlowTransition().nextRoute
+  });
 }
 
 let appointmentResponseTimer = null;
@@ -5834,7 +5895,7 @@ async function advance() {
   // their care setup where they left it, or My Care once it is done.
   if (state.screen === "INVITATION" && state.enrollmentStatus === "COMPLETED") {
     const progress = gettingStartedProgress();
-    const resume = progress.status === FLOW_STATUS.COMPLETED ? "" : progress.resumeRoute || state.baselineResumeScreen;
+    const resume = progress.status === FLOW_STATUS.COMPLETED ? "" : gettingStartedResumeRoute();
     state.screen = resume || "MY_CARE";
     draftStore.save(state);
     render();
@@ -6502,6 +6563,44 @@ async function askEmmi(question, { questionId = "", source = "input", replay = f
       return;
     }
   }
+  // Inside visit preparation, a medication answer is a request to organize the appointment,
+  // not a request for a generic medication explainer. Keep the interaction conversational even
+  // when the patient has several prep topics and types which one they want to work on.
+  const prepAppointment = state.screen === "APPOINTMENT_DETAIL" && state.appointmentFlow?.view === "PREP" ? activeAppointment() : null;
+  if (prepAppointment && isMedicationPrepTopic(cleaned)) {
+    const medications = activeMedications();
+    const provider = prepAppointment.providerDisplayName || L("your clinician", "su profesional clínico", "pwofesyonèl klinik ou");
+    const response = medications.length
+      ? L(
+          `These are the active medications in your care record. Choose any you want to review with ${provider}, and I’ll add them to your visit list. This does not change a prescription.`,
+          `Estos son los medicamentos activos en su registro. Elija los que quiera revisar con ${provider} y los agregaré a su lista para la cita. Esto no cambia ninguna receta.`,
+          `Men medikaman aktif ki nan dosye swen ou. Chwazi sa ou vle revize ak ${provider}, epi m ap ajoute yo nan lis vizit ou. Sa pa chanje okenn preskripsyon.`
+        )
+      : L(
+          "I don’t see any active medications in your care record. You can type the medication name or add a question for your clinician to your visit list.",
+          "No veo medicamentos activos en su registro. Puede escribir el nombre del medicamento o agregar una pregunta para su profesional clínico a la lista de la cita.",
+          "Mwen pa wè okenn medikaman aktif nan dosye swen ou. Ou ka ekri non medikaman an oswa ajoute yon kesyon pou pwofesyonèl klinik ou nan lis vizit la."
+        );
+    runtime.audit.transcript("user", cleaned);
+    state.assistantMessages.push({
+      role: "assistant",
+      text: response,
+      intent: "APPOINTMENT_PREP_MEDICATIONS",
+      appointmentId: prepAppointment.id,
+      prepMedicationOptions: medications.map(medication => ({
+        medicationId: medication.id,
+        name: medicationLabel(medication),
+        details: medicationDetails(medication) || medicationSig(medication)
+      }))
+    });
+    emmiConversationManager?.recordTurn("assistant", response, { screen: state.screen, appointmentId: prepAppointment.id, source: "appointment-prep" });
+    emmiConversationManager?.markGreeted();
+    runtime.audit.transcript("assistant", response);
+    audit(state, "appointment_prep_medications_presented", "success", { appointmentId: prepAppointment.id, medicationCount: medications.length });
+    draftStore.save(state);
+    refreshAssistantLayer({ focusInput: true });
+    return;
+  }
   runtime.audit.transcript("user", cleaned);
   // Analytics record that a question was asked and where it came from, never what was asked.
   audit(state, source === "quick-question" ? "emmi_quick_question_selected" : "emmi_question_submitted", "success", { screen: state.screen, source, questionId });
@@ -6607,6 +6706,43 @@ function bindAssistantLayer() {
     // answers to one question.
     if (button.dataset.questionId === "human-talk-care-team") { revealAssistantHumanSupport(); return; }
     askEmmi(button.dataset.assistantQuestion || "", { questionId: button.dataset.questionId || "", source: "quick-question" });
+  }));
+  layer.querySelectorAll("[data-assistant-prep-medication]").forEach(button => button.addEventListener("click", () => {
+    const appointment = appointmentById(button.dataset.appointmentId);
+    const medication = medicationById(button.dataset.medicationId);
+    if (!appointment || !medication || medication.active === false) return;
+    const existing = appointment.prep?.medications || [];
+    if (existing.some(item => item.medicationId === medication.id)) return;
+    const now = new Date().toISOString();
+    const label = medicationLabel(medication);
+    saveAppointment({
+      ...appointment,
+      prep: {
+        ...(appointment.prep || {}),
+        medications: [...existing, {
+          medicationId: medication.id,
+          name: label,
+          details: medicationDetails(medication) || medicationSig(medication),
+          addedAt: now
+        }],
+        updatedAt: now
+      },
+      updatedAt: now
+    });
+    const confirmation = L(
+      `I added ${label} to your visit list. You can choose another medication or continue preparing other questions.`,
+      `Agregué ${label} a su lista para la cita. Puede elegir otro medicamento o seguir preparando otras preguntas.`,
+      `Mwen ajoute ${label} nan lis vizit ou. Ou ka chwazi yon lòt medikaman oswa kontinye prepare lòt kesyon.`
+    );
+    state.assistantMessages.push({ role: "assistant", text: confirmation, intent: "APPOINTMENT_PREP_MEDICATION_ADDED", appointmentId: appointment.id, medicationId: medication.id });
+    emmiConversationManager?.recordTurn("assistant", confirmation, { screen: state.screen, appointmentId: appointment.id, medicationId: medication.id, source: "appointment-prep" });
+    ensureEmmiRuntime().audit.transcript("assistant", confirmation);
+    audit(state, "appointment_prep_medication_added", "success", { appointmentId: appointment.id, medicationId: medication.id });
+    // The preparation screen remains mounted behind the EMMI panel. Mark it for a fresh render
+    // when the panel closes so the newly saved agenda is visible immediately.
+    state.assistantPendingNavigation = true;
+    draftStore.save(state);
+    refreshAssistantLayer();
   }));
   layer.querySelectorAll("[data-assistant-growth]").forEach(button => button.addEventListener("click", () => {
     const growthAction = button.dataset.assistantGrowth;
@@ -6925,24 +7061,15 @@ function bind() {
     }
     if (action === "choose-care-circle-contact") {
       audit(state, "care_circle_contact_picker_opened", "success", { context: state.careCircleContext });
+      if (!navigator.contacts?.select) {
+        document.querySelector("#care-circle-contact-file")?.click();
+        return;
+      }
       try {
         const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
         const contact = contacts?.[0];
         if (!contact) { state.careCircleNotice = L("No contact was selected. You can enter their information below.", "No se seleccionó ningún contacto. Puede ingresar sus datos abajo.", "Ou pa chwazi okenn kontak. Ou ka antre enfòmasyon yo anba a."); render(); return; }
-        // The picker hands back its own raw type strings — "mobile", "home" — while the fallback
-        // label was already a translated "Mobile". A list mixing the two reads as a bug, and an
-        // untranslated English type is worse for a patient reading in Kreyol, so known types are
-        // localized and anything unrecognized is merely capitalized rather than dropped.
-        const phoneTypeLabel = type => ({
-          mobile: L("Mobile", "Celular", "Mobil"), cell: L("Mobile", "Celular", "Mobil"),
-          home: L("Home", "Casa", "Lakay"), work: L("Work", "Trabajo", "Travay"), other: L("Other", "Otro", "Lòt")
-        })[String(type || "").toLowerCase()] || (type ? String(type).charAt(0).toUpperCase() + String(type).slice(1) : L("Mobile", "Celular", "Mobil"));
-        const rawNumbers = (contact.tel || []).map(item => typeof item === "string" ? { value: item, label: phoneTypeLabel("mobile") } : { value: item.value || "", label: phoneTypeLabel(item.type?.[0] || item.type) }).filter(item => phoneDigits(item.value).length === 10);
-        state.supportPersonName = String(contact.name?.[0] || contact.name || "").trim();
-        state.careCircleContactNumbers = rawNumbers;
-        state.careCircleContactSource = "CONTACT_PICKER";
-        state.supportPersonPhone = rawNumbers.length === 1 ? formatPhone(rawNumbers[0].value) : "";
-        state.careCircleNotice = rawNumbers.length ? "" : L("This contact has no mobile number. Please enter one below.", "Este contacto no tiene un número celular. Ingrese uno abajo.", "Kontak sa a pa gen nimewo mobil. Tanpri antre youn anba a.");
+        const rawNumbers = applyCareCircleContact(contact, "CONTACT_PICKER");
         audit(state, "care_circle_contact_selected", "success", { phoneCount: rawNumbers.length, hasName: Boolean(state.supportPersonName) });
       } catch (error) {
         state.careCircleContactPickerStatus = "DENIED";
@@ -7187,6 +7314,41 @@ function bind() {
           // still asks which one to start with instead of guessing.
           if (topics.length === 1) {
             audit(state, "appointment_prep_emmi_opened", "success", { appointmentId: record.id, topicCount: 1, topicAutoSelected: true });
+            if (isMedicationPrepTopic(topics[0])) {
+              const medications = activeMedications();
+              const provider = record.providerDisplayName || L("your clinician", "su profesional clínico", "pwofesyonèl klinik ou");
+              const response = medications.length
+                ? L(
+                    `These are the active medications in your care record. Choose any you want to review with ${provider}, and I’ll add them to your visit list. This does not change a prescription.`,
+                    `Estos son los medicamentos activos en su registro. Elija los que quiera revisar con ${provider} y los agregaré a su lista para la cita. Esto no cambia ninguna receta.`,
+                    `Men medikaman aktif ki nan dosye swen ou. Chwazi sa ou vle revize ak ${provider}, epi m ap ajoute yo nan lis vizit ou. Sa pa chanje okenn preskripsyon.`
+                  )
+                : L(
+                    "I don’t see any active medications in your care record. You can type the medication name or add a question for your clinician to your visit list.",
+                    "No veo medicamentos activos en su registro. Puede escribir el nombre del medicamento o agregar una pregunta para su profesional clínico a la lista de la cita.",
+                    "Mwen pa wè okenn medikaman aktif nan dosye swen ou. Ou ka ekri non medikaman an oswa ajoute yon kesyon pou pwofesyonèl klinik ou nan lis vizit la."
+                  );
+              state.assistantMessages.push({ role: "user", text: topics[0], intent: "APPOINTMENT_PREP_TOPIC", appointmentId: record.id });
+              state.assistantMessages.push({
+                role: "assistant",
+                text: response,
+                intent: "APPOINTMENT_PREP_MEDICATIONS",
+                appointmentId: record.id,
+                prepMedicationOptions: medications.map(medication => ({
+                  medicationId: medication.id,
+                  name: medicationLabel(medication),
+                  details: medicationDetails(medication) || medicationSig(medication)
+                }))
+              });
+              emmiConversationManager?.recordTurn("user", topics[0], { screen: state.screen, appointmentId: record.id, source: "appointment-prep" });
+              emmiConversationManager?.recordTurn("assistant", response, { screen: state.screen, appointmentId: record.id, source: "appointment-prep" });
+              emmiConversationManager?.markGreeted();
+              ensureEmmiRuntime().audit.transcript("user", topics[0]);
+              ensureEmmiRuntime().audit.transcript("assistant", response);
+              draftStore.save(state);
+              refreshAssistantLayer();
+              return;
+            }
             await askEmmi(topics[0], { questionId: "appointment-prep-topic", source: "appointment-prep" });
             draftStore.save(state);
             return;
@@ -7228,6 +7390,12 @@ function bind() {
         const index = Number(el.dataset.topicIndex);
         const prep = record.prep || { topics: [] };
         saveAppointment({ ...record, prep: { ...prep, topics: (prep.topics || []).filter((_, position) => position !== index), updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
+        openAppointmentDetail(record.id, "PREP"); render(); return;
+      }
+      if (action === "appointment-remove-prep-medication") {
+        const medicationId = el.dataset.medicationId || "";
+        const prep = record.prep || { topics: [], medications: [] };
+        saveAppointment({ ...record, prep: { ...prep, medications: (prep.medications || []).filter(item => item.medicationId !== medicationId), updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() });
         openAppointmentDetail(record.id, "PREP"); render(); return;
       }
       // §47: the brief goes to the provider only because the patient chose to send it.
@@ -7903,12 +8071,7 @@ function bind() {
       const progress = gettingStartedProgress();
       const now = new Date().toISOString();
       const resumed = action === "resume-next-flow" || [FLOW_STATUS.DEFERRED, FLOW_STATUS.IN_PROGRESS].includes(progress.status);
-      const resumeRoute = resolveGettingStartedEntryRoute({
-        pathway: state.offer.pathway,
-        journey: journeyFor(state),
-        savedResumeRoute: progress.resumeRoute || state.baselineResumeScreen,
-        configuredRoute: transition.nextRoute
-      });
+      const resumeRoute = gettingStartedResumeRoute();
       state.enrollmentConfirmed = true;
       state.enrollmentStatus = "COMPLETED";
       state.enrollmentCompletedAt ||= state.consentTimestamp || now;
@@ -8420,6 +8583,7 @@ function bind() {
   representativeOtp?.addEventListener("input", event => { event.target.value = phoneDigits(event.target.value).slice(0, 6); });
   const careCirclePhone = document.querySelector('[name="supportPersonPhone"]');
   const careCircleForm = document.querySelector("#care-circle-invite-form");
+  const careCircleContactFile = document.querySelector("#care-circle-contact-file");
   const careCircleCta = document.querySelector('[data-action="send-care-circle-invite"]');
   const updateCareCircleCta = () => {
     if (!careCircleForm || !careCircleCta) return;
@@ -8430,6 +8594,21 @@ function bind() {
   careCircleForm?.addEventListener("input", event => { if (!state.careCircleManualEntryTracked && event.isTrusted) { state.careCircleManualEntryTracked = true; state.careCircleContactSource = "MANUAL"; audit(state, "manual_entry_used", "success", { context: state.careCircleContext }); } updateCareCircleCta(); });
   careCircleForm?.addEventListener("change", event => { updateCareCircleCta(); if (event.target.name === "supportPersonRelationship") render(); });
   careCirclePhone?.addEventListener("input", event => { event.target.value = formatPhone(event.target.value); updateCareCircleCta(); });
+  careCircleContactFile?.addEventListener("change", async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > 1024 * 1024) throw new Error("ContactCardTooLarge");
+      const contact = parseContactCard(await file.text());
+      const rawNumbers = applyCareCircleContact(contact, "VCARD_IMPORT");
+      if (!state.supportPersonName && !rawNumbers.length) state.careCircleNotice = L("We couldn’t read that contact card. You can choose another or enter the information below.", "No pudimos leer esa tarjeta de contacto. Puede elegir otra o ingresar la información abajo.", "Nou pa t ka li kat kontak sa a. Ou ka chwazi yon lòt oswa antre enfòmasyon an anba a.");
+      audit(state, "care_circle_contact_imported", rawNumbers.length ? "success" : "fallback", { phoneCount: rawNumbers.length, hasName: Boolean(state.supportPersonName) });
+    } catch (error) {
+      state.careCircleNotice = L("We couldn’t read that contact card. You can choose another or enter the information below.", "No pudimos leer esa tarjeta de contacto. Puede elegir otra o ingresar la información abajo.", "Nou pa t ka li kat kontak sa a. Ou ka chwazi yon lòt oswa antre enfòmasyon an anba a.");
+      audit(state, "care_circle_contact_import_failed", "fallback", { reason: error?.message === "ContactCardTooLarge" ? "too_large" : "invalid" });
+    }
+    render();
+  });
   document.querySelectorAll('[name="careCircleContactPhone"]').forEach(input => input.addEventListener("change", event => { state.supportPersonPhone = formatPhone(event.target.value); state.careCircleContactSource = "CONTACT_PICKER"; render(); }));
   const authorityForm = document.querySelector("#representative-authority-form");
   const authorityCta = authorityForm?.closest(".screen")?.querySelector('[data-action="next"]');

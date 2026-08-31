@@ -36,7 +36,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       Object.freeze({ icon: "goals", title: T("Your health goals", "Sus metas de salud", "Objektif sante ou"), description: T("You’ll choose what matters most to you and what you want to work toward.", "Usted elegirá lo que más le importa y hacia qué quiere trabajar.", "Se ou k ap chwazi sa ki pi enpòtan pou ou ak sa ou vle travay pou li.") }),
       Object.freeze({ icon: "plan", title: T("Your personalized care plan", "Su plan de cuidado personalizado", "Plan swen pèsonalize ou"), description: T("Your health information, goals, and next steps will come together in your ACCESS care plan.", "Su información de salud, sus metas y sus próximos pasos se reúnen en su plan de cuidado ACCESS.", "Enfòmasyon sante ou, objektif ou, ak pwochen etap ou yo ap vin ansanm nan plan swen ACCESS ou.") })
     ]),
-    emmiWelcome: T("Welcome. Your ACCESS enrollment is complete. Next we’ll set up your care: your monitor, your goals, and your care plan. I’ll be with you for all of it.", "Bienvenido. Su inscripción en ACCESS está completa. Ahora configuraremos su cuidado: su monitor, sus metas y su plan de cuidado. Estaré con usted en todo momento.", "Byenveni. Enskripsyon ACCESS ou fini. Kounye a n ap mete swen ou an plas: aparèy ou, objektif ou, ak plan swen ou. M ap la avè w pou tout sa.")
+    emmiWelcome: T("Congratulations, and welcome to your ACCESS care! You did it — your enrollment is complete. Your care team and I are excited to support you as we set up your monitor, goals, and care plan together.", "¡Felicidades y bienvenido a su cuidado ACCESS! Lo logró: su inscripción está completa. Su equipo de cuidado y yo estamos felices de acompañarle mientras configuramos juntos su monitor, sus metas y su plan de cuidado.", "Felisitasyon, epi byenveni nan swen ACCESS ou! Ou fè l — enskripsyon ou fini. Ekip swen ou ak mwen kontan sipòte w pandan n ap mete aparèy ou, objektif ou, ak plan swen ou an plas ansanm.")
   }),
   CCM: Object.freeze({
     title: T("Welcome to your Chronic Care Management experience", "Bienvenido a su experiencia de Manejo de Cuidados Crónicos", "Byenveni nan eksperyans Jesyon Swen Kwonik ou"),
@@ -47,7 +47,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("We’ll stay in touch between doctor visits", "Nos mantendremos en contacto entre visitas al médico", "N ap rete an kontak ant vizit kay doktè"),
       T("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. Your care team can now support you between doctor visits, and I’ll be here if you need help.", "Bienvenido. Su inscripción está completa. Su equipo ahora puede apoyarle entre visitas al médico, y estaré aquí si necesita ayuda.", "Byenveni. Enskripsyon ou fini. Ekip swen ou kapab sipòte w ant vizit kay doktè, epi m ap la si ou bezwen èd.")
+    emmiWelcome: T("Congratulations, and welcome! You did it — your enrollment is complete. Your care team and I are glad to support you between doctor visits and help you every step of the way.", "¡Felicidades y bienvenido! Lo logró: su inscripción está completa. Su equipo de cuidado y yo nos alegra acompañarle entre visitas médicas y ayudarle en cada paso.", "Felisitasyon, epi byenveni! Ou fè l — enskripsyon ou fini. Ekip swen ou ak mwen kontan sipòte w ant vizit kay doktè epi ede w nan chak etap.")
   }),
   RPM: Object.freeze({
     title: T("Welcome to your Remote Patient Monitoring experience", "Bienvenido a su experiencia de Monitoreo Remoto del Paciente", "Byenveni nan eksperyans Siveyans Pasyan a Distans ou"),
@@ -58,7 +58,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("Your readings will be sent securely to your care team", "Sus mediciones se enviarán de forma segura a su equipo de cuidado", "Y ap voye mezi ou yo bay ekip swen ou an sekirite"),
       T("Your care team will follow up when needed", "Su equipo de cuidado dará seguimiento cuando sea necesario", "Ekip swen ou pral fè suivi lè sa nesesè")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. I can help you get your monitoring set up and answer questions along the way.", "Bienvenido. Su inscripción está completa. Puedo ayudarle a configurar su monitoreo y responder sus preguntas durante el proceso.", "Byenveni. Enskripsyon ou fini. Mwen ka ede w mete siveyans ou an plas epi reponn kesyon ou pandan pwosesis la.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. I’m excited to help you set up your monitoring and answer your questions along the way.", "¡Felicidades y bienvenido! Su inscripción está completa. Me alegra ayudarle a configurar su monitoreo y responder sus preguntas durante el proceso.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Mwen kontan ede w mete siveyans ou an plas epi reponn kesyon ou pandan pwosesis la.")
   }),
   CCM_RPM: Object.freeze({
     title: T("Welcome to your connected care experience", "Bienvenido a su experiencia de cuidado conectado", "Byenveni nan eksperyans swen konekte ou"),
@@ -69,7 +69,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("We’ll help set up your monitoring", "Le ayudaremos a configurar su monitoreo", "N ap ede w mete siveyans ou an plas"),
       T("Your care team will stay connected between visits", "Su equipo de cuidado se mantendrá conectado entre visitas", "Ekip swen ou ap rete konekte ant vizit yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. I can help you get your monitoring started while your care team supports you between visits.", "Bienvenido. Su inscripción está completa. Puedo ayudarle a comenzar el monitoreo mientras su equipo le apoya entre visitas.", "Byenveni. Enskripsyon ou fini. Mwen ka ede w kòmanse siveyans lan pandan ekip swen ou sipòte w ant vizit yo.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. Your care team and I are glad to be with you as you begin monitoring and receive support between visits.", "¡Felicidades y bienvenido! Su inscripción está completa. Su equipo de cuidado y yo nos alegra acompañarle mientras inicia el monitoreo y recibe apoyo entre visitas.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Ekip swen ou ak mwen kontan la avè w pandan w ap kòmanse siveyans epi resevwa sipò ant vizit yo.")
   }),
   PCM: Object.freeze({
     title: T("Welcome to your Principal Care Management experience", "Bienvenido a su experiencia de Manejo de Cuidado Principal", "Byenveni nan eksperyans Jesyon Swen Prensipal ou"),
@@ -80,7 +80,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("Your care team will stay in touch", "Su equipo de cuidado se mantendrá en contacto", "Ekip swen ou ap rete an kontak"),
       T("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. Your care team can now provide focused support, and I’ll be here if you need help.", "Bienvenido. Su inscripción está completa. Su equipo ahora puede brindarle apoyo enfocado, y estaré aquí si necesita ayuda.", "Byenveni. Enskripsyon ou fini. Ekip swen ou kapab ba w sipò ki konsantre, epi m ap la si ou bezwen èd.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. Your care team and I are happy to support what matters most for your health, one step at a time.", "¡Felicidades y bienvenido! Su inscripción está completa. Su equipo de cuidado y yo estamos felices de apoyar lo que más importa para su salud, paso a paso.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Ekip swen ou ak mwen kontan sipòte sa ki pi enpòtan pou sante ou, etap pa etap.")
   }),
   PCM_RPM: Object.freeze({
     title: T("Welcome to your connected condition care experience", "Bienvenido a su experiencia de cuidado conectado para su condición", "Byenveni nan eksperyans swen konekte pou pwoblèm sante ou"),
@@ -91,7 +91,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("We’ll help set up your monitoring", "Le ayudaremos a configurar su monitoreo", "N ap ede w mete siveyans ou an plas"),
       T("Your care team will follow your progress between visits", "Su equipo seguirá su progreso entre visitas", "Ekip swen ou ap suiv pwogrè ou ant vizit yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. I can help you begin monitoring while your care team supports your main health condition.", "Bienvenido. Su inscripción está completa. Puedo ayudarle a comenzar el monitoreo mientras su equipo apoya su condición principal.", "Byenveni. Enskripsyon ou fini. Mwen ka ede w kòmanse siveyans pandan ekip swen ou sipòte pwoblèm sante prensipal ou.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. Your care team and I are glad to support your main health needs as you begin monitoring.", "¡Felicidades y bienvenido! Su inscripción está completa. Su equipo de cuidado y yo nos alegra apoyar sus principales necesidades de salud mientras comienza el monitoreo.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Ekip swen ou ak mwen kontan sipòte bezwen sante prensipal ou pandan w ap kòmanse siveyans.")
   }),
   ASM: Object.freeze({
     useProgramDisplayName: true,
@@ -102,7 +102,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("Your care team will stay in touch between visits", "Su equipo se mantendrá en contacto entre visitas", "Ekip swen ou ap rete an kontak ant vizit yo"),
       T("Important updates will stay connected with your doctors", "Las actualizaciones importantes se coordinarán con sus médicos", "Mizajou enpòtan yo ap rete konekte ak doktè ou yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. Your specialty care support is ready, and I’ll be here if you need help.", "Bienvenido. Su inscripción está completa. Su apoyo de cuidado especializado está listo, y estaré aquí si necesita ayuda.", "Byenveni. Enskripsyon ou fini. Sipò swen espesyalize ou pare, epi m ap la si ou bezwen èd.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. Your specialty care support is ready, and I’m happy to be here with you whenever you need guidance.", "¡Felicidades y bienvenido! Su inscripción está completa. Su apoyo de cuidado especializado está listo y me alegra acompañarle cuando necesite orientación.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Sipò swen espesyalize ou pare, epi mwen kontan la avè w chak fwa ou bezwen gid.")
   }),
   APCM: Object.freeze({
     title: T("Welcome to your Advanced Primary Care experience", "Bienvenido a su experiencia de Atención Primaria Avanzada", "Byenveni nan eksperyans Swen Prensipal Avanse ou"),
@@ -113,7 +113,7 @@ export const enrollmentWelcomeConfig = Object.freeze({
       T("Your care team will help coordinate next steps", "Su equipo ayudará a coordinar los próximos pasos", "Ekip swen ou ap ede kowòdone pwochen etap yo"),
       T("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. Your care team is ready to support your ongoing healthcare needs, and I’ll be here if you need help.", "Bienvenido. Su inscripción está completa. Su equipo está listo para apoyar sus necesidades continuas de salud, y estaré aquí si necesita ayuda.", "Byenveni. Enskripsyon ou fini. Ekip swen ou pare pou sipòte bezwen swen sante ou, epi m ap la si ou bezwen èd.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. Your care team and I are ready and happy to support your ongoing health needs every step of the way.", "¡Felicidades y bienvenido! Su inscripción está completa. Su equipo de cuidado y yo estamos listos y felices de apoyar sus necesidades continuas de salud en cada paso.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Ekip swen ou ak mwen pare epi kontan sipòte bezwen sante ou nan chak etap.")
   })
 });
 
@@ -127,7 +127,7 @@ export function enrollmentWelcomeFor(pathway) {
       T("We’ll guide you as your care begins", "Le guiaremos mientras comienza su cuidado", "N ap gide w pandan swen ou ap kòmanse"),
       T("You’ll continue seeing your regular doctors", "Continuará viendo a sus médicos habituales", "W ap kontinye wè doktè ou konn wè yo")
     ]),
-    emmiWelcome: T("Welcome. Your enrollment is complete. I’ll be here as you get started with your care.", "Bienvenido. Su inscripción está completa. Estaré aquí mientras comienza su cuidado.", "Byenveni. Enskripsyon ou fini. M ap la pandan w ap kòmanse swen ou.")
+    emmiWelcome: T("Congratulations, and welcome! Your enrollment is complete. I’m happy to be here with you as you begin your care.", "¡Felicidades y bienvenido! Su inscripción está completa. Me alegra acompañarle mientras comienza su cuidado.", "Felisitasyon, epi byenveni! Enskripsyon ou fini. Mwen kontan la avè w pandan w ap kòmanse swen ou.")
   });
 }
 

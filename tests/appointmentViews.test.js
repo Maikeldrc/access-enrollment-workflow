@@ -72,7 +72,7 @@ const everyView = (overrides = {}) => {
     slotPickerView: slotPickerView({ ...props, appointment: confirmed, slots }),
     bookingConfirmationView: bookingConfirmationView({ ...props, appointment: confirmed }),
     requestConfirmationView: requestConfirmationView({ ...props, appointment: request }),
-    appointmentPrepView: appointmentPrepView({ ...props, appointment: { ...confirmed, prep: { topics: ["My blood pressure"], sharedWithProvider: false } } }),
+    appointmentPrepView: appointmentPrepView({ ...props, appointment: { ...confirmed, prep: { topics: ["My blood pressure"], medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg" }], sharedWithProvider: false } } }),
     appointmentBriefView: appointmentBriefView({ ...props, appointment: { ...confirmed, prep: { topics: ["My blood pressure"], sharedWithProvider: false } } }),
     appointmentBarrierCheckView: appointmentBarrierCheckView({ ...props, appointment: confirmed }),
     appointmentShareView: appointmentShareView({ ...props, appointment: confirmed, members: [{ inviteId: "inv-1", firstName: "Ana", relationship: "Daughter" }] }),
@@ -473,6 +473,23 @@ describe("appointment views — preparation, brief and sharing (§43-§47, §114
     expect(html).toContain('data-topic-index="1"');
     expect(html).toContain('id="appointment-prep-form"');
     expect(html).toContain('name="prepTopic"');
+  });
+
+  it("shows medications selected with EMMI in both the editable prep and visit-day brief", () => {
+    const prep = {
+      topics: ["My blood pressure"],
+      medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg", details: "Once daily" }],
+      sharedWithProvider: false
+    };
+    const prepHtml = appointmentPrepView({ ...base, now: NOW, appointment: { ...confirmed, prep } });
+    expect(prepHtml).toContain("Medications to review");
+    expect(prepHtml).toContain("Lisinopril 10 mg");
+    expect(prepHtml).toContain("Once daily");
+    expect(prepHtml).toContain('data-action="appointment-remove-prep-medication"');
+
+    const briefHtml = appointmentBriefView({ ...base, appointment: { ...confirmed, prep } });
+    expect(briefHtml).toContain("Medication: Lisinopril 10 mg");
+    expect(briefHtml).toContain("Once daily");
   });
 
   it("says the appointment is tomorrow when it is tomorrow (§112)", () => {

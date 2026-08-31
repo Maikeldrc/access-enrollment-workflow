@@ -61,7 +61,7 @@ export const appointment = (overrides = {}) => ({
   attendanceOutcome: "",
   followUpAskedAt: "",
   reminder: null,
-  prep: { topics: [], notes: "", sharedWithProvider: false, updatedAt: "" },
+  prep: { topics: [], medications: [], notes: "", sharedWithProvider: false, updatedAt: "" },
   sharedWith: [],
   ...overrides
 });

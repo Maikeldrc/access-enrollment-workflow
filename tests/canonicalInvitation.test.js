@@ -35,13 +35,13 @@ describe("the canonical patient's confirmed starting points", () => {
 });
 
 describe("the canonical patient invitation", () => {
-  it("describes one ACCESS hypertension patient referred by Dr. Fresner", () => {
+  it("describes one ACCESS hypertension patient referred by Dr. Fresner Lee", () => {
     expect(CANONICAL_PATIENT_SCENARIO.program).toBe("ACCESS");
     expect(CANONICAL_PATIENT_SCENARIO.conditions).toEqual(["Hypertension"]);
     expect(CANONICAL_PATIENT_SCENARIO.accessTrack).toBe("eCKM");
     expect(CANONICAL_PATIENT_SCENARIO.coverage).toBe("Original Medicare");
     expect(CANONICAL_PATIENT_SCENARIO.accessEligibilityResult).toBe("eligible");
-    expect(CANONICAL_PATIENT_SCENARIO.physicianDisplayName).toBe("Dr. Fresner");
+    expect(CANONICAL_PATIENT_SCENARIO.physicianDisplayName).toBe("Dr. Fresner Lee");
     expect(isProviderReferralSource(CANONICAL_PATIENT_SCENARIO.source)).toBe(true);
     expect(CANONICAL_PATIENT_SCENARIO.referralOrigin).toBe("physician");
   });
@@ -53,8 +53,8 @@ describe("the canonical patient invitation", () => {
   it("is a scenario that requires and resolves a named referring physician", () => {
     expect(scenarioRequiresPhysician(CANONICAL_PATIENT_SCENARIO.program, CANONICAL_PATIENT_SCENARIO.source)).toBe(true);
     const offer = createPrototypeOffer(CANONICAL_PATIENT_SCENARIO);
-    expect(offer.physician).toEqual({ displayName: "Dr. Fresner", id: "dr-fresner" });
-    expect(offer.referringProvider.name).toBe("Dr. Fresner");
+    expect(offer.physician).toEqual({ displayName: "Dr. Fresner Lee", id: "dr-fresner" });
+    expect(offer.referringProvider.name).toBe("Dr. Fresner Lee");
     expect(offer.enrollmentSource).toBe("Provider / Practice Referral");
     expect(offer.referralOrigin).toBe("physician");
   });
@@ -91,7 +91,7 @@ describe("the canonical patient invitation", () => {
   it("writes the demo prescriptions under the physician the invitation names", () => {
     const offer = createPrototypeOffer(CANONICAL_PATIENT_SCENARIO);
     expect(prescriberFor(CANONICAL_PATIENT_SCENARIO)).toEqual({ id: offer.physician.id, name: offer.physician.displayName });
-    expect(prescriberFor(CANONICAL_PATIENT_SCENARIO).name).toBe("Dr. Fresner");
+    expect(prescriberFor(CANONICAL_PATIENT_SCENARIO).name).toBe("Dr. Fresner Lee");
   });
 
   it("moves the prescriber with the invited physician instead of pinning one name", () => {
@@ -107,6 +107,6 @@ describe("the canonical patient invitation", () => {
     expect(offer.consent.version).toBeTruthy();
     expect(offer.disclosures.version).toBeTruthy();
     expect(offer.disclosures.accessConfig.careTrack).toBe("eCKM");
-    expect(offer.disclosures.accessConfig.physicianDisplayName).toBe("Dr. Fresner");
+    expect(offer.disclosures.accessConfig.physicianDisplayName).toBe("Dr. Fresner Lee");
   });
 });

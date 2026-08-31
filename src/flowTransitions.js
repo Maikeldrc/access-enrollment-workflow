@@ -119,3 +119,20 @@ export function resolveGettingStartedEntryRoute({ pathway, journey = [], savedRe
     || journey[enrollmentCompleteIndex + 1]
     || fallback;
 }
+
+// Care setup is a resumable checklist, so its next route comes from the answers that were actually
+// saved rather than from the last screen the patient happened to visit. This also keeps the My Care
+// CTA from reopening an earlier activation step after the patient has already reached the checklist.
+export function resolveCareSetupResumeRoute({
+  healthInformationStepStatus = "NOT_STARTED",
+  medicationsReviewStatus = "NOT_STARTED",
+  carePreferencesStatus = "NOT_STARTED",
+  goalsStatus = "NOT_STARTED"
+} = {}) {
+  return [
+    [healthInformationStepStatus, "CLINICAL_VERIFICATION"],
+    [medicationsReviewStatus, "MEDICATIONS_REVIEW"],
+    [carePreferencesStatus, "CARE_PREFERENCES"],
+    [goalsStatus, "GOALS"]
+  ].find(([status]) => status !== "COMPLETED")?.[1] || "ONBOARDING_COMPLETE";
+}

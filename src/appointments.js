@@ -147,6 +147,12 @@ const enumValue = (table, value, fallback) => (table[value] ? table[value] : fal
 // Frozen on the way out, so nothing downstream can quietly promote a request into a confirmation
 // by assignment. Every change goes through advanceAppointment, which records who said so.
 function freezeAppointment(record) {
+  const prepMedications = (record.prep?.medications || []).map(item => Object.freeze({
+    medicationId: bounded(item?.medicationId, 120),
+    name: bounded(item?.name, 160),
+    details: bounded(item?.details, 240),
+    addedAt: item?.addedAt || ""
+  })).filter(item => item.medicationId && item.name);
   return Object.freeze({
     ...record,
     preferredDateRange: record.preferredDateRange ? Object.freeze({ ...record.preferredDateRange }) : null,
@@ -154,7 +160,7 @@ function freezeAppointment(record) {
     events: Object.freeze((record.events || []).map(event => Object.freeze({ ...event }))),
     sharedWith: Object.freeze((record.sharedWith || []).map(share => Object.freeze({ ...share }))),
     reminder: record.reminder ? Object.freeze({ ...record.reminder }) : null,
-    prep: Object.freeze({ topics: Object.freeze([...(record.prep?.topics || [])]), notes: record.prep?.notes || "", sharedWithProvider: record.prep?.sharedWithProvider === true, updatedAt: record.prep?.updatedAt || "" })
+    prep: Object.freeze({ topics: Object.freeze([...(record.prep?.topics || [])]), medications: Object.freeze(prepMedications), notes: record.prep?.notes || "", sharedWithProvider: record.prep?.sharedWithProvider === true, updatedAt: record.prep?.updatedAt || "" })
   });
 }
 
@@ -231,7 +237,7 @@ export function createAppointmentNeed({
     attendanceOutcome: "",
     followUpAskedAt: "",
     reminder: null,
-    prep: { topics: [], notes: "", sharedWithProvider: false, updatedAt: "" },
+    prep: { topics: [], medications: [], notes: "", sharedWithProvider: false, updatedAt: "" },
     sharedWith: []
   });
 }
@@ -620,7 +626,13 @@ export const serializeAppointmentForDraft = record => (record
     attendanceOutcome: record.attendanceOutcome || "",
     followUpAskedAt: record.followUpAskedAt || "",
     reminder: record.reminder ? { ...record.reminder } : null,
-    prep: { topics: [...(record.prep?.topics || [])], notes: record.prep?.notes || "", sharedWithProvider: record.prep?.sharedWithProvider === true, updatedAt: record.prep?.updatedAt || "" },
+    prep: {
+      topics: [...(record.prep?.topics || [])],
+      medications: (record.prep?.medications || []).map(item => ({ ...item })),
+      notes: record.prep?.notes || "",
+      sharedWithProvider: record.prep?.sharedWithProvider === true,
+      updatedAt: record.prep?.updatedAt || ""
+    },
     sharedWith: (record.sharedWith || []).map(share => ({ ...share }))
   }
   : null);

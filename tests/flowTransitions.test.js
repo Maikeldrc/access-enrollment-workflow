@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FLOW_STATUS, FLOW_TRANSITION_CONFIG, FLOW_TRANSITION_TYPE, emptyFlowProgress, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "../src/flowTransitions.js";
+import { FLOW_STATUS, FLOW_TRANSITION_CONFIG, FLOW_TRANSITION_TYPE, emptyFlowProgress, resolveCareSetupResumeRoute, resolveEnrollmentTransition, resolveGettingStartedEntryRoute } from "../src/flowTransitions.js";
 import { resolveNextBestAction } from "../src/nextBestAction.js";
 
 const programs = ["ACCESS", "CCM", "RPM", "CCM_RPM", "PCM", "PCM_RPM", "ASM", "APCM"];
@@ -60,5 +60,34 @@ describe("Getting Started entry route", () => {
       savedResumeRoute: "ACCESS_MEASURE",
       configuredRoute: "ACCESS_BASELINE"
     })).toBe("ACCESS_MEASURE");
+  });
+});
+
+describe("care setup resume route", () => {
+  it("resumes at the first section whose required information was not saved", () => {
+    expect(resolveCareSetupResumeRoute({
+      healthInformationStepStatus: "COMPLETED",
+      medicationsReviewStatus: "NOT_STARTED",
+      carePreferencesStatus: "NOT_STARTED",
+      goalsStatus: "COMPLETED"
+    })).toBe("MEDICATIONS_REVIEW");
+  });
+
+  it("does not treat a visited but unfinished section as completed", () => {
+    expect(resolveCareSetupResumeRoute({
+      healthInformationStepStatus: "COMPLETED",
+      medicationsReviewStatus: "IN_PROGRESS",
+      carePreferencesStatus: "COMPLETED",
+      goalsStatus: "COMPLETED"
+    })).toBe("MEDICATIONS_REVIEW");
+  });
+
+  it("routes to the completion screen only after every required section is saved", () => {
+    expect(resolveCareSetupResumeRoute({
+      healthInformationStepStatus: "COMPLETED",
+      medicationsReviewStatus: "COMPLETED",
+      carePreferencesStatus: "COMPLETED",
+      goalsStatus: "COMPLETED"
+    })).toBe("ONBOARDING_COMPLETE");
   });
 });

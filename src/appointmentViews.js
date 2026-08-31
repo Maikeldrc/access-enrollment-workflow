@@ -39,6 +39,7 @@
 //   appointment-add-prep-topic          data-appointment-id    Submits form #appointment-prep-form,
 //                                                              input name="prepTopic".
 //   appointment-remove-prep-topic       data-appointment-id, data-topic-index
+//   appointment-remove-prep-medication  data-appointment-id, data-medication-id
 //   appointment-open-brief              data-appointment-id
 //   appointment-share-brief             data-appointment-id    Share the brief with the provider (§47).
 //   appointment-open-share              data-appointment-id    Open Care Circle sharing (§114).
@@ -90,7 +91,7 @@ export const APPOINTMENT_VIEW_ACTIONS = Object.freeze([
   "appointment-preference-other-time", "appointment-preference-back", "appointment-submit-request",
   "appointment-get-directions", "appointment-join-visit", "appointment-request-reschedule",
   "appointment-request-cancel", "appointment-open-reminder", "appointment-open-prep",
-  "appointment-add-prep-topic", "appointment-remove-prep-topic", "appointment-open-brief",
+  "appointment-add-prep-topic", "appointment-remove-prep-topic", "appointment-remove-prep-medication", "appointment-open-brief",
   "appointment-share-brief", "appointment-open-share",
   "appointment-open-barrier", "appointment-share-with-member",
   "appointment-barrier-answer", "appointment-followup-attendance", "appointment-followup-need",
@@ -705,6 +706,7 @@ export function appointmentPrepView(props = {}) {
   const parts = wallClock(appointment.scheduledAt, appointment.timezone);
   const when = relativeDay(appointment.scheduledAt, appointment.timezone, props.now, locale);
   const topics = Array.isArray(appointment.prep?.topics) ? appointment.prep.topics.filter(Boolean) : [];
+  const prepMedications = Array.isArray(appointment.prep?.medications) ? appointment.prep.medications.filter(item => item?.medicationId && item?.name) : [];
   return `<div class="appointment-screen appointment-prep-screen">
     ${screenTitle(props, t("Get ready", "Prepárese", "Prepare w"), t("EMMI can help you remember what you want to discuss.", "EMMI puede ayudarle a recordar lo que quiere conversar.", "EMMI ka ede w sonje sa ou vle pale sou li."), t("Appointment", "Cita", "Randevou"))}
     <section class="appointment-prep-context">
@@ -716,6 +718,10 @@ export function appointmentPrepView(props = {}) {
     ${topics.length
       ? `<ul class="appointment-topics">${topics.map((topic, index) => `<li><span class="appointment-topic-text">${esc(topic)}</span><button type="button" class="appointment-topic-remove" data-action="appointment-remove-prep-topic" data-appointment-id="${esc(appointment.id)}" data-topic-index="${index}"><span class="appointment-visually-hidden">${t("Remove", "Eliminar", "Retire")}</span>${glyph("rotate")}</button></li>`).join("")}</ul>`
       : `<p class="appointment-empty">${t("Nothing added yet.", "Todavía no hay nada.", "Poko gen anyen.")}</p>`}
+    ${prepMedications.length ? `<section class="appointment-prep-medications">
+      <h2 class="appointment-question">${t("Medications to review", "Medicamentos para revisar", "Medikaman pou revize")}</h2>
+      <ul class="appointment-topics appointment-medication-agenda">${prepMedications.map(item => `<li><span class="appointment-topic-text"><strong>${esc(item.name)}</strong>${item.details ? `<small>${esc(item.details)}</small>` : ""}</span><button type="button" class="appointment-topic-remove" data-action="appointment-remove-prep-medication" data-appointment-id="${esc(appointment.id)}" data-medication-id="${esc(item.medicationId)}"><span class="appointment-visually-hidden">${t("Remove", "Eliminar", "Retire")}</span>${glyph("rotate")}</button></li>`).join("")}</ul>
+    </section>` : ""}
     <form id="appointment-prep-form" class="appointment-prep-form" novalidate>
       <label class="appointment-field" for="appointment-prep-topic">${t("Add something to discuss", "Agregar algo para conversar", "Ajoute yon bagay pou pale sou li")}
         <input id="appointment-prep-topic" name="prepTopic" maxlength="120" autocomplete="off" placeholder="${esc(t("Example: my blood pressure readings", "Ejemplo: mis lecturas de presión arterial", "Egzanp: mezi tansyon mwen yo"))}">
@@ -737,6 +743,7 @@ export function appointmentBriefView(props = {}) {
   const glyph = iconOf(props);
   const t = say(locale);
   const topics = Array.isArray(appointment.prep?.topics) ? appointment.prep.topics.filter(Boolean) : [];
+  const prepMedications = Array.isArray(appointment.prep?.medications) ? appointment.prep.medications.filter(item => item?.medicationId && item?.name) : [];
   const shared = appointment.prep?.sharedWithProvider === true;
   // §46: only fields the record actually carries. Nothing is invented, nothing is a transcript.
   const contextRows = [
@@ -748,8 +755,8 @@ export function appointmentBriefView(props = {}) {
   return `<div class="appointment-screen appointment-brief-screen">
     ${screenTitle(props, t("Things I want to discuss", "Lo que quiero conversar", "Bagay mwen vle pale sou yo"), "", t("Appointment", "Cita", "Randevou"))}
     <div class="appointment-identity">${identityBlock(appointment, props)}</div>
-    ${topics.length
-      ? `<ol class="appointment-brief-list">${topics.map(topic => `<li class="appointment-brief-item">${esc(topic)}</li>`).join("")}</ol>`
+    ${topics.length || prepMedications.length
+      ? `<ol class="appointment-brief-list">${topics.map(topic => `<li class="appointment-brief-item">${esc(topic)}</li>`).join("")}${prepMedications.map(item => `<li class="appointment-brief-item appointment-brief-medication"><strong>${t("Medication", "Medicamento", "Medikaman")}: ${esc(item.name)}</strong>${item.details ? `<small>${esc(item.details)}</small>` : ""}</li>`).join("")}</ol>`
       : `<p class="appointment-empty">${t("You haven’t added anything yet.", "Todavía no ha agregado nada.", "Ou poko ajoute anyen.")}</p>`}
     <button type="button" class="appointment-inline-link" data-action="appointment-open-prep" data-appointment-id="${esc(appointment.id)}">${t("Edit", "Editar", "Modifye")} ${glyph("arrowRight")}</button>
     ${contextRows.length ? `<section class="appointment-brief-context">
