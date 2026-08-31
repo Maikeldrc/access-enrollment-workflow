@@ -2875,7 +2875,6 @@ function onboarding() {
     return `<button type="button" class="link-card care-setup-card ${complete ? "completed" : ""}" data-action="care-setup-section" data-section="${section}" aria-label="${title}. ${statusCopy}">${icon(itemIcon)}<span><strong>${title}</strong><small>${description}</small><em>${complete ? `✓ ${statusCopy}` : statusCopy}</em></span><b aria-hidden="true">${complete ? icon("check") : "›"}</b></button>`;
   };
   const cards = [
-    { section: "health", itemIcon: "shield", title: L("Confirm your health information", "Confirme su información de salud", "Konfime enfòmasyon sante ou"), description: L("Review what we already have on file", "Revise lo que ya tenemos", "Revize sa nou deja genyen nan dosye a"), status: state.healthInformationStepStatus },
     { section: "medications", itemIcon: "pill", title: L("Confirm your medications", "Confirme sus medicamentos", "Konfime medikaman ou yo"), description: L("Tell us if anything changed", "Indique si algo cambió", "Di nou si anyen chanje"), status: state.medicationsReviewStatus },
     { section: "preferences", itemIcon: "phone", title: L("Care preferences", "Preferencias de cuidado", "Preferans swen"), description: L("Choose how we should contact you", "Elija cómo debemos contactarle", "Chwazi kijan nou dwe kontakte ou"), status: state.carePreferencesStatus },
     { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus }
@@ -3931,7 +3930,6 @@ function gettingStartedResumeRoute() {
   const reachedCareSetup = state.baselineResumeScreen === "ONBOARDING" || Boolean(state.onboarding?.savedAt);
   if (reachedCareSetup) {
     return resolveCareSetupResumeRoute({
-      healthInformationStepStatus: state.healthInformationStepStatus,
       medicationsReviewStatus: state.medicationsReviewStatus,
       carePreferencesStatus: state.carePreferencesStatus,
       goalsStatus: state.goalsStatus
@@ -5519,7 +5517,7 @@ function prototypeSetup() {
   </main>`;
 }
 
-const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, CLINICAL_VERIFICATION: clinical, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ACCESS_SUPPORT_NEEDS: accessSupportNeeds, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
+const renderers = { INVITATION: invitation, DECISION_MAKER: decisionMaker, CARE_CIRCLE_INVITE: careCircleInvite, CARE_CIRCLE_INVITE_SENT: careCircleInviteSent, CARE_CIRCLE_PERMISSIONS: careCirclePermissions, SHARE_ACCESS: shareAccess, PERSONAL_REPRESENTATIVE_DETAILS: personalRepresentativeDetails, REPRESENTATIVE_MOBILE_VERIFICATION: representativeMobileVerification, REPRESENTATIVE_AUTHORITY_ATTESTATION: representativeAuthorityAttestation, REPRESENTATIVE_AUTHORITY_ESCALATION: representativeAuthorityEscalation, IDENTITY_VERIFICATION: identity, CARE_RECOMMENDATION: recommendation, HOW_CARE_WORKS: howCareWorks, DISCLOSURE: disclosure, CONSENT_REVIEW: consent, ENROLLMENT_PROCESSING: () => processing(), ACCESS_ALIGNMENT_PROCESSING: () => processing("alignment"), ENROLLMENT_CONFIRMED: success, ACCESS_PRE_ELIGIBILITY_NOTICE: accessNotice, ACCESS_MEDICARE_IDENTIFIER: medicareIdentifier, ACCESS_ELIGIBILITY_PROCESSING: eligibilityProcessing, ACCESS_ELIGIBILITY_RESULT: eligibilityResult, ONBOARDING: onboarding, MEDICATIONS_REVIEW: medicationsReview, CARE_PREFERENCES: carePreferences, GOALS: goals, ACCESS_BP_DEVICE_VERIFICATION: accessBpDeviceVerification, ACCESS_BP_DEVICE_RESULT: accessBpDeviceResult, ACCESS_BP_DEVICE_INFO: accessBpDeviceInfo, ACCESS_BP_SHIPPING_ADDRESS: accessBpShippingAddress, ACCESS_BP_FULFILLMENT_CONFIRMED: accessBpFulfillmentConfirmed, ACCESS_BP_GUIDED_SETUP: accessBpGuidedSetup, ACCESS_BP_MEASUREMENT: accessBpMeasurement, ACCESS_BP_BASELINE_RESULT: accessBpBaselineResult, ACCESS_BP_ESCALATION: accessBpEscalation, RPM_DEVICE_PATH: rpmDevice, RPM_ADDRESS_CONFIRMATION: shipping, RPM_DEVICE_SETUP: deviceSetup, RPM_FIRST_READING: firstReading, RPM_MONITORING_READY: monitoringReady, ACCESS_SUPPORT_NEEDS: accessSupportNeeds, ONBOARDING_COMPLETE: onboardingComplete, CALLBACK_CONFIRMED: callbackConfirmed, OUTCOME_STOPPED: stoppedOutcome, OFFER_INVALID: offerError, OFFER_EXPIRED: offerError };
 renderers.FLOW_DEFERRED = deferredFlowConfirmation;
 renderers.MY_CARE = myCareScreen;
 renderers.MY_CARE_TEAM = myCareTeamScreen;
@@ -6239,8 +6237,6 @@ async function advance() {
     state.baselineResumeScreen = "ONBOARDING";
     state.onboarding = {
       ...state.onboarding,
-      healthInformationStepStatus: state.healthInformationStepStatus,
-      healthInformationReviewStatus: state.healthInformationReviewStatus,
       medicationsReviewStatus: state.medicationsReviewStatus,
       carePreferencesStatus: state.carePreferencesStatus,
       goalsStatus: state.goalsStatus,
@@ -6249,13 +6245,9 @@ async function advance() {
     };
     // The barriers question is a section of this list now, so it counts towards it. Only ACCESS
     // asks it, and on every other programme the status stays NOT_STARTED and counts as nothing.
-    audit(state, "care_setup_saved", "success", { completedSections: [state.healthInformationStepStatus, state.medicationsReviewStatus, state.carePreferencesStatus, state.goalsStatus, state.supportNeedsStatus].filter(status => status === "COMPLETED").length, healthInformationReviewStatus: state.healthInformationReviewStatus });
+    audit(state, "care_setup_saved", "success", { completedSections: [state.medicationsReviewStatus, state.carePreferencesStatus, state.goalsStatus, state.supportNeedsStatus].filter(status => status === "COMPLETED").length });
     state.screen = "ONBOARDING_COMPLETE";
     draftStore.save(state); render(); return;
-  }
-  if (state.screen === "CLINICAL_VERIFICATION") {
-    state.error = L("Choose how you would like to review this information.", "Elija cómo desea revisar esta información.", "Chwazi kijan ou ta renmen revize enfòmasyon sa a.");
-    render(); return;
   }
   if (state.screen === "MEDICATIONS_REVIEW") {
     const reviewedCount = state.careMedications.filter(medication => state.medicationReviews?.[medication.id]?.reviewStatus && state.medicationReviews[medication.id].reviewStatus !== "UNREVIEWED").length;
@@ -8143,7 +8135,7 @@ function bind() {
         state.screen = "MY_CARE"; render();
       } else if (state.screen === "CARE_CIRCLE_REMOVE_CONFIRMATION") {
         state.screen = "MY_CARE_CIRCLE"; render();
-      } else if (["CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ACCESS_SUPPORT_NEEDS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
+      } else if (["MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ACCESS_SUPPORT_NEEDS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
         state.screen = "ONBOARDING";
         state.baselineResumeScreen = "ONBOARDING";
         draftStore.save(state); render();
@@ -8167,7 +8159,7 @@ function bind() {
       }
     }
     if (action === "care-setup-section") {
-      const destination = { health: "CLINICAL_VERIFICATION", medications: "MEDICATIONS_REVIEW", preferences: "CARE_PREFERENCES", goals: "GOALS", support: "ACCESS_SUPPORT_NEEDS" }[el.dataset.section];
+      const destination = { medications: "MEDICATIONS_REVIEW", preferences: "CARE_PREFERENCES", goals: "GOALS", support: "ACCESS_SUPPORT_NEEDS" }[el.dataset.section];
       if (!destination) return;
       // The list is the origin now, whatever opened the goals last time. A stale "MY_GOALS" left
       // over from the patient's own goal list would otherwise decide where continuing sends them.
@@ -8821,7 +8813,12 @@ async function boot() {
       if (!Number.isInteger(saved.bpReadingCount)) state.bpReadingCount = state.bpReadingReceipts.length;
       if (!saved.bpMeasurementPhase) state.bpMeasurementPhase = "WAITING";
       if (!saved.flowProgress?.GETTING_STARTED) state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
-      if (saved.baselineResumeScreen && state.baselineStatus !== "COMPLETED" && state.flowProgress.GETTING_STARTED.status === FLOW_STATUS.IN_PROGRESS && !["MY_CARE", "FLOW_DEFERRED"].includes(saved.screen)) state.screen = saved.baselineResumeScreen;
+      // Drafts from builds that exposed the health-information confirmation screen may still point
+      // to it. Preserve every answer, but move that obsolete route to the first current setup task.
+      if (state.screen === "CLINICAL_VERIFICATION") state.screen = "MEDICATIONS_REVIEW";
+      if (state.baselineResumeScreen === "CLINICAL_VERIFICATION") state.baselineResumeScreen = "MEDICATIONS_REVIEW";
+      if (state.flowProgress.GETTING_STARTED.resumeRoute === "CLINICAL_VERIFICATION") state.flowProgress.GETTING_STARTED.resumeRoute = "MEDICATIONS_REVIEW";
+      if (state.baselineResumeScreen && state.baselineStatus !== "COMPLETED" && state.flowProgress.GETTING_STARTED.status === FLOW_STATUS.IN_PROGRESS && !["MY_CARE", "FLOW_DEFERRED"].includes(saved.screen)) state.screen = state.baselineResumeScreen;
       if (state.screen === "REPRESENTATIVE_MOBILE_VERIFICATION" && !state.phoneVerified) state.screen = "PERSONAL_REPRESENTATIVE_DETAILS";
     }
     else {
@@ -8847,11 +8844,11 @@ async function boot() {
     if (!patientShareSource && !resumableEnrollment) growthStore.clearEnrollmentData();
     const storedInvite = patientShareSource || !resumableEnrollment ? null : growthStore.allSupportInvites().filter(invite => invite.inviterPatientId === state.offer.patient.id).at(-1);
     if (storedInvite && !state.supportInviteId) Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: storedInvite.careCircleStatus || (storedInvite.status === "ACCEPTED" ? "ACTIVE" : "INVITED"), supportPersonName: storedInvite.supportPerson.name, supportPersonPhone: formatPhone(storedInvite.supportPerson.phone), supportPersonRelationship: storedInvite.supportPerson.relationship, supportInviteId: storedInvite.inviteId, supportInviteToken: storedInvite.token, supportInviteStatus: storedInvite.status, supportInviteSentAt: storedInvite.sentAt, supportInviteAcceptedAt: storedInvite.acceptedAt || "", careCirclePermissions: storedInvite.careCirclePermissions || state.careCirclePermissions });
-    if (!patientShareSource && !storedInvite && state.careCircleStatus === "NONE") {
-      const demoPatient = EMMI_DEMO_PATIENTS[selectDemoPatientId({ language: state.language, completionRole: state.completionRole, eligibilityStatus: state.accessOutcome, deviceScenario: service.getScenarioDeviceContext?.() || null })];
-      const demoCircle = demoPatient?.careCircle;
-      if (demoCircle && demoCircle.status !== "NONE") Object.assign(state, { supportRole: "CARE_CIRCLE_MEMBER", careCircleStatus: demoCircle.status, supportPersonName: demoCircle.supportPerson?.name || "", supportPersonPhone: formatPhone(demoCircle.supportPerson?.phone || ""), supportPersonRelationship: demoCircle.supportPerson?.relationship || "", supportInviteStatus: demoCircle.status === "ACTIVE" ? "ACCEPTED" : "PENDING" });
-    }
+    // EMMI fixtures describe the assistant's test patients; they are not patient UI state. Using
+    // one of those fixtures as a fallback here caused a clean Spanish enrollment to acquire Maria
+    // Demo's "Angela Demo" invitation immediately after /new had correctly cleared storage. Care
+    // Circle status now comes only from this enrollment's saved draft/invite store or an explicit
+    // support-share flow — never from the assistant's language-selected fixture.
     state.accessShares = patientShareSource ? [] : growthStore.allShares();
     document.documentElement.lang = htmlLanguage(state.language); render();
     scheduleSimulatedAppointmentResponses();

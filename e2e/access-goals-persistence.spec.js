@@ -65,7 +65,7 @@ test("ACCESS saves different barrier answers per goal and completes only after e
 
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Your goals\. Completed/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Confirm your health information\. Completed/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Confirm your health information/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Confirm your medications\. Not completed/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Care preferences\. Not completed/ })).toBeVisible();
 

@@ -53,7 +53,6 @@ const PROGRESS_STAGE_BY_SCREEN = {
   APPOINTMENT_DETAIL: "YOUR_CARE",
   APPOINTMENT_SCHEDULING: "YOUR_CARE",
   ONBOARDING: "GETTING_STARTED",
-  CLINICAL_VERIFICATION: "GETTING_STARTED",
   MEDICATIONS_REVIEW: "GETTING_STARTED",
   CARE_PREFERENCES: "GETTING_STARTED",
   GOALS: "GETTING_STARTED",
@@ -87,7 +86,7 @@ const CARE_ACTIVATION_STAGE_BY_SCREEN = {
   ACCESS_BP_MEASUREMENT: "DEVICE", ACCESS_BP_BASELINE_RESULT: "DEVICE", ACCESS_BP_ESCALATION: "DEVICE",
   GOALS: "GOALS",
   ACCESS_SUPPORT_NEEDS: "PERSONALIZE",
-  CLINICAL_VERIFICATION: "PERSONALIZE", MEDICATIONS_REVIEW: "PERSONALIZE", CARE_PREFERENCES: "PERSONALIZE",
+  MEDICATIONS_REVIEW: "PERSONALIZE", CARE_PREFERENCES: "PERSONALIZE",
   ONBOARDING_COMPLETE: "CARE_PLAN"
 };
 
@@ -104,7 +103,7 @@ export function journeyFor(s) {
     // the monitor being arranged, then the goals the track assigned them — and only afterwards asked
     // for what is still missing to personalize it. Goals moved ahead of the personalization screens
     // for that reason: a patient who has seen their goals understands what the questions are for.
-    const remainingCareSetup = ["GOALS", "ACCESS_SUPPORT_NEEDS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+    const remainingCareSetup = ["GOALS", "ACCESS_SUPPORT_NEEDS", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
     // The patient is never asked whether they own a monitor: their record already says. A patient
     // with a connected device goes down the path that verifies it, and one with none goes to the
     // path that arranges one. Hardcoding "needed" here sent a patient who already had a monitor to
@@ -131,7 +130,7 @@ export function journeyFor(s) {
   }
   const traditionalStart = [...start, "HOW_CARE_WORKS"];
   if (["RPM", "CCM_RPM", "PCM_RPM"].includes(p)) return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "RPM_DEVICE_PATH", ...(s.devicePath === "ship" ? ["RPM_ADDRESS_CONFIRMATION"] : []), "RPM_DEVICE_SETUP", "RPM_FIRST_READING", "RPM_MONITORING_READY"];
-  return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE"];
+  return [...traditionalStart, "DISCLOSURE", "CONSENT_REVIEW", "ENROLLMENT_PROCESSING", "ENROLLMENT_CONFIRMED", "ONBOARDING", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ONBOARDING_COMPLETE"];
 }
 export function progressFor(s) {
   const journey = journeyFor(s);

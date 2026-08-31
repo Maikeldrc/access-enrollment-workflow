@@ -66,7 +66,6 @@ describe("Getting Started entry route", () => {
 describe("care setup resume route", () => {
   it("resumes at the first section whose required information was not saved", () => {
     expect(resolveCareSetupResumeRoute({
-      healthInformationStepStatus: "COMPLETED",
       medicationsReviewStatus: "NOT_STARTED",
       carePreferencesStatus: "NOT_STARTED",
       goalsStatus: "COMPLETED"
@@ -75,7 +74,6 @@ describe("care setup resume route", () => {
 
   it("does not treat a visited but unfinished section as completed", () => {
     expect(resolveCareSetupResumeRoute({
-      healthInformationStepStatus: "COMPLETED",
       medicationsReviewStatus: "IN_PROGRESS",
       carePreferencesStatus: "COMPLETED",
       goalsStatus: "COMPLETED"
@@ -84,10 +82,18 @@ describe("care setup resume route", () => {
 
   it("routes to the completion screen only after every required section is saved", () => {
     expect(resolveCareSetupResumeRoute({
-      healthInformationStepStatus: "COMPLETED",
       medicationsReviewStatus: "COMPLETED",
       carePreferencesStatus: "COMPLETED",
       goalsStatus: "COMPLETED"
     })).toBe("ONBOARDING_COMPLETE");
+  });
+
+  it("ignores the retired health-information status in legacy drafts", () => {
+    expect(resolveCareSetupResumeRoute({
+      healthInformationStepStatus: "NOT_STARTED",
+      medicationsReviewStatus: "COMPLETED",
+      carePreferencesStatus: "NOT_STARTED",
+      goalsStatus: "COMPLETED"
+    })).toBe("CARE_PREFERENCES");
   });
 });

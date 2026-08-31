@@ -90,22 +90,15 @@ test("a patient reaches active ACCESS care from the invitation without help", as
   await continueOn();
 
   // --- Personalisation --------------------------------------------------------------------
-  // Whatever these screens ask, they must end somewhere: the patient keeps pressing the primary
-  // action and has to arrive at active care rather than at a dead end.
-  // Health information: the patient says what they see is right before the step will let them on.
-  await expect(page.getByRole("heading", { name: /Confirm your health information/i })).toBeVisible();
-  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
-  await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();
-
-  // Medications and preferences: whatever each asks, the patient keeps taking the primary action
-  // and has to arrive at active care rather than at a dead end.
-  for (let step = 0; step < 8; step += 1) {
-    if (await page.getByRole("heading", { name: "Your ACCESS care is ready" }).count()) break;
-    const primary = page.locator(".actions button:not([disabled])").last();
-    if (!(await primary.count())) break;
-    await primary.click();
-    await page.waitForTimeout(500);
+  // Health confirmation has been retired, so medications are the first current setup task.
+  await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
+  while (await page.getByRole("button", { name: "Yes, I still take it" }).count()) {
+    await page.getByRole("button", { name: "Yes, I still take it" }).first().click();
   }
+  await page.getByRole("button", { name: "No, that’s all" }).click();
+  await continueOn();
+  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
+  await page.getByRole("button", { name: "Save and continue" }).click();
 
   // --- Active care ------------------------------------------------------------------------
   await expect(page.getByRole("heading", { name: "Your ACCESS care is ready" })).toBeVisible({ timeout: 20000 });

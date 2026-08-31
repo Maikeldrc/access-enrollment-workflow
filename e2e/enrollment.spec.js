@@ -2447,9 +2447,8 @@ test("condition-specific setup never invents hypertension when another condition
   await page.getByRole("radio", { name: "CCM", exact: true }).check({ force: true });
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption("Physician Referral");
   await page.getByRole("button", { name: /Launch Patient Experience/ }).click();
-  await page.locator("#screen-select").selectOption("CLINICAL_VERIFICATION", { force: true });
-  await expect(page.locator(".known-data")).toContainText("Diabetes");
-  await expect(page.locator(".known-data")).not.toContainText("High blood pressure");
+  await expect(page.locator('#screen-select option[value="CLINICAL_VERIFICATION"]')).toHaveCount(0);
+  await expect(page.locator('#screen-select option[value="MEDICATIONS_REVIEW"]')).toHaveCount(1);
 });
 
 test("prototype cards and scenario summary remain usable across tablet and desktop", async ({ page }) => {

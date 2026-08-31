@@ -796,16 +796,16 @@ test("EMMI knows the enrollment is done and what comes after it", async ({ page 
 // else about the invitation.
 // ---------------------------------------------------------------------------------------------
 
-const openAccessCareScreen = async (page, screen) => {
+const openAccessCareScreen = async (page, screen, returnScreen = "") => {
   await page.goto("/");
-  await page.evaluate(value => {
+  await page.evaluate(({ value, returnScreen }) => {
     localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
-      scenarioId: "access-invitation", screen: value, role: "patient", completionRole: "patient",
+      scenarioId: "access-invitation", screen: value, returnScreen, role: "patient", completionRole: "patient",
       identityVerified: true, consentSaved: true, enrollmentConfirmed: true, enrollmentStatus: "COMPLETED",
       accessOutcome: "eligible", accessEligible: true, language: "en",
       audit: [], careTeamTasks: [], careMedications: [], careGoals: [], bpReadings: [], bpReadingReceipts: []
     }));
-  }, screen);
+  }, { value: screen, returnScreen });
   await page.reload();
 };
 
@@ -939,12 +939,12 @@ test("both goal cards carry the starting point the rest of the journey showed", 
 // ---------------------------------------------------------------------------------------------
 
 // Only the goal chooser used to record that goals were done, and no ACCESS patient sees it. So a
-// patient who had walked their goals, answered the barriers question and confirmed their health
-// information landed on a list that still said "Your goals: Not completed" — and tapped it looking
+// patient who had walked their goals and answered the barriers question landed on a list that still
+// said "Your goals: Not completed" — and tapped it looking
 // for the part they had missed.
 test("finishing the goals segment marks the goals section of the care setup list complete", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
-  await openAccessCareScreen(page, "GOALS");
+  await openAccessCareScreen(page, "GOALS", "ONBOARDING");
   await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
   await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();
 
@@ -953,10 +953,6 @@ test("finishing the goals segment marks the goals section of the care setup list
   for (const category of raised) await page.locator(`#support-needs-form input[value="${category}"]`).first().check();
   await page.locator('.support-need-group').nth(1).locator('input[value="NONE"]').check();
   await page.getByRole("button", { name: "Continue" }).click();
-
-  await expect(page.getByRole("heading", { name: "Confirm your health information" })).toBeVisible();
-  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
-  await page.getByRole("button", { name: "Confirm and continue" }).click();
 
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
   const goalsCard = page.locator('[data-action="care-setup-section"][data-section="goals"]');
@@ -969,13 +965,11 @@ test("finishing the goals segment marks the goals section of the care setup list
 // back to the setup list instead of continuing through the remaining activation journey.
 test("opening completed goals from care setup reviews saved answers and returns to the list", async ({ page }) => {
   await page.setViewportSize({ width: 384, height: 824 });
-  await openAccessCareScreen(page, "GOALS");
+  await openAccessCareScreen(page, "GOALS", "ONBOARDING");
   await page.getByRole("button", { name: "Tell us what could make this harder" }).click();
   await page.locator('.support-need-group input[value="NONE"]').nth(0).check();
   await page.locator('.support-need-group input[value="NONE"]').nth(1).check();
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
-  await page.getByRole("button", { name: "Confirm and continue" }).click();
   await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
 
   await page.locator('[data-action="care-setup-section"][data-section="goals"]').click();
@@ -1001,7 +995,7 @@ test("the barriers question comes back with the difficulties the patient already
   await bloodPressureGroup.locator('input[value="UNDERSTANDING"]').check();
   await page.locator('.support-need-group:has-text("Reach or maintain a healthy weight") input[value="NONE"]').check();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Confirm your health information" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Confirm your medications" })).toBeVisible();
 
   await page.locator('.actions [data-action="back"]').click();
   await expect(page.getByRole("heading", { name: "Is anything making your care harder?" })).toBeVisible();

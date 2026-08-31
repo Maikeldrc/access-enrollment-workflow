@@ -110,7 +110,8 @@ describe("enrollment state machine", () => {
     const journey = journeyFor(stateFor("access-happy", {}));
     expect(journey.indexOf("ACCESS_BP_DEVICE_INFO")).toBeGreaterThan(journey.indexOf("ENROLLMENT_CONFIRMED"));
     expect(journey.indexOf("GOALS")).toBeGreaterThan(journey.indexOf("ACCESS_BP_FULFILLMENT_CONFIRMED"));
-    expect(journey.indexOf("CLINICAL_VERIFICATION")).toBeGreaterThan(journey.indexOf("GOALS"));
+    expect(journey).not.toContain("CLINICAL_VERIFICATION");
+    expect(journey.indexOf("MEDICATIONS_REVIEW")).toBeGreaterThan(journey.indexOf("GOALS"));
     expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
   });
 
@@ -129,14 +130,14 @@ describe("enrollment state machine", () => {
     const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", deviceVerificationStatus: "PATIENT_CONFIRMED", bpDeviceVerificationStatus: "PATIENT_CONFIRMED" }));
     const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));
     const needed = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "needed" }));
-    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "MEDICATIONS_REVIEW", "GOALS"]));
     expect(owned).not.toContain("ACCESS_BP_BASELINE_RESULT");
     const completed = journeyFor(stateFor("access-happy", { bpDevicePath: "owned", deviceVerificationStatus: "SOURCE_VERIFIED", bpBaselineStatus: "COMPLETED" }));
     expect(completed).toContain("ACCESS_BP_BASELINE_RESULT");
     expect(help).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
     expect(help).toEqual(expect.arrayContaining(["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"]));
     expect(needed).not.toContain("ACCESS_BP_MEASUREMENT");
-    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "CLINICAL_VERIFICATION", "GOALS"]));
+    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW", "GOALS"]));
     expect(needed).toContain("ONBOARDING_COMPLETE");
   });
 
@@ -199,7 +200,7 @@ describe("enrollment state machine", () => {
     const pcm = createPrototypeOffer({ program: "PCM", condition: "Diabetes" });
     const combined = createPrototypeOffer({ program: "PCM + RPM", condition: "Heart Failure" });
     expect(pcm.qualifyingCondition.patientFriendlyName).toBe("diabetes");
-    expect(journeyFor({ offer: pcm, screen: "INVITATION" })).toContain("CLINICAL_VERIFICATION");
+    expect(journeyFor({ offer: pcm, screen: "INVITATION" })).not.toContain("CLINICAL_VERIFICATION");
     expect(journeyFor({ offer: combined, screen: "INVITATION", devicePath: null })).toContain("RPM_FIRST_READING");
   });
 
@@ -212,7 +213,7 @@ describe("enrollment state machine", () => {
     expect(apcm.consent.services).toEqual(["Advanced primary care management (APCM)"]);
     for (const offer of [asm, apcm]) {
       const journey = journeyFor({ offer, screen: "INVITATION" });
-      expect(journey).toContain("CLINICAL_VERIFICATION");
+      expect(journey).not.toContain("CLINICAL_VERIFICATION");
       expect(journey).not.toContain("ACCESS_PRE_ELIGIBILITY_NOTICE");
       expect(journey).not.toContain("RPM_DEVICE_PATH");
     }
@@ -335,7 +336,7 @@ describe("enrollment state machine", () => {
 // screen straight to "your ACCESS care is ready" with none of it. The path that arranges a new
 // monitor always carried them, which is what made the asymmetry easy to miss.
 describe("the care setup survives whatever the monitor does", () => {
-  const CARE_SETUP = ["GOALS", "ACCESS_SUPPORT_NEEDS", "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+  const CARE_SETUP = ["GOALS", "ACCESS_SUPPORT_NEEDS", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
   const withDevice = deviceVerificationStatus => ({
     offer: { pathway: "ACCESS", payer: { mbiAvailable: true }, fixture: { bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" } },
     accessOutcome: "eligible",

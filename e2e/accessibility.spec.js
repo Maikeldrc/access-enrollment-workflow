@@ -14,7 +14,7 @@ import AxeBuilder from "@axe-core/playwright";
 const JOURNEY = ["INVITATION", "DECISION_MAKER", "IDENTITY_VERIFICATION", "CARE_RECOMMENDATION",
   "ACCESS_PRE_ELIGIBILITY_NOTICE", "ACCESS_ELIGIBILITY_RESULT", "CONSENT_REVIEW",
   "ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "GOALS", "ACCESS_SUPPORT_NEEDS",
-  "CLINICAL_VERIFICATION", "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "ONBOARDING_COMPLETE"];
+  "MEDICATIONS_REVIEW", "CARE_PREFERENCES", "ONBOARDING_COMPLETE"];
 
 const describeViolation = violation =>
   `${violation.id} (${violation.impact}) — ${violation.help}\n      ${violation.nodes.slice(0, 2).map(node => (node.html || "").replace(/\s+/g, " ").slice(0, 120)).join("\n      ")}`;

@@ -90,6 +90,14 @@ test("/new opens the first screen of a new enrollment and carries nothing over f
   expect(stores.emmiPreferences).toContain("emmiVoiceGuidance");
   expect(stores.emmiPreferences).not.toContain("emmiWelcomeAcknowledged");
   await expect(page.getByRole("heading", { name: "Hola, soy EMMI." })).toBeVisible();
+
+  // Continue to the surface where the leaked fixture was visible. Clearing localStorage alone is
+  // not enough: boot used to re-create "Angela Demo" from EMMI's Spanish demo-patient fixture.
+  await page.getByRole("button", { name: /Comience su recorrido de cuidado/i }).click();
+  await expect(page.getByRole("heading", { name: "¿Quién está completando esto?" })).toBeVisible();
+  await expect(page.locator(".optional-support-status")).toHaveCount(0);
+  await expect(page.locator(".optional-support")).toContainText("¿Quiere apoyo durante el proceso?");
+  await expect(page.locator(".optional-support")).not.toContainText(/Angela Demo|Invitación enviada/);
 });
 
 // "/new" is a command that has been carried out. Leaving it in the address bar would make every
