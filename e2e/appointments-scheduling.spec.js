@@ -268,7 +268,7 @@ test("§138 human coordination creates a care-team task and says a person is coo
 
   // §21: the patient is told a person is arranging this — not that an office was written to.
   expect(text).not.toMatch(CONFIRMED_WORDS);
-  expect.soft(text, "the human-coordination path renders the office-request screen verbatim")
+  expect(text, "the human-coordination path renders the office-request screen verbatim")
     .toMatch(/care team|equipo|ekip/i);
 });
 
