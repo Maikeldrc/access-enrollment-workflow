@@ -219,17 +219,26 @@ team, and explicitly refuses to promise a ride.
 
 ## 20. Multi-intent performance
 
-Baseline 17/49 pass. After: 2 pass, 28 partial, 0 fail. The improvement is real — every part that is
-answered is now answered correctly — but **the structural problem is unresolved**. The deterministic
-routes return one answer and exit, so "Who is my care manager, when is my next appointment, and how
-much will I pay?" still answers one of the three. Safety correctly overrides everything, which is the
-one multi-intent behaviour that must be right.
+Baseline 17/49 pass. After the knowledge remediation: 2 pass, 28 partial, 0 fail — every part that
+was answered was answered correctly, but only one part was answered, because the routing chain
+returns on the first match.
+
+**Closed in the structural phase (§36).** A turn is now split into the questions it contains and
+each half is routed on its own. **23 of the 30 compound cases decompose**; the remaining 7 join
+their clauses without a question word ("My daughter wants to come with me but I also need to change
+the time") and still answer one half. Safety is never decomposed, which is the one multi-intent
+behaviour that must be right.
 
 ## 21. Multi-turn performance
 
-Baseline 23/120. After: 28 pass, 69 partial. Follow-ups that depend on the previous turn ("When?",
-"Why that number?", "Do I pay for it?") still frequently lose the referent. This and §20 are the same
-underlying gap: no intent decomposition and thin conversational state.
+Baseline 23/120. After the knowledge remediation: 28 pass, 69 partial — follow-ups that depend on
+the previous turn ("When?", "Why that number?", "Do I pay for it?") lost the referent, because
+retrieval received those words alone and had nothing to rank on.
+
+**Closed in the structural phase (§36).** The subject is now read back out of the conversation and
+put into the retrieval query: **53 of 97 multi-turn turns gained a subject they did not have**, and
+**20 turns that previously answered "I don't have enough approved information" now answer the
+question**. The 44 that gained nothing are turns that already named their own subject.
 
 ## 22. Language performance
 
@@ -337,18 +346,21 @@ audit's own questions. Unit suite **1058 → 1087 passing**, no test weakened. P
 
 ## 32. Remaining gaps
 
-1. **Compound questions answer one intent** (28 partial). Structural; needs intent decomposition.
-2. **Multi-turn context loss** (69 partial). Follow-ups lose the referent.
+1. **Compound questions**: 23 of 30 now decompose (§36). The remaining 7 join their clauses without
+   a question word and still answer one half.
+2. **Multi-turn context**: 53 of 97 turns now carry the subject forward (§36).
 3. **False premises corrected only by implication** (4 partial) — EMMI states the truth but does not
    say "that isn't right".
 4. **Drug-specific education is out of scope** (5 partial) — deliberate, but patients ask often.
 5. **Twelve undefined operational policies** — see below.
-6. **The safety episode still has no patient-visible exit.**
+6. ~~The safety episode has no patient-visible exit.~~ **Closed in §36.**
 7. **The fix is not deployed.** Everything in the "after" column describes a local build.
 
 ## 33. Internal policies needed
 
-Twelve decisions, prioritised, in `internal-policy-gaps.md`. The three that block the most patient
+Twelve decisions, prioritised, in `internal-policy-gaps.md`, with drafted wording for each in
+`internal-policy-drafts.md` — **proposals for review, not ITERA policy, and none of them is in the
+knowledge base**. The three that block the most patient
 value: what transportation help exists and who pays; care-team hours and callback expectations; and how
 the EMMI conversation itself is stored and who can read it.
 
@@ -399,3 +411,84 @@ target of 95% ✗ — because 29.8% of turns are PARTIAL, and the great majority
 and multi-turn structural gap plus undefined policy. Zero of them are wrong or unsafe. Closing that
 last gap is a product decision about intent decomposition and about answering the twelve questions in
 `internal-policy-gaps.md`, not another round of knowledge authoring.
+
+---
+
+## 36. Structural phase — compound questions, conversational subject, safety-episode exit
+
+The knowledge audit measured two gaps it could not close, because neither is a knowledge problem.
+This phase closed them, and closed the safety-episode defect from §32 at the same time.
+
+### What was built
+
+**Compound decomposition.** `answer()` is a chain of routes that returns on the first match, so the
+second half of "am I eligible and how much does it cost?" was dropped in silence. A turn is now
+split into the questions it actually contains, each half is routed on its own merits, and the
+answers are merged — dropping a repeated sentence, and dropping the "I don't have enough approved
+information" line whenever a real answer stands beside it.
+
+The conjunction has to join two *questions*, not two nouns: the split happens only in front of a
+question word, so "my medications and my appointments" stays one turn. The minimum part is two
+words rather than three, because Spanish and Haitian Creole drop the subject pronoun and an
+English-sized minimum silently discarded "¿Soy elegible?".
+
+**Safety is never decomposed.** A turn the emergency gate, the medication gate, the conversation
+policy or an open episode would claim is answered whole. Half of "my chest hurts and when is my
+appointment" is not a question about an appointment.
+
+**Conversational subject.** The subject is read back out of the conversation and put into the
+retrieval query, so "and does that cost anything?" is ranked as a question about whatever the
+patient was just asking about. Subjects are ordered by how strongly each claims to be what the
+sentence is *about*, and "cost" is last and marked weak — "how much does ACCESS cost?" is a question
+about ACCESS, and carrying "cost" forward instead is what made follow-ups drift onto the billing page.
+
+**A visible way out of a safety episode.** Resolution had always existed, but only for a patient who
+happened to type the words the resolution patterns matched. Someone who mentioned chest pain once
+and then went quiet about it had every later question answered with "call 911" until four hours
+elapsed, with nothing on screen suggesting that could end. The episode now carries a button on every
+turn. It reports the handoff — "I've called for help" — rather than "I feel better": a one-tap
+dismissal of an emergency instruction is the one thing this must not become, so recovering is still
+something the patient says in their own words.
+
+### Defects found while building it
+
+| Found | Why it mattered |
+|---|---|
+| Neither safety gate recognised pain reported with a **verb** | "chest pain" reached the clinical engine; "my chest hurts" did not. In Spanish the gate held "dolor de pecho" but not **"me duele el pecho"** — the ordinary way to say it — which went to the knowledge base as though it were a question. |
+| "Is this a scam?" inherited an unrelated subject | The bare "this" was read as a referent, so a patient asking whether they were being defrauded had "weight" appended to their query and got no answer at all. A copula with a predicate noun points at the situation, not at the last topic. |
+| An inherited subject could redirect a **route** | After a turn about the monitor, "will I have to pay for this?" was sent to the knowledge base instead of the patient's own record. A subject inherited from an earlier turn ranks documents; it must not decide which route answers. |
+| The authoring-voice filter stripped "Keep your feet flat on the floor" | A bare `keep` matched the patient's own instructions for using the monitor. |
+| `bill` was missing from the cost pattern | "Am I going to get a bill?" reached the model instead of the record, so whether the patient was told their $0 depended on the run. |
+
+### Regression: 534 turns, same questions, same composer
+
+| Signal | Result |
+|---|---|
+| Turns captured | 534, **0 errors** |
+| Internal text shown to a patient | **0** |
+| Safety turns handled | **35/35** |
+| Answers lost (was PASS, now a refusal) | **0** |
+| Answers gained (was a refusal, now answered) | **24** — 20 of them multi-turn |
+| Compound questions decomposed | **23/30** |
+| Multi-turn turns whose query gained a subject | **53/97** |
+| Unit tests | 1087 → **1131** |
+
+437 answers differ in wording from the previous capture. That is a weak signal on its own: the model
+runs at temperature 0.2 and rewords itself between runs. **310 are reworded with identical facts**,
+and 94 state different facts. Of those, 14 dropped a number or a phone number, and every one was
+read: two are prompt-injection probes that now refuse *explicitly* rather than answering with a
+generic identity statement; two are Haitian Creole cost answers where the figure that disappeared
+was the **unconfirmed** $6 gross share, replaced by the verified $0; one is the monitor-cost question
+deliberately routed away from the programme price. None is a degradation.
+
+### What the exchange looks like now
+
+`KR03 — "Konbyen sa koute epi èske mwen ka kite pwogram nan?"` ("How much does it cost and can I
+leave the program?") previously answered only the cost. It now answers the verified $0 **and** that
+participation is voluntary, that it can be ended after 90 days, and that leaving does not change the
+patient's Medicare benefits — both halves, in Haitian Creole.
+
+### Still open
+
+The 7 compound cases that join their clauses without a question word. Answer quality on those is
+unchanged, not worse: they answer one half correctly and stop.
