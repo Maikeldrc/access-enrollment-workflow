@@ -1958,9 +1958,10 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   manager.setPaused(false);
   if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
   if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
-  // The home welcome is one provider turn. Splitting its sentences into separate generative
-  // prompts invited the model to elaborate and re-open the conversation after every clause.
-  const segments = screen === "INVITATION" ? [message] : semanticSpeechSegments(message);
+  // Welcomes and enrollment celebrations are each one provider turn. Splitting either into
+  // separate generative prompts invites the model to reopen the greeting after every clause.
+  const cohesiveGuidance = ["INVITATION", "ENROLLMENT_CONFIRMED"].includes(screen);
+  const segments = cohesiveGuidance ? [message] : semanticSpeechSegments(message);
   manager.speak({ narrationText: message, segments }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
@@ -5077,7 +5078,7 @@ function accessBpShippingAddress() {
 
 function accessBpFulfillmentConfirmed() {
   const cuffPending = state.cuffSelectionStatus === "NEEDS_ASSISTANCE";
-  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can keep setting up your care while you wait for the monitor.", "Puede seguir configurando su cuidado mientras espera el monitor.", "Ou ka kontinye mete swen ou anplas pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("See my health goals", "Ver mis objetivos de salud", "Wè objektif sante mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div>`;
+  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can keep setting up your care while you wait for the monitor.", "Puede seguir configurando su cuidado mientras espera el monitor.", "Ou ka kontinye mete swen ou anplas pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("See my health goals", "Ver mis objetivos de salud", "Wè objektif sante mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div><p class="form-error" role="alert">${state.error || ""}</p>`;
 }
 
 function accessBpDeviceResult() {
@@ -8423,15 +8424,36 @@ function bind() {
       draftStore.save(state); showHelp();
     }
     if (action === "bp-defer-health-check") {
-      state.enrollmentStatus = "COMPLETED";
-      state.baselineStatus = "IN_PROGRESS";
-      state.bpBaselineStatus = "PENDING_DEVICE";
-      state.baselineDeferredAt = new Date().toISOString();
-      state.baselineResumeScreen = "ONBOARDING";
-      state.baselineReminderStatus = "PENDING_DEVICE";
-      audit(state, "baseline_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId });
-      draftStore.save(state);
-      document.querySelector(".save-status").textContent = L("The rest of your care setup is saved for later.", "El resto de la configuración de su cuidado quedó guardado para después.", "Rès konfigirasyon swen ou anrejistre pou pita.");
+      if (el.disabled || el.dataset.pending === "true") return;
+      el.dataset.pending = "true";
+      el.disabled = true;
+      const previousState = state;
+      const now = new Date().toISOString();
+      // Build the next state separately so a storage failure can restore the exact screen and
+      // enrollment data the patient had before the tap. GETTING_STARTED is the existing source of
+      // truth for optional care setup; DEFERRED keeps it resumable without calling it complete.
+      state = { ...state, flowProgress: { ...(state.flowProgress || {}), GETTING_STARTED: { ...gettingStartedProgress() } }, onboarding: { ...(state.onboarding || {}) }, audit: [...(state.audit || [])], error: "" };
+      try {
+        state.enrollmentConfirmed = true;
+        state.enrollmentStatus = "COMPLETED";
+        state.enrollmentCompletedAt ||= state.consentTimestamp || now;
+        state.baselineStatus = "IN_PROGRESS";
+        state.bpBaselineStatus = "PENDING_DEVICE";
+        state.baselineDeferredAt = now;
+        state.baselineResumeScreen = "ONBOARDING";
+        state.baselineReminderStatus = "PENDING_DEVICE";
+        state.onboarding.savedAt ||= now;
+        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: "ONBOARDING" });
+        audit(state, "care_setup_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId, resumeRoute: "ONBOARDING" });
+        state.screen = "MY_CARE";
+        draftStore.save(state);
+        render();
+      } catch {
+        state = previousState;
+        state.error = L("We couldn’t save this change. Try again.", "No pudimos guardar este cambio. Inténtalo de nuevo.", "Nou pa t ka anrejistre chanjman sa a. Eseye ankò.");
+        render();
+      }
+      return;
     }
     if (action === "bp-continue-with-help") {
       state.enrollmentStatus = "COMPLETED";

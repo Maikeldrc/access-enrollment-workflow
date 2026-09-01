@@ -89,6 +89,32 @@ describe("EMMI semantic handoff", () => {
     expect(sent.map(item => item.text)).toEqual(["One."]);
   });
 
+  it("ignores a duplicate completion from a segment that already advanced", async () => {
+    const { manager, sent } = harness();
+    await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });
+    manager.speak({ narrationText: "One. Two. Three.", segments: ["One.", "Two.", "Three."] });
+    const narration = manager.snapshot().narration;
+    const firstSegmentId = narration.segments[0].id;
+
+    manager.onTurnComplete({ narrationId: narration.id, semanticSegmentId: firstSegmentId });
+    manager.onTurnComplete({ narrationId: narration.id, semanticSegmentId: firstSegmentId });
+
+    expect(narration.currentSegment).toBe(1);
+    expect(sent.map(item => item.text)).toEqual(["One.", "Two."]);
+  });
+
+  it("keeps the enrollment-complete welcome in one cohesive transition turn", async () => {
+    const { manager, sent, handoffs } = harness();
+    manager.getTransitionNarration = () => ({ narrationText: "Congratulations. You did it.", segments: ["Congratulations. You did it."] });
+    await manager.updateContext({ screenId: "ENROLLMENT_PROCESSING", stageId: "ENROLLMENT", locale: "ES" });
+    const transition = manager.updateContext({ screenId: "ENROLLMENT_CONFIRMED", stageId: "COMPLETE", locale: "ES" });
+    handoffs[0].resolve({ reason: "idle", durationMs: 0 });
+    await transition;
+
+    expect(sent.map(item => item.text)).toEqual(["Congratulations. You did it."]);
+    expect(manager.snapshot().narration.segments).toHaveLength(1);
+  });
+
   it("restarts at a safe boundary when locale changes", async () => {
     const { manager, transport, handoffs } = harness();
     await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });

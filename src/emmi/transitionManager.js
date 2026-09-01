@@ -126,7 +126,13 @@ export class EmmiTransitionManager {
     const transitionSegments = transition?.segments?.length ? transition.segments : semanticSpeechSegments(transition?.narrationText || "");
     // A bridge already orients the patient to the destination. Skip an identical opening
     // screen segment so the handoff feels conversational instead of restarting the page.
-    const segments = transitionSegments.length ? [...transitionSegments, ...(transitionMeta.shortReorientation ? [] : screenSegments.slice(1))] : screenSegments;
+    // Completion is a natural stopping point and its transition already contains the complete
+    // welcome. Keeping it in one provider turn prevents the model from reopening the celebration
+    // (and repeating "You did it") when a second screen-guidance segment is queued.
+    const transitionCompletesDestination = this.context.screenId === "ENROLLMENT_CONFIRMED";
+    const segments = transitionSegments.length
+      ? [...transitionSegments, ...((transitionMeta.shortReorientation || transitionCompletesDestination) ? [] : screenSegments.slice(1))]
+      : screenSegments;
     const trace = {
       previousScreen: previous.screenId,
       currentScreen: this.context.screenId,
@@ -197,6 +203,20 @@ export class EmmiTransitionManager {
   onTurnComplete(metadata = {}) {
     const narration = this.narration;
     if (!narration || metadata.narrationId !== narration.id || [EMMI_NARRATION_STATUS.STALE, EMMI_NARRATION_STATUS.INTERRUPTED, EMMI_NARRATION_STATUS.CANCELED].includes(narration.status)) return;
+    const activeSegment = narration.segments[narration.currentSegment];
+    // Provider/audio callbacks can occasionally be delivered more than once. A completion only
+    // belongs to the segment that is active right now; otherwise it must not advance or replay the
+    // narration queue.
+    if (metadata.semanticSegmentId && metadata.semanticSegmentId !== activeSegment?.id) {
+      this.onTrace({
+        event: "duplicate_or_stale_turn_completion_ignored",
+        narrationId: narration.id,
+        completedSegmentId: metadata.semanticSegmentId,
+        activeSegmentId: activeSegment?.id || "",
+        contextVersion: this.contextVersion
+      });
+      return;
+    }
     narration.currentSegment += 1;
     if (narration.currentSegment >= narration.segments.length) {
       narration.status = EMMI_NARRATION_STATUS.COMPLETED;
