@@ -627,7 +627,9 @@ export function appointmentReadiness({ appointment = null, resolutions = [], loc
         )
         : readinessStateFor(companion) === READINESS_STATE.NEEDS_CARE_TEAM
           ? L(T("Your care team is helping find someone", "Su equipo de cuidado busca a alguien", "Ekip swen ou ap chèche yon moun"), locale)
-          : L(T("Waiting on an answer about company", "Esperando respuesta sobre el acompañamiento", "N ap tann repons sou akonpayman an"), locale),
+          : companion.step === "SENT"
+            ? L(T("Waiting on an answer about company", "Esperando respuesta sobre el acompañamiento", "N ap tann repons sou akonpayman an"), locale)
+            : L(T("Coordinating someone to accompany you", "Coordinando quién le acompañará", "N ap kowòdone yon moun pou akonpaye w"), locale),
       detail: ""
     } : null,
     video ? {
