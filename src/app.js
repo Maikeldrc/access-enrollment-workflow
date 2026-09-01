@@ -7,7 +7,7 @@ import { ACCESS_OUTCOME_TARGETS, accessProgressMeasure, assignedAccessGoals, isA
 import {
   Activity, ArrowLeft, ArrowRight, BadgeCheck, Bell, BookOpen, CalendarDays, ClipboardCheck, ChartNoAxesColumnIncreasing,
   Check, ChevronRight, CircleHelp, Clock3, ExternalLink, FileText, Globe2,
-  HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, ShieldCheck,
+  HeartPulse, House, Info, LockKeyhole, Mic, MicOff, Package, Phone, Pill, Plus, ShieldCheck,
   Share2, SlidersHorizontal, Stethoscope, TabletSmartphone, Target, TrendingUp, UserPlus, UserRound, UsersRound, Utensils, Wifi,
   AudioLines, MessageCircle, Pause, Play, RotateCcw,
   Droplets, Footprints, Hospital, Scale, Smile, Wind,
@@ -56,7 +56,8 @@ import { GrowthStore, growthPromptAvailable, maskPhone } from "./growth.js";
 import { parseContactCard } from "./contactCard.js";
 import { NAVIGATION, SCROLL, afterRender as afterRenderScroll, beforeRender as beforeRenderScroll, captureOverlayPosition, claimHistoryScrollRestoration, requestScroll, restoreOverlayPosition } from "./scroll.js";
 import { EXPLANATION_CODES, accessTrackCost, resolveExpectedPatientResponsibility } from "./financialResponsibility.js";
-import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalIsReadyToPersonalize, goalNextBestAction, goalProgressSummary, localGoalText, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor } from "./goals.js";
+import { GOAL_CONFIG, LEGACY_GOAL_TYPES, localDateKey, addGoalAction, createGoalAction, createPatientGoal, goalActionCount, goalActionIcon, goalActionIsPatientEditable, goalCategoryOf, goalContributionTarget, goalDisplayName, goalIsReadyToPersonalize, goalMayDeclareContribution, goalNextBestAction, goalProgressSummary, isCarePlanGoal, isPersonalGoal, localGoalText, patientMayDeleteGoal, patientMayEditGoalWording, removeGoalAction, resolveGoalIcon, sortGoalsForPatient, suggestedActionsFor, suggestedActionsForGoal, updateGoalAction, activeGoalActions } from "./goals.js";
+import { GOAL_STATEMENT_KINDS, STARTER_PERSONAL_GOAL_IDS, classifyGoalStatement, personalGoalTemplate } from "./personalGoals.js";
 import { ingestBloodPressureObservation } from "./clinicalMonitoring.js";
 import { DEMO_BP_CLINICAL_TARGET, DEMO_BP_MONITORING_RULES, buildBloodPressureGoalRuntime, classifyBloodPressure, nextBestGoalEducation, resolveGoalActionVerification } from "./goalHealth.js";
 import { BloodPressureSimulator, SIMULATION_STATUS, SIMULATION_TARGET, simulationAllowed } from "./bpSimulator.js";
@@ -214,7 +215,7 @@ let state = {
   medicationSupplySignals: [], medicationRefills: [], refillFlow: { medicationId: "", step: "", answer: "" }, activeRefillId: "", medicationNotice: "",
   medicationReviews: {}, additionalMedications: [], additionalMedicationsStatus: "UNREVIEWED", medicationChangeId: "", medicationChangeType: "", medicationAddOpen: false, medicationEditId: "",
   carePreferencesStatus: "NOT_STARTED", preferredContactMethod: "", preferredCareLanguage: "", preferredContactTime: "none",
-  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [],
+  goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], personalGoalDraft: emptyPersonalGoalDraft(), activeActionId: "",
   // "Nothing right now" leaves no barrier behind, so without recording the answer itself the care
   // team cannot tell a patient who said their care is going fine from one who never got the
   // question. Keyed by goal: RAISED, NONE, or absent for a goal left untouched.
@@ -277,6 +278,7 @@ const iconMap = {
   share: Share2,
   userPlus: UserPlus,
   check: Check,
+  plus: Plus,
   clock: Clock3,
   box: Package,
   info: Info,
@@ -1022,7 +1024,25 @@ function assistantContext() {
     supportInviteStatus: state.supportInviteStatus,
     deviceScenario,
     goalFlowStep: state.goalFlowStep,
-    patientGoals: activePatientGoals().map(goal => ({ id: goal.id, title: goalDisplayName(goal, state.language), status: goal.status, priority: goal.priority, planStatus: goal.planStatus })),
+    // Every goal carries its kind and its plan, because "what are my goals" and "what am I doing
+    // about them" are two questions and answering the first with the second is the confusion this
+    // whole feature exists to remove. goalKind is what lets EMMI say which goals the care plan
+    // asked for and which ones the patient set for themselves.
+    patientGoals: activePatientGoals().map(goal => ({
+      id: goal.id,
+      title: goalDisplayName(goal, state.language),
+      goalKind: isPersonalGoal(goal) ? "PERSONAL" : "CARE_PLAN",
+      status: goal.status,
+      priority: goal.priority,
+      planStatus: goal.planStatus,
+      careTeamReviewStatus: goal.careTeamReviewStatus || "",
+      // Said by the patient or absent. EMMI may repeat it; it may never work one out.
+      contributesTo: (target => (target ? { id: target.id, title: goalDisplayName(target, state.language), declaredBy: "PATIENT" } : null))(goalContributionTarget(goal, activePatientGoals())),
+      patientMayEditWording: patientMayEditGoalWording(goal),
+      patientMayDelete: patientMayDeleteGoal(goal),
+      patientMayEditClinicalTarget: false,
+      actions: activeGoalActions(goal).map(item => ({ id: item.id, title: item.title, frequency: item.frequency || "", status: item.status, verificationMethod: resolveGoalActionVerification(item), patientEditable: goalActionIsPatientEditable(item) }))
+    })),
     // Appointment preparation is structured conversation context, not prose inferred from a prior
     // bubble. It lets a short reply such as "BP readings" or "what does that mean?" stay attached
     // to the topic the patient saved even when an older clinical topic remains in chat history.
@@ -1086,6 +1106,13 @@ const emmiToolStatusLabel = name => ({
   getReadingTrend: L("Checking your recent trend…", "Revisando su tendencia reciente…", "N ap verifye tandans ou…"),
   getClinicalTarget: L("Checking your care-team target…", "Revisando el objetivo de su equipo…", "N ap verifye sib ekip swen ou…"),
   getGoalProgress: L("Checking your goal progress…", "Revisando el progreso de su meta…", "N ap verifye pwogrè objektif ou…"),
+  getPatientGoals: L("Checking your goals…", "Revisando sus metas…", "N ap verifye objektif ou yo…"),
+  classifyGoalStatement: L("Thinking about what you said…", "Pensando en lo que dijo…", "N ap reflechi sou sa ou di…"),
+  createPersonalGoal: L("Saving your goal…", "Guardando su meta…", "N ap sove objektif ou…"),
+  addGoalAction: L("Adding that step to your plan…", "Agregando ese paso a su plan…", "N ap ajoute etap sa a nan plan ou…"),
+  updateGoalAction: L("Updating that step…", "Actualizando ese paso…", "N ap mete etap sa a ajou…"),
+  removeGoalAction: L("Removing that step…", "Quitando ese paso…", "N ap retire etap sa a…"),
+  updateGoalWording: L("Updating your goal…", "Actualizando su meta…", "N ap mete objektif ou ajou…"),
   requestCallback: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   getUpcomingAppointments: L("Checking your appointments…", "Revisando sus citas…", "N ap verifye randevou ou yo…"),
@@ -1317,6 +1344,173 @@ function ensureEmmiRuntime() {
       const preference = goal ? saveGoalReminder(goal, slot) : null;
       if (preference) draftStore.save(state);
       return preference;
+    },
+    // Goal-or-action is decided by the same function the screens call, localized the same way. The
+    // model asks; it does not judge. That is why "I want to walk 20 minutes four times a week"
+    // becomes a step whether the patient typed it, said it, or tapped it in.
+    onClassifyStatement: ({ statement }) => {
+      const proposal = personalGoalProposal(statement);
+      return {
+        kind: proposal.kind,
+        patientWords: proposal.statement,
+        suggestedGoal: proposal.title ? { title: proposal.title, templateId: proposal.templateId } : null,
+        suggestedAction: proposal.actionTitle ? { title: proposal.actionTitle, frequency: proposal.actionFrequency } : null,
+        clarify: proposal.clarify || "",
+        careTeamTopic: proposal.careTeamTopic || "",
+        clinicalMeasure: proposal.measure || ""
+      };
+    },
+    // The structural guarantee. EMMI cannot talk its way past this: a title that classifies as
+    // anything other than a goal is refused here, in the application, and the outcome to offer
+    // instead comes back with the refusal so the conversation has somewhere to go.
+    onCreatePersonalGoal: ({ title, templateId, firstActionTitle, firstActionFrequency }) => {
+      const text = String(title || "").trim().slice(0, 180);
+      if (!text) return { success: false, status: "TITLE_REQUIRED" };
+      const verdict = personalGoalProposal(text);
+      if (verdict.kind !== GOAL_STATEMENT_KINDS.GOAL) {
+        return {
+          success: false,
+          status: verdict.kind === GOAL_STATEMENT_KINDS.ACTION ? "TITLE_DESCRIBES_AN_ACTION"
+            : verdict.kind === GOAL_STATEMENT_KINDS.VAGUE ? "TITLE_TOO_VAGUE"
+            : verdict.kind === GOAL_STATEMENT_KINDS.MEDICATION_CHANGE ? "MEDICATION_CHANGE_IS_NOT_A_GOAL"
+            : "CLINICAL_TARGET_IS_NOT_A_GOAL",
+          suggestedGoal: verdict.title ? { title: verdict.title, templateId: verdict.templateId } : null,
+          suggestedAction: verdict.actionTitle ? { title: verdict.actionTitle, frequency: verdict.actionFrequency } : null,
+          clarify: verdict.clarify || "",
+          note: verdict.careTeamTopic
+            ? `Nothing was saved. Offer the goal above, and offer to note this for the care team: ${verdict.careTeamTopic}`
+            : "Nothing was saved. Offer the goal above as the goal and the patient's own words as a step in the plan."
+        };
+      }
+      const now = new Date().toISOString();
+      const resolvedTemplateId = personalGoalTemplate(templateId) ? templateId : verdict.templateId || "";
+      const template = personalGoalTemplate(resolvedTemplateId);
+      const goal = createPatientGoal({
+        type: "CUSTOM",
+        customTitle: template && text === localGoalText(template.displayName, state.language) ? "" : text,
+        patientId: state.offer?.patient?.id || "",
+        now,
+        personalTemplateId: resolvedTemplateId
+      });
+      if (firstActionTitle) {
+        const frequency = ["daily", "few-days", "choose-days", "care-team-plan"].includes(firstActionFrequency) ? firstActionFrequency : "few-days";
+        addGoalAction(goal, { title: firstActionTitle, frequency, targetCount: frequency === "daily" ? 7 : 3, source: "PATIENT", now });
+        goal.planStatus = "COMPLETED";
+        goal.planPersonalizationStatus = "COMPLETED";
+      }
+      state.patientGoals = [...(state.patientGoals || []), goal];
+      goalHistoryEvent(goal.id, "GOAL_SELECTED", { goalType: "CUSTOM", goalSource: "PATIENT", selectedBy: "PATIENT", personalTemplateId: goal.personalTemplateId, createdVia: "EMMI" });
+      audit(state, "personal_goal_created", "success", { goalId: goal.id, personalTemplateId: goal.personalTemplateId, actionCount: goal.actions.length, source: "EMMI", clinicalTargetChanged: false });
+      draftStore.save(state);
+      return { success: true, goalId: goal.id, title: goalDisplayName(goal, state.language), careTeamReviewStatus: goal.careTeamReviewStatus, actions: goal.actions.map(item => ({ id: item.id, title: item.title, frequency: item.frequency })) };
+    },
+    // Steps, through the same mutators Goal Detail uses. Note what none of these touch: the goal's
+    // own wording. "Change the walk to 20 minutes" changes a step, and the sentence the patient is
+    // working toward is not reachable from here at all.
+    onGoalActionWrite: ({ operation, goalId, actionId, title, frequency }) => {
+      const goal = patientGoalById(goalId);
+      if (!goal) return { success: false, status: "GOAL_NOT_FOUND" };
+      const validFrequency = ["daily", "few-days", "choose-days", "care-team-plan"].includes(frequency) ? frequency : "";
+      if (operation === "ADD") {
+        const created = addGoalAction(goal, { title, frequency: validFrequency || "few-days", targetCount: validFrequency === "daily" ? 7 : 3, source: "PATIENT" });
+        if (!created) return { success: false, status: "STEP_TITLE_REQUIRED" };
+        goal.planStatus = "COMPLETED"; goal.planPersonalizationStatus = "COMPLETED";
+        goalHistoryEvent(goal.id, "ACTION_ADDED", { actionId: created.id, actionSource: "PATIENT", createdVia: "EMMI" });
+        audit(state, "goal_action_added", "success", { goalId: goal.id, actionId: created.id, source: "EMMI", clinicalTargetChanged: false });
+        draftStore.save(state);
+        return { success: true, goalId: goal.id, actionId: created.id, title: created.title, frequency: created.frequency };
+      }
+      if (operation === "UPDATE") {
+        const updated = updateGoalAction(goal, actionId, { ...(title ? { title } : {}), ...(validFrequency ? { frequency: validFrequency } : {}) });
+        if (!updated) return { success: false, status: "STEP_NOT_EDITABLE" };
+        goalHistoryEvent(goal.id, "ACTION_UPDATED", { actionId: updated.id, actionSource: updated.source, createdVia: "EMMI" });
+        audit(state, "goal_action_updated", "success", { goalId: goal.id, actionId: updated.id, source: "EMMI", clinicalTargetChanged: false });
+        draftStore.save(state);
+        return { success: true, goalId: goal.id, actionId: updated.id, title: updated.title, frequency: updated.frequency };
+      }
+      const removed = removeGoalAction(goal, actionId);
+      if (!removed) return { success: false, status: "STEP_NOT_EDITABLE" };
+      goalHistoryEvent(goal.id, "ACTION_REMOVED", { actionId: removed.id, actionSource: removed.source, createdVia: "EMMI" });
+      audit(state, "goal_action_removed", "success", { goalId: goal.id, actionId: removed.id, source: "EMMI", clinicalTargetChanged: false });
+      draftStore.save(state);
+      return { success: true, goalId: goal.id, actionId: removed.id };
+    },
+    // What the patient said, worked out and put on the screen that can act on it. This is the path
+    // chat and voice both take to "I want to walk more": the classifier decides goal-or-action, the
+    // screen shows the proposal, and the patient is the one who presses save.
+    onStartPersonalGoal: ({ statement }) => {
+      const proposal = personalGoalProposal(statement);
+      if (proposal.kind === GOAL_STATEMENT_KINDS.EMPTY) return null;
+      state.personalGoalDraft = { ...proposal, statement: proposal.statement || String(statement || "").trim() };
+      state.goalFlowOrigin = "MY_GOALS";
+      // A wish too broad to work on lands on the question rather than on a proposal nobody made.
+      state.goalFlowStep = proposal.kind === GOAL_STATEMENT_KINDS.VAGUE ? "PERSONAL_CAPTURE" : "PERSONAL_CONFIRM";
+      state.screen = "GOALS";
+      state.error = "";
+      // EMMI moved the patient somewhere real; closing the panel lands them on it.
+      state.assistantPendingNavigation = true;
+      draftStore.save(state);
+      return {
+        kind: proposal.kind,
+        opened: state.goalFlowStep === "PERSONAL_CAPTURE" ? "PERSONAL_GOAL_QUESTION" : "PERSONAL_GOAL_CONFIRM",
+        suggestedGoal: proposal.title ? { title: proposal.title, templateId: proposal.templateId } : null,
+        suggestedAction: proposal.actionTitle ? { title: proposal.actionTitle, frequency: proposal.actionFrequency } : null,
+        careTeamTopic: proposal.careTeamTopic || "",
+        clarify: proposal.clarify || "",
+        clinicalMeasure: proposal.measure || ""
+      };
+    },
+    // "Make the walk 20 minutes" opens that step with the new wording in it. Nothing is written:
+    // the patient confirms on the screen, which is also where they can see that their goal is
+    // untouched — the editor has no control that could reach it.
+    onStartGoalStepEdit: ({ goalId, actionId, title, phrase }) => {
+      // Which step, resolved across every goal rather than inside whichever one happened to be
+      // open. currentGoal() falls back to the first goal, and the first goal is usually not the one
+      // holding the step the patient just named — that is how "which one do you mean?" came back
+      // with nothing to choose from.
+      const named = patientGoalById(goalId);
+      const candidates = (named ? [named] : activePatientGoals())
+        .flatMap(item => activeGoalActions(item).filter(goalActionIsPatientEditable).map(step => ({ goal: item, step })));
+      if (!candidates.length) return { needsChoice: true, steps: [] };
+      const byId = candidates.find(item => item.step.id === actionId);
+      // Matched on the words the patient actually used. A single overlapping word is enough to
+      // pick a step out of two or three; it is never enough to change one, which is why this only
+      // opens an editor the patient still has to save.
+      const words = new Set(String(phrase || title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[a-z]{4,}/g) || []);
+      const scored = candidates
+        .map(item => ({ ...item, score: (item.step.title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[a-z]{4,}/g) || []).filter(word => words.has(word)).length }))
+        .sort((a, b) => b.score - a.score);
+      const best = byId || (scored[0]?.score > 0 && scored[0].score !== scored[1]?.score ? scored[0] : null) || (candidates.length === 1 ? candidates[0] : null);
+      if (!best) return { needsChoice: true, steps: candidates.map(item => ({ id: item.step.id, title: item.step.title, goalTitle: goalDisplayName(item.goal, state.language) })) };
+      const goal = best.goal;
+      const step = best.step;
+      state.activeGoalId = goal.id;
+      state.activeActionId = step.id;
+      state.goalActionDraftTitle = String(title || "").trim().slice(0, 160);
+      state.goalDetailView = "EDIT_ACTION";
+      state.screen = "MY_GOALS";
+      state.error = "";
+      state.assistantPendingNavigation = true;
+      draftStore.save(state);
+      return { opened: "GOAL_STEP_EDITOR", goalId: goal.id, goalTitle: goalDisplayName(goal, state.language), actionId: step.id, currentTitle: step.title, proposedTitle: state.goalActionDraftTitle };
+    },
+    // Rewording a goal. Two refusals and no way around either: a care plan goal is not the
+    // patient's to rename, and a new wording that describes a routine is not a goal.
+    onGoalWording: ({ goalId, title }) => {
+      const goal = patientGoalById(goalId);
+      if (!goal) return { success: false, status: "GOAL_NOT_FOUND" };
+      if (!patientMayEditGoalWording(goal)) return { success: false, status: "CARE_PLAN_GOAL_CANNOT_BE_REWORDED", note: "This goal came from the care plan. Its wording, baseline and targets belong to the care team. The patient can still change the steps in their plan." };
+      const text = String(title || "").trim().slice(0, 180);
+      if (!text) return { success: false, status: "TITLE_REQUIRED" };
+      const verdict = personalGoalProposal(text);
+      if (verdict.kind !== GOAL_STATEMENT_KINDS.GOAL) {
+        return { success: false, status: "TITLE_DESCRIBES_AN_ACTION", suggestedGoal: verdict.title ? { title: verdict.title, templateId: verdict.templateId } : null, note: "Nothing was changed. That wording describes a step. Offer it as a step in the plan instead." };
+      }
+      goal.customTitle = text;
+      goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_TITLE_UPDATED", { goalSource: goal.goalSource, createdVia: "EMMI" });
+      audit(state, "personal_goal_renamed", "success", { goalId: goal.id, source: "EMMI", clinicalTargetChanged: false });
+      draftStore.save(state);
+      return { success: true, goalId: goal.id, title: goalDisplayName(goal, state.language) };
     }
   });
   emmiTextOrchestrator ||= new EmmiTextOrchestrator({
@@ -3339,6 +3533,46 @@ const goalCheck = (value, label, checked, goalType) => `<label class="check-row 
 const goalIcon = (goal, extra = "") =>
   `<span class="goal-icon ${extra}" data-goal-category="${goalCategoryOf(goal)}">${icon(resolveGoalIcon(goal, name => name in iconMap), "goal-icon-glyph")}</span>`;
 
+// The draft behind "create my own goal". It holds a PROPOSAL and nothing else: until the patient
+// presses save there is no goal, no action, and nothing for EMMI to claim it saved.
+function emptyPersonalGoalDraft() {
+  return { statement: "", kind: "", title: "", templateId: "", actionTitle: "", actionFrequency: "", careTeamTopic: "", clarify: "", measure: "", contributesToGoalId: "", warn: false };
+}
+
+// One resolver for "what did the patient just describe", used by the screen, by the edit form and
+// by EMMI's tool. Three surfaces, one answer — which is the whole reason it is not a prompt.
+const classifyPatientGoalStatement = statement => classifyGoalStatement(statement);
+
+const personalGoalTemplateTitle = templateId => {
+  const template = personalGoalTemplate(templateId);
+  return template ? localGoalText(template.displayName, state.language) : "";
+};
+
+// A proposal, localized, ready to put in front of the patient. `title` is what would go in the
+// goal; `actionTitle` is what would go in the plan. Either can be empty, and empty means we are
+// asking rather than offering.
+function personalGoalProposal(statement) {
+  const verdict = classifyPatientGoalStatement(statement);
+  const templateId = verdict.goal?.templateId || "";
+  const proposedTitle = typeof verdict.goal?.title === "string"
+    ? verdict.goal.title
+    : verdict.goal?.title
+      ? localGoalText(verdict.goal.title, state.language)
+      : "";
+  return {
+    statement: verdict.text,
+    kind: verdict.kind,
+    title: proposedTitle,
+    templateId,
+    actionTitle: verdict.action?.title || "",
+    actionFrequency: verdict.action?.frequency || "few-days",
+    careTeamTopic: verdict.careTeamTopic ? localGoalText(verdict.careTeamTopic, state.language) : "",
+    clarify: verdict.clarify ? localGoalText(verdict.clarify, state.language) : "",
+    measure: verdict.measure || "",
+    warn: false
+  };
+}
+
 const activePatientGoals = () => (state.patientGoals || []).filter(goal => goal.status !== "REMOVED");
 const patientGoalById = id => activePatientGoals().find(goal => goal.id === id);
 const currentGoal = () => patientGoalById(state.activeGoalId || state.goalPlanningGoalId) || activePatientGoals()[0];
@@ -3650,7 +3884,7 @@ async function runInterventionSideEffect(barrier, type, trigger) {
     if (goal) {
       state.goalFlowOrigin = "MY_GOALS";
       state.goalPlanningGoalId = goal.id;
-      state.goalPlanDraft = { actionIds: (goal.actions || []).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: (goal.actions || []).find(item => item.source === "PATIENT")?.title || "", frequency: (goal.actions || [])[0]?.frequency || "few-days", remindersEnabled: (goal.actions || []).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
+      state.goalPlanDraft = { actionIds: activeGoalActions(goal).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: activeGoalActions(goal).find(item => item.source === "PATIENT")?.title || "", frequency: activeGoalActions(goal)[0]?.frequency || "few-days", remindersEnabled: activeGoalActions(goal).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
       state.goalFlowStep = "PLAN_ACTIONS";
       state.screen = "GOALS";
     }
@@ -4670,7 +4904,13 @@ function resolutionViewExtras(resolution) {
 // functions the screens themselves render from, so a value EMMI says and a value on screen cannot
 // come apart.
 const goalViewSnapshot = () => {
-  const goal = currentGoal();
+  // The goal the patient actually has open, resolved exactly the way myGoals() resolves it.
+  //
+  // currentGoal() falls back to the first goal when none is open, which is what the handlers want
+  // and the opposite of what a describer wants: on the list screen it made EMMI describe a goal's
+  // detail — its plan, its steps, its controls — while the patient was looking at a list of goals
+  // and none of those controls were on screen.
+  const goal = state.screen === "MY_GOALS" && state.activeGoalId ? patientGoalById(state.activeGoalId) : null;
   const health = goal?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
   return {
     screen: state.screen,
@@ -4679,15 +4919,24 @@ const goalViewSnapshot = () => {
     goal: goal ? {
       id: goal.id,
       title: goalDisplayName(goal, state.language),
+      // Which kind of goal this is decides what EMMI may offer to change on it, so the describer
+      // is told rather than left to work it out from the goal's wording.
+      goalKind: isPersonalGoal(goal) ? "PERSONAL" : "CARE_PLAN",
+      contributesToTitle: goalContributionTarget(goal, activePatientGoals()) ? goalDisplayName(goalContributionTarget(goal, activePatientGoals()), state.language) : "",
       status: goal.status,
       priority: goal.priority,
       whyItMatters: goal.whyItMatters || "",
-      actions: (goal.actions || []).map(item => ({ id: item.id, title: item.title, status: item.status, frequency: item.frequency || "", verificationMethod: resolveGoalActionVerification(item) })),
+      actions: activeGoalActions(goal).map(item => ({ id: item.id, title: item.title, status: item.status, frequency: item.frequency || "", verificationMethod: resolveGoalActionVerification(item), editable: goalActionIsPatientEditable(item) })),
       barriers: activeGoalBarriers(goal).map(item => ({ id: item.id, category: item.category, status: item.status })),
       latestReading: health?.latest || null,
       clinicalTarget: health?.clinicalTarget || null
     } : null,
-    goals: activePatientGoals().map(item => ({ id: item.id, title: goalDisplayName(item, state.language), status: item.status, priority: item.priority, planStatus: item.planStatus })),
+    goals: activePatientGoals().map(item => ({ id: item.id, title: goalDisplayName(item, state.language), goalKind: isPersonalGoal(item) ? "PERSONAL" : "CARE_PLAN", status: item.status, priority: item.priority, planStatus: item.planStatus })),
+    // What the add-a-goal screens are actually offering, read from the same functions that render
+    // them. EMMI naming a goal the chooser does not list would be naming a button that is not there.
+    personalGoalDraft: state.personalGoalDraft || null,
+    recommendedGoals: recommendedGoalTypes().map(type => ({ id: type, label: localGoalText(GOAL_CONFIG[type].displayName, state.language) })),
+    starterGoals: STARTER_PERSONAL_GOAL_IDS.map(templateId => ({ id: templateId, label: personalGoalTemplateTitle(templateId) })),
     locale: state.language
   };
 };
@@ -5193,7 +5442,7 @@ function goalPlanOffer() {
 
 function goalPlanBuilder() {
   const goal = patientGoalById(state.goalPlanningGoalId);
-  const suggestions = suggestedActionsFor(goal?.goalType);
+  const suggestions = suggestedActionsForGoal(goal);
   const draft = state.goalPlanDraft || { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" };
   return `${titleBlock(L("What steps would you like to include?", "¿Qué pasos le gustaría incluir?", "Ki etap ou ta renmen mete ladan l?"), L("Choose the ones that feel realistic. You can change this later.", "Seleccione los que le parezcan realistas. Puede cambiarlos más adelante.", "Chwazi sa ki sanble reyalis pou ou. Ou ka chanje yo pita."), L("My goal", "Mi meta", "Objektif mwen"))}<section class="goal-selected-card compact">${goalIcon(goal)}<div><small>${L("Selected goal", "Meta seleccionada", "Objektif ou chwazi")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div></section><form id="goal-plan-form" class="goal-plan-form"><fieldset><legend>${L("Steps that fit your routine", "Pasos que se adapten a su rutina", "Etap ki mache ak woutin ou")}</legend><div class="goal-action-options">${suggestions.map(action => check("goalAction", localGoalText(action.title, state.language), draft.actionIds.includes(action.id), action.id)).join("")}</div></fieldset><label class="field">${L("Add my own step", "Agregar mi propio paso", "Ajoute pwòp etap pa mwen")}<input name="customAction" maxlength="160" value="${escapeHtml(draft.customAction || "")}" placeholder="${L("Example: Walk with my daughter after dinner.", "Ejemplo: Caminar con mi hija después de cenar.", "Egzanp: Mache ak pitit fi mwen apre dine.")}"></label><label class="field">${L("Why this matters to me (optional)", "Por qué esto es importante para mí (opcional)", "Poukisa sa enpòtan pou mwen (opsyonèl)")}<textarea name="whyItMatters" rows="3" maxlength="300">${escapeHtml(draft.whyItMatters || goal?.whyItMatters || "")}</textarea></label><fieldset><legend>${L("How often would feel realistic?", "¿Con qué frecuencia sería realista?", "Konbyen fwa ki ta reyalis?")}</legend><div class="preference-time-grid">${["daily", "few-days", "choose-days", "care-team-plan"].map(value => `<label><input type="radio" name="goalFrequency" value="${value}" ${draft.frequency === value ? "checked" : ""}><span>${frequencyLabel(value)}</span></label>`).join("")}</div></fieldset>${check("goalReminders", L("Reminders would help me", "Los recordatorios me ayudarían", "Rapèl ta ede mwen"), draft.remindersEnabled)}<p class="goal-plan-team-note">${L("Your care team can help you adjust these steps.", "Su equipo de atención puede ayudarle a ajustar estos pasos.", "Ekip swen ou ka ede w ajiste etap sa yo.")}</p></form><p class="form-error" role="alert">${state.error || ""}</p><div class="actions">${cta(t().back, "goals-flow-back", true)}${cta(L("Review my plan", "Revisar mi plan", "Revize plan mwen"), "goal-plan-review")}</div>`;
 }
@@ -5201,7 +5450,7 @@ function goalPlanBuilder() {
 function goalPlanReview() {
   const goal = patientGoalById(state.goalPlanningGoalId);
   const draft = state.goalPlanDraft;
-  const suggestions = suggestedActionsFor(goal?.goalType);
+  const suggestions = suggestedActionsForGoal(goal);
   const selected = suggestions.filter(action => draft.actionIds.includes(action.id));
   // Each chosen step becomes a scannable row with its own icon rather than a bullet in a list.
   const rows = [
@@ -5355,10 +5604,172 @@ function accessAssignedGoals() {
   return `${titleBlock(L("Your ACCESS health goals", "Sus objetivos de salud de ACCESS", "Objektif sante ACCESS ou yo"), L("These goals are part of your ACCESS care. We’ll track your progress and personalize the support you receive along the way.", "Estos objetivos forman parte de su cuidado ACCESS. Seguiremos su progreso y personalizaremos el apoyo que recibe en el camino.", "Objektif sa yo fè pati swen ACCESS ou. N ap swiv pwogrè ou epi pèsonalize sipò ou resevwa sou wout la."), L("Your ACCESS care", "Su cuidado ACCESS", "Swen ACCESS ou"))}<div class="access-goal-list">${cards}</div>${actions(L("Tell us what could make this harder", "Cuéntenos qué podría dificultarlo", "Di nou sa ki ka fè sa pi difisil"))}`;
 }
 
+// Goals the patient could still take on from the catalogue their care pathway offers. Anything
+// already on their list is gone from here, because offering someone a goal they are working on is
+// how a chooser stops being a chooser.
+const recommendedGoalTypes = () => {
+  const active = new Set(activePatientGoals().map(goal => goal.goalType));
+  return Object.keys(GOAL_CONFIG).filter(type => type !== "CUSTOM" && !active.has(type));
+};
+
+// "Add another goal" now asks the question it was always supposed to ask: another one from your
+// plan, or one of your own?
+//
+// Before this screen existed the button took an ACCESS patient to the read-only activation screen
+// that lists their assigned clinical goals with baselines and program measures — a dead end where
+// nothing could be added, and where the two things this feature keeps apart were the only two
+// things on display. The recommended goals are still here, which is the point: a patient adding a
+// goal of their own is a patient who has seen what the plan already offers.
+function goalAddChooser() {
+  const recommended = recommendedGoalTypes();
+  return `${titleBlock(
+    L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif"),
+    L("Choose one your care team suggests, or tell us one of your own.", "Elija una que su equipo de atención sugiere, o cuéntenos una suya.", "Chwazi youn ekip swen ou sijere, oswa di nou youn pa ou."),
+    L("My goals", "Mis metas", "Objektif mwen")
+  )}
+    ${recommended.length ? `<section class="goal-group" aria-labelledby="goal-add-recommended">
+      <h2 class="goal-group-heading" id="goal-add-recommended">${L("Recommended for you", "Recomendadas para usted", "Rekòmande pou ou")}</h2>
+      <div class="goal-choice-list">${recommended.map(type => `<button type="button" class="goal-choice-card" data-action="add-recommended-goal" data-goal-type="${type}">${goalIcon({ goalType: type })}<span><strong>${escapeHtml(localGoalText(GOAL_CONFIG[type].displayName, state.language))}</strong></span>${icon("arrowRight")}</button>`).join("")}</div>
+    </section>` : ""}
+    <section class="goal-group" aria-labelledby="goal-add-own">
+      <h2 class="goal-group-heading" id="goal-add-own">${L("Or set your own goal", "O defina su propia meta", "Oswa mete pwòp objektif pa ou")}</h2>
+      <button type="button" class="goal-choice-card goal-choice-own" data-action="create-my-own-goal">
+        <img src="/assets/emmi-assistant.png" alt="">
+        <span><strong>${L("Create my own goal", "Crear mi propia meta", "Kreye pwòp objektif mwen")}</strong><small>${L("Tell EMMI what you would like to change, and we’ll shape it together.", "Cuéntele a EMMI qué le gustaría cambiar y la definimos juntos.", "Di EMMI sa ou ta renmen chanje, epi n ap fè l ansanm.")}</small></span>
+        ${icon("arrowRight")}
+      </button>
+    </section>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goals-flow-back", true)}</div>`;
+}
+
+// One question, one box. Not a form: the patient says what they want in their own words, and
+// everything else is worked out from that.
+//
+// The starter list underneath is there because a blank box is its own kind of interrogation. They
+// are outcomes, never tasks, so tapping one can never produce a goal that is really a schedule.
+function personalGoalCapture() {
+  const draft = state.personalGoalDraft || emptyPersonalGoalDraft();
+  const question = draft.clarify
+    || L("What would you like to improve in your health or your daily life?", "¿Qué le gustaría mejorar en su salud o en su vida diaria?", "Kisa ou ta renmen amelyore nan sante ou oswa nan lavi chak jou ou?");
+  return `${titleBlock(
+    L("Create my own goal", "Crear mi propia meta", "Kreye pwòp objektif mwen"),
+    "",
+    L("My goals", "Mis metas", "Objektif mwen")
+  )}
+    <section class="personal-goal-prompt">
+      <img src="/assets/emmi-assistant.png" alt="">
+      <p>${escapeHtml(question)}</p>
+    </section>
+    <form id="personal-goal-form">
+      <label class="field personal-goal-field"><span class="sr-only">${escapeHtml(question)}</span>
+        <textarea name="goalStatement" rows="3" maxlength="180" placeholder="${L("Example: I want to walk without getting so tired.", "Ejemplo: Quiero caminar sin cansarme tanto.", "Egzanp: Mwen vle mache san m pa fatige konsa.")}">${escapeHtml(draft.statement || "")}</textarea>
+      </label>
+    </form>
+    <section class="personal-goal-starters" aria-labelledby="personal-goal-starters-heading">
+      <h2 id="personal-goal-starters-heading">${L("Or start from one of these", "O empiece con una de estas", "Oswa kòmanse ak youn nan sa yo")}</h2>
+      <div class="personal-goal-starter-list">${STARTER_PERSONAL_GOAL_IDS.map(templateId => `<button type="button" class="personal-goal-starter" data-action="personal-goal-starter" data-template-id="${templateId}">${goalIcon({ goalType: "CUSTOM", goalCategory: personalGoalTemplate(templateId)?.category || "GENERIC" })}<span>${escapeHtml(personalGoalTemplateTitle(templateId))}</span></button>`).join("")}</div>
+    </section>
+    <p class="goal-plan-team-note">${L("Your goal is yours. Your care team will see it, and it never changes anything clinical.", "Su meta es suya. Su equipo de atención podrá verla, y nunca cambia nada clínico.", "Objektif ou se pa ou. Ekip swen ou ap wè l, epi li pa janm chanje anyen klinik.")}</p>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goals-flow-back", true)}${cta(L("Continue", "Continuar", "Kontinye"), "personal-goal-review")}</div>`;
+}
+
+// The care plan goals a personal goal can be said to help with, and the one it says it helps with.
+const linkableCarePlanGoals = () => activePatientGoals().filter(isCarePlanGoal);
+const contributionTargetOf = goal => goalContributionTarget(goal, activePatientGoals());
+
+// The optional question that is the whole of the relationship between a personal goal and the plan.
+//
+// It is a question, asked once, with "on its own" already selected — because the patient saying so
+// is the only thing that may create this link. Inferring it from a shared category would have the
+// app telling somebody that walking more helps their blood pressure, which is a clinical claim, on
+// a record their care team reads. Nothing renders at all when there is no care plan goal to point
+// at, so a patient with only their own goals is never asked a question with one possible answer.
+function goalContributionField(selectedId) {
+  const plans = linkableCarePlanGoals();
+  if (!plans.length) return "";
+  const row = (value, label, goal) => `<label class="choice-card compact-choice"><input type="radio" name="contributesTo" value="${value}" ${selectedId === value ? "checked" : ""}><span class="choice-dot"></span>${goal ? goalIcon(goal) : icon("goals")}<span><strong>${escapeHtml(label)}</strong></span></label>`;
+  return `<section class="personal-goal-box personal-goal-box-link">
+    <span class="personal-goal-box-eyebrow">${icon("plan")}${L("Does this help with a goal from your plan? (optional)", "¿Esto le ayuda con una meta de su plan? (opcional)", "Èske sa ede w ak yon objektif nan plan ou? (opsyonèl)")}</span>
+    <div class="choice-list">
+      ${row("", L("It stands on its own", "Es independiente", "Li poukont li"), null)}
+      ${plans.map(goal => row(goal.id, goalDisplayName(goal, state.language), goal)).join("")}
+    </div>
+    <p class="personal-goal-note">${L("Only you decide this. It does not change your care plan or how your progress is measured.", "Solo usted lo decide. No cambia su plan de cuidado ni cómo se mide su progreso.", "Se ou sèlman ki deside sa. Li pa chanje plan swen ou ni kijan yo mezire pwogrè ou.")}</p>
+  </section>`;
+}
+
+// What EMMI understood, offered back before anything is saved.
+//
+// The goal wording is an editable field rather than a paragraph with an "Edit" button, because the
+// patient accepting our sentence and the patient rewriting it are the same gesture and should cost
+// the same. The action sits underneath in its own box: two fields, visibly two different things,
+// which is the product principle rendered rather than explained.
+function personalGoalConfirm() {
+  const draft = state.personalGoalDraft || emptyPersonalGoalDraft();
+  const guarded = [GOAL_STATEMENT_KINDS.CLINICAL_TARGET, GOAL_STATEMENT_KINDS.MEDICATION_CHANGE].includes(draft.kind);
+  const lead = draft.kind === GOAL_STATEMENT_KINDS.ACTION
+    ? L("That sounds like something you’ll do. We can put it in your plan, and here’s what it could help you reach.", "Eso suena a algo que usted hará. Podemos ponerlo en su plan, y esta sería la meta que le ayudaría a alcanzar.", "Sa sanble ak yon bagay w ap fè. Nou ka mete l nan plan ou, epi men sa li ka ede w rive.")
+    : draft.measure === "MEDICATION"
+      ? L("Your treatment is your care team’s to decide. Here is a goal you can work on, and a question we can save for your doctor.", "Su tratamiento lo decide su equipo de atención. Esta es una meta en la que sí puede trabajar, y una pregunta que podemos guardar para su médico.", "Se ekip swen ou ki deside tretman ou. Men yon objektif ou ka travay sou li, ak yon kesyon nou ka sere pou doktè ou.")
+      : guarded
+        ? L("Your care team decides the clinical numbers. Here is a goal you can work on, and a question we can save for your doctor.", "Su equipo de atención define los números clínicos. Esta es una meta en la que sí puede trabajar, y una pregunta que podemos guardar para su médico.", "Ekip swen ou deside chif klinik yo. Men yon objektif ou ka travay sou li, ak yon kesyon nou ka sere pou doktè ou.")
+        : L("Here is how we’d write your goal. Change any of it before saving.", "Así escribiríamos su meta. Puede cambiar lo que quiera antes de guardar.", "Men kijan nou ta ekri objektif ou. Ou ka chanje sa ou vle anvan ou sove.");
+  const warning = draft.warn
+    ? `<aside class="note goal-action-warning">${icon("info")}<p>${L("What you wrote describes something you would do. A goal describes what you want to reach. You can keep your words, or use the suggestion above.", "Lo que escribió describe algo que usted haría. Una meta describe lo que quiere conseguir. Puede conservar sus palabras o usar la sugerencia de arriba.", "Sa ou ekri a dekri yon bagay ou ta fè. Yon objektif dekri sa ou vle rive. Ou ka kenbe mo ou yo, oswa sèvi ak sijesyon an anwo a.")}</p></aside>`
+    : "";
+  return `${titleBlock(
+    L("Does this sound right?", "¿Le parece bien así?", "Èske sa sanble kòrèk?"),
+    lead,
+    L("My goals", "Mis metas", "Objektif mwen")
+  )}
+    <form id="personal-goal-confirm-form" class="personal-goal-confirm">
+      <section class="personal-goal-box personal-goal-box-goal">
+        <span class="personal-goal-box-eyebrow">${icon("goals")}${L("My goal — what I want to reach", "Mi meta — lo que quiero conseguir", "Objektif mwen — sa mwen vle rive")}</span>
+        <label class="field"><span class="sr-only">${L("My goal", "Mi meta", "Objektif mwen")}</span>
+          <textarea name="goalTitle" rows="2" maxlength="180">${escapeHtml(draft.title || draft.statement || "")}</textarea>
+        </label>
+      </section>
+      ${warning}
+      <section class="personal-goal-box personal-goal-box-action">
+        <span class="personal-goal-box-eyebrow">${icon("plan")}${L("My plan — what I’ll do about it", "Mi plan — lo que haré para lograrlo", "Plan mwen — sa m ap fè pou sa")}</span>
+        <label class="field"><span class="sr-only">${L("My first step", "Mi primer paso", "Premye etap mwen")}</span>
+          <textarea name="actionTitle" rows="2" maxlength="160" placeholder="${L("Optional. Example: Walk 15 minutes.", "Opcional. Ejemplo: Caminar 15 minutos.", "Opsyonèl. Egzanp: Mache 15 minit.")}">${escapeHtml(draft.actionTitle || draft.careTeamTopic || "")}</textarea>
+        </label>
+        <fieldset><legend>${L("How often?", "¿Con qué frecuencia?", "Konbyen fwa?")}</legend>
+          <div class="preference-time-grid">${["daily", "few-days", "choose-days", "care-team-plan"].map(value => `<label><input type="radio" name="actionFrequency" value="${value}" ${(draft.actionFrequency || "few-days") === value ? "checked" : ""}><span>${frequencyLabel(value)}</span></label>`).join("")}</div>
+        </fieldset>
+        <p class="personal-goal-note">${L("You can add, change or remove steps at any time.", "Puede agregar, cambiar o quitar pasos cuando quiera.", "Ou ka ajoute, chanje oswa retire etap nenpòt lè.")}</p>
+      </section>
+      ${goalContributionField(draft.contributesToGoalId || "")}
+      ${guarded ? `<aside class="note personal-goal-clinical-note">${icon("shield")}<p>${draft.measure === "MEDICATION"
+        ? L("I can’t change a medication or a dose. Your care team is the one to ask, and your goal and this question will be there for that conversation.", "No puedo cambiar un medicamento ni una dosis. Su equipo de atención es quien debe indicarlo, y su meta y esta pregunta estarán ahí para esa conversación.", "Mwen pa ka chanje yon medikaman ni yon doz. Se ekip swen ou ki pou di sa, epi objektif ou ak kesyon sa a ap la pou konvèsasyon sa a.")
+        : L("Your target numbers stay with your care team. Saving this goal does not change them.", "Los números objetivo siguen a cargo de su equipo de atención. Guardar esta meta no los cambia.", "Chif sib yo rete ak ekip swen ou. Sove objektif sa a pa chanje yo.")}</p></aside>` : ""}
+    </form>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="goal-stacked-actions">
+      ${cta(L("Save my goal", "Guardar mi meta", "Sove objektif mwen"), "personal-goal-save")}
+      ${cta(L("Let me explain it differently", "Déjeme explicarlo de otra forma", "Kite m eksplike l yon lòt jan"), "personal-goal-explain", true)}
+      ${cta(L("Cancel", "Cancelar", "Anile"), "personal-goal-cancel", true)}
+    </div>`;
+}
+
 function goals() {
-  // An ACCESS patient does not pick their goals: the track assigned them. The chooser below is
-  // still the right screen for every other program, which does ask.
-  if (state.offer?.pathway === "ACCESS") return accessAssignedGoals();
+  // Adding a goal after enrollment is a different question from choosing goals during it, so it
+  // gets answered first and by every pathway. ACCESS reaches these steps too: assigned goals being
+  // fixed has never meant the patient cannot have goals of their own.
+  if (state.goalFlowStep === "ADD") return goalAddChooser();
+  if (state.goalFlowStep === "PERSONAL_CAPTURE") return personalGoalCapture();
+  if (state.goalFlowStep === "PERSONAL_CONFIRM") return personalGoalConfirm();
+  // An ACCESS patient does not pick their care plan goals: the track assigned them, and during
+  // enrollment this screen shows them what they were assigned.
+  //
+  // That is true of enrollment and only of enrollment. A patient who taps "add another goal" from
+  // My Goals is somewhere else entirely, and sending them here — which is what happened before the
+  // origin was checked — put the read-only activation screen in the middle of adding a goal, so
+  // choosing a recommended goal landed on a page where nothing could be chosen.
+  if (state.offer?.pathway === "ACCESS" && state.goalFlowOrigin !== "MY_GOALS") return accessAssignedGoals();
   if (state.goalFlowStep === "PRIORITY") return goalPriorities();
   if (state.goalFlowStep === "PLAN_OFFER") return goalPlanOffer();
   if (state.goalFlowStep === "PLAN_ACTIONS") return goalPlanBuilder();
@@ -5470,14 +5881,37 @@ function goalStartingPointLine(goal) {
   return `<div class="goal-summary-block goal-summary-baseline"><span class="goal-summary-label">${L("Starting point", "Punto de partida", "Pwen depa")}</span><p class="goal-summary-value">${value}</p></div>`;
 }
 
+// A goal the patient wrote says so on its own card. A care plan goal does not need to: the heading
+// above it already said, and repeating it on every card turns a distinction into noise.
+const goalKindChip = goal => (isPersonalGoal(goal)
+  ? `<span class="goal-card-kind">${icon("goals")}<span>${L("My own goal", "Mi propia meta", "Pwòp objektif mwen")}</span></span>`
+  : "");
+
+// What the plan holds, counted rather than listed: the steps are one tap away, and a card that
+// spelled them out would be a plan instead of a summary of one.
+//
+// Only personal goals get this line. A care plan goal already reports what it measured — readings
+// received, active days — and a step count underneath that would be a second, weaker answer to the
+// question the metrics just answered. A personal goal has no metrics, so its plan is what it has.
+const goalPlanLine = goal => {
+  const count = isPersonalGoal(goal) ? goalActionCount(goal) : 0;
+  if (!count) return "";
+  const copy = count === 1
+    ? L("1 active step", "1 paso activo", "1 etap aktif")
+    : L(`${count} active steps`, `${count} pasos activos`, `${count} etap aktif`);
+  return `<div class="goal-summary-block goal-summary-plan"><span class="goal-summary-label">${L("Plan", "Plan", "Plan")}</span><p class="goal-summary-value">${copy}</p></div>`;
+};
+
 // The primary goal gets the fuller treatment: progress, the next step and a lead action. Other
 // goals stay deliberately lighter, so the patient's own priority is the thing that stands out.
 function primaryGoalCard(goal) {
   const nextStep = goalNextStep(goal);
   const ctaAction = goalCardCta(goal);
-  return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
+  return `<article class="goal-card goal-card-primary" data-goal-status="${goal.status}" data-goal-kind="${isPersonalGoal(goal) ? "PERSONAL" : "CARE_PLAN"}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
+    ${goalKindChip(goal)}
     ${goalStartingPointLine(goal)}
+    ${goalPlanLine(goal)}
     ${goalProgressMarkup(goal)}
     ${goalNeedsHelpLine(goal)}
     ${nextStep ? `<div class="goal-summary-block"><span class="goal-summary-label">${L("Next step", "Próximo paso", "Pwochen etap")}</span><p class="goal-summary-value">${escapeHtml(nextStep)}</p></div>` : ""}
@@ -5488,10 +5922,11 @@ function primaryGoalCard(goal) {
 function secondaryGoalCard(goal) {
   const ctaAction = goalCardCta(goal);
   const ready = goalIsReadyToPersonalize(goal);
-  return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
+  return `<article class="goal-card" data-goal-status="${goal.status}" data-goal-kind="${isPersonalGoal(goal) ? "PERSONAL" : "CARE_PLAN"}" data-goal-id="${goal.id}" data-scroll-anchor="goal-card-${goal.id}" aria-labelledby="goal-title-${goal.id}">
     <div class="goal-card-head">${goalIcon(goal, "goal-card-icon")}<h3 class="goal-card-title" id="goal-title-${goal.id}">${escapeHtml(goalDisplayName(goal, state.language))}</h3></div>
     <p class="goal-card-status">${icon(goalStatusIcon(goal))}<span>${goalStatusCopy(goal)}</span></p>
     ${goalStartingPointLine(goal)}
+    ${goalPlanLine(goal)}
     <p class="goal-card-support">${ready
       ? L("Personalize how you’d like to work on this goal.", "Personalice cómo le gustaría trabajar en esta meta.", "Pèsonalize kijan ou ta renmen travay sou objektif sa a.")
       : escapeHtml(goalNextStep(goal))}</p>
@@ -5502,22 +5937,34 @@ function secondaryGoalCard(goal) {
 function myGoalsDashboard() {
   const goals = sortGoalsForPatient(activePatientGoals());
   if (!goals.length) {
+    // The notice belongs here too. Removing your only goal is the one case that lands on the empty
+    // state, and it was the one case where nothing on screen said the removal had happened.
     return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("See what you’re working toward and what comes next.", "Vea en qué está trabajando y qué sigue.", "Gade sa w ap travay pou li ak sa k ap vini."))}
+      ${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}
       <section class="goals-empty">${icon("goals", "goals-empty-icon")}<h2>${L("Your goals will appear here", "Sus metas aparecerán aquí", "Objektif ou yo ap parèt isit la")}</h2><p>${L("Choose a goal that matters to you and we’ll help you work toward it.", "Elija una meta que le importe y le ayudaremos a trabajar en ella.", "Chwazi yon objektif ki enpòtan pou ou epi n ap ede w travay sou li.")}</p></section>
       ${addGoalCard()}
       ${backToCareAction()}`;
   }
   const primary = goals.find(goal => goal.priority === "PRIMARY") || goals[0];
   const others = goals.filter(goal => goal.id !== primary.id);
+  // Two kinds of goal, two headings. Someone reading this list has to be able to tell what their
+  // care plan asked of them from what they asked of themselves — not because the distinction is
+  // interesting, but because only one of the two is theirs to reword, delete or invent.
+  const planGoals = others.filter(isCarePlanGoal);
+  const ownGoals = others.filter(isPersonalGoal);
   return `${titleBlock(L("My Goals", "Mis metas", "Objektif mwen"), L("See what you’re working toward and what comes next.", "Vea en qué está trabajando y qué sigue.", "Gade sa w ap travay pou li ak sa k ap vini."))}
     ${state.goalNotice ? `<p class="goal-notice" role="status">${escapeHtml(state.goalNotice)}</p>` : ""}
     <section class="goal-group" aria-labelledby="goal-group-priority">
       <h2 class="goal-group-heading" id="goal-group-priority">${L("My priority", "Mi prioridad", "Priyorite mwen")}</h2>
       ${primaryGoalCard(primary)}
     </section>
-    ${others.length ? `<section class="goal-group" aria-labelledby="goal-group-other">
-      <h2 class="goal-group-heading" id="goal-group-other">${L("Other goals", "Otras metas", "Lòt objektif")}</h2>
-      ${others.map(secondaryGoalCard).join("")}
+    ${planGoals.length ? `<section class="goal-group" aria-labelledby="goal-group-plan">
+      <h2 class="goal-group-heading" id="goal-group-plan">${L("Goals from my care plan", "Metas de mi plan de cuidado", "Objektif nan plan swen mwen")}</h2>
+      ${planGoals.map(secondaryGoalCard).join("")}
+    </section>` : ""}
+    ${ownGoals.length ? `<section class="goal-group goal-group-own" aria-labelledby="goal-group-own">
+      <h2 class="goal-group-heading" id="goal-group-own">${L("My own goals", "Mis propias metas", "Pwòp objektif mwen")}</h2>
+      ${ownGoals.map(secondaryGoalCard).join("")}
     </section>` : ""}
     ${addGoalCard()}
     ${backToCareAction()}`;
@@ -5525,7 +5972,7 @@ function myGoalsDashboard() {
 
 const addGoalCard = () => `<button type="button" class="add-goal-action" data-action="add-another-goal">
   <span class="add-goal-mark" aria-hidden="true">+</span>
-  <span class="add-goal-copy"><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose another goal you’d like to work toward.", "Elija otra meta en la que le gustaría trabajar.", "Chwazi yon lòt objektif ou ta renmen travay sou li.")}</small></span>
+  <span class="add-goal-copy"><strong>${L("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif")}</strong><small>${L("Choose one your care team suggests, or set a goal of your own.", "Elija una que sugiere su equipo, o defina una meta propia.", "Chwazi youn ekip ou sijere, oswa mete yon objektif pa ou.")}</small></span>
 </button>`;
 
 const backToCareAction = () => `<div class="goal-back-actions"><button type="button" class="button secondary goal-back-to-care" data-action="back">${icon("arrowLeft")}<span>${L("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen")}</span></button></div>`;
@@ -5601,7 +6048,7 @@ function goalActionRow(action, health, goal) {
   const verificationMethod = resolveGoalActionVerification(action);
   const doneToday = (action.completionHistory || []).some(item => item.date === today) || action.status === "COMPLETED";
   const frequency = action.frequency ? frequencyLabel(action.frequency) : "";
-  const actionTemplate = action.templateId ? suggestedActionsFor(goal.goalType).find(item => item.id === action.templateId) : null;
+  const actionTemplate = action.templateId ? suggestedActionsForGoal(goal).find(item => item.id === action.templateId) : null;
   const actionTitle = actionTemplate ? localGoalText(actionTemplate.title, state.language) : action.title;
   if (verificationMethod === "DEVICE") {
     const receivedToday = health.latest && localDateKey(health.latest.timestamp) === today;
@@ -5613,8 +6060,18 @@ function goalActionRow(action, health, goal) {
   }
   const medication = action.templateId === "medications-as-directed";
   const prompt = medication ? L("Did you take them today as directed?", "¿Los tomó hoy según las indicaciones?", "Èske ou te pran yo jodi a jan yo mande a?") : L("Did you do this today?", "¿Lo hizo hoy?", "Èske ou te fè sa jodi a?");
-  return `<li class="goal-action ${doneToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong>${frequency ? `<small>${frequency}</small>` : ""}<p>${doneToday ? `${icon("check")}${L("Reported today", "Registrado hoy", "Rapòte jodi a")}` : prompt}</p></div><div class="goal-action-buttons">${doneToday ? "" : `<button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}">${medication ? L("Yes", "Sí", "Wi") : L("Yes, I did", "Sí, lo hice", "Wi, mwen te fè sa")}</button>`}${medication ? `<button type="button" class="goal-action-button secondary" data-action="ask-emmi-medication">${L("I have a question", "Tengo una pregunta", "Mwen gen yon kesyon")}</button>` : ""}</div></li>`;
+  return `<li class="goal-action ${doneToday ? "is-done" : ""}">${icon(goalActionIcon(action.templateId || action.id), "goal-action-icon")}<div class="goal-action-copy"><strong>${escapeHtml(actionTitle)}</strong>${frequency ? `<small>${frequency}</small>` : ""}<p>${doneToday ? `${icon("check")}${L("Reported today", "Registrado hoy", "Rapòte jodi a")}` : prompt}</p></div><div class="goal-action-buttons">${doneToday ? "" : `<button type="button" class="goal-action-button" data-action="complete-goal-action" data-action-id="${action.id}">${medication ? L("Yes", "Sí", "Wi") : L("Yes, I did", "Sí, lo hice", "Wi, mwen te fè sa")}</button>`}${medication ? `<button type="button" class="goal-action-button secondary" data-action="ask-emmi-medication">${L("I have a question", "Tengo una pregunta", "Mwen gen yon kesyon")}</button>` : ""}</div>${goalActionManageRow(action)}</li>`;
 }
+
+// A step the patient reports themselves is a step they can reword or drop, right here, without
+// reopening the whole personalization flow. A step a monitor or a lesson completes is not: the plan
+// would still expect it and the completion would still arrive, so it offers no controls at all.
+const goalActionManageRow = action => (goalActionIsPatientEditable(action)
+  ? `<div class="goal-action-manage">
+      <button type="button" class="goal-inline-link" data-action="edit-goal-action" data-action-id="${action.id}">${L("Change this step", "Cambiar este paso", "Chanje etap sa a")}</button>
+      <button type="button" class="goal-inline-link" data-action="remove-goal-action" data-action-id="${action.id}">${L("Remove", "Quitar", "Retire")}</button>
+    </div>`
+  : "");
 
 // The patient never reads the word "barrier", and never reads a status enum. They read what is
 // hard, what we are doing about it, and what happens next.
@@ -5744,7 +6201,7 @@ function goalBarrierFollowUp() {
     ? [["RESOLVED", L("Yes, it worked", "Sí, funcionó", "Wi, li mache")], ["PARTIALLY_HELPED", L("Almost", "Casi", "Prèske")], ["NOT_HELPED", L("No, it still won’t work", "No, aún no funciona", "Non, li toujou pa mache")]]
     : [["RESOLVED", L("Yes, a lot", "Sí, mucho", "Wi, anpil")], ["PARTIALLY_HELPED", L("A little", "Un poco", "Yon ti kras")], ["NOT_HELPED", L("I’m still having trouble", "Sigo teniendo dificultad", "Mwen toujou gen difikilte")]];
   return `${titleBlock(question, escapeHtml(barrierPatientSummary(barrier, state.language)), L("Checking in", "Seguimiento", "Tcheke"))}
-    <div class="choice-list goal-followup-options">${options.map(([value, label]) => `<button type="button" class="goal-response-button" data-action="barrier-follow-up-response" data-outcome="${value}">${label}</button>`).join("")}</div>
+    <div class="choice-list goal-followup-options">${options.map(([value, label]) => `<button type="button" class="goal-response-button" data-action="goal-barrier-follow-up-response" data-outcome="${value}">${label}</button>`).join("")}</div>
     <div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
 }
 
@@ -5760,6 +6217,92 @@ function accessGoalOutcomeSection(goal) {
   </section>`;
 }
 
+// Renaming a goal. One field, and a gate: a rename is another way to end up with a schedule where
+// an outcome should be, so the same classifier that guards creation guards this too. It warns and
+// re-offers rather than refusing, because these are the patient's words about the patient's goal —
+// the app's job is to make sure they know what a goal is, not to overrule them.
+// Who this goal belongs to, said once and plainly, on the screen where the patient can act on it.
+//
+// A care plan goal names what the patient cannot change and why, in the words they would use — not
+// "clinical target" and never "ACCESS outcome" or "CMS measure". A personal goal says the opposite
+// thing, which matters just as much: it is theirs, their care team will see it, and it changes
+// nothing clinical by existing.
+// What the patient said this goal helps with, and a way to say something different. It sits under
+// the ownership note because it is part of the same statement: this goal is mine, and this is what
+// I think it does for me.
+const goalContributionLine = goal => {
+  if (!goalMayDeclareContribution(goal) || !linkableCarePlanGoals().length) return "";
+  const target = contributionTargetOf(goal);
+  return `<p class="goal-contribution-line">${target
+    ? `${icon("plan")}<span>${L("You said this helps with", "Usted dijo que esto le ayuda con", "Ou di sa ede w ak")}: <strong>${escapeHtml(goalDisplayName(target, state.language))}</strong></span>`
+    : `${icon("plan")}<span>${L("This goal stands on its own.", "Esta meta es independiente.", "Objektif sa a poukont li.")}</span>`}
+    <button type="button" class="goal-inline-link" data-action="edit-goal-contribution">${L("Change", "Cambiar", "Chanje")}</button></p>`;
+};
+
+const goalOwnershipNote = goal => (isPersonalGoal(goal)
+  ? `<aside class="goal-panel goal-ownership goal-ownership-personal">${icon("goals")}<div><span class="goal-panel-eyebrow">${L("My own goal", "Mi propia meta", "Pwòp objektif mwen")}</span><p>${L("You set this goal yourself. Your care team can see it and help you with it. It does not change your care plan or anything your doctor decides.", "Usted definió esta meta. Su equipo de atención puede verla y ayudarle con ella. No cambia su plan de cuidado ni nada que decida su médico.", "Se ou menm ki mete objektif sa a. Ekip swen ou ka wè l epi ede w avè l. Li pa chanje plan swen ou ni anyen doktè ou deside.")}</p>${goalContributionLine(goal)}</div></aside>`
+  : `<aside class="goal-panel goal-ownership goal-ownership-plan">${icon("shield")}<div><span class="goal-panel-eyebrow">${L("Part of my care plan", "Parte de mi plan de cuidado", "Fè pati plan swen mwen")}</span><p>${L("Your care team sets what this goal measures and where it starts. You choose the steps you take toward it, and you can change those whenever you like.", "Su equipo de atención define qué mide esta meta y su punto de partida. Usted elige los pasos que da para avanzar, y puede cambiarlos cuando quiera.", "Ekip swen ou fikse sa objektif sa a mezire ak kote li kòmanse. Ou chwazi etap w ap fè, epi ou ka chanje yo lè ou vle.")}</p></div></aside>`);
+
+// Changing the answer later, on the same terms: still optional, still the patient's, still with
+// "on its own" as a real choice rather than a way out of the question.
+function goalContributionEditor(goal) {
+  return `${titleBlock(
+    L("Does this help with a goal from your plan?", "¿Esto le ayuda con una meta de su plan?", "Èske sa ede w ak yon objektif nan plan ou?"),
+    L("Only you decide this. It does not change your care plan or how your progress is measured.", "Solo usted lo decide. No cambia su plan de cuidado ni cómo se mide su progreso.", "Se ou sèlman ki deside sa. Li pa chanje plan swen ou ni kijan yo mezire pwogrè ou."),
+    L("My goal", "Mi meta", "Objektif mwen")
+  )}
+    <section class="goal-selected-card compact">${goalIcon(goal)}<div><small>${L("Your goal", "Su meta", "Objektif ou")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div></section>
+    <form id="goal-contribution-form">${goalContributionField(contributionTargetOf(goal)?.id || "")}</form>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-contribution")}</div>`;
+}
+
+function goalTitleEditor(goal) {
+  return `${titleBlock(
+    L("Change how your goal is written", "Cambiar cómo está escrita su meta", "Chanje kijan objektif ou ekri"),
+    L("A goal describes what you want to reach. The steps in your plan will not change.", "Una meta describe lo que quiere conseguir. Los pasos de su plan no cambiarán.", "Yon objektif dekri sa ou vle rive. Etap nan plan ou p ap chanje."),
+    L("My goal", "Mi meta", "Objektif mwen")
+  )}
+    <form id="goal-title-form"><label class="field"><span class="sr-only">${L("My goal", "Mi meta", "Objektif mwen")}</span>
+      <textarea name="goalTitle" rows="3" maxlength="180">${escapeHtml(state.goalTitleDraft || goalDisplayName(goal, state.language))}</textarea>
+    </label></form>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-title")}</div>`;
+}
+
+// Adding or changing one step. Two fields and a frequency, which is the whole of it: a step is a
+// sentence and a rhythm, and asking for anything more would be the long form nobody wanted.
+function goalActionEditor(goal, action) {
+  const editing = Boolean(action);
+  const frequency = action?.frequency || "few-days";
+  return `${titleBlock(
+    editing ? L("Change this step", "Cambiar este paso", "Chanje etap sa a") : L("Add a step to my plan", "Agregar un paso a mi plan", "Ajoute yon etap nan plan mwen"),
+    L("A step is what you will do. Your goal stays as it is.", "Un paso es lo que usted hará. Su meta queda como está.", "Yon etap se sa w ap fè. Objektif ou rete jan li ye."),
+    L("My plan", "Mi plan", "Plan mwen")
+  )}
+    <section class="goal-selected-card compact">${goalIcon(goal)}<div><small>${L("Your goal", "Su meta", "Objektif ou")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div></section>
+    <form id="goal-action-form"><label class="field"><span class="sr-only">${L("The step", "El paso", "Etap la")}</span>
+      <textarea name="actionTitle" rows="3" maxlength="160" placeholder="${L("Example: Walk 15 minutes.", "Ejemplo: Caminar 15 minutos.", "Egzanp: Mache 15 minit.")}">${escapeHtml(state.goalActionDraftTitle || action?.title || "")}</textarea>
+    </label>
+    <fieldset><legend>${L("How often?", "¿Con qué frecuencia?", "Konbyen fwa?")}</legend>
+      <div class="preference-time-grid">${["daily", "few-days", "choose-days", "care-team-plan"].map(value => `<label><input type="radio" name="actionFrequency" value="${value}" ${frequency === value ? "checked" : ""}><span>${frequencyLabel(value)}</span></label>`).join("")}</div>
+    </fieldset></form>
+    <p class="form-error" role="alert">${state.error || ""}</p>
+    <div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(editing ? L("Save this step", "Guardar este paso", "Sove etap sa a") : L("Add this step", "Agregar este paso", "Ajoute etap sa a"), editing ? "update-goal-action" : "save-goal-action")}</div>`;
+}
+
+// Removing a goal the patient wrote. Only ever a personal goal: a goal the care plan assigned is
+// not the patient's to delete, and the screen that would let them do it does not exist.
+function goalDeleteConfirm(goal) {
+  return `${titleBlock(
+    L("Remove this goal?", "¿Eliminar esta meta?", "Retire objektif sa a?"),
+    L("This removes your own goal and its steps. Nothing in your care plan changes.", "Esto elimina su meta propia y sus pasos. Nada de su plan de cuidado cambia.", "Sa retire pwòp objektif ou ak etap li yo. Anyen nan plan swen ou pa chanje."),
+    L("My goal", "Mi meta", "Objektif mwen")
+  )}
+    <section class="goal-selected-card compact">${goalIcon(goal)}<div><small>${L("Your goal", "Su meta", "Objektif ou")}</small><strong>${escapeHtml(goalDisplayName(goal, state.language))}</strong></div></section>
+    <div class="actions">${cta(L("Keep it", "Conservarla", "Kenbe l"), "goal-detail-back", true)}${cta(L("Remove this goal", "Eliminar esta meta", "Retire objektif sa a"), "confirm-delete-goal")}</div>`;
+}
+
 function goalDetail() {
   const goal = currentGoal();
   if (!goal) return myGoalsDashboard();
@@ -5769,12 +6312,17 @@ function goalDetail() {
   if (state.goalDetailView === "READINGS" && health) return goalReadingHistory(goal, health);
   if (state.goalDetailView === "WHY_EDIT") return `${titleBlock(L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen"), title, L("My goal", "Mi meta", "Objektif mwen"))}<form id="goal-why-form"><label class="field"><textarea name="whyItMatters" rows="5" maxlength="300" placeholder="${L("Share what you want this goal to help you keep doing.", "Cuente qué desea que esta meta le ayude a seguir haciendo.", "Pataje sa ou vle objektif sa a ede w kontinye fè.")}">${escapeHtml(goal.whyItMatters || "")}</textarea></label></form><div class="actions">${cta(t().back, "goal-detail-back", true)}${cta(L("Save", "Guardar", "Sove"), "save-goal-why")}</div>`;
   if (state.goalDetailView === "CHECK_IN") return `${titleBlock(L("How do you feel this goal is going?", "¿Cómo siente que va esta meta?", "Kijan ou santi objektif sa a ap mache?"), title, L("Goal check-in", "Seguimiento de meta", "Tcheke objektif"))}<div class="choice-list goal-checkin-options">${[["GOING_WELL", L("I’m making progress", "Estoy avanzando", "M ap fè pwogrè")], ["ABOUT_THE_SAME", L("About the same", "Más o menos igual", "Prèske menm jan")], ["DIFFICULTY", L("I’m having a hard time", "Me está costando", "Sa difisil pou mwen")], ["NOT_STARTED", L("I haven’t started yet", "Todavía no he empezado", "Mwen poko kòmanse")]].map(([value,label]) => `<button type="button" class="goal-response-button" data-action="goal-checkin-response" data-response="${value}">${label}</button>`).join("")}</div><div class="actions">${cta(t().back, "goal-detail-back", true)}</div>`;
+  if (state.goalDetailView === "EDIT_TITLE") return goalTitleEditor(goal);
+  if (state.goalDetailView === "LINK_EDIT") return goalContributionEditor(goal);
+  if (state.goalDetailView === "ADD_ACTION") return goalActionEditor(goal, null);
+  if (state.goalDetailView === "EDIT_ACTION") return goalActionEditor(goal, (goal.actions || []).find(item => item.id === state.activeActionId) || null);
+  if (state.goalDetailView === "DELETE_CONFIRM") return goalDeleteConfirm(goal);
   if (state.goalDetailView === "BARRIERS") return goalBarrierPicker(goal);
   if (state.goalDetailView === "BARRIER_DESCRIBE") return goalBarrierDescribe();
   if (state.goalDetailView === "BARRIER_HELP") return goalBarrierHelp();
   if (state.goalDetailView === "BARRIER_FOLLOW_UP") return goalBarrierFollowUp();
   if (state.goalDetailView === "ACHIEVE_CONFIRM") return `${art("check", true)}${titleBlock(L("Are you ready to mark this goal as achieved?", "¿Está listo para marcar esta meta como lograda?", "Èske ou pare pou make objektif sa a kòm reyalize?"), title)}<p class="lead">${L("This only updates your personal goal. It does not change a clinical target or your care plan.", "Esto solo actualiza su meta personal. No cambia un objetivo clínico ni su plan de cuidado.", "Sa mete ajou objektif pèsonèl ou sèlman. Li pa chanje yon sib klinik ni plan swen ou.")}</p><div class="actions">${cta(L("Not yet", "Todavía no", "Poko"), "goal-detail-back", true)}${cta(L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize"), "confirm-goal-achieved")}</div>`;
-  const goalActions = goal.actions || [];
+  const goalActions = activeGoalActions(goal);
   const actionRows = goalActions.map(action => goalActionRow(action, health || {}, goal)).join("");
   const education = nextBestGoalEducation({ goalType: goal.goalType, completedTopicIds: (goal.educationHistory || []).filter(item => item.status === "COMPLETED").map(item => item.topicId) });
   const localizedEducation = education ? { title: localGoalText(education.title, state.language), summary: localGoalText(education.summary, state.language) } : null;
@@ -5791,7 +6339,11 @@ function goalDetail() {
     ? L("This goal is paused. You can return to it later.", "Esta meta está pausada. Puede retomarla después.", "Objektif sa a an poz. Ou ka retounen sou li pita.")
     : goal.status === "ACHIEVED"
       ? L("You marked this personal goal as achieved.", "Marcó esta meta personal como lograda.", "Ou make objektif pèsonèl sa a kòm reyalize.")
-      : L("See how your blood pressure is doing, follow your steps, and learn what your results mean.", "Vea cómo va su presión, siga sus pasos y aprenda qué significan sus resultados.", "Gade kijan tansyon ou ye, swiv etap ou yo, epi aprann sa rezilta yo vle di.");
+      // Only the blood pressure goal has readings and results to explain. Saying so above a goal
+      // about walking told the patient this screen was about something it was not.
+      : health
+        ? L("See how your blood pressure is doing, follow your steps, and learn what your results mean.", "Vea cómo va su presión, siga sus pasos y aprenda qué significan sus resultados.", "Gade kijan tansyon ou ye, swiv etap ou yo, epi aprann sa rezilta yo vle di.")
+        : L("See the steps in your plan and how this goal is going.", "Vea los pasos de su plan y cómo va esta meta.", "Gade etap nan plan ou ak kijan objektif sa a ap mache.");
   // The same starting point and the same two ACCESS measures the goals screen and the care plan
   // show, read from the same resolver rather than restated here. My Goals is where the patient
   // comes back to weeks later, and a baseline that differed from the one they were shown at
@@ -5808,10 +6360,12 @@ function goalDetail() {
     <div class="goal-detail-hero">${goalIcon(goal, "goal-detail-hero-icon")}<h1 tabindex="-1">${title}</h1></div>
     ${statusLead ? `<p class="lead">${statusLead}</p>` : ""}
     ${metric}${trend}${accessOutcome}
-    <section class="goal-section">
-      <h2>${L("My actions", "Mis acciones", "Aksyon mwen")}</h2>
-      ${actionRows ? `<p class="goal-section-support">${L("Some steps are recorded automatically. You only confirm the ones you do yourself.", "Algunos pasos se registran automáticamente. Usted solo confirma los que realiza personalmente.", "Gen kèk etap ki anrejistre otomatikman. Ou konfime sèlman sa ou fè tèt ou.")}</p><ul class="goal-action-list">${actionRows}</ul>` : `<p class="goal-progress-empty">${L("You have not added any actions yet.", "Todavía no ha agregado acciones.", "Ou poko ajoute okenn aksyon.")}</p>`}
-      <button type="button" class="goal-secondary-button" data-action="plan-active-goal">${icon("sliders")}<span>${actionRows ? L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen") : goal.planPersonalizationStatus === "DEFERRED" || goal.planStatus === "DEFERRED" ? L("Continue personalizing my plan", "Continuar personalizando mi plan", "Kontinye pèsonalize plan mwen") : L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen")}</span></button>
+    <section class="goal-section goal-plan-section">
+      <h2>${L("My plan", "Mi plan", "Plan mwen")}</h2>
+      <p class="goal-section-support">${L("These are the steps you will take toward this goal. They are not the goal itself.", "Estos son los pasos que dará para avanzar hacia esta meta. No son la meta en sí.", "Sa yo se etap w ap fè pou objektif sa a. Se pa objektif la menm.")}</p>
+      ${actionRows ? `<ul class="goal-action-list">${actionRows}</ul><p class="goal-section-support">${L("Some steps are recorded automatically. You only confirm the ones you do yourself.", "Algunos pasos se registran automáticamente. Usted solo confirma los que realiza personalmente.", "Gen kèk etap ki anrejistre otomatikman. Ou konfime sèlman sa ou fè tèt ou.")}</p>` : `<p class="goal-progress-empty">${L("You have not added any steps yet.", "Todavía no ha agregado pasos.", "Ou poko ajoute okenn etap.")}</p>`}
+      <button type="button" class="goal-secondary-button" data-action="open-add-goal-action">${icon("plus")}<span>${L("Add a step", "Agregar un paso", "Ajoute yon etap")}</span></button>
+      ${suggestedActionsForGoal(goal).length ? `<button type="button" class="goal-secondary-button" data-action="plan-active-goal">${icon("sliders")}<span>${actionRows ? L("Adjust my plan", "Ajustar mi plan", "Ajiste plan mwen") : goal.planPersonalizationStatus === "DEFERRED" || goal.planStatus === "DEFERRED" ? L("Continue personalizing my plan", "Continuar personalizando mi plan", "Kontinye pèsonalize plan mwen") : L("Personalize my plan", "Personalizar mi plan", "Pèsonalize plan mwen")}</span></button>` : ""}
     </section>
     ${goalSupportSection(goal)}
     ${localizedEducation ? `<section class="goal-education-card"><img src="/assets/emmi-assistant.png" alt=""><div><span>${L("Learn with EMMI", "Aprenda con EMMI", "Aprann avèk EMMI")}</span><h2>${escapeHtml(localizedEducation.title)}</h2><p>${escapeHtml(localizedEducation.summary)}</p><button type="button" class="goal-card-action" data-action="learn-goal-topic">${L("Explain it to me", "Explícamelo", "Eksplike m sa")} ${icon("arrowRight")}</button></div></section>` : ""}
@@ -5823,7 +6377,8 @@ function goalDetail() {
     </section>
     ${clinicalTarget}
     <section class="goal-panel goal-why">${icon("heart")}<div><span class="goal-panel-eyebrow">${L("Why this matters to me", "Por qué esto es importante para mí", "Poukisa sa enpòtan pou mwen")}</span>${goal.whyItMatters ? `<p>${escapeHtml(goal.whyItMatters)}</p><button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Edit", "Editar", "Modifye")}</button>` : `<button type="button" class="goal-inline-link" data-action="edit-goal-why">${L("Add why this matters", "Agregar por qué es importante", "Ajoute poukisa sa enpòtan")} ${icon("arrowRight")}</button>`}</div></section>
-    <details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button></div></details>
+    ${goalOwnershipNote(goal)}
+    <details class="goal-manage"><summary>${L("Review or adjust this goal", "Revisar o ajustar esta meta", "Revize oswa ajiste objektif sa a")}</summary><div>${patientMayEditGoalWording(goal) ? `<button type="button" data-action="edit-goal-title">${L("Change how it is written", "Cambiar cómo está escrita", "Chanje kijan li ekri")}</button>` : ""}${goal.status === "PAUSED" ? `<button type="button" data-action="reactivate-goal">${L("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a")}</button>` : `<button type="button" data-action="pause-goal">${L("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz")}</button>`}<button type="button" data-action="change-goal-priority">${L("Change priority", "Cambiar prioridad", "Chanje priyorite")}</button><button type="button" data-action="goal-mark-achieved">${L("Mark as achieved", "Marcar como lograda", "Make kòm reyalize")}</button>${patientMayDeleteGoal(goal) ? `<button type="button" class="goal-manage-destructive" data-action="delete-goal">${L("Remove this goal", "Eliminar esta meta", "Retire objektif sa a")}</button>` : ""}</div></details>
     <button type="button" class="goal-back-button" data-action="goal-detail-to-list">${icon("arrowLeft")}<span>${L("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen")}</span></button>`;
 }
 
@@ -6536,7 +7091,7 @@ async function launchPrototype() {
   Object.assign(state, { assistantDemoPatientId: "", assistantPatientContextKey: "" });
   Object.assign(state, { healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "" });
   Object.assign(state, { patientAddedCareTeamMembers: [], careTeamAddOpen: false, careTeamMemberDraft: { displayName: "", role: "", specialty: "", practiceName: "" }, careTeamNotice: "" });
-  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "" });
+  Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], personalGoalDraft: emptyPersonalGoalDraft(), activeActionId: "", supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "" });
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
   Object.assign(state, { barrierResolutions: [], activeResolutionId: "", barrierActivity: [], barrierError: "", barrierReadinessAck: {} });
@@ -8000,7 +8555,260 @@ function bind() {
       return;
     }
     if (action === "open-my-goals") { state.screen = "MY_GOALS"; state.activeGoalId = ""; state.goalNotice = ""; draftStore.save(state); render(); return; }
-    if (action === "add-another-goal") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = "DISCOVERY"; state.screen = "GOALS"; state.error = ""; draftStore.save(state); render(); return; }
+    if (action === "add-another-goal") { state.goalFlowOrigin = "MY_GOALS"; state.goalFlowStep = "ADD"; state.screen = "GOALS"; state.error = ""; state.personalGoalDraft = emptyPersonalGoalDraft(); draftStore.save(state); render(); return; }
+    // --- Adding a goal, and adding a goal of your own -------------------------------------------
+    if (action === "add-recommended-goal") {
+      const type = el.dataset.goalType;
+      if (!GOAL_CONFIG[type] || type === "CUSTOM") return;
+      const now = new Date().toISOString();
+      const existing = (state.patientGoals || []).find(candidate => candidate.goalType === type);
+      // A goal the patient removed earlier comes back rather than being duplicated, so its history,
+      // its plan and anything the care team saw survive being reconsidered.
+      const goal = existing
+        ? Object.assign(existing, { status: "ACTIVE", updatedAt: now })
+        : createPatientGoal({ type, patientId: state.offer?.patient?.id || "", now });
+      if (!existing) state.patientGoals = [...(state.patientGoals || []), goal];
+      goalHistoryEvent(goal.id, existing ? "GOAL_REACTIVATED" : "GOAL_SELECTED", { goalType: type, goalSource: goal.goalSource, selectedBy: "PATIENT" });
+      audit(state, "patient_goal_added", "success", { goalId: goal.id, goalType: type, goalSource: goal.goalSource });
+      state.goalPlanningGoalId = goal.id;
+      state.activeGoalId = goal.id;
+      state.goalFlowStep = "PLAN_OFFER";
+      state.error = "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "create-my-own-goal") {
+      state.personalGoalDraft = emptyPersonalGoalDraft();
+      state.goalFlowStep = "PERSONAL_CAPTURE";
+      state.error = "";
+      draftStore.save(state); render(); return;
+    }
+    // A starter is an outcome we already wrote and translated, so it needs no classification: the
+    // patient picked a goal, not a task, and there is nothing to talk them out of.
+    if (action === "personal-goal-starter") {
+      const templateId = el.dataset.templateId || "";
+      const template = personalGoalTemplate(templateId);
+      if (!template) return;
+      state.personalGoalDraft = { ...emptyPersonalGoalDraft(), kind: GOAL_STATEMENT_KINDS.GOAL, templateId, title: localGoalText(template.displayName, state.language), statement: localGoalText(template.displayName, state.language), actionFrequency: "few-days" };
+      state.goalFlowStep = "PERSONAL_CONFIRM";
+      state.error = "";
+      draftStore.save(state); render(); return;
+    }
+    // The moment the product principle is enforced. Nothing is written here: what the patient said
+    // is classified, and the answer decides whether we ask one more question or offer a proposal.
+    if (action === "personal-goal-review") {
+      const statement = String(new FormData(document.querySelector("#personal-goal-form")).get("goalStatement") || "").trim().slice(0, 180);
+      if (!statement) { state.error = L("Tell us what you would like to work toward.", "Cuéntenos qué le gustaría lograr.", "Di nou sa ou ta renmen travay pou reyalize."); render(); return; }
+      const proposal = personalGoalProposal(statement);
+      if (proposal.kind === GOAL_STATEMENT_KINDS.VAGUE) {
+        // One short question, not an interrogation. The patient's words are kept so the field is
+        // not wiped underneath them.
+        state.personalGoalDraft = { ...proposal, statement };
+        state.goalFlowStep = "PERSONAL_CAPTURE";
+        state.error = "";
+        draftStore.save(state); render(); return;
+      }
+      state.personalGoalDraft = { ...proposal, statement };
+      state.goalFlowStep = "PERSONAL_CONFIRM";
+      state.error = "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "personal-goal-explain") {
+      state.personalGoalDraft = { ...(state.personalGoalDraft || emptyPersonalGoalDraft()), clarify: "", warn: false };
+      state.goalFlowStep = "PERSONAL_CAPTURE";
+      state.error = "";
+      render(); return;
+    }
+    if (action === "personal-goal-cancel") {
+      state.personalGoalDraft = emptyPersonalGoalDraft();
+      state.goalFlowStep = "ADD";
+      state.error = "";
+      render(); return;
+    }
+    if (action === "personal-goal-save") {
+      const data = new FormData(document.querySelector("#personal-goal-confirm-form"));
+      const title = String(data.get("goalTitle") || "").replace(/\s+/g, " ").trim().slice(0, 180);
+      const actionTitle = String(data.get("actionTitle") || "").replace(/\s+/g, " ").trim().slice(0, 160);
+      const frequency = String(data.get("actionFrequency") || "few-days");
+      // Validated against the patient's own active care plan goals rather than trusted: a value
+      // that no longer names one of them means no link, never a dangling one.
+      const contributesToGoalId = linkableCarePlanGoals().some(item => item.id === data.get("contributesTo")) ? String(data.get("contributesTo")) : "";
+      const draft = state.personalGoalDraft || emptyPersonalGoalDraft();
+      if (!title) { state.error = L("Your goal needs a name.", "Su meta necesita un nombre.", "Objektif ou bezwen yon non."); render(); return; }
+      // The gate. A title that still describes a routine is not saved silently: the patient is
+      // shown what a goal is, offered the outcome we would suggest, and can insist on their own
+      // words by pressing save again. They keep the authorship; the app never makes the swap alone.
+      const verdict = personalGoalProposal(title);
+      if (verdict.kind !== GOAL_STATEMENT_KINDS.GOAL && !draft.warn) {
+        state.personalGoalDraft = {
+          ...draft,
+          statement: title,
+          kind: verdict.kind,
+          title: verdict.title || title,
+          templateId: verdict.templateId || draft.templateId,
+          // What they typed becomes the step, unless they already had one they wrote themselves.
+          actionTitle: actionTitle || verdict.actionTitle || title,
+          actionFrequency: verdict.actionFrequency || frequency,
+          careTeamTopic: verdict.careTeamTopic || draft.careTeamTopic,
+          measure: verdict.measure || draft.measure,
+          // Their answer survives the warning: re-rendering the question with "on its own" selected
+          // would silently drop a link they had already made.
+          contributesToGoalId,
+          warn: true
+        };
+        state.error = "";
+        draftStore.save(state); render(); return;
+      }
+      const now = new Date().toISOString();
+      const template = personalGoalTemplate(draft.templateId);
+      const goal = createPatientGoal({
+        type: "CUSTOM",
+        // The template's own sentence is stored as the template reference, not as text, so the goal
+        // still reads correctly after the patient switches language. Their own wording is stored as
+        // text, because it is theirs and nobody translates it.
+        customTitle: template && title === localGoalText(template.displayName, state.language) ? "" : title,
+        patientId: state.offer?.patient?.id || "",
+        now,
+        personalTemplateId: draft.templateId || ""
+      });
+      goal.contributesToGoalId = contributesToGoalId;
+      if (actionTitle) {
+        addGoalAction(goal, { title: actionTitle, frequency, targetCount: frequency === "daily" ? 7 : 3, source: "PATIENT", now });
+        goal.planStatus = "COMPLETED";
+        goal.planPersonalizationStatus = "COMPLETED";
+      }
+      state.patientGoals = [...(state.patientGoals || []), goal];
+      goalHistoryEvent(goal.id, "GOAL_SELECTED", { goalType: "CUSTOM", goalSource: "PATIENT", selectedBy: "PATIENT", personalTemplateId: goal.personalTemplateId, statementKind: draft.kind || GOAL_STATEMENT_KINDS.GOAL });
+      if (goal.actions.length) goalHistoryEvent(goal.id, "ACTION_ADDED", { actionId: goal.actions[0].id, actionSource: "PATIENT" });
+      audit(state, "personal_goal_created", "success", { goalId: goal.id, personalTemplateId: goal.personalTemplateId, actionCount: goal.actions.length, statementKind: draft.kind || GOAL_STATEMENT_KINDS.GOAL, contributionDeclaredByPatient: Boolean(contributesToGoalId), clinicalTargetChanged: false });
+      state.personalGoalDraft = emptyPersonalGoalDraft();
+      state.goalFlowStep = "DISCOVERY";
+      state.screen = "MY_GOALS";
+      state.activeGoalId = goal.id;
+      state.goalDetailView = "SUMMARY";
+      state.goalNotice = L("Your goal was saved.", "Su meta quedó guardada.", "Nou sove objektif ou.");
+      draftStore.save(state); render(); return;
+    }
+
+    // --- Steps inside a goal --------------------------------------------------------------------
+    //
+    // A step is edited on its own, without reopening the whole personalization flow. Editing a step
+    // never touches the goal, and editing the goal never touches its steps: they are two records
+    // and the screens treat them as two.
+    if (action === "open-add-goal-action") { state.goalDetailView = "ADD_ACTION"; state.activeActionId = ""; state.goalActionDraftTitle = ""; state.error = ""; render(); return; }
+    if (action === "edit-goal-action") {
+      const goal = currentGoal();
+      const item = goal?.actions?.find(candidate => candidate.id === el.dataset.actionId);
+      if (!item || !goalActionIsPatientEditable(item)) return;
+      // Opening the editor by hand starts from what the step says, never from wording EMMI put
+      // there for a different request the patient has since moved on from.
+      state.goalActionDraftTitle = "";
+      state.activeActionId = item.id; state.goalDetailView = "EDIT_ACTION"; state.error = ""; render(); return;
+    }
+    if (action === "save-goal-action" || action === "update-goal-action") {
+      const goal = currentGoal(); if (!goal) return;
+      const data = new FormData(document.querySelector("#goal-action-form"));
+      const title = String(data.get("actionTitle") || "").replace(/\s+/g, " ").trim().slice(0, 160);
+      const frequency = String(data.get("actionFrequency") || "few-days");
+      if (!title) { state.error = L("Describe the step you would like to add.", "Describa el paso que quiere agregar.", "Dekri etap ou vle ajoute a."); render(); return; }
+      if (action === "save-goal-action") {
+        const created = addGoalAction(goal, { title, frequency, targetCount: frequency === "daily" ? 7 : 3, source: "PATIENT" });
+        if (!created) return;
+        goal.planStatus = "COMPLETED"; goal.planPersonalizationStatus = "COMPLETED";
+        goalHistoryEvent(goal.id, "ACTION_ADDED", { actionId: created.id, actionSource: "PATIENT" });
+        audit(state, "goal_action_added", "success", { goalId: goal.id, actionId: created.id, clinicalTargetChanged: false });
+        state.goalNotice = L("That step was added to your plan.", "Ese paso se agregó a su plan.", "Nou ajoute etap sa a nan plan ou.");
+      } else {
+        const updated = updateGoalAction(goal, state.activeActionId, { title, frequency });
+        if (!updated) { state.error = L("That step can’t be changed here.", "Ese paso no se puede cambiar aquí.", "Etap sa a pa ka chanje isit la."); render(); return; }
+        goalHistoryEvent(goal.id, "ACTION_UPDATED", { actionId: updated.id, actionSource: updated.source });
+        audit(state, "goal_action_updated", "success", { goalId: goal.id, actionId: updated.id, clinicalTargetChanged: false });
+        state.goalNotice = L("That step was updated.", "Ese paso fue actualizado.", "Nou mete etap sa a ajou.");
+      }
+      state.activeActionId = ""; state.goalActionDraftTitle = ""; state.goalDetailView = "SUMMARY"; state.error = "";
+      draftStore.save(state); render(); return;
+    }
+    if (action === "remove-goal-action") {
+      const goal = currentGoal(); if (!goal) return;
+      const removed = removeGoalAction(goal, el.dataset.actionId || state.activeActionId);
+      if (!removed) { state.error = L("That step can’t be removed here.", "Ese paso no se puede quitar aquí.", "Etap sa a pa ka retire isit la."); render(); return; }
+      goalHistoryEvent(goal.id, "ACTION_REMOVED", { actionId: removed.id, actionSource: removed.source });
+      audit(state, "goal_action_removed", "success", { goalId: goal.id, actionId: removed.id, clinicalTargetChanged: false });
+      state.activeActionId = ""; state.goalDetailView = "SUMMARY";
+      state.goalNotice = L("That step was removed. Your goal did not change.", "Ese paso fue eliminado. Su meta no cambió.", "Nou retire etap sa a. Objektif ou pa chanje.");
+      draftStore.save(state); render(); return;
+    }
+
+    // --- The goal's own wording, and removing a goal ---------------------------------------------
+    if (action === "edit-goal-contribution") {
+      if (!goalMayDeclareContribution(currentGoal())) return;
+      state.goalDetailView = "LINK_EDIT"; state.error = ""; render(); return;
+    }
+    if (action === "save-goal-contribution") {
+      const goal = currentGoal();
+      if (!goalMayDeclareContribution(goal)) return;
+      const chosen = String(new FormData(document.querySelector("#goal-contribution-form")).get("contributesTo") || "");
+      goal.contributesToGoalId = linkableCarePlanGoals().some(item => item.id === chosen) ? chosen : "";
+      goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_CONTRIBUTION_SET", { contributesToGoalId: goal.contributesToGoalId || null, declaredBy: "PATIENT" });
+      audit(state, "personal_goal_contribution_set", "success", { goalId: goal.id, linked: Boolean(goal.contributesToGoalId), clinicalTargetChanged: false });
+      state.goalDetailView = "SUMMARY"; state.error = "";
+      // Nothing about the plan goal changed, and the notice says so rather than letting the patient
+      // wonder whether they just altered their care.
+      state.goalNotice = goal.contributesToGoalId
+        ? L("Saved. Your care plan goal did not change.", "Guardado. Su meta del plan de cuidado no cambió.", "Sove. Objektif plan swen ou pa chanje.")
+        : L("Saved. This goal now stands on its own.", "Guardado. Esta meta ahora es independiente.", "Sove. Objektif sa a poukont li kounye a.");
+      draftStore.save(state); render(); return;
+    }
+    if (action === "edit-goal-title") {
+      const goal = currentGoal();
+      if (!patientMayEditGoalWording(goal)) return;
+      state.goalTitleWarned = false; state.goalTitleDraft = "";
+      state.goalDetailView = "EDIT_TITLE"; state.error = ""; render(); return;
+    }
+    if (action === "save-goal-title") {
+      const goal = currentGoal();
+      if (!patientMayEditGoalWording(goal)) return;
+      const title = String(new FormData(document.querySelector("#goal-title-form")).get("goalTitle") || "").replace(/\s+/g, " ").trim().slice(0, 180);
+      if (!title) { state.error = L("Your goal needs a name.", "Su meta necesita un nombre.", "Objektif ou bezwen yon non."); render(); return; }
+      // Same gate as creating one, for the same reason: a rename is another way to end up with a
+      // schedule sitting where an outcome should be.
+      //
+      // The typed wording is held in state across the warning. Re-rendering the field from the goal
+      // would put the OLD title back under the patient's hands, so pressing save again would have
+      // saved a sentence they had already replaced — and the escape hatch would never have worked.
+      const verdict = personalGoalProposal(title);
+      if (verdict.kind !== GOAL_STATEMENT_KINDS.GOAL && !state.goalTitleWarned) {
+        state.goalTitleWarned = true;
+        state.goalTitleDraft = title;
+        state.error = verdict.title
+          ? L(`That describes something you would do. A goal describes what you want to reach — for example “${verdict.title}”. Save again to keep your own words.`, `Eso describe algo que usted haría. Una meta describe lo que quiere conseguir; por ejemplo «${verdict.title}». Guarde otra vez para conservar sus palabras.`, `Sa dekri yon bagay ou ta fè. Yon objektif dekri sa ou vle rive — pa egzanp « ${verdict.title} ». Sove ankò pou kenbe pwòp mo pa ou.`)
+          : L("That describes something you would do. A goal describes what you want to reach. Save again to keep your own words.", "Eso describe algo que usted haría. Una meta describe lo que quiere conseguir. Guarde otra vez para conservar sus palabras.", "Sa dekri yon bagay ou ta fè. Yon objektif dekri sa ou vle rive. Sove ankò pou kenbe pwòp mo pa ou.");
+        render(); return;
+      }
+      goal.customTitle = title;
+      goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_TITLE_UPDATED", { goalSource: goal.goalSource });
+      audit(state, "personal_goal_renamed", "success", { goalId: goal.id, clinicalTargetChanged: false });
+      state.goalTitleWarned = false;
+      state.goalTitleDraft = "";
+      state.goalDetailView = "SUMMARY"; state.error = "";
+      // The steps are untouched on purpose: renaming what you are working toward is not the same
+      // as changing what you are doing about it.
+      state.goalNotice = L("Your goal was updated. Your steps did not change.", "Su meta fue actualizada. Sus pasos no cambiaron.", "Nou mete objektif ou ajou. Etap ou yo pa chanje.");
+      draftStore.save(state); render(); return;
+    }
+    if (action === "delete-goal") {
+      if (!patientMayDeleteGoal(currentGoal())) return;
+      state.goalDetailView = "DELETE_CONFIRM"; state.error = ""; render(); return;
+    }
+    if (action === "confirm-delete-goal") {
+      const goal = currentGoal();
+      if (!patientMayDeleteGoal(goal)) return;
+      goal.status = "REMOVED";
+      goal.updatedAt = goalHistoryEvent(goal.id, "GOAL_REMOVED", { goalSource: goal.goalSource, removedBy: "PATIENT" });
+      audit(state, "personal_goal_removed", "success", { goalId: goal.id, clinicalTargetChanged: false });
+      state.activeGoalId = ""; state.goalDetailView = "SUMMARY";
+      state.goalNotice = L("Your goal was removed.", "Su meta fue eliminada.", "Nou retire objektif ou.");
+      draftStore.save(state); render(); return;
+    }
     if (action === "view-goal") {
       const goal = patientGoalById(el.dataset.goalId);
       if (!goal) return;
@@ -8049,7 +8857,12 @@ function bind() {
       draftStore.save(state); render(); return;
     }
     if (action === "goals-flow-back") {
-      state.goalFlowStep = ({ PRIORITY: "DISCOVERY", PLAN_OFFER: activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY", PLAN_ACTIONS: "PLAN_OFFER", PLAN_REVIEW: "PLAN_ACTIONS" })[state.goalFlowStep] || "DISCOVERY";
+      // "Back" from the first step of adding a goal leaves the flow rather than dropping the
+      // patient into goal discovery, which is a different question they were never asked.
+      if (state.goalFlowStep === "ADD" && state.goalFlowOrigin === "MY_GOALS") {
+        state.goalFlowStep = "DISCOVERY"; state.screen = "MY_GOALS"; state.personalGoalDraft = emptyPersonalGoalDraft(); state.error = ""; render(); return;
+      }
+      state.goalFlowStep = ({ PRIORITY: "DISCOVERY", PLAN_OFFER: activePatientGoals().length > 1 ? "PRIORITY" : "DISCOVERY", PLAN_ACTIONS: "PLAN_OFFER", PLAN_REVIEW: "PLAN_ACTIONS", PERSONAL_CAPTURE: "ADD", PERSONAL_CONFIRM: "PERSONAL_CAPTURE" })[state.goalFlowStep] || "DISCOVERY";
       state.error = ""; render(); return;
     }
     if (action === "goal-plan-now" || action === "plan-active-goal") {
@@ -8057,7 +8870,7 @@ function bind() {
       if (!goal) return;
       state.goalFlowOrigin = action === "plan-active-goal" ? "MY_GOALS" : state.goalFlowOrigin;
       state.goalPlanningGoalId = goal.id;
-      state.goalPlanDraft = { actionIds: (goal.actions || []).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: (goal.actions || []).find(item => item.source === "PATIENT")?.title || "", frequency: (goal.actions || [])[0]?.frequency || "few-days", remindersEnabled: (goal.actions || []).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
+      state.goalPlanDraft = { actionIds: activeGoalActions(goal).filter(item => item.source !== "PATIENT").map(item => item.templateId).filter(Boolean), customAction: activeGoalActions(goal).find(item => item.source === "PATIENT")?.title || "", frequency: activeGoalActions(goal)[0]?.frequency || "few-days", remindersEnabled: activeGoalActions(goal).some(item => item.remindersEnabled), whyItMatters: goal.whyItMatters || "" };
       state.goalFlowStep = "PLAN_ACTIONS";
       state.screen = "GOALS";
       draftStore.save(state); render(); return;
@@ -8087,11 +8900,43 @@ function bind() {
       const goal = patientGoalById(state.goalPlanningGoalId);
       if (!goal) return;
       const now = new Date().toISOString();
-      const suggestions = suggestedActionsFor(goal.goalType);
+      const suggestions = suggestedActionsForGoal(goal);
       const targetFor = (template, frequency) => frequency === "daily" ? 7 : frequency === "few-days" || frequency === "choose-days" ? (template.defaultTarget || 3) : template.defaultTarget || null;
-      const suggested = suggestions.filter(item => state.goalPlanDraft.actionIds.includes(item.id)).map(item => ({ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: item.id, title: localGoalText(item.title, state.language), actionType: item.frequency ? "RECURRING" : "ONE_TIME", source: "CARE_PLAN", verificationMethod: resolveGoalActionVerification({ templateId: item.id }), frequency: item.frequency ? state.goalPlanDraft.frequency : "", targetCount: item.frequency ? targetFor(item, state.goalPlanDraft.frequency) : null, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }));
-      const custom = state.goalPlanDraft.customAction ? [{ id: `goal_action_${Math.random().toString(36).slice(2)}`, goalId: goal.id, templateId: "", title: state.goalPlanDraft.customAction, actionType: "RECURRING", source: "PATIENT", verificationMethod: "PATIENT_REPORT", frequency: state.goalPlanDraft.frequency, targetCount: state.goalPlanDraft.frequency === "daily" ? 7 : 3, schedule: null, remindersEnabled: state.goalPlanDraft.remindersEnabled, status: "ACTIVE", completionHistory: [], createdAt: now, updatedAt: now }] : [];
-      goal.actions = [...suggested, ...custom]; goal.whyItMatters = state.goalPlanDraft.whyItMatters; goal.planStatus = "COMPLETED"; goal.planPersonalizationStatus = "COMPLETED"; goal.updatedAt = now;
+      const existingActions = goal.actions || [];
+      const draft = state.goalPlanDraft;
+      // A step that survives a plan edit keeps its id and its completion history. Rebuilding every
+      // action from scratch on each save — which is what this used to do — quietly threw away the
+      // record of what the patient had actually done, so a plan they adjusted on Friday reported
+      // that they had done nothing all week.
+      const suggested = suggestions.filter(item => draft.actionIds.includes(item.id)).map(item => {
+        const prior = existingActions.find(candidate => candidate.templateId === item.id);
+        const base = prior || createGoalAction({ goalId: goal.id, templateId: item.id, title: localGoalText(item.title, state.language), source: "CARE_PLAN", verificationMethod: resolveGoalActionVerification({ templateId: item.id }), now });
+        return Object.assign(base, {
+          title: localGoalText(item.title, state.language),
+          actionType: item.frequency ? "RECURRING" : "ONE_TIME",
+          frequency: item.frequency ? draft.frequency : "",
+          targetCount: item.frequency ? targetFor(item, draft.frequency) : null,
+          remindersEnabled: draft.remindersEnabled,
+          status: "ACTIVE",
+          updatedAt: now
+        });
+      });
+      // The builder offers one free-text box; Goal Detail lets the patient add as many steps as
+      // they like. Everything they wrote survives a trip through the builder, or adjusting the plan
+      // would silently delete the steps they cared about most.
+      const priorPatientActions = existingActions.filter(item => item.source === "PATIENT" && item.status !== "REMOVED");
+      const custom = draft.customAction
+        ? [Object.assign(priorPatientActions[0] || createGoalAction({ goalId: goal.id, title: draft.customAction, source: "PATIENT", now }), {
+            title: draft.customAction, actionType: "RECURRING", frequency: draft.frequency,
+            targetCount: draft.frequency === "daily" ? 7 : 3, remindersEnabled: draft.remindersEnabled, status: "ACTIVE", updatedAt: now
+          })]
+        : [];
+      const keptPatientActions = priorPatientActions.filter(item => !custom.includes(item));
+      const nextActions = [...suggested, ...custom, ...keptPatientActions];
+      // A step the patient unchecked is marked removed rather than deleted: its completion history
+      // is evidence of what they did, and dropping the row would drop that with it.
+      const dropped = existingActions.filter(item => !nextActions.includes(item)).map(item => Object.assign(item, { status: "REMOVED", updatedAt: now }));
+      goal.actions = [...nextActions, ...dropped]; goal.whyItMatters = draft.whyItMatters; goal.planStatus = "COMPLETED"; goal.planPersonalizationStatus = "COMPLETED"; goal.updatedAt = now;
       state.goalPlanStatus = "COMPLETED"; state.goalsStatus = "COMPLETED"; state.baselineResumeScreen = "ONBOARDING";
       goalHistoryEvent(goal.id, "PLAN_PERSONALIZATION_SAVED", { actionCount: goal.actions.length, remindersEnabled: state.goalPlanDraft.remindersEnabled, clinicalTargetChanged: false });
       audit(state, "patient_goal_plan_saved", "success", { goalId: goal.id, actionCount: goal.actions.length, clinicalTargetChanged: false, monitoringRuleChanged: false });
@@ -8944,7 +9789,12 @@ function bind() {
       await planNextBarrierHelp(barrier);
       return;
     }
-    if (action === "barrier-follow-up-response") {
+    // Named "goal-" first for a reason that cost three tests and a broken flow: appointment barrier
+    // resolution owns every action starting with "barrier-", and its block sits earlier in this
+    // chain. "barrier-follow-up-response" matched that prefix, found no appointment resolution, and
+    // returned — so a patient who said the help had not worked pressed a button that did nothing,
+    // silently, forever. The namespace was the bug; the name is the fix.
+    if (action === "goal-barrier-follow-up-response") {
       const barrier = activeBarrier(); if (!barrier) return;
       const outcome = el.dataset.outcome || RESOLUTION_OUTCOMES.PARTIALLY_HELPED;
       const updated = recordInterventionOutcome(barrier, { outcome });
@@ -9906,6 +10756,11 @@ async function boot() {
         clinicalTargetId: goal.clinicalTargetId || null,
         patientCanEditClinicalTarget: false,
         careTeamReviewStatus: goal.careTeamReviewStatus || (goal.goalType === "CUSTOM" ? "PENDING" : "NOT_REQUIRED"),
+        personalTemplateId: goal.personalTemplateId || "",
+        contributesToGoalId: goal.contributesToGoalId || "",
+        // A goal saved before categories were persisted comes back without one. Deriving it here
+        // rather than defaulting to GENERIC is what keeps a restored goal drawing its own icon.
+        goalCategory: goal.goalCategory || goalCategoryOf(goal),
         actions: Array.isArray(goal.actions) ? goal.actions.map(action => ({ ...action, verificationMethod: resolveGoalActionVerification(action), completionHistory: Array.isArray(action.completionHistory) ? action.completionHistory : [] })) : [],
         educationHistory: Array.isArray(goal.educationHistory) ? goal.educationHistory : [],
         progress: Array.isArray(goal.progress) ? goal.progress : [],
@@ -9920,6 +10775,10 @@ async function boot() {
         reviews: Array.isArray(goal.reviews) ? goal.reviews : []
       }));
       if (state.offer?.pathway === "ACCESS") syncAccessGoalsStatus();
+      state.personalGoalDraft = state.personalGoalDraft && typeof state.personalGoalDraft === "object"
+        ? { ...emptyPersonalGoalDraft(), ...state.personalGoalDraft }
+        : emptyPersonalGoalDraft();
+      state.activeActionId = typeof state.activeActionId === "string" ? state.activeActionId : "";
       state.goalFlowStep ||= "DISCOVERY";
       state.goalFlowOrigin ||= "ONBOARDING";
       state.goalPlanDraft = state.goalPlanDraft && typeof state.goalPlanDraft === "object" ? { actionIds: Array.isArray(state.goalPlanDraft.actionIds) ? state.goalPlanDraft.actionIds : [], customAction: state.goalPlanDraft.customAction || "", frequency: state.goalPlanDraft.frequency || "few-days", remindersEnabled: Boolean(state.goalPlanDraft.remindersEnabled), whyItMatters: state.goalPlanDraft.whyItMatters || "" } : { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" };

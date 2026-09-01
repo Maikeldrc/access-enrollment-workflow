@@ -9,5 +9,5 @@ const defaults = {
 };
 
 export const EMMI_CONFIG = Object.freeze({ ...defaults, ...(typeof __EMMI_PUBLIC_CONFIG__ === "object" ? __EMMI_PUBLIC_CONFIG__ : {}) });
-export const EMMI_SYSTEM_PROMPT_VERSION = "emmi-prototype-2026-08-v4";
+export const EMMI_SYSTEM_PROMPT_VERSION = "emmi-prototype-2026-09-v5";
 export const emmiPrototypeIsSafe = () => EMMI_CONFIG.prototypeMode && !EMMI_CONFIG.allowRealPatientData;

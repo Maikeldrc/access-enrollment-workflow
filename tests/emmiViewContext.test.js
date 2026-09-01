@@ -60,7 +60,9 @@ describe("the view contract", () => {
     expect(view.task.length).toBeLessThanOrEqual(320);
     expect(view.options.length).toBeLessThanOrEqual(10);
     expect(view.facts.length).toBeLessThanOrEqual(12);
-    expect(view.actions.length).toBeLessThanOrEqual(12);
+    // Raised from 12 with the goal-detail controls: the cap has to sit above the busiest screen
+    // the product really has, or the description stops being the whole of what is on it.
+    expect(view.actions.length).toBeLessThanOrEqual(16);
     expect(view.version).toBe(EMMI_VIEW_CONTEXT_VERSION);
   });
 
