@@ -354,7 +354,12 @@ test("the pre-visit check routes a transportation answer into a barrier category
   await openAppointments(page, { appointments: [appointment()], patientGoals: [bpGoal()] });
   await page.locator('[data-action="appointment-open"]').first().click();
   await dispatchVia(page, '[data-action="appointment-open-prep"]', "appointment-barrier-answer", { appointmentId: "appt-1", barrierReason: "TRANSPORTATION" });
-  await expect(page.locator(".appointment-detail-screen")).toBeVisible();
+  // The answer used to land back on the appointment. It now opens the transportation resolution,
+  // because reporting a difficulty is no longer the end state (src/barrierResolution.js) — what
+  // this test guards is unchanged underneath it: the barrier is still recorded in the taxonomy that
+  // already exists, and the appointment itself is still untouched.
+  await expect(page.locator(".barrier-screen")).toBeVisible();
+  await expect(page.locator('[data-action="barrier-accept"]')).toBeVisible();
 
   const stored = await draft(page);
   const barrier = stored.patientGoals[0].barriers.at(-1);
@@ -372,6 +377,8 @@ test("saying nothing is wrong at the pre-visit check records no difficulty", asy
   await dispatchVia(page, '[data-action="appointment-open-prep"]', "appointment-barrier-answer", { appointmentId: "appt-1", barrierReason: "ALL_SET" });
 
   expect((await draft(page)).patientGoals[0].barriers).toHaveLength(0);
+  // §8: nothing is started either. "I am all set" gets one sentence back, not a flow.
+  expect((await draft(page)).barrierResolutions).toHaveLength(0);
 });
 
 test("the pre-visit check has an entry point a patient can reach", async ({ page }) => {

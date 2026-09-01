@@ -229,6 +229,18 @@ const formatWhen = (value, timezone, locale) => {
   return `${formatShortDate(parts, locale)} · ${formatTime(parts, locale)}`;
 };
 
+// The four formatters the barrier resolution screens need. They are exported rather than copied
+// because a ride card saying "2:00 PM" while the appointment card above it says "2:00 p. m." is the
+// kind of seam that tells a patient two different systems are talking to them.
+export const appointmentWallClock = (value, timezone) => wallClock(value, timezone);
+export const formatAppointmentTime = (value, timezone, locale = "en") => formatTime(wallClock(value, timezone), locale);
+export const formatAppointmentLongDate = (value, timezone, locale = "en") => formatLongDate(wallClock(value, timezone), locale);
+export const formatAppointmentWhen = (value, timezone, locale = "en") => formatWhen(value, timezone, locale);
+
+// A sentence whose last word is a formatted time can end in two full stops, because "p. m." is
+// spelled with one. Collapsing here keeps the abbreviation correct and the sentence correct.
+export const endSentence = value => String(value ?? "").replace(/\.\.+$/, ".");
+
 const dayNumber = parts => (parts ? parts.year * 10000 + parts.month * 100 + parts.day : null);
 // "today" / "tomorrow" / the date itself. Compared in the appointment's own zone.
 const relativeDay = (value, timezone, now, locale) => {
@@ -577,6 +589,7 @@ export function appointmentDetailView(props = {}) {
         ${viewListButton(props, appointment.id)}
       </section>
       ${capabilityNote}
+      ${props.readinessPanel || ""}
       <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
       ${askEmmiButton(props, appointment.id)}
       ${backButton(props)}
@@ -593,6 +606,7 @@ export function appointmentDetailView(props = {}) {
       <p class="appointment-note">${glyph("info")}<span>${t("This is a request, not a scheduled visit. We’ll let you know when the office confirms a time.", "Esta es una solicitud, no una visita programada. Le avisaremos cuando la oficina confirme una hora.", "Sa a se yon demann, se pa yon vizit ki pwograme. N ap fè w konnen lè biwo a konfime yon lè.")}</span></p>
     </section>
     ${capabilityNote}
+    ${props.readinessPanel || ""}
     ${appointment.status === "COLLECTING_PREFERENCES" || appointment.status === "DRAFT" || appointment.status === "NEED_IDENTIFIED"
       ? `<button type="button" class="appointment-action primary" data-action="appointment-change-preferences" data-appointment-id="${esc(appointment.id)}">${glyph("arrowRight")}<span>${t("Finish this request", "Terminar esta solicitud", "Fini demann sa a")}</span></button>`
       : ""}
@@ -813,8 +827,9 @@ export function appointmentBarrierCheckView(props = {}) {
   const when = relativeDay(appointment.scheduledAt, appointment.timezone, props.now, locale);
   const time = formatTime(parts, locale);
   const provider = appointment.providerDisplayName || t("your care team", "su equipo de cuidado", "ekip swen ou");
+  // "2:45 p. m." already ends in a full stop in Spanish, so the sentence must not add a second one.
   const lead = when && time
-    ? t(`Your appointment with ${provider} is ${when} at ${time}.`, `Su cita con ${provider} es ${when} a las ${time}.`, `Randevou ou ak ${provider} se ${when} a ${time}.`)
+    ? endSentence(t(`Your appointment with ${provider} is ${when} at ${time}.`, `Su cita con ${provider} es ${when} a las ${time}.`, `Randevou ou ak ${provider} se ${when} a ${time}.`))
     : "";
   // Icons for the reason keys src/appointmentSupport.js owns. When the lead passes
   // `preVisitCheck` (preVisitCheckOptions), its question and labels win — this list is the
@@ -834,9 +849,18 @@ export function appointmentBarrierCheckView(props = {}) {
       ["OTHER", "question", t("Something else", "Otra cosa", "Yon lòt bagay")]
     ];
   const question = props.preVisitCheck?.question || t("Anything making it difficult to attend?", "¿Algo que dificulte asistir?", "Èske gen yon bagay ki fè l difisil pou w ale?");
+  // §10: a difficulty EMMI is already working on says so, on its own option, in one short line.
+  // `barrierStates` is a { reasonKey: { tone, icon, label } } map from the resolution engine; a
+  // reason with nothing under way renders exactly as it did before.
+  const states = props.barrierStates && typeof props.barrierStates === "object" ? props.barrierStates : {};
+  const stateLine = reason => {
+    const status = states[reason];
+    if (!status?.label) return "";
+    return `<span class="barrier-choice-state" data-tone="${esc(status.tone || "WAITING")}">${glyph(status.icon || "clock")}<span>${esc(status.label)}</span></span>`;
+  };
   return `<div class="appointment-screen appointment-barrier-screen">
     ${screenTitle(props, question, lead, t("Appointment", "Cita", "Randevou"))}
-    <div class="appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}">${glyph(name)}<span>${esc(label)}</span></button>`).join("")}</div>
+    <div class="appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}"${states[reason]?.label ? ` data-barrier-state="${esc(states[reason].tone || "WAITING")}"` : ""}>${glyph(name)}<span class="barrier-choice-label"><span>${esc(label)}</span>${stateLine(reason)}</span></button>`).join("")}</div>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;

@@ -231,3 +231,11 @@
   .appointment-card[data-kind="request"],.appointment-request-panel { border-left-width:0.25rem; }
   .appointment-status,.appointment-note { forced-color-adjust:auto; }
 }
+
+/* The free-text box the pre-visit "Something else" answer uses. Same shape as the input above:
+   a patient typing a sentence and a patient typing a topic are looking at the same field. */
+.appointment-field textarea { width:100%; min-height:6.5rem; padding:0.75rem 0.875rem; border:1px solid var(--border-strong); border-radius:0.75rem; color:var(--text-primary); background:var(--surface-primary); font:inherit; font-size:1.1875rem; font-weight:400; line-height:1.45; resize:vertical; }
+.appointment-field textarea:focus-visible { outline:0.1875rem solid var(--primary-500); outline-offset:0.125rem; }
+
+/* A choice can now carry a second line saying what is already under way on it, so it wraps. */
+.appointment-choice { flex-wrap:wrap; }
