@@ -688,6 +688,13 @@ export class EmmiLiveClient {
   // text turn sent that way is accepted silently and never produces a spoken reply.
   sendText(text, metadata = {}) {
     if (!this.session) return false;
+    const patientInitiated = ["PATIENT_RESPONSE", "CRITICAL_SAFETY"].includes(metadata.priority);
+    if (patientInitiated && this.activeTurn) {
+      // A typed question is allowed while voice guidance is playing. Treat it as the same floor
+      // transfer as spoken barge-in before allocating the new generation; otherwise late guidance
+      // audio/transcript fragments are mislabeled as the answer and can cut off its first words.
+      this.handlePatientSpeechStart({ source: "text_input", detectedAt: performance.now() }, { providerConfirmed: true });
+    }
     const generationId = ++this.generationSequence;
     const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false };
     if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;

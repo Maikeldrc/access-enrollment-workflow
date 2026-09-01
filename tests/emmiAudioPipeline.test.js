@@ -336,6 +336,37 @@ describe("EMMI audio pipeline", () => {
     vi.useRealTimers();
   });
 
+  it("gives a typed patient question a clean generation while voice guidance is speaking", () => {
+    const bargeIns = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES", currentScreen: "WHO" }),
+      onBargeIn: details => bargeIns.push(details)
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.activeContextVersion = 4;
+    client.activeAudioGenerationId = 15;
+    client.activeTurn = { id: "screen-guide", generationId: 15, contextVersion: 4, priority: "SCREEN_GUIDANCE" };
+    client.state = "EMMI_SPEAKING";
+    client.stopPlayback = vi.fn();
+
+    expect(client.sendText("Tengo una duda", {
+      id: "patient-question",
+      contextVersion: 4,
+      priority: "PATIENT_RESPONSE"
+    })).toBe(true);
+
+    expect(client.interruptedGenerationIds.has(15)).toBe(true);
+    expect(client.stopPlayback).toHaveBeenCalledWith({ fadeMs: 40 });
+    expect(bargeIns).toHaveLength(1);
+    expect(bargeIns[0]).toEqual(expect.objectContaining({ source: "text_input", previousGenerationId: 15 }));
+    expect(client.activeTurn).toEqual(expect.objectContaining({
+      id: "patient-question",
+      priority: "PATIENT_RESPONSE"
+    }));
+    expect(client.activeTurn.generationId).not.toBe(15);
+    expect(client.awaitingPatientResponse).toBe(false);
+  });
+
   it("asks for clarification when ASR reports an unexpected language", async () => {
     const telemetry = [];
     const client = new EmmiLiveClient({

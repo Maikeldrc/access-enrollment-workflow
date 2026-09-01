@@ -1406,10 +1406,16 @@ function ensureEmmiRuntime() {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       const last = state.assistantMessages.at(-1);
-      const sameVoiceTurn = last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
-        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId);
+      // Screen narration is intentionally split into short provider turns so navigation can yield
+      // at a safe boundary. It is still one logical message to the patient, so keep all segments
+      // with the same narration id in one transcript bubble even after an individual segment has
+      // drained. Patient answers continue to group strictly by generation.
+      const sameNarration = guidance && metadata.narrationId && last?.guidance && !last.interrupted
+        && last.narrationId === metadata.narrationId;
+      const sameVoiceTurn = sameNarration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId));
       if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
-      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0 });
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0, narrationId: metadata.narrationId || "" });
       // Screen narration is visible context, not a patient/assistant exchange. Keeping it out of
       // model memory prevents a medication prompt from resurfacing on goals or completion screens.
       if (!guidance) emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
