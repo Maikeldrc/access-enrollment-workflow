@@ -228,6 +228,90 @@ describe("EMMI audio pipeline", () => {
     vi.useRealTimers();
   });
 
+  it("processes a same-message interruption before its patient transcript", async () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata })
+    });
+    client.activeContextVersion = 2;
+    client.activeAudioGenerationId = 7;
+    client.activeTurn = { id: "welcome", generationId: 7, contextVersion: 2, priority: "SCREEN_GUIDANCE" };
+    client.state = "EMMI_SPEAKING";
+
+    await client.handleMessage({ serverContent: {
+      interrupted: true,
+      inputTranscription: { text: "¿ACCESS reemplaza a mi médico?" }
+    } });
+
+    expect(client.interruptedGenerationIds.has(7)).toBe(true);
+    expect(client.activeTurn).toEqual(expect.objectContaining({
+      priority: "PATIENT_RESPONSE",
+      responseToInterruption: true
+    }));
+    expect(client.activeTurn.generationId).not.toBe(7);
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(client.state).toBe("EMMI_THINKING");
+    expect(transcripts).toEqual([expect.objectContaining({
+      role: "user",
+      text: "¿ACCESS reemplaza a mi médico?",
+      metadata: expect.objectContaining({ generationId: client.activeTurn.generationId })
+    })]);
+  });
+
+  it("keeps a transcript-first barge-in when the provider interruption event arrives later", async () => {
+    const transcripts = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.activeContextVersion = 3;
+    client.activeAudioGenerationId = 11;
+    client.activeTurn = { id: "welcome", generationId: 11, contextVersion: 3, priority: "SCREEN_GUIDANCE" };
+    client.state = "EMMI_SPEAKING";
+
+    await client.handleMessage({ serverContent: {
+      inputTranscription: { text: "Espere, tengo una duda." }
+    } });
+    const responseGenerationId = client.activeTurn.generationId;
+    await client.handleMessage({ serverContent: { interrupted: true } });
+
+    expect(client.interruptedGenerationIds.has(11)).toBe(true);
+    expect(client.activeTurn).toEqual(expect.objectContaining({
+      generationId: responseGenerationId,
+      priority: "PATIENT_RESPONSE",
+      responseToInterruption: true
+    }));
+    expect(transcripts).toHaveLength(1);
+    expect(telemetry).toContain("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED");
+  });
+
+  it("tracks ordinary speech while listening and recovers if ASR returns no transcript", () => {
+    vi.useFakeTimers();
+    const states = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "ES" }),
+      onState: (state, detail) => states.push({ state, detail }),
+      onVoiceTelemetry: type => telemetry.push(type),
+      transcriptWaitTimeoutMs: 50
+    });
+    client.state = "LISTENING";
+
+    expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: 10 })).toBe(false);
+    expect(client.awaitingPatientResponse).toBe(true);
+    expect(states.at(-1).state).toBe("USER_SPEAKING");
+    client.handlePatientSpeechEnd({ source: "local_vad", durationMs: 700 });
+    vi.advanceTimersByTime(50);
+
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(states.at(-1)).toEqual({ state: "LISTENING", detail: "transcript_not_received" });
+    expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
+    vi.useRealTimers();
+  });
+
   it("turns a stalled provider turn into a recoverable timeout instead of permanent Thinking", () => {
     vi.useFakeTimers();
     const errors = [];

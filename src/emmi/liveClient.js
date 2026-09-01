@@ -306,11 +306,13 @@ export class EmmiLiveClient {
       sumOfSquares += value * value;
       peak = Math.max(peak, Math.abs(value));
     }
-    // Local VAD exists only to stop audio that is already audible a little faster than the
-    // provider can. Treating an active request that is still THINKING as audible caused ambient
-    // microphone energy to cancel the welcome before its first PCM chunk arrived.
+    // Keep local speech state active while EMMI is listening too. Besides making the visible
+    // state truthful, this gives us a bounded recovery path when the provider misses a transcript.
+    // A turn that is only THINKING is still excluded from interruption detection below, so ambient
+    // energy cannot cancel a welcome before its first PCM chunk arrives.
     const audibleOutputActive = this.sources.size > 0 || this.state === "EMMI_SPEAKING";
-    if (audibleOutputActive || this.bargeIn.speechActive) {
+    const patientFloorActive = !this.activeTurn && ["LISTENING", "USER_SPEAKING"].includes(this.state);
+    if (audibleOutputActive || patientFloorActive || this.bargeIn.speechActive) {
       this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
     }
     const data = pcm16(resample(samples, this.inputContext.sampleRate, EMMI_PROVIDER_SAMPLE_RATE));
@@ -362,7 +364,30 @@ export class EmmiLiveClient {
       if (this.sessionResumptionHandle && !this.goAwayReconnectScheduled) { this.goAwayReconnectScheduled = true; this.scheduleReconnect("go_away", { proactive: true }); }
     }
     const server = message.serverContent;
+    // Gemini can put `interrupted` and the patient's input transcription in the same server
+    // message. The interruption must be applied first. Otherwise the transcript inherits the
+    // canceled assistant generation, and the subsequent interruption clears it before a response
+    // can start — the exact "EMMI stopped but ignored my question" failure seen in production.
+    const interruptionAlreadyApplied = Boolean(
+      this.currentInterruption && this.patientResponseReady && this.activeTurn?.priority === "PATIENT_RESPONSE"
+    );
+    if (server?.interrupted && !interruptionAlreadyApplied) {
+      const details = this.bargeIn.confirmProviderInterruption();
+      this.handlePatientSpeechStart(details, { providerConfirmed: true });
+    } else if (server?.interrupted) {
+      this.emitVoiceTelemetry("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED", {
+        activeGenerationId: this.activeTurn?.generationId || 0
+      });
+    }
     if (server?.inputTranscription?.text) {
+      // Some provider sequences deliver the transcript one message before the explicit
+      // interruption event. A first patient transcript while an assistant turn is still active is
+      // itself authoritative evidence that the patient has the floor. Apply the interruption now;
+      // `patientResponseReady` prevents later transcript fragments from canceling the new turn.
+      if (this.activeTurn && !this.patientResponseReady) {
+        const details = this.bargeIn.confirmProviderInterruption();
+        this.handlePatientSpeechStart(details, { providerConfirmed: true });
+      }
       const assessment = assessEmmiTranscriptReliability(server.inputTranscription.text, { locale: this.getContext?.()?.locale });
       const inputText = assessment.text;
       if (!inputText) {
@@ -370,7 +395,7 @@ export class EmmiLiveClient {
       } else {
         this.clearPatientTranscriptWatchdog();
         if (!this.activeTurn) {
-          const responseToInterruption = this.awaitingPatientResponse;
+          const responseToInterruption = Boolean(this.currentInterruption);
           this.activeAudioGenerationId = ++this.generationSequence;
           this.activeTurn = {
             id: `patient_response_${Date.now().toString(36)}`,
@@ -417,10 +442,6 @@ export class EmmiLiveClient {
       }
     } else if (server?.outputTranscription?.text) {
       this.emitVoiceTelemetry("EMMI_STALE_TRANSCRIPT_DISCARDED", { generationId: this.activeAudioGenerationId });
-    }
-    if (server?.interrupted) {
-      const details = this.bargeIn.confirmProviderInterruption();
-      this.handlePatientSpeechStart(details, { providerConfirmed: true });
     }
     const parts = server?.modelTurn?.parts || [];
     const audioParts = parts.filter(part => part.inlineData?.data && part.inlineData?.mimeType?.startsWith("audio/pcm"));
@@ -579,7 +600,9 @@ export class EmmiLiveClient {
     };
     this.activeTurn = null;
     this.activeAudioGenerationId = 0;
-    this.awaitingPatientResponse = outputWasActive;
+    // Track every detected patient utterance, not only barge-ins. This prevents a provider-side
+    // ASR miss from leaving the interface looking active while no response can ever arrive.
+    this.awaitingPatientResponse = true;
     this.patientResponseReady = false;
     const stoppedAt = performance.now();
     const fadeMs = audibleOutputWasActive ? 40 : 0;
