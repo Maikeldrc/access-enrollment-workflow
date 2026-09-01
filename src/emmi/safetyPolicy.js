@@ -99,4 +99,12 @@ export const createSafetyEpisode = ({ source = "conversation", now = Date.now() 
 export const safetyEpisodeIsActive = (episode, now = Date.now()) =>
   Boolean(episode?.active) && now - Number(episode.startedAt || 0) < SAFETY_EPISODE_MAX_AGE_MS;
 
-export const safetyResponseFor = ({ locale = "EN", episode, question = "", medication = false } = {}) => { const key = medication ? "MEDICATION" : FOLLOW_UP.test(fold(question)) ? "FOLLOW_UP" : "EMERGENCY"; return medication || episode?.active ? { text: COPY[key][String(locale).toUpperCase()] || COPY[key].EN, emergency: !medication, priority: "CRITICAL_SAFETY", deterministic: true } : null; };
+// The episode carries a visible way out. Resolution has always existed, but only for a patient who
+// happened to type the words the resolution patterns match — so someone who mentioned chest pain
+// once and then went quiet about it had every later question answered with "call 911" until the
+// four hours ran out, with nothing on screen suggesting that could end.
+//
+// The button reports the handoff — help is with them — rather than "I feel better". A patient who
+// has recovered can still say so in their own words, and that path is unchanged. Making it a
+// one-tap dismissal of an emergency instruction is the one thing this must not become.
+export const safetyResponseFor = ({ locale = "EN", episode, question = "", medication = false } = {}) => { const key = medication ? "MEDICATION" : FOLLOW_UP.test(fold(question)) ? "FOLLOW_UP" : "EMERGENCY"; return medication || episode?.active ? { text: COPY[key][String(locale).toUpperCase()] || COPY[key].EN, emergency: !medication, priority: "CRITICAL_SAFETY", deterministic: true, ...(medication ? {} : { quickAction: "safety-resolved" }) } : null; };
