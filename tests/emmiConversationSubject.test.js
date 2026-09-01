@@ -105,3 +105,38 @@ describe("merging the halves of a compound answer", () => {
     expect(mergeCompoundAnswers(["First answer.", "Second answer."])).toBe("First answer.\n\nSecond answer.");
   });
 });
+
+// "Is this a scam?" points at the whole situation, not at the last thing discussed. Treating that
+// "this" as a referent made a patient asking whether they were being defrauded inherit "weight"
+// into their query, and they got no answer at all.
+describe("questions about the situation itself", () => {
+  const conversation = { recentTurns: [{ role: "user", text: "How much weight should I lose?" }] };
+
+  it("carries nothing into a question about whether this is genuine", () => {
+    for (const question of ["Is this a scam?", "Is this real?", "Is this legit?", "¿Esto es una estafa?", "¿Es esto real?"]) {
+      expect(isFollowUpQuestion(question), question).toBe(false);
+    }
+  });
+
+  it("still carries the subject into an ordinary follow-up", () => {
+    expect(isFollowUpQuestion("is that covered?")).toBe(true);
+    expect(resolveConversationSubject(conversation)).toBe("weight");
+  });
+});
+
+describe("merging halves that overlap", () => {
+  it("drops a sentence the second half repeats from the first", () => {
+    const merged = mergeCompoundAnswers([
+      "Your monitor connects on its own, so you do not need Wi-Fi. Place the cuff on your bare arm.",
+      "Your monitor connects on its own, so you do not need Wi-Fi. It sends readings automatically."
+    ]);
+    expect(merged.match(/do not need Wi-Fi/g)).toHaveLength(1);
+    expect(merged).toMatch(/Place the cuff/);
+    expect(merged).toMatch(/sends readings automatically/);
+  });
+
+  it("drops a half that repeats everything and adds nothing", () => {
+    expect(mergeCompoundAnswers(["The monitor is free. Your care team reviews it.", "The monitor is free."]))
+      .toBe("The monitor is free. Your care team reviews it.");
+  });
+});

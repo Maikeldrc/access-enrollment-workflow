@@ -116,11 +116,30 @@ describe("follow-up questions", () => {
   // The programme's $0 is true of the programme. Said about a monitor or a prescription it is a
   // promise this product cannot make, so a cost question about one of those is left to the route
   // that actually knows the answer — including when the subject came from an earlier turn.
-  it("does not answer a cost follow-up about the monitor with the programme's price", async () => {
+  it("does not answer a cost question naming the monitor with the programme's price", async () => {
     const { orchestrator, calls } = harness({ conversation: aboutTheMonitor });
-    const result = await orchestrator.answer("and does that cost anything?");
+    const result = await orchestrator.answer("does the monitor cost anything?");
     expect(calls.some(call => call.name === "getExpectedAccessCost")).toBe(false);
     expect(result.trace.intent).not.toBe("COST_QUESTION");
+  });
+
+  // A subject inherited from an earlier turn ranks documents; it must not redirect a route. After a
+  // question about the monitor, "am I going to get a bill for this?" is still a question this
+  // patient's own record can answer, and answering it vaguely takes their $0 away from them.
+  // "Will I get a bill?" is a money question, and it was reaching the model instead of the record,
+  // so whether the patient was told their $0 depended on how the model felt that day.
+  it("answers a question about being billed from the patient's own record", async () => {
+    const { orchestrator, calls } = harness();
+    const result = await orchestrator.answer("Am I going to get a bill for this?");
+    expect(calls.some(call => call.name === "getExpectedAccessCost")).toBe(true);
+    expect(result.text).toMatch(/\$0/);
+  });
+
+  it("still gives the patient their own cost after an unrelated turn about the monitor", async () => {
+    const { orchestrator, calls } = harness({ conversation: aboutTheMonitor });
+    const result = await orchestrator.answer("Will I have to pay for this?");
+    expect(calls.some(call => call.name === "getExpectedAccessCost")).toBe(true);
+    expect(result.text).toMatch(/\$0/);
   });
 
   it("still answers a cost question about the programme itself", async () => {

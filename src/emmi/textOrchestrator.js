@@ -32,7 +32,7 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
 // $0" is the most likely thing a patient asks on the consent screen.
 // What a patient is talking about when the cost question is not about ACCESS at all.
 const TRANSPORT_SUBJECT = /\b(uber|lyft|taxi|cab|ride|rides|rideshare|transportation|transport|bus fare|mileage)\b|transporte|taxi|viaje|pasaje|transp[o\u00f2]|woulib/i;
-const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
+const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|charged|bill|billed|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
@@ -609,7 +609,10 @@ const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|t
 // internal vocabulary (runtime, tool, guardrail, chunk, PHI), and editorial scaffolding (source
 // registries, "Answer from this page"). They belong in the model's grounding, where they steer the
 // answer, and never in the answer itself — which is exactly where they were being printed.
-const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep |use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
+// "keep" on its own was too broad: it stripped "Keep your feet flat on the floor" out of the
+// monitor instructions, which is the patient's own guidance and not a note to whoever wrote the
+// page. Only the authoring objects belong here.
+const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep (?:the (?:answer|response|tone|wording|list|language)|answers|responses|it short|language|wording)|use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
 const INTERNAL_VOCABULARY = /\b(runtime|tool|guardrail|chunk|retrieval|markdown|PHI|credential|configuration|config\b|this page|the model|prompt|G-?code|_sources?:|\(READ\)|\bUso:|\bNota:)/i;
 // A directive can also be phrased about the patient rather than to the reader.
 const THIRD_PERSON_DIRECTIVE = /\b(must (not|never|remain|be)|should (not|be given|use)|is not answered by|it must appear|rather than assumed)\b/i;
@@ -1285,7 +1288,7 @@ export class EmmiTextOrchestrator {
     // monitor, the ride and the medication each have their own answer, so a cost question about
     // one of them is left to the route that knows it. The subject can come from an earlier turn:
     // "and does that cost anything?" is about whatever the patient was just asking about.
-    const costSubject = resolveTurnSubject({ question: asked, conversation, carriedSubject })?.key || "";
+    const costSubject = resolveTurnSubject({ question: asked, conversation, carriedSubject, fromConversation: false })?.key || "";
     const asksAboutTransportCost = COST.test(asked) && (TRANSPORT_SUBJECT.test(asked) || costSubject === "TRANSPORT");
     let tool = "";
     if (COST.test(asked) && !asksAboutTransportCost && !["DEVICE", "MEDICATION"].includes(costSubject)) tool = "getExpectedAccessCost";

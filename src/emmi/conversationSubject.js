@@ -72,10 +72,18 @@ const BARE_REFERENT = /\b(?:that|this|it|its|those|these|them|they|the same|eso|
 // the subject even when the part looks self-contained.
 export const hasBareReferent = question => BARE_REFERENT.test(String(question || ""));
 
+// "Is this a scam?" and "¿Esto es real?" point at the whole situation, not at whatever was being
+// discussed a turn ago. Treating that "this" as a referent made the question inherit an unrelated
+// subject — a patient asking whether they were being defrauded had "weight" appended to their
+// query and got no answer at all. A copula with a predicate noun or a plain adjective is the
+// patient asking about where they are, and it carries nothing.
+const SELF_REFERENTIAL = /^(?:so\s+)?(?:is|are|was|were)\s+(?:this|that|it|all of this)\s+(?:a|an|some kind of|for)?\s*(?:scam|fraud|fake|real|legit(?:imate)?|safe|true|trick|spam|phishing|serious)\b|^(?:¿\s*)?(?:es|ser[aá])\s+(?:esto|eso)\s+(?:una?\s+)?(?:estafa|fraude|falso|real|leg[ií]timo|seguro|verdad|enga[nñ]o)\b|^(?:¿\s*)?(?:esto|eso)\s+es\s+(?:una?\s+)?(?:estafa|fraude|falso|real|leg[ií]timo|seguro|verdad|enga[nñ]o)\b|^(?:[eè]ske\s+)?(?:sa|li)\s+se\s+(?:yon\s+)?(?:awnak|magouy|vre|serye|s[eè]|fo)\b/i;
+
 export const isFollowUpQuestion = question => {
   const value = String(question || "").trim();
   if (!value) return false;
   if (CONTINUATION_OPENER.test(value)) return true;
+  if (SELF_REFERENTIAL.test(value)) return false;
   const own = subjectOf(value);
   if (own && !own.weak) return false;
   if (BARE_REFERENT.test(value)) return true;
@@ -106,10 +114,17 @@ export const resolveConversationSubject = (conversation = {}) => {
 // What this turn is about, whether the patient said it in this turn or three turns ago. Routes use
 // it to tell "how much does ACCESS cost?" apart from the same words asked about a monitor, a ride
 // or a prescription — three things with three different answers and one shared phrasing.
-export const resolveTurnSubject = ({ question, conversation = {}, carriedSubject = "" } = {}) => {
+// fromConversation separates two different strengths of evidence. A subject the patient named in
+// this turn, or handed over from the other half of the same question, is strong enough to decide
+// which route answers them. A subject merely inherited from an earlier turn is not: it is a good
+// hint for ranking documents and a bad reason to send a question somewhere else. Ignoring that
+// distinction sent "am I going to get a bill for this?" to the knowledge base, because the turn
+// before it had been about the monitor — and the patient stopped being told their $0.
+export const resolveTurnSubject = ({ question, conversation = {}, carriedSubject = "", fromConversation = true } = {}) => {
   const own = subjectOf(question);
   if (own && !own.weak) return own;
-  const label = carriedSubject || (isFollowUpQuestion(question) ? resolveConversationSubject(conversation) : "");
+  const inherited = fromConversation && isFollowUpQuestion(question) ? resolveConversationSubject(conversation) : "";
+  const label = carriedSubject || inherited;
   return SUBJECTS.find(subject => subject.label === label) || own || null;
 };
 
@@ -172,17 +187,37 @@ export const decomposeCompoundQuestion = text => {
 // notice as repetition is dropped: an identical answer, an answer already contained in an earlier
 // one, and the "I don't have enough approved information" line whenever a real answer stands
 // beside it.
+const normalize = text => String(text || "").toLowerCase().replace(/[^a-z0-9áéíóúüñèòàç ]/gi, "").replace(/\s+/g, " ").trim();
+const sentencesOf = text => (String(text || "").match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []).map(part => part.trim()).filter(Boolean);
+
 export const mergeCompoundAnswers = (answers, { unavailableText = "" } = {}) => {
   const kept = [];
   for (const answer of answers.map(item => String(item || "").trim()).filter(Boolean)) {
-    const normalized = answer.toLowerCase().replace(/\s+/g, " ");
+    const normalized = normalize(answer);
     const duplicate = kept.some(existing => {
-      const other = existing.toLowerCase().replace(/\s+/g, " ");
+      const other = normalize(existing);
       return other === normalized || other.includes(normalized) || normalized.includes(other);
     });
     if (!duplicate) kept.push(answer);
   }
   if (kept.length < 2) return kept[0] || "";
   const answered = unavailableText ? kept.filter(item => item.trim() !== unavailableText.trim()) : kept;
-  return (answered.length ? answered : kept).join("\n\n");
+  const parts = answered.length ? answered : kept;
+
+  // Two halves of one question often overlap without being identical: asked how to set up the
+  // monitor and whether it needs Wi-Fi, both halves answered the Wi-Fi part in their own words, and
+  // the patient read it twice. Whole-answer comparison cannot see that, so drop any sentence a
+  // later half repeats from an earlier one. A half left with nothing of its own is dropped whole.
+  const seen = new Set();
+  const merged = [];
+  for (const part of parts) {
+    const fresh = sentencesOf(part).filter(sentence => {
+      const key = normalize(sentence);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (fresh.length) merged.push(fresh.join(" "));
+  }
+  return merged.join("\n\n") || parts[0];
 };
