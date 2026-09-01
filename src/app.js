@@ -1704,6 +1704,12 @@ function assistantScreenExplanation(screen, context = null) {
     const pending = (view.stillPending || []).filter(Boolean);
     return [view.whatThePatientMustDoHere, pending.length ? `${L("Still to do", "Falta", "Rete pou fè")}: ${pending[0]}.` : ""].filter(Boolean).join(" ");
   }
+  // KNOWN DUPLICATION, deliberately left. Most of the enrollment screens below now have a describer
+  // that answers from src/emmi/narrative.js — the same sentence EMMI speaks aloud — so their entry
+  // here is unreachable. Two authored sentences per screen is exactly the drift careViewContext.js
+  // set out to avoid, and the surviving value of this table is the screens with no describer at
+  // all. Pruning it is a change to EMMI's presentation, not to goals, so it belongs in its own pass
+  // where every entry can be checked against its describer.
   const explanations = {
     INVITATION: L("This screen introduces the care support available to you and lets you choose whether to learn more.", "Esta pantalla presenta el apoyo de cuidado disponible y le permite decidir si desea conocer más.", "Ekran sa a entwodui sipò swen ki disponib pou ou epi li pèmèt ou chwazi si pou w aprann plis."),
     DECISION_MAKER: L("This screen asks who is completing the enrollment so we can show the right information.", "Esta pantalla pregunta quién completa la inscripción para mostrar la información correcta.", "Ekran sa a mande ki moun ki ranpli enskripsyon an pou nou ka montre bon enfòmasyon an."),
@@ -4244,7 +4250,9 @@ function gettingStartedResumeRoute() {
     return resolveCareSetupResumeRoute({
       medicationsReviewStatus: state.medicationsReviewStatus,
       carePreferencesStatus: state.carePreferencesStatus,
-      goalsStatus: state.goalsStatus
+      goalsStatus: state.goalsStatus,
+      flowStatus: progress.status,
+      hasSetupHub: journeyFor(state).includes("ONBOARDING")
     });
   }
   return resolveGettingStartedEntryRoute({
