@@ -17,12 +17,21 @@ import {
   // needs the patient's attention.
   MapPin, Video, TriangleAlert, CalendarClock
 } from "lucide";
-import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentPreferenceResumeStep, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
+import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, applyBookingConfirmation, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentPreferenceResumeStep, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
-import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentSlotReviewView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, formatAppointmentWhen, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { CONFIRMATION_REQUIRED_KINDS, VIEW_ACTION_KINDS, describeEmmiViewFromDom, emmiViewForModel, emmiViewSignature, findViewAction, findViewOption, normalizeEmmiView, withLiveControls } from "./emmi/viewContext.js";
+import { describeAppointmentView, describeResolutionView } from "./appointmentViewContext.js";
+import { describeCareCircleView, describeDeviceView, describeEnrollmentView, describeGoalView, describeMedicationView } from "./careViewContext.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
+// The barrier resolution engine: the domain machine, the simulated outside world, and the views.
+// The shell owns none of the three — it connects them to this patient's record, the care-team
+// queue and the appointment the resolution is about.
+import { BARRIER_TYPES, RESOLUTION_EVENTS, RESOLUTION_STATUS, addressErrorText, advanceResolution, pickupTimeChoices, returnTripChoices, transportNeedOptions, appointmentReadiness, barrierListState, careTeamAssistanceRequest, classifyResolutionIntent, createResolution, homeAddressFrom, isWorkingStep, recommendedPickupTime, resolutionEvent, resolutionPlaybookFor, resolutionSpeech, toggleTransportNeed, transportationSuitability, validateAddress } from "./barrierResolution.js";
+import { barrierDemoMode, barrierPause, careTeamService, companionService, schedulingAssistService, setBarrierLatencyScale, transportationService, videoReadinessService } from "./barrierProviders.js";
+import { allSetConfirmation, appointmentReadinessPanel, barrierResolutionScreen } from "./barrierResolutionViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, clearEmmiAuditLog, selectDemoPatientId } from "./emmi/tools.js";
@@ -67,6 +76,34 @@ const params = new URLSearchParams(location.search);
 const simulatedAppointmentServiceEnabled = params.get("appointmentService") !== "manual";
 const prototypeMode = params.get("prototype") === "1";
 const patientShareSource = params.get("source") === "patient-share";
+// The simulated provider delays are the point of the demo, so they are on by default. A test
+// harness asks for them to be skipped rather than waiting a second per step of every flow.
+if (params.get("barrierLatency") === "0") setBarrierLatencyScale(0);
+// §15. Running the same demo twice needs a way to put the barriers back — and only the barriers.
+// "/new" throws the whole enrollment away, which is far too much when all somebody wants is to
+// show the transportation flow again to the next person in the room. Carried out at module scope,
+// before boot() reads the draft, and the parameter is rewritten out of the URL in the same breath
+// so a refresh does not silently wipe a resolution the patient has since started.
+const resettingBarrierDemo = params.get("resetBarriers") === "1";
+if (resettingBarrierDemo) {
+  try {
+    const key = "itera.enrollment.safe-draft.v2";
+    const stored = JSON.parse(localStorage.getItem(key) || "null");
+    if (stored) {
+      localStorage.setItem(key, JSON.stringify({
+        ...stored,
+        barrierResolutions: [],
+        barrierActivity: [],
+        barrierReadinessAck: {},
+        // The tasks EMMI escalated belong to those resolutions and would otherwise outlive them.
+        careTeamTasks: (stored.careTeamTasks || []).filter(task => task.type !== "APPOINTMENT_BARRIER")
+      }));
+    }
+  } catch { /* storage can be unavailable; the demo simply starts with whatever is there */ }
+  params.delete("resetBarriers");
+  const query = params.toString();
+  history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+}
 // ---------------------------------------------------------------------------------------------
 // How the app was opened
 //
@@ -141,7 +178,12 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "",
+  // Barrier resolution. `barrierResolutions` is the record of every difficulty EMMI has been
+  // asked to solve for an appointment and how far it got; `barrierActivity` is the internal
+  // activity log (§23) that is never shown to the patient; `barrierReadinessAck` remembers the
+  // patients who answered "I’m all set", which no resolution record can carry.
+  barrierResolutions: [], activeResolutionId: "", barrierActivity: [], barrierError: "", barrierReadinessAck: {}, bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -901,13 +943,12 @@ function assistantContext() {
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
   const activeGoalRecord = currentGoal();
   const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
-  const activeAppointmentRecord = activeAppointment();
-  // Keep the selected appointment available to EMMI on every appointment surface, not only the
-  // preparation screen. The appointment detail's “Ask EMMI” action opens the assistant before it
-  // submits its first turn; limiting this context to PREP made that turn fall into the generic
-  // knowledge fallback even though the patient had just selected a real, scheduled visit.
-  const appointmentInAssistantContext = activeAppointmentRecord
-    && ["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING"].includes(emmiCurrentScreen);
+  const onlyUpcomingAppointment = upcomingAppointments(appointmentRecords(), new Date());
+  const activeAppointmentRecord = activeAppointment() || (onlyUpcomingAppointment.length === 1 ? onlyUpcomingAppointment[0] : null);
+  // Keep the explicitly selected appointment available across screens and refreshes. If none was
+  // selected, one — and only one — upcoming visit is unambiguous. This is the durable task context
+  // shared by the appointment UI, chat, and voice; multiple visits are never guessed between.
+  const appointmentInAssistantContext = Boolean(activeAppointmentRecord);
   const appointmentPrep = appointmentInAssistantContext
     ? {
         appointmentId: activeAppointmentRecord.id,
@@ -920,7 +961,13 @@ function assistantContext() {
         medications: (activeAppointmentRecord.prep?.medications || []).filter(item => item?.medicationId && item?.name).map(item => ({ medicationId: String(item.medicationId), name: String(item.name).slice(0, 120), details: String(item.details || "").slice(0, 160) })),
         emmiPreparation: activeAppointmentRecord.prep?.emmiPreparation && typeof activeAppointmentRecord.prep.emmiPreparation === "object" ? activeAppointmentRecord.prep.emmiPreparation : null
       }
-    : null;
+    : onlyUpcomingAppointment.length > 1
+      ? {
+          appointmentId: "",
+          ambiguous: true,
+          appointmentCandidates: onlyUpcomingAppointment.map(record => ({ appointmentId: record.id, providerDisplayName: record.providerDisplayName || "", scheduledAt: record.scheduledAt || "" }))
+        }
+      : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
   if (!emmiConversationManager) {
     emmiConversationManager = new EmmiConversationManager({
@@ -986,6 +1033,17 @@ function assistantContext() {
     // bubble. It lets a short reply such as "BP readings" or "what does that mean?" stay attached
     // to the topic the patient saved even when an older clinical topic remains in chat history.
     appointmentPrep,
+    appointmentSupport: activeResolution() && activeResolution().appointmentId === activeAppointmentRecord?.id
+      ? {
+          appointmentId: activeResolution().appointmentId,
+          barrierType: activeResolution().barrierType,
+          step: activeResolution().step,
+          contactName: activeResolution().data?.contactName || "",
+          invitationScope: activeResolution().barrierType === BARRIER_TYPES.COMPANION
+            ? { appointmentDate: true, appointmentTime: true, appointmentLocation: true, healthInformation: false }
+            : null
+        }
+      : null,
     // Where this patient started and what ACCESS will recognise as progress, resolved by the same
     // functions the goals screen and the care plan render. "What was my starting blood pressure"
     // is a question about this patient, and the knowledge base has no way to answer it: it knows
@@ -1019,6 +1077,15 @@ function assistantContext() {
       }))
     } : null,
     medications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
+    // What the patient is looking at RIGHT NOW: the view, what they have to do on it, the values
+    // and choices on screen, what is selected, what has really happened and what has not.
+    //
+    // This is the field the original defect was missing. `currentScreen` above is a route, and a
+    // route stopped identifying a screen the moment a route grew a flow inside it — every step of
+    // appointment coordination and of barrier resolution is "APPOINTMENT_DETAIL". Chat reads this
+    // fresh on every turn because it calls assistantContext() per turn; Voice is sent it again
+    // whenever it changes, because a live session takes its system instruction only once.
+    view: emmiModelView(),
     emmiConversation: emmiConversationManager.contextForModel()
   };
 }
@@ -1040,6 +1107,7 @@ const emmiToolStatusLabel = name => ({
   createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   getUpcomingAppointments: L("Checking your appointments…", "Revisando sus citas…", "N ap verifye randevou ou yo…"),
   getAppointment: L("Checking your appointment…", "Revisando su cita…", "N ap verifye randevou ou…"),
+  getAppointmentTransportation: L("Checking your transportation…", "Revisando su transporte…", "N ap verifye transpò ou…"),
   getSchedulingCapability: L("Checking how this office schedules…", "Revisando cómo agenda este consultorio…", "N ap verifye kijan kabinè sa a bay randevou…"),
   getProviderAvailability: L("Looking for open times…", "Buscando horarios disponibles…", "N ap chache lè ki lib…"),
   startAppointmentRequest: L("Opening your appointment request…", "Abriendo su solicitud de cita…", "N ap louvri demann randevou ou…"),
@@ -1145,6 +1213,7 @@ function ensureEmmiRuntime() {
           providerDisplayName: record.providerDisplayName || "",
           specialty: record.requestedSpecialty || "",
           scheduledAt: record.scheduledAt || "",
+          scheduledLabel: record.scheduledAt ? formatAppointmentWhen(record.scheduledAt, record.timezone || "", state.language) : "",
           modality: record.modality || "",
           locationName: record.locationName || "",
           reasonCategory: record.reasonCategory,
@@ -1152,11 +1221,106 @@ function ensureEmmiRuntime() {
         }
       };
     },
+    onAppointmentTransportation: ({ appointmentId }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "APPOINTMENT_NOT_FOUND" };
+      const resolution = transportationResolutionFor(record.id);
+      const outbound = resolution?.data?.reservation;
+      const returning = resolution?.data?.returnReservation;
+      const reservations = [outbound, returning].filter(item => item?.status === "CONFIRMED").map(item => ({
+        reservationId: item.reservationId || "",
+        tripType: item.tripType || "OUTBOUND",
+        status: item.status,
+        serviceName: item.serviceName || "",
+        pickupAt: item.pickupAt || "",
+        pickupLabel: item.pickupAt ? formatBarrierTime(item.pickupAt, record) : "",
+        estimatedArrivalAt: item.estimatedArrivalAt || "",
+        estimatedArrivalLabel: item.estimatedArrivalAt ? formatBarrierTime(item.estimatedArrivalAt, record) : "",
+        estimatedCost: item.estimatedCost || "",
+        pickupAddress: item.pickupFormatted || "",
+        destinationName: item.destinationName || "",
+        destinationAddress: item.destinationFormatted || ""
+      }));
+      return reservations.length
+        ? { success: true, status: "CONFIRMED", appointmentId: record.id, reservations }
+        : { success: false, status: "TRANSPORTATION_NOT_FOUND", reservations: [] };
+    },
+    onAppointmentTopics: ({ appointmentId, operation, target, value, detail, index, position }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const topics = (record.prep?.topics || []).map(item => String(item || "").trim()).filter(Boolean);
+      const normalize = item => String(item || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+      const preparation = record.prep?.emmiPreparation || {};
+      const resolveIndex = () => {
+        if (index === -1) return topics.length - 1;
+        if (Number.isInteger(index) && index >= 0) return index < topics.length ? index : -1;
+        const key = normalize(target);
+        if (/^(ese|esa|that|it)$/.test(key)) {
+          const recent = normalize(preparation.lastTopic || preparation.currentTopic || "");
+          return recent ? topics.findIndex(item => normalize(item) === recent || normalize(item).includes(recent) || recent.includes(normalize(item))) : -2;
+        }
+        if (!key) return -2;
+        const words = key.replace(/^(lo de|el tema de|la pregunta de) /, "").split(" ").filter(word => word.length > 2);
+        const matches = topics.map((item, topicIndex) => ({ topicIndex, score: words.filter(word => normalize(item).includes(word)).length })).filter(item => item.score > 0);
+        const best = Math.max(0, ...matches.map(item => item.score));
+        const winners = matches.filter(item => item.score === best);
+        return winners.length === 1 ? winners[0].topicIndex : winners.length > 1 ? -2 : -1;
+      };
+      let nextTopics = [...topics];
+      let item = "";
+      let changedIndex = -1;
+      if (["LIST", "OPEN"].includes(operation)) {
+        if (operation === "OPEN") {
+          openAppointmentDetail(record.id, "PREP");
+          state.assistantPendingNavigation = true;
+        }
+      } else if (operation === "READ_ITEM") {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        item = topics[changedIndex];
+      } else if (operation === "ADD") {
+        const added = String(value || "").trim().slice(0, 120);
+        if (!added) return { success: false, status: "TOPIC_REQUIRED" };
+        const existingIndex = topics.findIndex(topic => normalize(topic) === normalize(added));
+        if (existingIndex >= 0) changedIndex = existingIndex;
+        else { nextTopics.push(added); changedIndex = nextTopics.length - 1; }
+      } else {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        if (operation === "REMOVE") nextTopics.splice(changedIndex, 1);
+        else if (operation === "MOVE") {
+          const [moved] = nextTopics.splice(changedIndex, 1);
+          const destination = Math.max(0, Math.min(Number.isInteger(position) ? position : 0, nextTopics.length));
+          nextTopics.splice(destination, 0, moved);
+          changedIndex = destination;
+        } else if (operation === "UPDATE") {
+          const replacement = String(value || "").trim().slice(0, 120);
+          if (!replacement) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = replacement;
+        } else if (operation === "UPDATE_DETAIL") {
+          const addedDetail = String(detail || "").trim();
+          if (!addedDetail) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = `${topics[changedIndex]}: ${addedDetail}`.slice(0, 120);
+        } else return { success: false, status: "OPERATION_NOT_SUPPORTED" };
+      }
+      const now = new Date().toISOString();
+      const lastTopic = changedIndex >= 0 ? (nextTopics[changedIndex] || topics[changedIndex] || "") : preparation.lastTopic || "";
+      saveAppointment({
+        ...record,
+        prep: { ...(record.prep || {}), topics: nextTopics, emmiPreparation: { ...preparation, status: "IN_PROGRESS", contextActive: true, lastTopic, updatedAt: now }, updatedAt: now },
+        updatedAt: now
+      });
+      const saved = appointmentById(record.id)?.prep?.topics || [];
+      const verified = saved.length === nextTopics.length && saved.every((topic, topicIndex) => topic === nextTopics[topicIndex]);
+      if (!verified) return { success: false, status: "TOPICS_NOT_SAVED" };
+      return { success: true, status: operation === "OPEN" ? "OPENED" : "SAVED", appointmentId: record.id, topics: saved, ...(item ? { item } : {}) };
+    },
     onSchedulingCapability: ({ providerId, appointmentType }) => {
+      const member = patientCareTeam().find(candidate => candidate.id === providerId);
       const capability = resolveSchedulingCapability({
         patientId: state.offer?.patient?.id || "",
         providerId: providerId || "",
-        practiceId: "",
+        practiceId: String(member?.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
         appointmentType: appointmentType || ""
       });
       return { capability: capability.capability, supportedModalities: capability.supportedModalities, reason: capability.reason };
@@ -1165,7 +1329,9 @@ function ensureEmmiRuntime() {
     // reported as a failure; it is never filled in with a plausible-looking time.
     onProviderAvailability: ({ providerId, preferredTimeOfDay, modality }) => {
       const now = new Date();
-      const result = getProviderAvailability({ providerId: providerId || "", preferredTimeOfDay, modality, now });
+      const member = patientCareTeam().find(candidate => candidate.id === providerId);
+      const practiceId = String(member?.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const result = getProviderAvailability({ providerId: providerId || "", practiceId, preferredTimeOfDay, modality, now });
       if (!result.ok) return { ok: false, error: result.error };
       const heldSlots = reservableAvailabilitySlots(result.slots, now);
       if (!heldSlots.length) return { ok: false, error: "AVAILABILITY_UNAVAILABLE" };
@@ -1249,6 +1415,8 @@ function ensureEmmiRuntime() {
         members: options.eligibleMembers.map(({ inviteId, firstName, relationship, status }) => ({ inviteId, firstName, relationship, status }))
       };
     },
+    onDescribeView: () => emmiModelView(),
+    onPerformViewAction: params => performEmmiViewAction(params),
     onShareAppointment: ({ appointmentId, inviteId, confirmed }) => {
       if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
       const record = appointmentById(appointmentId);
@@ -1290,10 +1458,16 @@ function ensureEmmiRuntime() {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       const last = state.assistantMessages.at(-1);
-      const sameVoiceTurn = last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
-        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId);
+      // Screen narration is intentionally split into short provider turns so navigation can yield
+      // at a safe boundary. It is still one logical message to the patient, so keep all segments
+      // with the same narration id in one transcript bubble even after an individual segment has
+      // drained. Patient answers continue to group strictly by generation.
+      const sameNarration = guidance && metadata.narrationId && last?.guidance && !last.interrupted
+        && last.narrationId === metadata.narrationId;
+      const sameVoiceTurn = sameNarration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId));
       if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
-      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0 });
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0, narrationId: metadata.narrationId || "" });
       // Screen narration is visible context, not a patient/assistant exchange. Keeping it out of
       // model memory prevents a medication prompt from resurfacing on goals or completion screens.
       if (!guidance) emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
@@ -1445,7 +1619,16 @@ const assistantQuickQuestions = context => getEmmiQuickQuestions({
   context
 });
 
-function assistantScreenExplanation(screen) {
+function assistantScreenExplanation(screen, context = null) {
+  // "What do I do here?" is a question about the view, not about the route. Every step of
+  // appointment coordination and barrier resolution lives on one route, so the describer's own
+  // sentence — which is written as an instruction for that exact step — is what answers it. The
+  // route table below stays as the fallback for the enrollment screens, which are one-to-one.
+  const view = context?.view;
+  if (view?.whatThePatientMustDoHere) {
+    const pending = (view.stillPending || []).filter(Boolean);
+    return [view.whatThePatientMustDoHere, pending.length ? `${L("Still to do", "Falta", "Rete pou fè")}: ${pending[0]}.` : ""].filter(Boolean).join(" ");
+  }
   const explanations = {
     INVITATION: L("This screen introduces the care support available to you and lets you choose whether to learn more.", "Esta pantalla presenta el apoyo de cuidado disponible y le permite decidir si desea conocer más.", "Ekran sa a entwodui sipò swen ki disponib pou ou epi li pèmèt ou chwazi si pou w aprann plis."),
     DECISION_MAKER: L("This screen asks who is completing the enrollment so we can show the right information.", "Esta pantalla pregunta quién completa la inscripción para mostrar la información correcta.", "Ekran sa a mande ki moun ki ranpli enskripsyon an pou nou ka montre bon enfòmasyon an."),
@@ -1959,9 +2142,10 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   manager.setPaused(false);
   if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
   if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
-  // The home welcome is one provider turn. Splitting its sentences into separate generative
-  // prompts invited the model to elaborate and re-open the conversation after every clause.
-  const segments = screen === "INVITATION" ? [message] : semanticSpeechSegments(message);
+  // Welcomes and enrollment celebrations are each one provider turn. Splitting either into
+  // separate generative prompts invites the model to reopen the greeting after every clause.
+  const cohesiveGuidance = ["INVITATION", "ENROLLMENT_CONFIRMED"].includes(screen);
+  const segments = cohesiveGuidance ? [message] : semanticSpeechSegments(message);
   manager.speak({ narrationText: message, segments }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
@@ -2063,7 +2247,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : message.quickAction === "safety-resolved" ? L("I’ve called for help", "Ya llamé para pedir ayuda", "Mwen rele pou èd") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-companion" ? L("Coordinate a companion", "Coordinar acompañante", "Kowòdone yon moun pou akonpaye m") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : message.quickAction === "safety-resolved" ? L("I’ve called for help", "Ya llamé para pedir ayuda", "Mwen rele pou èd") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -3834,6 +4018,7 @@ function loadAppointmentAvailability(record) {
   const searching = advanceAppointment(record, { status: APPOINTMENT_STATUS.SEARCHING_AVAILABILITY, source: "ITERA", actor: appointmentActor() });
   const result = getProviderAvailability({
     providerId: record.requestedProfessionalId,
+    practiceId: (record.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     preferredTimeOfDay: record.preferredTimeOfDay,
     preferredDateRange: record.preferredDateRange,
     modality: record.preferredModality,
@@ -4127,6 +4312,754 @@ async function recordAppointmentBarrier(record, reasonKey) {
   return { ok: true, barrier, routed: "BARRIER_ENGINE" };
 }
 
+// ---------------------------------------------------------------------------
+// Barrier resolution — the shell's half.
+//
+// recordAppointmentBarrier() above still does what it always did: it maps the difficulty onto the
+// barrier taxonomy and puts it in front of the care team. What follows is the part that used to be
+// missing — EMMI actually trying to solve it, with the patient still on the screen.
+//
+// Everything below is plumbing. The state machine is src/barrierResolution.js, the outside world is
+// src/barrierProviders.js, and the pixels are src/barrierResolutionViews.js. This layer connects
+// them to the patient's record, the appointment, the care-team queue and the audit trail, and it
+// owns exactly one rule of its own: nothing that changes the world runs anywhere except in
+// runBarrierResolutionWork(), which is only ever reached from a step the patient confirmed onto.
+// ---------------------------------------------------------------------------
+
+const barrierResolutions = () => state.barrierResolutions || [];
+const barrierResolutionById = id => barrierResolutions().find(item => item.id === id) || null;
+const activeResolution = () => (state.activeResolutionId ? barrierResolutionById(state.activeResolutionId) : null);
+
+const saveResolution = record => {
+  const exists = barrierResolutions().some(item => item.id === record.id);
+  state.barrierResolutions = exists
+    ? barrierResolutions().map(item => (item.id === record.id ? record : item))
+    : [...barrierResolutions(), record];
+  draftStore.save(state);
+  return record;
+};
+
+// §23. Two writes, on purpose: the activity log is what EMMI did on this patient's behalf and a
+// care team reads it; the audit row is analytics and never carries an address, a name, a phone
+// number or a price. `metadata` is checked into the second one, so only ids and enums go in it.
+const logResolution = (type, resolution, metadata = {}) => {
+  const event = resolutionEvent(type, { resolution, patientId: state.offer?.patient?.id || "", metadata });
+  state.barrierActivity = [...(state.barrierActivity || []), event].slice(-100);
+  audit(state, type, "success", { ...metadata, barrierType: resolution?.barrierType || "", resolutionId: resolution?.id || "", appointmentId: resolution?.appointmentId || "" });
+  draftStore.save(state);
+  return event;
+};
+
+// The only writer of a resolution's step. Everything that moves a patient forward goes through it,
+// which is why the step machine's validation cannot be routed around.
+const advanceTo = (resolution, step, patch = {}) => saveResolution(advanceResolution(resolution, step, patch));
+
+const openResolution = resolution => {
+  state.activeResolutionId = resolution.id;
+  state.activeAppointmentId = resolution.appointmentId;
+  state.appointmentFlow = { appointmentId: resolution.appointmentId, view: "RESOLUTION" };
+  state.screen = "APPOINTMENT_DETAIL";
+  state.barrierError = "";
+  draftStore.save(state);
+};
+
+// Where the car is going. Built from the appointment record rather than a directory, so an office
+// with no address on file produces a destination with a name and no street — which is what the
+// review screen then shows, instead of an invented one.
+const resolutionDestination = record => ({
+  name: record?.locationName || record?.providerDisplayName || "",
+  formatted: record?.locationAddress || ""
+});
+
+const patientHomeAddress = () => homeAddressFrom(state.shippingAddress || state.offer?.patient?.shippingAddress || null);
+
+// §24's "patient returns to a previously resolved barrier": the same appointment and the same
+// difficulty is the same resolution, resumed exactly where it stopped — including when it stopped
+// on a success screen. Only a resolution the patient cancelled starts over.
+function startBarrierResolution(record, reasonKey) {
+  const barrierType = resolutionPlaybookFor(reasonKey);
+  if (!record || !barrierType) return null;
+  const existing = barrierResolutions().find(item => item.appointmentId === record.id
+    && item.barrierType === barrierType
+    && item.status !== RESOLUTION_STATUS.CANCELLED);
+  if (existing) { openResolution(existing); return existing; }
+  const created = createResolution({
+    appointmentId: record.id,
+    patientId: state.offer?.patient?.id || "",
+    barrierType,
+    reasonKey
+  });
+  if (!created) return null;
+  saveResolution(created);
+  logResolution(RESOLUTION_EVENTS.BARRIER_IDENTIFIED, created, { reasonKey: String(reasonKey || "") });
+  logResolution(RESOLUTION_EVENTS.ASSISTANCE_OFFERED, created);
+  openResolution(created);
+  return created;
+}
+
+// §11 / §28. The end of every path EMMI could not finish, and never a dead end: the task joins the
+// same care-team queue an appointment request joins, so nothing downstream needs a second inbox.
+async function escalateResolution(resolution, reason, { keepStep = false } = {}) {
+  const task = careTeamAssistanceRequest({
+    resolution,
+    patientId: state.offer?.patient?.id || "",
+    reason,
+    // A patient who cannot physically use a standard car, or whose visit is about to be missed,
+    // is not a routine ticket.
+    priority: ["ACCESSIBLE_TRANSPORT_REQUIRED", "NO_TRANSPORT_AVAILABLE"].includes(reason) ? "PRIORITY" : "ROUTINE"
+  });
+  const created = await careTeamService.createAssistanceRequest({ task });
+  if (!created.ok) return { ok: false };
+  state.careTeamTasks = [...(state.careTeamTasks || []), created.task];
+  // Some escalations are about a part of a resolution rather than the whole of it — the ride home
+  // when the ride there is booked and confirmed. Moving those to ESCALATED would make the
+  // readiness panel say the care team is arranging transportation that the patient already has,
+  // so the step stays where it is and only the task is created.
+  const carrying = { ...resolution, careTeamTaskId: created.task.id };
+  const updated = keepStep
+    ? saveResolution({ ...carrying, data: { ...(carrying.data || {}), escalationReason: reason } })
+    : advanceTo(carrying, "ESCALATED", { escalationReason: reason });
+  logResolution(RESOLUTION_EVENTS.CARE_TEAM_ASSISTANCE_REQUESTED, updated, { reason, taskId: created.task.id, partial: keepStep });
+  return { ok: true, resolution: updated, task: created.task };
+}
+
+// The escalations that are about one leg of a resolution rather than the whole of it.
+const PARTIAL_ESCALATIONS = Object.freeze(["NO_RETURN_TRANSPORT_AVAILABLE"]);
+
+// Moving to the ride step of a transportation resolution, with the pickup time recomputed from
+// whatever the appointment currently says. Called on the way in and again after a reschedule, so a
+// ride is never quoted against a time the appointment no longer has.
+function transportationTimeStep(resolution, record, patch = {}) {
+  const pickup = recommendedPickupTime(record?.scheduledAt) || {};
+  return advanceTo(resolution, "TIME", {
+    ...patch,
+    pickupAt: pickup.pickupAt || "",
+    recommendedPickupAt: pickup.pickupAt || "",
+    arriveByAt: pickup.arriveByAt || "",
+    travelMinutes: pickup.travelMinutes || 0
+  });
+}
+
+/* ---------------------------------------------------------------- the work driver --------- */
+
+// Steps where something is in flight. The driver is idempotent by key: a re-render while a search
+// is running does not start a second search, and a step the patient has left is never resumed.
+let barrierWorkKey = "";
+let barrierCompanionTimer = null;
+
+function startBarrierResolutionWorkIfPending() {
+  clearTimeout(barrierCompanionTimer);
+  const resolution = activeResolution();
+  if (!resolution || state.screen !== "APPOINTMENT_DETAIL" || state.appointmentFlow?.view !== "RESOLUTION") return;
+  // An invitation that has gone out is not work in flight — it is a person deciding. The screen
+  // waits, and asks the provider once the answer is due rather than polling it.
+  if (resolution.step === "SENT") {
+    const invitation = resolution.data?.invitation;
+    if (!invitation) return;
+    const due = new Date(invitation.answersAt || 0).getTime() - Date.now();
+    barrierCompanionTimer = setTimeout(() => { readCompanionAnswer(resolution.id); }, Math.max(250, Number.isFinite(due) ? due : companionService.answerDelayMs));
+    return;
+  }
+  if (!isWorkingStep(resolution.step)) return;
+  const key = `${resolution.id}:${resolution.step}:${resolution.updatedAt}`;
+  if (barrierWorkKey === key) return;
+  barrierWorkKey = key;
+  runBarrierResolutionWork(resolution)
+    .catch(() => { /* a provider that throws is a provider that failed; the step below says so */ })
+    .finally(() => { if (barrierWorkKey === key) barrierWorkKey = ""; });
+}
+
+// Every call to the outside world this feature makes. One function, so there is exactly one place
+// to look when asking "what can this feature actually do to the world?" — and one place to swap
+// when a demo provider becomes a real one.
+async function runBarrierResolutionWork(resolution) {
+  const record = appointmentById(resolution.appointmentId);
+  const data = resolution.data || {};
+  const locale = state.language;
+  // The patient walked away mid-step. Nothing is executed on their behalf while they are gone.
+  const stillHere = () => activeResolution()?.id === resolution.id && state.appointmentFlow?.view === "RESOLUTION";
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "SEARCHING") {
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_SEARCH_STARTED, resolution, { needCount: (data.needs || []).length });
+    const suitability = transportationSuitability(data.needs || []);
+    const result = await transportationService.search({
+      appointmentId: resolution.appointmentId,
+      pickupAt: data.pickupAt,
+      pickupAddress: data.pickupAddress,
+      destination: resolutionDestination(record),
+      needs: { ...suitability, travelMinutes: data.travelMinutes || 24 },
+      locale
+    });
+    if (!stillHere()) return;
+    const options = result.ok ? result.options : [];
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_OPTIONS_RETURNED, resolution, { optionCount: options.length, ok: result.ok === true });
+    advanceTo(resolution, options.length ? "OPTIONS" : "OPTIONS_EMPTY", { options, selectedOptionId: "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "BOOKING") {
+    const option = (data.options || []).find(item => item.optionId === data.selectedOptionId);
+    if (!option) { advanceTo(resolution, "OPTIONS"); render(); return; }
+    const result = await transportationService.reserve({
+      option,
+      pickupAddress: data.pickupAddress,
+      destination: resolutionDestination(record),
+      appointmentId: resolution.appointmentId,
+      tripType: "OUTBOUND"
+    });
+    if (!stillHere()) return;
+    if (!result.ok) {
+      logResolution(RESOLUTION_EVENTS.TRANSPORTATION_RESERVATION_FAILED, resolution, { error: result.error || "UNKNOWN" });
+      advanceTo(resolution, "BOOKING_FAILED", { lastError: result.error || "" });
+      render(); return;
+    }
+    // A ride booked to replace one that a reschedule invalidated releases the old car now that a
+    // real replacement exists — never before, so the patient is not left with neither.
+    if (data.replacingReservationId) {
+      const released = await transportationService.cancel({ reservationId: data.replacingReservationId });
+      if (released.ok) logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CANCELED, resolution, { replaced: true });
+    }
+    const booked = advanceTo(resolution, data.returnReservation ? "BOOKED" : "RETURN_OFFER", {
+      reservation: { ...result.reservation, pickupLabel: formatBarrierTime(result.reservation.pickupAt, record) },
+      replacingReservationId: "",
+      reservationOutdated: false
+    });
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_RESERVED, booked, { rideType: option.rideType, tripType: "OUTBOUND" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "RETURN_BOOKING") {
+    const suitability = transportationSuitability(data.needs || []);
+    const search = await transportationService.search({
+      appointmentId: `${resolution.appointmentId}:return`,
+      pickupAt: data.returnPickupAt,
+      pickupAddress: resolutionDestination(record),
+      destination: data.pickupAddress,
+      needs: { ...suitability, travelMinutes: data.travelMinutes || 24 },
+      locale
+    });
+    if (!stillHere()) return;
+    // The return leg reuses the ride type the patient already chose when it is still offered, so
+    // the wheelchair-accessible car they picked going does not become a sedan coming back.
+    const option = (search.ok ? search.options : []).find(item => item.rideType === data.selectedRideType)
+      || (search.ok ? search.options : [])[0];
+    if (!option) { advanceTo(resolution, "BOOKED", { returnUnavailable: true }); render(); return; }
+    const result = await transportationService.reserve({
+      option,
+      pickupAddress: resolutionDestination(record),
+      destination: data.pickupAddress,
+      appointmentId: resolution.appointmentId,
+      tripType: "RETURN"
+    });
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "BOOKED", { returnUnavailable: true }); render(); return; }
+    const booked = advanceTo(resolution, "BOOKED", { returnReservation: result.reservation, returnUnavailable: false });
+    logResolution(RESOLUTION_EVENTS.RETURN_TRIP_RESERVED, booked, { rideType: option.rideType });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.VIDEO_VISIT && resolution.step === "CHECKING") {
+    logResolution(RESOLUTION_EVENTS.VIDEO_READINESS_STARTED, resolution);
+    const result = await videoReadinessService.check({ appointment: record, locale });
+    if (!stillHere()) return;
+    const done = advanceTo(resolution, result.ready ? "READY" : "ISSUES", { results: result.results || [], issues: result.issues || [] });
+    logResolution(RESOLUTION_EVENTS.VIDEO_READINESS_COMPLETED, done, { ready: result.ready === true, issues: (result.issues || []).join(",") });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.COMPANION && resolution.step === "SENDING") {
+    const result = await companionService.invite({
+      contact: { contactId: data.contactId, firstName: data.contactName, relationship: data.contactRelationship },
+      appointmentId: resolution.appointmentId
+    });
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "REVIEW"); render(); return; }
+    const sent = advanceTo(resolution, "SENT", { invitation: result.invitation });
+    logResolution(RESOLUTION_EVENTS.COMPANION_INVITED, sent, { contactSource: data.contactSource || "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.RESCHEDULE && resolution.step === "SEARCHING") {
+    logResolution(RESOLUTION_EVENTS.APPOINTMENT_RESCHEDULE_REQUESTED, resolution);
+    const result = await schedulingAssistService.getAvailableSlots({ appointment: record, now: new Date() });
+    if (!stillHere()) return;
+    const slots = result.ok ? result.slots : [];
+    advanceTo(resolution, slots.length ? "SLOTS" : "SLOTS_EMPTY", { slots, selectedSlotId: "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.RESCHEDULE && resolution.step === "CHANGING") {
+    const slot = (data.slots || []).find(item => item.slotId === data.selectedSlotId);
+    const result = slot ? await schedulingAssistService.reschedule({ appointment: record, slot }) : { ok: false, error: "SLOT_GONE" };
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "CHANGE_FAILED", { lastError: result.error || "" }); render(); return; }
+    // The appointment itself moves, and it moves through the status machine rather than around it.
+    // CONFIRMED -> CONFIRMED is refused by design (that guard is what makes a double tap harmless),
+    // so a reschedule is what the machine already says it is: the change is requested, the original
+    // stays live, and the new time is confirmed on top of it. The record ends up carrying both
+    // events, which is exactly what a care team needs to see afterwards.
+    const requested = advanceAppointment(record, {
+      status: APPOINTMENT_STATUS.RESCHEDULE_REQUESTED,
+      source: "PATIENT",
+      actor: appointmentActor(),
+      detail: { via: "BARRIER_RESOLUTION" }
+    });
+    const moved = applyBookingConfirmation(requested, {
+      confirmationNumber: result.confirmationNumber,
+      scheduledAt: result.scheduledAt,
+      scheduledEndAt: result.scheduledEndAt,
+      modality: result.modality,
+      locationName: result.locationName,
+      locationAddress: record?.locationAddress || "",
+      timezone: record?.timezone || "",
+      source: "PATIENT_RESCHEDULE",
+      actor: appointmentActor()
+    });
+    saveAppointment(moved);
+    auditAppointment(APPOINTMENT_AUDIT_EVENTS.BOOKING_CONFIRMED, moved, { rescheduledByPatient: true });
+    // §6's orchestration: a ride booked against the old time is now wrong, and the patient is told
+    // so on the success screen rather than finding out on the day.
+    const ride = transportationResolutionFor(record?.id);
+    if (ride?.data?.reservation) saveResolution({ ...ride, data: { ...ride.data, reservationOutdated: true } });
+    const changed = advanceTo(resolution, "CHANGED", { transportationNeedsUpdate: Boolean(ride?.data?.reservation), hasTransportation: Boolean(ride?.data?.reservation) });
+    logResolution(RESOLUTION_EVENTS.APPOINTMENT_RESCHEDULED, changed, { transportationNeedsUpdate: Boolean(ride?.data?.reservation) });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.OTHER && resolution.step === "CLASSIFYING") {
+    // The classifier is instant. The pause is the product being honest about thinking rather than
+    // flashing an answer the patient cannot see arrive — and it is the seam where an LLM call goes.
+    await barrierPause(600);
+    if (!stillHere()) return;
+    const verdict = classifyResolutionIntent(data.text || "");
+    const routed = advanceTo(resolution, verdict.barrierType ? "ROUTED" : "ESCALATE_OFFER", {
+      routedTo: verdict.barrierType || "",
+      confidence: verdict.confidence
+    });
+    // The patient's own words are never in analytics — only what EMMI made of them.
+    logResolution(RESOLUTION_EVENTS.BARRIER_INTENT_CLASSIFIED, routed, { routedTo: verdict.barrierType || "NONE", confidence: verdict.confidence });
+    render(); return;
+  }
+}
+
+// The companion answer, read once it is due. It is a read of the provider rather than a timer that
+// decides the outcome, so the answer is the same whoever asks and whenever they ask.
+async function readCompanionAnswer(resolutionId) {
+  const resolution = barrierResolutionById(resolutionId);
+  if (!resolution || resolution.step !== "SENT") return;
+  const status = companionService.getStatus({ invitation: resolution.data?.invitation, now: new Date() });
+  if (!status.ok || status.status === "PENDING") return;
+  if (activeResolution()?.id !== resolutionId) {
+    // The patient is elsewhere. The answer is still recorded — they will see it on the appointment
+    // and on the barrier list — but the screen they are on is not taken away from them.
+    const settled = advanceTo(resolution, status.status === "CONFIRMED" ? "CONFIRMED" : "DECLINED_BY_CONTACT", {});
+    logResolution(status.status === "CONFIRMED" ? RESOLUTION_EVENTS.COMPANION_CONFIRMED : RESOLUTION_EVENTS.COMPANION_DECLINED, settled);
+    return;
+  }
+  const settled = advanceTo(resolution, status.status === "CONFIRMED" ? "CONFIRMED" : "DECLINED_BY_CONTACT", {});
+  logResolution(status.status === "CONFIRMED" ? RESOLUTION_EVENTS.COMPANION_CONFIRMED : RESOLUTION_EVENTS.COMPANION_DECLINED, settled);
+  render();
+}
+
+/* -------------------------------------------------------------- reading it back out ------- */
+
+const transportationResolutionFor = appointmentId => barrierResolutions().find(item =>
+  item.appointmentId === appointmentId
+  && item.barrierType === BARRIER_TYPES.TRANSPORTATION
+  && item.status !== RESOLUTION_STATUS.CANCELLED) || null;
+
+// A time in the appointment's own zone, for the one place a resolution stores a pre-formatted
+// string: the readiness panel's "Uber · Pickup 2:00 p.m." line, which has no appointment to hand.
+const formatBarrierTime = (value, record) => formatAppointmentTime(value, record?.timezone || "", state.language);
+
+// §10. Which barrier options on the pre-visit list already have something under way, keyed by the
+// reason the button emits so the view never has to know about resolutions.
+function appointmentBarrierStates(record) {
+  const states = {};
+  if (!record) return states;
+  const mine = barrierResolutions().filter(item => item.appointmentId === record.id);
+  if (!mine.length) return states;
+  Object.keys(APPOINTMENT_BARRIER_REASONS).forEach(reasonKey => {
+    const barrierType = resolutionPlaybookFor(reasonKey);
+    if (!barrierType) return;
+    const resolution = [...mine].filter(item => item.barrierType === barrierType)
+      .sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt))).at(-1);
+    const listState = barrierListState(resolution, state.language);
+    if (listState) states[reasonKey] = listState;
+  });
+  return states;
+}
+
+// §9. Only shown once the patient has actually engaged with getting ready for this visit — a
+// readiness panel on an appointment nobody raised anything about invents a problem.
+function appointmentReadinessFor(record) {
+  if (!record) return null;
+  const raised = barrierResolutions().some(item => item.appointmentId === record.id);
+  const acknowledged = Boolean(state.barrierReadinessAck?.[record.id]);
+  if (!raised && !acknowledged) return null;
+  return appointmentReadiness({ appointment: record, resolutions: barrierResolutions(), locale: state.language });
+}
+
+// §13. The badge is for whoever is running the demo, never for the patient, so it is off in a
+// production build unless a tester deliberately asked for it in the URL.
+const showBarrierDemoBadge = () => barrierDemoMode() && (!import.meta.env.PROD || params.get("demoBadge") === "1");
+
+function barrierResolutionProps(resolution) {
+  const record = appointmentById(resolution.appointmentId);
+  const data = resolution.data || {};
+  return appointmentViewProps({
+    resolution,
+    appointment: record,
+    timezone: record?.timezone || "",
+    homeAddress: patientHomeAddress(),
+    destination: resolutionDestination(record),
+    options: data.options || [],
+    slots: data.slots || [],
+    contacts: companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts,
+    error: state.barrierError || "",
+    showDemoBadge: showBarrierDemoBadge()
+  });
+}
+
+// ---------------------------------------------------------------------------
+// What the patient is looking at — assembled, checked against the document, and published.
+//
+// Three things happen here and nothing else:
+//
+//   1. emmiViewContext()      builds the descriptor for whatever is on screen. A describer if the
+//                             feature has one, and otherwise the screen's own heading, lead and
+//                             controls — so a feature nobody has written a describer for is
+//                             degraded, never invisible.
+//   2. syncEmmiViewContext()  notices the descriptor changed and pushes it into the live voice
+//                             session, silently. This is the fix for the original defect: a voice
+//                             session takes its system instruction once, so without a push EMMI
+//                             answers every question from the screen the microphone opened on.
+//   3. performEmmiViewAction() presses a control EMMI asked for — by finding the real element and
+//                             clicking it, which is why EMMI cannot do anything the patient could
+//                             not do themselves at that exact moment.
+//
+// Chat needs none of this plumbing: it calls assistantContext() fresh on every turn and therefore
+// reads the same descriptor by construction. That is the point — one context, two modalities.
+// ---------------------------------------------------------------------------
+
+// The descriptor last published, and its signature. Held here rather than on state because it is
+// derived from the DOM and belongs to the paint, not to the patient's record.
+let publishedView = null;
+let publishedViewSignature = "";
+
+const screenRoot = () => document.querySelector("#screen-content");
+
+// The snapshot the appointment describers read. Assembled from the same functions the screens
+// render from, so a value EMMI says and a value the patient reads cannot drift apart.
+function appointmentViewSnapshot() {
+  const record = activeAppointment();
+  const flow = state.appointmentFlow || {};
+  const view = state.screen === "APPOINTMENT_DETAIL"
+    ? (flow.view || (record && appointmentFollowUpDue(record, new Date()) ? "FOLLOW_UP" : ""))
+    : "";
+  return {
+    screen: state.screen,
+    view,
+    appointment: record,
+    appointments: appointmentRecords(),
+    tab: flow.tab || "",
+    schedulingStep: flow.step || "",
+    preVisitCheck: record ? preVisitCheckOptions({ appointment: record, locale: state.language }) : null,
+    barrierStates: record ? appointmentBarrierStates(record) : null,
+    readiness: record ? appointmentReadinessFor(record) : null,
+    members: appointmentCareCircle().eligibleMembers || [],
+    locale: state.language
+  };
+}
+
+// The extras a resolution describer needs that live outside the resolution record: the contacts
+// the companion step is choosing between, the pickup times, the return times, the special needs.
+function resolutionViewExtras(resolution) {
+  const data = resolution.data || {};
+  return {
+    contacts: companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts,
+    needOptions: transportNeedOptions(state.language),
+    pickupChoices: pickupTimeChoices(data.recommendedPickupAt || data.pickupAt, state.language),
+    returnChoices: returnTripChoices(state.language),
+    homeAddress: patientHomeAddress()
+  };
+}
+
+// The snapshots the rest of the product's describers read. Each one is assembled from the same
+// functions the screens themselves render from, so a value EMMI says and a value on screen cannot
+// come apart.
+const goalViewSnapshot = () => {
+  const goal = currentGoal();
+  const health = goal?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+  return {
+    screen: state.screen,
+    detailView: state.goalDetailView || "",
+    flowStep: state.goalFlowStep || "",
+    goal: goal ? {
+      id: goal.id,
+      title: goalDisplayName(goal, state.language),
+      status: goal.status,
+      priority: goal.priority,
+      whyItMatters: goal.whyItMatters || "",
+      actions: (goal.actions || []).map(item => ({ id: item.id, title: item.title, status: item.status, frequency: item.frequency || "", verificationMethod: resolveGoalActionVerification(item) })),
+      barriers: activeGoalBarriers(goal).map(item => ({ id: item.id, category: item.category, status: item.status })),
+      latestReading: health?.latest || null,
+      clinicalTarget: health?.clinicalTarget || null
+    } : null,
+    goals: activePatientGoals().map(item => ({ id: item.id, title: goalDisplayName(item, state.language), status: item.status, priority: item.priority, planStatus: item.planStatus })),
+    locale: state.language
+  };
+};
+
+const medicationViewSnapshot = () => ({
+  screen: state.screen,
+  refillStep: state.refillFlow?.step || "",
+  medications: (state.careMedications || []).map(item => ({ id: item.id, name: medicationLabel(item), strength: item.strength || "", details: medicationDetails(item) || medicationSig(item) || "", active: item.active !== false, pharmacy: item.pharmacy || null })),
+  reviews: state.medicationReviews || {},
+  refills: state.medicationRefills || [],
+  activeMedication: (state.careMedications || []).find(item => item.id === state.refillFlow?.medicationId) || null,
+  locale: state.language
+});
+
+const careCircleViewSnapshot = () => ({
+  screen: state.screen,
+  members: appointmentCareCircle().eligibleMembers || [],
+  invitePending: state.supportInviteStatus === "SENT" || state.careCircleInvitePending === true,
+  permissions: state.careCirclePermissions || null,
+  supportPersonName: state.supportPersonName || "",
+  locale: state.language
+});
+
+const deviceViewSnapshot = () => ({
+  screen: state.screen,
+  deviceVerificationStatus: state.deviceVerificationStatus || "",
+  device: state.assignedDeviceId || state.deviceModel ? { vendor: state.deviceVendor || "", model: state.deviceModel || "" } : null,
+  baselineTaken: state.bpBaselineReadingCount || 0,
+  baselineRemaining: state.bpBaselineRemainingReadings ?? 0,
+  baselineRequired: state.bpBaselineRequiredReadings || 0,
+  locale: state.language
+});
+
+const enrollmentViewSnapshot = () => ({
+  screen: state.screen,
+  enrollment: {
+    identityVerified: Boolean(state.identityVerified),
+    consentSaved: Boolean(state.consentSaved),
+    enrollmentComplete: state.enrollmentStatus === "COMPLETED",
+    canContinue: state.accessOutcome ? state.accessOutcome === "eligible" : null,
+    disclosureAcknowledged: Boolean(state.disclosureAcknowledgedAt)
+  },
+  locale: state.language
+});
+
+// The descriptor for right now. Describer first, document second, and the document always has the
+// last word on which controls exist.
+function emmiViewContext() {
+  const root = screenRoot();
+  let described = null;
+  const resolution = state.screen === "APPOINTMENT_DETAIL" && state.appointmentFlow?.view === "RESOLUTION" ? activeResolution() : null;
+  if (resolution) {
+    described = describeResolutionView({
+      resolution,
+      appointment: appointmentById(resolution.appointmentId),
+      locale: state.language,
+      extras: resolutionViewExtras(resolution)
+    });
+  } else if (["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING", "MY_APPOINTMENTS"].includes(state.screen)) {
+    described = describeAppointmentView(appointmentViewSnapshot());
+  } else {
+    // The rest of the product. Each describer answers for its own screens and null for everything
+    // else, so the order here is not a priority list — it is just the order they were written in.
+    described = describeGoalView(goalViewSnapshot())
+      || describeMedicationView(medicationViewSnapshot())
+      || describeCareCircleView(careCircleViewSnapshot())
+      || describeDeviceView(deviceViewSnapshot())
+      || describeEnrollmentView(enrollmentViewSnapshot());
+  }
+  if (described) return withLiveControls(normalizeEmmiView({ ...described, screenId: described.screenId || state.screen }), root);
+  // The floor. Every other screen in the product still tells EMMI its heading, the sentence under
+  // it and the controls it drew, which is enough to answer "what do I do here?" and enough that a
+  // feature added tomorrow is never a blank.
+  return describeEmmiViewFromDom(root, { screenId: state.screen, viewId: `SCREEN_${state.screen}`, locale: state.language });
+}
+
+// Called from the paint. Compares meaning rather than markup, so a re-render that changed nothing
+// costs nothing and a changed price, selection or completed action reaches EMMI immediately.
+function syncEmmiViewContext() {
+  const view = emmiViewContext();
+  const signature = emmiViewSignature(view);
+  if (signature === publishedViewSignature) return false;
+  publishedView = view;
+  publishedViewSignature = signature;
+  // Voice only. Chat reads the same descriptor through assistantContext() on its next turn, so
+  // pushing to it would be sending it something it is about to ask for.
+  if (emmiLive?.isActive()) emmiLive.sendContextUpdate(emmiViewForModel(view), { label: "APP SCREEN UPDATE" });
+  return true;
+}
+
+// The descriptor as the model reads it. Rebuilt rather than cached when nothing has published yet,
+// so a chat turn on a screen voice never saw still gets the real thing.
+const emmiModelView = () => emmiViewForModel(publishedView || emmiViewContext());
+
+// What EMMI can see, and what EMMI can press, reachable from a test or a QA console. Development
+// builds only: this is the same pair of functions the tools call, so a test asserting on them is
+// asserting on the real path rather than on a copy of it — but a production build must not hand a
+// page script a way to press the patient's buttons.
+if (!import.meta.env.PROD) {
+  globalThis.__emmiViewProbe = () => emmiModelView();
+  // Any tool, through the orchestrator the model calls — so a tool that fails for EMMI fails here
+  // in the same way, with the same error, rather than only inside a live session.
+  globalThis.__emmiToolProbe = async (name, args = {}) => {
+    try { return { ok: true, result: await ensureEmmiRuntime().tools.execute(name, args) }; }
+    catch (error) { return { ok: false, error: String(error?.message || error) }; }
+  };
+  globalThis.__emmiActionProbe = params => performEmmiViewAction(params || {});
+  // Whether a live session is open, which is what decides whether a screen change is pushed.
+  globalThis.__emmiVoiceProbe = () => ({ state: state.assistantVoiceState, active: Boolean(emmiLive?.isActive()), error: state.assistantVoiceError || "", socket: Boolean(emmiLive?.session), contextVersion: emmiLive?.activeContextVersion ?? null });
+  // Ask the live session a question as the patient, and read back what EMMI answered. The words go
+  // in as a patient turn on the same session, against the same context a spoken question would
+  // reach — which is what makes this a real test of the context rather than of the microphone.
+  globalThis.__emmiVoiceAsk = async question => {
+    if (!emmiLive?.isActive()) return { ok: false, reason: "NO_SESSION" };
+    // A patient speaks when they want to, including over screen guidance — that is what barge-in
+    // is for — so this does not wait for silence. It only retries a turn the client refuses,
+    // which happens while a context handoff is in flight and clears in a few hundred milliseconds.
+    const before = state.assistantMessages.length;
+    let sent = false;
+    for (let attempt = 0; attempt < 30 && !sent; attempt += 1) {
+      sent = emmiLive.sendText(String(question || ""), { priority: "PATIENT_RESPONSE", contextIndependent: true });
+      if (!sent) await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    if (!sent) return { ok: false, reason: "TURN_REFUSED", voiceState: state.assistantVoiceState, socket: Boolean(emmiLive.session) };
+    // Screen narration is not an answer, so it is filtered out by the same flag the transcript
+    // uses to keep it out of model memory.
+    const answerSoFar = () => state.assistantMessages.slice(before).filter(message => message.role === "assistant" && !message.guidance);
+    // The answer arrives as a stream of transcript chunks, and the state can touch LISTENING
+    // between two of them. So the turn is finished when the text has stopped growing, not when the
+    // state says idle — otherwise the test reads the first two words and calls it an answer.
+    const deadline = Date.now() + 45000;
+    let text = "";
+    let steadyFor = 0;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const next = answerSoFar().map(message => message.text).join(" ");
+      steadyFor = next === text && next ? steadyFor + 250 : 0;
+      text = next;
+      if (steadyFor >= 2500) return { ok: true, text };
+    }
+    const late = answerSoFar();
+    return late.length
+      ? { ok: true, text: late.map(message => message.text).join(" "), timedOut: true }
+      : { ok: false, reason: "NO_ANSWER", voiceState: state.assistantVoiceState, voiceError: state.assistantVoiceError || "", tail: state.assistantMessages.slice(-3).map(message => `${message.role}:${message.guidance ? "guidance:" : ""}${String(message.text || "").slice(0, 80)}`) };
+  };
+}
+
+/* ---------------------------------------------------------------- acting on the screen ---- */
+
+const VIEW_ACTION_STATUS = Object.freeze({
+  PERFORMED: "PERFORMED",
+  NOT_AVAILABLE: "CONTROL_NOT_ON_SCREEN",
+  CONFIRMATION_REQUIRED: "CONFIRMATION_REQUIRED",
+  NEEDS_TYPED_INPUT: "NEEDS_TYPED_INPUT",
+  UNKNOWN_ACTION: "UNKNOWN_ACTION",
+  SCREEN_NOT_DESCRIBED: "SCREEN_NOT_DESCRIBED"
+});
+
+// EMMI pressing a button. The authorization rules live here, next to the controls, rather than in
+// a prompt — a prompt can be talked out of them.
+async function performEmmiViewAction({ actionId = "", optionRef = "", confirmed = false, text = "" } = {}) {
+  const view = publishedView || emmiViewContext();
+  const root = screenRoot();
+  if (!view || !root) return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE };
+
+  // A screen nobody has described reaches EMMI through the DOM floor, where the kind of every
+  // control is inferred from the verb in its name. That inference is good enough to explain a
+  // screen and it is not good enough to authorise acting on one: it read "pause my goal" as
+  // navigation until this week. So on those screens EMMI names the button and the patient presses
+  // it. Being able to act is earned by writing the describer, which is where somebody actually
+  // decides what each control does.
+  if (view.source === "DOM") {
+    return {
+      success: false,
+      status: VIEW_ACTION_STATUS.SCREEN_NOT_DESCRIBED,
+      note: "Nothing was pressed. On this screen, tell the patient which control to use and let them press it.",
+      availableActions: view.actions.map(item => ({ id: item.id, label: item.label }))
+    };
+  }
+
+  // An option reference wins when both are given: "select the first one" names a choice, and the
+  // action that selects it is whatever that choice's own control is.
+  const option = optionRef ? findViewOption(view, optionRef) : null;
+  if (optionRef && !option) {
+    // A reference to something that is not on this screen. Handing back both lists rather than
+    // only the choices matters on a screen that has none: EMMI asking for "the second one" on a
+    // review page should learn what that page does have, not receive an empty array.
+    return {
+      success: false,
+      status: VIEW_ACTION_STATUS.UNKNOWN_ACTION,
+      availableChoices: view.options.map(item => ({ n: item.ordinal, id: item.id, label: item.label })),
+      availableActions: view.actions.map(item => ({ id: item.id, label: item.label, kind: item.kind })),
+      currentView: emmiViewForModel(view)
+    };
+  }
+  const target = option || findViewAction(view, actionId);
+  if (!target) {
+    return { success: false, status: VIEW_ACTION_STATUS.UNKNOWN_ACTION, availableActions: view.actions.map(item => ({ id: item.id, label: item.label, kind: item.kind })) };
+  }
+
+  // An option is a selection by definition; an action carries its own kind.
+  const kind = option ? VIEW_ACTION_KINDS.SELECT : target.kind;
+  const typed = String(text || "").trim().slice(0, 400);
+  if (kind === VIEW_ACTION_KINDS.INPUT) {
+    // A single-box action can be completed with the patient's own words — that is what makes
+    // "add that I want to ask about my dizziness" something EMMI can actually do rather than
+    // only describe. A control with no named box, or a call with no words, is refused: EMMI
+    // asking the patient to type it is the honest outcome, and guessing five form fields is not.
+    if (!target.inputSelector) return { success: false, status: VIEW_ACTION_STATUS.NEEDS_TYPED_INPUT, note: "This control reads a form the patient has to fill in themselves. Ask them to type it." };
+    if (!typed) return { success: false, status: VIEW_ACTION_STATUS.NEEDS_TYPED_INPUT, note: `Call again with text: ${target.inputHint || "what the patient said"}.` };
+  }
+  // The line EMMI may not cross without being told to in the same turn. It is enforced here, on
+  // the kind the describer assigned, so no wording in a prompt can move it.
+  if (CONFIRMATION_REQUIRED_KINDS.includes(kind) && confirmed !== true) {
+    return { success: false, status: VIEW_ACTION_STATUS.CONFIRMATION_REQUIRED, actionLabel: target.label, effect: target.effect || "", note: "Ask the patient to confirm in their own words, then call again with confirmed true." };
+  }
+
+  const element = target.selector ? root.querySelector(target.selector) : null;
+  if (!element || element.disabled) {
+    // The screen moved on between EMMI reading it and acting on it. Nothing happened, and the
+    // caller is handed the current screen rather than an error it would have to guess about.
+    return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE, currentView: emmiViewForModel(emmiViewContext()) };
+  }
+
+  // The patient's words go into the real box, through the real input event, so the handler that
+  // reads it cannot tell EMMI apart from a keyboard — and so nothing is stored that the screen
+  // does not also show.
+  if (kind === VIEW_ACTION_KINDS.INPUT) {
+    const field = root.querySelector(target.inputSelector);
+    if (!field) return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE, currentView: emmiViewForModel(emmiViewContext()) };
+    field.value = typed;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  // The audit row records that EMMI pressed something and which kind it was. Never the words:
+  // a topic can carry a symptom, and the EMMI transcript is the deliberate sink for those.
+  audit(state, "emmi_view_action_performed", "success", { viewId: view.viewId, actionId: option ? "select-option" : target.id, kind, withText: Boolean(typed), viaVoice: Boolean(emmiLive?.isActive()) });
+  element.click();
+  // The handlers are async and re-render; wait a paint so the result describes what the patient
+  // can now see rather than what they could see a moment ago.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const after = emmiViewContext();
+  publishedView = after;
+  publishedViewSignature = emmiViewSignature(after);
+  return {
+    success: true,
+    status: VIEW_ACTION_STATUS.PERFORMED,
+    performed: { id: option ? option.id : target.id, label: target.label, kind },
+    // What the patient is now looking at. The model answers from this rather than from what it
+    // expected the button to do, which is what stops it announcing a result that did not happen.
+    currentView: emmiViewForModel(after)
+  };
+}
+
 // §82/§83: an upcoming visit or an open request with the same office, for the same reason, is the
 // thing the patient is already waiting on — not a reason to start a second one.
 const existingAppointmentFor = record => {
@@ -4247,7 +5180,19 @@ function appointmentDetailScreen() {
   const props = appointmentViewProps({ appointment: record });
   if (view === "PREP") return appointmentPrepView(props);
   if (view === "BRIEF") return appointmentBriefView(props);
-  if (view === "BARRIER") return appointmentBarrierCheckView(appointmentViewProps({ appointment: record, preVisitCheck: preVisitCheckOptions({ appointment: record, locale: state.language }) }));
+  if (view === "BARRIER") return appointmentBarrierCheckView(appointmentViewProps({ appointment: record, preVisitCheck: preVisitCheckOptions({ appointment: record, locale: state.language }), barrierStates: appointmentBarrierStates(record) }));
+  // A resolution in flight owns the screen. It is a view of the appointment, not a separate place:
+  // the header, EMMI's anchor and the way back are all the ones the patient already had.
+  if (view === "RESOLUTION") {
+    const resolution = activeResolution();
+    if (resolution && resolution.appointmentId === record.id) return barrierResolutionScreen(barrierResolutionProps(resolution));
+  }
+  // §8. Saying nothing is wrong is an answer, not a flow: one sentence and the way back.
+  if (view === "ALL_SET") {
+    return `<div class="appointment-screen barrier-screen">${titleBlock(L("Thanks for telling me", "Gracias por decírmelo", "Mèsi paske ou di m sa"), "", L("Appointment", "Cita", "Randevou"))}
+      ${allSetConfirmation(appointmentViewProps({ appointment: record }))}
+      ${appointmentReadinessPanel(appointmentViewProps({ readiness: appointmentReadinessFor(record) }))}</div>`;
+  }
   if (view === "SHARE") {
     const sharing = appointmentCareCircle();
     return appointmentShareView(appointmentViewProps({ appointment: record, members: sharing.eligibleMembers, sharing, scope: appointmentShareScope(state.language) }));
@@ -4261,6 +5206,7 @@ function appointmentDetailScreen() {
   state.appointmentNotice = "";
   return notice + appointmentDetailView(appointmentViewProps({
     appointment: record,
+    readinessPanel: appointmentReadinessPanel(appointmentViewProps({ readiness: appointmentReadinessFor(record) })),
     capability: appointmentCapability(record),
     patientStatus: appointmentPatientStatus(record, state.language),
     nextStep: appointmentNextStep(record, state.language),
@@ -4277,6 +5223,10 @@ function appointmentSchedulingScreen() {
     // slot can sit above an earlier one on the same day.
     const slots = [...(record.proposedTimes || [])].sort((a, b) => String(a.startAt).localeCompare(String(b.startAt)));
     return slotPickerView(appointmentViewProps({ appointment: record, slots, expanded: flow.expanded === true, error: flow.error || "" }));
+  }
+  if (flow.step === "REVIEW_SLOT") {
+    const slot = (record.proposedTimes || []).find(item => item.slotId === flow.selectedSlotId);
+    if (slot) return appointmentSlotReviewView(appointmentViewProps({ appointment: record, slot }));
   }
   if (flow.step === "BOOKED") return bookingConfirmationView(appointmentViewProps({ appointment: record }));
   if (flow.step === "REQUESTED") return requestConfirmationView(appointmentViewProps({ appointment: record }));
@@ -5078,7 +6028,7 @@ function accessBpShippingAddress() {
 
 function accessBpFulfillmentConfirmed() {
   const cuffPending = state.cuffSelectionStatus === "NEEDS_ASSISTANCE";
-  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can keep setting up your care while you wait for the monitor.", "Puede seguir configurando su cuidado mientras espera el monitor.", "Ou ka kontinye mete swen ou anplas pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("See my health goals", "Ver mis objetivos de salud", "Wè objektif sante mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div>`;
+  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can keep setting up your care while you wait for the monitor.", "Puede seguir configurando su cuidado mientras espera el monitor.", "Ou ka kontinye mete swen ou anplas pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("See my health goals", "Ver mis objetivos de salud", "Wè objektif sante mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div><p class="form-error" role="alert">${state.error || ""}</p>`;
 }
 
 function accessBpDeviceResult() {
@@ -5555,7 +6505,7 @@ function devPanel() {
 // and lands halfway down the new question. Same reason MY_GOALS carries its detail suffix.
 const scrollViewKey = () => {
   if (state.screen === "MY_GOALS" && state.activeGoalId) return `${state.screen}#detail`;
-  if (state.screen === "APPOINTMENT_DETAIL") return `${state.screen}#${state.activeAppointmentId || ""}#${state.appointmentFlow?.view || ""}`;
+  if (state.screen === "APPOINTMENT_DETAIL") return `${state.screen}#${state.activeAppointmentId || ""}#${state.appointmentFlow?.view || ""}${state.appointmentFlow?.view === "RESOLUTION" ? `#${activeResolution()?.step || ""}` : ""}`;
   if (state.screen === "APPOINTMENT_SCHEDULING") return `${state.screen}#${state.appointmentFlow?.step || ""}`;
   if (state.screen === "MY_APPOINTMENTS") return `${state.screen}#${state.appointmentFlow?.tab || ""}`;
   return state.screen;
@@ -5589,6 +6539,14 @@ function render() {
   // Only a genuinely new screen hands focus to its heading. Re-focusing the h1 after an in-place
   // update drags a screen reader back to the title the patient already heard.
   if (newScreen) requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
+  // A resolution parked on a searching / booking / checking step is what makes the provider call.
+  // Driving it from the paint rather than from the click means a patient who reloads mid-search
+  // sees the search finish rather than a spinner nobody is turning.
+  startBarrierResolutionWorkIfPending();
+  // And this is what keeps EMMI looking at the same screen as the patient. It runs on every paint
+  // because a paint is the only moment the document is guaranteed to be what the patient can see;
+  // it compares meaning, so a paint that changed nothing sends nothing.
+  syncEmmiViewContext();
   finishRender(scrollSnapshot, errorAppeared);
 }
 
@@ -5704,6 +6662,7 @@ async function launchPrototype() {
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "" });
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
+  Object.assign(state, { barrierResolutions: [], activeResolutionId: "", barrierActivity: [], barrierError: "", barrierReadinessAck: {} });
   state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
   state.flowTransitionNotice = "";
   applyScenarioDeviceContext();
@@ -6804,6 +7763,13 @@ function bindAssistantLayer() {
       return;
     }
     // An appointment EMMI helped with opens where it can be acted on rather than described again.
+    if (growthAction === "appointment-companion") {
+      const record = appointmentById(button.dataset.appointmentId || "");
+      if (record) startBarrierResolution(record, APPOINTMENT_BARRIER_REASONS.CAREGIVER_AVAILABILITY);
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; draftStore.save(state); }
+      render();
+      return;
+    }
     if (growthAction === "appointment-view") {
       const appointmentId = button.dataset.appointmentId || "";
       if (appointmentId && appointmentById(appointmentId)) openAppointmentDetail(appointmentId);
@@ -7332,6 +8298,219 @@ function bind() {
       else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
       draftStore.save(state); render(); return;
     }
+    // --- Barrier resolution ---------------------------------------------------------------
+    //
+    // §12's pattern is enforced structurally rather than by convention: no handler below calls a
+    // provider. The ones that matter move the resolution onto a working step and let the render
+    // driver make the call — which means the only way to reach a provider is through a step the
+    // patient arrived at by pressing a button on a review screen.
+    if (action.startsWith("barrier-")) {
+      const resolution = barrierResolutionById(el.dataset.resolutionId || state.activeResolutionId || "");
+      if (!resolution) { state.appointmentFlow = { ...state.appointmentFlow, view: "" }; render(); return; }
+      const record = appointmentById(resolution.appointmentId);
+      const data = resolution.data || {};
+      state.barrierError = "";
+
+      // Leaving is never destructive (§25). The resolution keeps its step, so coming back through
+      // the barrier list resumes here rather than starting over.
+      if (action === "barrier-close") {
+        state.activeResolutionId = "";
+        openAppointmentDetail(resolution.appointmentId);
+        render(); return;
+      }
+      if (action === "barrier-back") {
+        advanceTo(resolution, el.dataset.step || resolution.step);
+        render(); return;
+      }
+      if (action === "barrier-decline") {
+        const declined = advanceTo(resolution, "DECLINED");
+        logResolution(RESOLUTION_EVENTS.ASSISTANCE_DECLINED, declined);
+        render(); return;
+      }
+      if (action === "barrier-escalate") {
+        const reason = el.dataset.reason || "EMMI_COULD_NOT_RESOLVE";
+        await escalateResolution(resolution, reason, { keepStep: PARTIAL_ESCALATIONS.includes(reason) });
+        render(); return;
+      }
+
+      // --- transportation -------------------------------------------------------------------
+      if (action === "barrier-accept") {
+        // Accepting help never re-asks for what the record already holds (§3): the address the
+        // patient confirmed and the needs they already answered survive a second pass.
+        advanceTo(resolution, "PICKUP", { pickupAddress: data.pickupAddress || null });
+        render(); return;
+      }
+      if (action === "barrier-pickup-home") {
+        const home = patientHomeAddress();
+        if (!home) { advanceTo(resolution, "PICKUP_EDIT"); render(); return; }
+        advanceTo(resolution, "NEEDS", { pickupAddress: home, needs: data.needs || [] });
+        render(); return;
+      }
+      if (action === "barrier-pickup-other") { advanceTo(resolution, "PICKUP_EDIT"); render(); return; }
+      if (action === "barrier-pickup-save") {
+        const form = document.querySelector("#barrier-address-form");
+        const draft = form ? Object.fromEntries(new FormData(form)) : {};
+        const checked = validateAddress(draft);
+        if (!checked.ok) {
+          state.barrierError = addressErrorText(checked.errors[0], state.language);
+          advanceTo(resolution, "PICKUP_EDIT", { addressDraft: draft });
+          render(); return;
+        }
+        advanceTo(resolution, "NEEDS", { pickupAddress: checked.address, addressDraft: draft, needs: data.needs || [] });
+        render(); return;
+      }
+      if (action === "barrier-need-toggle") {
+        advanceTo(resolution, "NEEDS", { needs: toggleTransportNeed(data.needs || [], el.dataset.need || "") });
+        render(); return;
+      }
+      if (action === "barrier-needs-continue") {
+        // The one place a difficulty stops being a search and becomes a coordination job. A patient
+        // who cannot get in and out of a car unaided is not offered one (§3.2).
+        const suitability = transportationSuitability(data.needs || []);
+        if (!suitability.standardRideAppropriate) {
+          advanceTo(resolution, "NEEDS_UNSUPPORTED", { blockingNeeds: suitability.blockingNeeds });
+          render(); return;
+        }
+        transportationTimeStep(resolution, record);
+        render(); return;
+      }
+      if (action === "barrier-time-accept") { advanceTo(resolution, "SEARCHING"); render(); return; }
+      if (action === "barrier-time-change") { advanceTo(resolution, "TIME_EDIT"); render(); return; }
+      if (action === "barrier-time-select") {
+        advanceTo(resolution, "TIME", { pickupAt: el.dataset.pickupAt || data.pickupAt });
+        render(); return;
+      }
+      if (action === "barrier-option-select") {
+        const optionId = el.dataset.optionId || "";
+        const option = (data.options || []).find(item => item.optionId === optionId);
+        const chosen = advanceTo(resolution, "REVIEW", { selectedOptionId: optionId, selectedRideType: option?.rideType || "" });
+        logResolution(RESOLUTION_EVENTS.TRANSPORTATION_OPTION_SELECTED, chosen, { rideType: option?.rideType || "" });
+        render(); return;
+      }
+      if (action === "barrier-reserve-confirm") {
+        // The patient has now said it out loud on a review screen. This is the only path to a
+        // reservation, and it books nothing itself — it hands the step to the driver.
+        const confirmed = advanceTo(resolution, "BOOKING");
+        logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CONFIRMED, confirmed, { rideType: data.selectedRideType || "" });
+        render(); return;
+      }
+      if (action === "barrier-retry") { advanceTo(resolution, "BOOKING"); render(); return; }
+      if (action === "barrier-ride-cancel") { advanceTo(resolution, "CANCEL_CONFIRM"); render(); return; }
+      if (action === "barrier-ride-cancel-confirm") {
+        const released = await transportationService.cancel({ reservationId: data.reservation?.reservationId || "" });
+        const canceled = advanceTo(resolution, "CANCELED", released.ok ? { reservation: null, returnReservation: null, reservationOutdated: false } : {});
+        if (released.ok) logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CANCELED, canceled, { replaced: false });
+        render(); return;
+      }
+      if (action === "barrier-ride-change" || action === "barrier-transport-update") {
+        // Changing a ride keeps the car that exists until a replacement is booked, so the patient
+        // is never left with neither. The old reservation id travels forward as `replacing`.
+        const ride = action === "barrier-transport-update" ? transportationResolutionFor(resolution.appointmentId) : resolution;
+        if (!ride) { render(); return; }
+        const rideRecord = appointmentById(ride.appointmentId);
+        transportationTimeStep(ride, rideRecord, { replacingReservationId: ride.data?.reservation?.reservationId || "", reservationOutdated: false });
+        openResolution(barrierResolutionById(ride.id));
+        render(); return;
+      }
+      if (action === "barrier-return-yes") { advanceTo(resolution, "RETURN_TIME", { returnUnavailable: false }); render(); return; }
+      if (action === "barrier-return-no") { advanceTo(resolution, "BOOKED"); render(); return; }
+      if (action === "barrier-return-select") {
+        advanceTo(resolution, "RETURN_BOOKING", {
+          returnChoice: el.dataset.returnChoice || "WHEN_VISIT_ENDS",
+          returnPickupAt: transportationService.returnPickup(record, el.dataset.returnChoice || "WHEN_VISIT_ENDS")
+        });
+        render(); return;
+      }
+
+      // --- video visit ----------------------------------------------------------------------
+      if (action === "barrier-video-start" || action === "barrier-video-recheck") { advanceTo(resolution, "CHECKING"); render(); return; }
+      if (action === "barrier-video-guide") { advanceTo(resolution, "GUIDE"); render(); return; }
+
+      // --- companion ------------------------------------------------------------------------
+      if (action === "barrier-companion-answer") {
+        if ((el.dataset.answer || "") === "NO") { advanceTo(resolution, "NO_CONTACT"); render(); return; }
+        advanceTo(resolution, "CONTACTS");
+        render(); return;
+      }
+      if (action === "barrier-companion-select") {
+        const contacts = companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts;
+        const contact = contacts.find(item => item.contactId === (el.dataset.contactId || ""));
+        if (!contact) { render(); return; }
+        advanceTo(resolution, "REVIEW", {
+          contactId: contact.contactId,
+          contactName: contact.firstName,
+          contactRelationship: contact.relationship || "",
+          contactSource: contact.source || ""
+        });
+        render(); return;
+      }
+      if (action === "barrier-companion-new") { advanceTo(resolution, "NEW_CONTACT"); render(); return; }
+      if (action === "barrier-companion-save") {
+        const form = document.querySelector("#barrier-contact-form");
+        const draft = form ? Object.fromEntries(new FormData(form)) : {};
+        const firstName = String(draft.firstName || "").trim().slice(0, 40);
+        const phone = String(draft.phone || "").replace(/[^\d+]/g, "");
+        // §115 minimum necessary: a first name and a way to reach them. Nothing else is asked for
+        // and nothing else is stored.
+        if (!firstName || phone.replace(/\D/g, "").length < 10) {
+          state.barrierError = !firstName
+            ? L("Add their first name.", "Agregue su nombre.", "Ajoute non li.")
+            : L("Add a phone number with 10 numbers.", "Agregue un teléfono de 10 números.", "Ajoute yon nimewo telefòn ak 10 chif.");
+          advanceTo(resolution, "NEW_CONTACT", { contactDraft: draft });
+          render(); return;
+        }
+        advanceTo(resolution, "REVIEW", {
+          contactId: `new-${phone.slice(-4)}`,
+          contactName: firstName,
+          contactRelationship: String(draft.relationship || "").trim().slice(0, 40),
+          contactPhone: phone,
+          contactSource: "PATIENT_ENTERED",
+          contactDraft: draft
+        });
+        render(); return;
+      }
+      if (action === "barrier-companion-send") { advanceTo(resolution, "SENDING"); render(); return; }
+      if (action === "barrier-companion-another") { advanceTo(resolution, "CONTACTS", { contactId: "", contactName: "", invitation: null }); render(); return; }
+
+      // --- reschedule -----------------------------------------------------------------------
+      if (action === "barrier-reschedule-start") { advanceTo(resolution, "SEARCHING"); render(); return; }
+      if (action === "barrier-slot-select") {
+        advanceTo(resolution, "REVIEW", {
+          selectedSlotId: el.dataset.slotId || "",
+          hasTransportation: Boolean(transportationResolutionFor(resolution.appointmentId)?.data?.reservation)
+        });
+        render(); return;
+      }
+      if (action === "barrier-reschedule-confirm") { advanceTo(resolution, "CHANGING"); render(); return; }
+
+      // --- something else -------------------------------------------------------------------
+      if (action === "barrier-other-submit") {
+        const text = String(document.querySelector("#barrier-describe")?.value || "").trim().slice(0, 400);
+        if (!text) { state.barrierError = L("Tell me a little about it.", "Cuénteme un poco.", "Di m yon ti kras sou li."); render(); return; }
+        const described = advanceTo(resolution, "CLASSIFYING", { text });
+        // What the patient wrote stays on the record and out of analytics: only its length goes in.
+        logResolution(RESOLUTION_EVENTS.BARRIER_DESCRIBED, described, { characters: text.length });
+        render(); return;
+      }
+      if (action === "barrier-route") {
+        // The classifier said which playbook this is. Opening it is a new resolution of that type,
+        // linked back to the one the patient described it in, so the activity log keeps the chain.
+        const target = el.dataset.barrierType || data.routedTo || "";
+        const created = createResolution({ appointmentId: resolution.appointmentId, patientId: state.offer?.patient?.id || "", barrierType: target });
+        if (!created) { advanceTo(resolution, "ESCALATE_OFFER"); render(); return; }
+        const existing = barrierResolutions().find(item => item.appointmentId === resolution.appointmentId && item.barrierType === target && item.status !== RESOLUTION_STATUS.CANCELLED);
+        advanceTo(resolution, "ROUTED", { openedResolutionId: (existing || created).id });
+        if (!existing) {
+          saveResolution({ ...created, data: { fromResolutionId: resolution.id } });
+          logResolution(RESOLUTION_EVENTS.BARRIER_IDENTIFIED, created, { via: "INTENT_CLASSIFIER" });
+          logResolution(RESOLUTION_EVENTS.ASSISTANCE_OFFERED, created);
+        }
+        openResolution(existing || barrierResolutionById(created.id));
+        render(); return;
+      }
+      render(); return;
+    }
+
     // --- Appointment coordination -------------------------------------------------------------
     if (action.startsWith("appointment-")) {
       const appointmentId = el.dataset.appointmentId || el.dataset.needId || state.activeAppointmentId || "";
@@ -7484,10 +8663,25 @@ function bind() {
         openAppointmentDetail(record.id); render(); return;
       }
 
-      // §51/§113: the pre-visit check asks; the answer routes into the barrier engine or nowhere.
+      // §51/§113: the pre-visit check asks. The answer still records the barrier for the care team
+      // exactly as it always did — and then, when EMMI has a playbook for it, opens the attempt to
+      // solve it. The resolution screen is entered BEFORE the barrier is recorded because
+      // recordAppointmentBarrier() paints on its way through, and a flash of the question the
+      // patient just answered reads as the tap not registering.
       if (action === "appointment-barrier-answer") {
-        await recordAppointmentBarrier(record, el.dataset.barrierReason || "");
-        if (state.screen === "APPOINTMENT_DETAIL") openAppointmentDetail(record.id);
+        const reasonKey = el.dataset.barrierReason || "";
+        if (reasonKey === APPOINTMENT_BARRIER_REASONS.ALL_SET) {
+          // §8: nothing to solve, so nothing is started. The answer is still recorded, because a
+          // patient who said their visit is fine is not the same as one who was never asked.
+          state.barrierReadinessAck = { ...(state.barrierReadinessAck || {}), [record.id]: new Date().toISOString() };
+          audit(state, "appointment_readiness_confirmed", "success", { appointmentId: record.id });
+          state.activeResolutionId = "";
+          openAppointmentDetail(record.id, "ALL_SET");
+          render(); return;
+        }
+        const started = startBarrierResolution(record, reasonKey);
+        await recordAppointmentBarrier(record, reasonKey);
+        if (!started && state.screen === "APPOINTMENT_DETAIL") openAppointmentDetail(record.id);
         render(); return;
       }
 
@@ -7616,6 +8810,10 @@ function bind() {
       // §123/§124: a time that could not be held sends the patient back to real times, never to a
       // confirmation screen, and never with the blame.
       if (action === "appointment-select-slot") {
+        state.appointmentFlow = { appointmentId: record.id, step: "REVIEW_SLOT", selectedSlotId: el.dataset.slotId || "", error: "" };
+        draftStore.save(state); render(); return;
+      }
+      if (action === "appointment-confirm-slot") {
         const result = confirmAppointmentSlot(record, el.dataset.slotId || "");
         if (result.ok) { state.appointmentFlow = { appointmentId: record.id, step: "BOOKED" }; state.screen = "APPOINTMENT_SCHEDULING"; draftStore.save(state); render(); return; }
         const availability = loadAppointmentAvailability(result.record || record);
@@ -8443,15 +9641,36 @@ function bind() {
       draftStore.save(state); showHelp();
     }
     if (action === "bp-defer-health-check") {
-      state.enrollmentStatus = "COMPLETED";
-      state.baselineStatus = "IN_PROGRESS";
-      state.bpBaselineStatus = "PENDING_DEVICE";
-      state.baselineDeferredAt = new Date().toISOString();
-      state.baselineResumeScreen = "ONBOARDING";
-      state.baselineReminderStatus = "PENDING_DEVICE";
-      audit(state, "baseline_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId });
-      draftStore.save(state);
-      document.querySelector(".save-status").textContent = L("The rest of your care setup is saved for later.", "El resto de la configuración de su cuidado quedó guardado para después.", "Rès konfigirasyon swen ou anrejistre pou pita.");
+      if (el.disabled || el.dataset.pending === "true") return;
+      el.dataset.pending = "true";
+      el.disabled = true;
+      const previousState = state;
+      const now = new Date().toISOString();
+      // Build the next state separately so a storage failure can restore the exact screen and
+      // enrollment data the patient had before the tap. GETTING_STARTED is the existing source of
+      // truth for optional care setup; DEFERRED keeps it resumable without calling it complete.
+      state = { ...state, flowProgress: { ...(state.flowProgress || {}), GETTING_STARTED: { ...gettingStartedProgress() } }, onboarding: { ...(state.onboarding || {}) }, audit: [...(state.audit || [])], error: "" };
+      try {
+        state.enrollmentConfirmed = true;
+        state.enrollmentStatus = "COMPLETED";
+        state.enrollmentCompletedAt ||= state.consentTimestamp || now;
+        state.baselineStatus = "IN_PROGRESS";
+        state.bpBaselineStatus = "PENDING_DEVICE";
+        state.baselineDeferredAt = now;
+        state.baselineResumeScreen = "ONBOARDING";
+        state.baselineReminderStatus = "PENDING_DEVICE";
+        state.onboarding.savedAt ||= now;
+        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: "ONBOARDING" });
+        audit(state, "care_setup_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId, resumeRoute: "ONBOARDING" });
+        state.screen = "MY_CARE";
+        draftStore.save(state);
+        render();
+      } catch {
+        state = previousState;
+        state.error = L("We couldn’t save this change. Try again.", "No pudimos guardar este cambio. Inténtalo de nuevo.", "Nou pa t ka anrejistre chanjman sa a. Eseye ankò.");
+        render();
+      }
+      return;
     }
     if (action === "bp-continue-with-help") {
       state.enrollmentStatus = "COMPLETED";
@@ -8808,6 +10027,14 @@ async function boot() {
       if (!saved.appointmentDraft || typeof saved.appointmentDraft !== "object") state.appointmentDraft = null;
       state.appointmentFlow = null;
       if (typeof saved.activeAppointmentId !== "string") state.activeAppointmentId = "";
+      // A draft written before barrier resolution existed restores without any. activeResolutionId
+      // is deliberately not restored: the resolutions are, so the patient can walk back into one
+      // from their appointment, but nobody is dropped into a half-finished booking on open.
+      if (!Array.isArray(saved.barrierResolutions)) state.barrierResolutions = [];
+      if (!Array.isArray(saved.barrierActivity)) state.barrierActivity = [];
+      if (!saved.barrierReadinessAck || typeof saved.barrierReadinessAck !== "object") state.barrierReadinessAck = {};
+      state.activeResolutionId = "";
+      state.barrierError = "";
       if (state.screen === "APPOINTMENT_SCHEDULING"
         && state.appointments.some(record => record.id === state.activeAppointmentId && record.status === APPOINTMENT_STATUS.CONFIRMED)) {
         state.screen = "APPOINTMENT_DETAIL";

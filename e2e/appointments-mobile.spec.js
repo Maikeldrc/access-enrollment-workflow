@@ -512,6 +512,106 @@ test("every control on every appointment screen meets the 44px touch minimum", a
   report(failures);
 });
 
+test("confirmed appointment actions stay centered and icon-aligned on requested mobile widths", async ({ page }) => {
+  const widths = [320, 375, 384, 390, 430];
+  const expectedLabels = [
+    "Prepararse con EMMI",
+    "Recordármelo en la aplicación",
+    "Compartir esta cita",
+    "¿Algo se lo dificulta?"
+  ];
+  const record = appointment({ ...CONFIRMED, locationAddress: "" });
+
+  await openScreen(page, { appointments: [record], language: "es" });
+  await tap(page, '.appointment-card[data-kind="appointment"] [data-action="appointment-open"]');
+
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: SWEEP_HEIGHT });
+    const layout = await page.locator(".appointment-confirmed-actions > .appointment-action").evaluateAll(buttons => ({
+      labels: buttons.map(button => button.innerText.trim()),
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      buttons: buttons.map(button => {
+        const icon = button.querySelector(".icon");
+        const label = button.querySelector(":scope > span:not(.icon)");
+        const buttonBox = button.getBoundingClientRect();
+        const iconBox = icon.getBoundingClientRect();
+        const labelBox = label.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        return {
+          height: buttonBox.height,
+          iconCenterX: iconBox.left + iconBox.width / 2,
+          iconCenterY: iconBox.top + iconBox.height / 2,
+          iconWidth: iconBox.width,
+          iconHeight: iconBox.height,
+          labelCenterX: labelBox.left + labelBox.width / 2,
+          labelCenterY: labelBox.top + labelBox.height / 2,
+          buttonCenterX: buttonBox.left + buttonBox.width / 2,
+          textLines: range.getClientRects().length
+        };
+      })
+    }));
+
+    expect(layout.labels, `${width}px labels`).toEqual(expectedLabels);
+    expect(layout.documentOverflow, `${width}px horizontal overflow`).toBeLessThanOrEqual(1);
+    expect(layout.buttons.every(button => button.height >= MIN_TOUCH), `${width}px touch targets`).toBe(true);
+    expect(new Set(layout.buttons.map(button => button.iconCenterX.toFixed(2))).size, `${width}px icon column`).toBe(1);
+    expect(new Set(layout.buttons.map(button => `${button.iconWidth.toFixed(2)}x${button.iconHeight.toFixed(2)}`)).size, `${width}px icon size`).toBe(1);
+    expect(layout.buttons.every(button => Math.abs(button.labelCenterX - button.buttonCenterX) <= 0.5), `${width}px centered labels`).toBe(true);
+    expect(layout.buttons.every(button => Math.abs(button.iconCenterY - button.labelCenterY) <= 0.5), `${width}px vertical icon alignment`).toBe(true);
+    expect(layout.buttons.find(button => layout.labels[layout.buttons.indexOf(button)] === "Compartir esta cita").textLines, `${width}px sharing label lines`).toBe(1);
+  }
+});
+
+test("appointment barrier choices align icons and simple card heights at 384px", async ({ page }) => {
+  const record = appointment({ ...CONFIRMED, locationAddress: "" });
+  await openScreen(page, { appointments: [record], language: "es" });
+  await page.evaluate(appointmentId => {
+    const key = "itera.enrollment.safe-draft.v2";
+    const saved = JSON.parse(localStorage.getItem(key));
+    saved.barrierResolutions = [{
+      id: "resolution-transportation",
+      appointmentId,
+      barrierType: "transportation",
+      status: "resolved",
+      data: {},
+      updatedAt: new Date().toISOString()
+    }];
+    localStorage.setItem(key, JSON.stringify(saved));
+  }, record.id);
+  await page.reload();
+  await page.setViewportSize({ width: 384, height: SWEEP_HEIGHT });
+  await tap(page, '.appointment-card[data-kind="appointment"] [data-action="appointment-open"]');
+  await tap(page, '[data-action="appointment-open-barrier"]');
+
+  const layout = await page.locator(".appointment-choice").evaluateAll(cards => cards.map(card => {
+    const icon = card.querySelector(":scope > .icon");
+    const label = card.querySelector(":scope > .barrier-choice-label > span:first-child");
+    const box = card.getBoundingClientRect();
+    const iconBox = icon.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(label);
+    return {
+      reason: card.dataset.barrierReason,
+      text: label.textContent.trim(),
+      height: box.height,
+      iconCenterX: iconBox.left + iconBox.width / 2,
+      textLines: range.getClientRects().length
+    };
+  }));
+
+  const simpleReasons = ["ALL_SET", "CAREGIVER_AVAILABILITY", "TIME_CONFLICT", "OTHER"];
+  const simple = layout.filter(card => simpleReasons.includes(card.reason));
+  const transportation = layout.find(card => card.reason === "TRANSPORTATION");
+  expect(layout.map(card => card.text)).toEqual(["Todo listo", "Transporte", "Necesito acompañante", "Necesito cambiar la hora", "Otra cosa"]);
+  expect(new Set(layout.map(card => card.iconCenterX.toFixed(2))).size, "fixed icon column").toBe(1);
+  expect(new Set(simple.map(card => card.height.toFixed(2))).size, "equal simple card heights").toBe(1);
+  expect(simple.every(card => card.textLines === 1), "simple labels stay on one line").toBe(true);
+  expect(transportation.height, "transportation card includes Coordinado state").toBeGreaterThan(simple[0].height);
+  await expect(page.locator('[data-barrier-reason="TRANSPORTATION"]')).toContainText("Coordinado");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), "horizontal overflow").toBeLessThanOrEqual(1);
+});
+
 // §153 / acceptance criterion 25. Font scaling is the test the "everything is in rem" claim has to
 // survive: nothing clips, nothing truncates, and nothing collapses under 44px.
 test("125% and 150% text scaling never clips an appointment screen or shrinks a target", async ({ page }) => {

@@ -214,7 +214,7 @@ const PRE_VISIT_LABELS = Object.freeze({
   ALL_SET: T("I’m all set", "Todo listo", "Mwen pare"),
   TRANSPORTATION: T("Transportation", "Transporte", "Transpò"),
   TECHNOLOGY_TELEHEALTH: T("Help with the video visit", "Ayuda con la visita por video", "Èd ak vizit videyo a"),
-  CAREGIVER_AVAILABILITY: T("I need someone to come with me", "Necesito que alguien me acompañe", "Mwen bezwen yon moun vin avè m"),
+  CAREGIVER_AVAILABILITY: T("I need someone to come with me", "Necesito acompañante", "Mwen bezwen yon moun vin avè m"),
   TIME_CONFLICT: T("I need to change the time", "Necesito cambiar la hora", "Mwen bezwen chanje lè a"),
   OTHER: T("Something else", "Otra cosa", "Yon lòt bagay")
 });

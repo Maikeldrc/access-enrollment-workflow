@@ -354,7 +354,12 @@ test("the pre-visit check routes a transportation answer into a barrier category
   await openAppointments(page, { appointments: [appointment()], patientGoals: [bpGoal()] });
   await page.locator('[data-action="appointment-open"]').first().click();
   await dispatchVia(page, '[data-action="appointment-open-prep"]', "appointment-barrier-answer", { appointmentId: "appt-1", barrierReason: "TRANSPORTATION" });
-  await expect(page.locator(".appointment-detail-screen")).toBeVisible();
+  // The answer used to land back on the appointment. It now opens the transportation resolution,
+  // because reporting a difficulty is no longer the end state (src/barrierResolution.js) — what
+  // this test guards is unchanged underneath it: the barrier is still recorded in the taxonomy that
+  // already exists, and the appointment itself is still untouched.
+  await expect(page.locator(".barrier-screen")).toBeVisible();
+  await expect(page.locator('[data-action="barrier-accept"]')).toBeVisible();
 
   const stored = await draft(page);
   const barrier = stored.patientGoals[0].barriers.at(-1);
@@ -372,6 +377,8 @@ test("saying nothing is wrong at the pre-visit check records no difficulty", asy
   await dispatchVia(page, '[data-action="appointment-open-prep"]', "appointment-barrier-answer", { appointmentId: "appt-1", barrierReason: "ALL_SET" });
 
   expect((await draft(page)).patientGoals[0].barriers).toHaveLength(0);
+  // §8: nothing is started either. "I am all set" gets one sentence back, not a flow.
+  expect((await draft(page)).barrierResolutions).toHaveLength(0);
 });
 
 test("the pre-visit check has an entry point a patient can reach", async ({ page }) => {
@@ -676,6 +683,36 @@ test("Prepare with EMMI opens the confirmed appointment conversation and preserv
   await expect(page.locator(".appointment-topics")).toContainText("medicamentos");
 });
 
+test("chat operates on the real ordered visit list and keeps it after refresh", async ({ page }) => {
+  await openAppointments(page, {
+    language: "es",
+    appointments: [appointment({ prep: { topics: ["Mareos", "Presión arterial"], medications: [], notes: "", sharedWithProvider: false } })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+
+  const shown = await tellEmmi(page, "muéstrame la lista", "es");
+  await expect(shown).toContainText(/1\. Mareos.*2\. Presión arterial/i);
+  await expect(shown).not.toContainText(/información aprobada/i);
+
+  const added = await tellEmmi(page, "agrega preguntas sobre el sueño", "es");
+  await expect(added).toContainText(/3\. preguntas sobre el sueño/i);
+  const moved = await tellEmmi(page, "pon lo de la presión primero", "es");
+  await expect(moved).toContainText(/1\. Presión arterial.*2\. Mareos.*3\. preguntas sobre el sueño/i);
+  await closeEmmi(page);
+
+  await expect(page.locator(".appointment-prep-screen")).toBeVisible();
+  await expect(page.locator(".appointment-topics .appointment-topic-text")).toHaveText(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+  expect((await storedAppointments(page))[0].prep.topics).toEqual(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+
+  await page.reload();
+  if (!(await page.locator(".appointment-prep-screen").count())) await page.locator('[data-action="appointment-open-prep"]').click();
+  await expect(page.locator(".appointment-topics .appointment-topic-text")).toHaveText(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+  const shownAfterRefresh = await tellEmmi(page, "qué tengo apuntado", "es");
+  await expect(shownAfterRefresh).toContainText(/1\. Presión arterial.*2\. Mareos.*3\. preguntas sobre el sueño/i);
+});
+
 test("Prepare with EMMI answers the only saved BP topic instead of asking for it again", async ({ page }) => {
   await openAppointments(page, {
     language: "es",
@@ -771,9 +808,9 @@ test("Prepare with EMMI closes a coherent agenda after medications and added top
   await panel.getByRole("button", { name: /Lisinopril 10 mg/ }).click();
   await panel.getByRole("button", { name: /Atorvastatin 20 mg/ }).click();
 
-  // Patients naturally say “listo” after selecting their medications; that closes the agenda just
-  // like the more literal instruction “eso es todo”.
-  const summary = await tellEmmi(page, "listo", "es");
+  // The short answer from the real conversation must retain the appointment-prep context and
+  // close the agenda rather than falling through to a generic knowledge response.
+  const summary = await tellEmmi(page, "es todo", "es");
   await expect(summary).toContainText(/agenda.*lista/i);
   await expect(summary).toContainText("Presión alta");
   await expect(summary).toContainText("fatiga");

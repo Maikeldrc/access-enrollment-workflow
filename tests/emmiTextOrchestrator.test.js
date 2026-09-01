@@ -18,9 +18,10 @@ const passage = (program, text = "Approved patient-facing concepts") => ({ sourc
 // string, never an internal one, and only the fields the tool contract promises.
 const upcoming = (overrides = {}) => ({ id: "APPT-1", patientStatus: "Cita confirmada", providerDisplayName: "Dr. Martinez", specialty: "Cardiology", scheduledAt: "2026-09-08T14:00:00.000Z", modality: "IN_PERSON", ...overrides });
 
-function harness({ locale = "ES", program = "ACCESS", conversation = {}, appointmentPrep = null, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
+function harness({ locale = "ES", program = "ACCESS", conversation = {}, appointmentPrep = null, appointmentSupport = null, transportation = null, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
   const calls = [];
   const events = [];
+  let appointmentTopics = [...(appointmentPrep?.topics || [])];
   const executeTool = vi.fn(async (name, args) => {
     calls.push({ name, args });
     // The twelve appointment tools of the EMMI runtime contract. The mutating ones mirror the real
@@ -32,6 +33,16 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, appoint
     if (name === "getAppointment") {
       const found = appointments.find(item => item.id === args.appointmentId);
       return found ? { appointment: found } : { success: false, status: "NOT_FOUND" };
+    }
+    if (name === "getAppointmentTransportation") return transportation || { success: false, status: "TRANSPORTATION_NOT_FOUND", reservations: [] };
+    if (name === "manageAppointmentTopics") {
+      if (args.operation === "OPEN" || args.operation === "LIST") return { success: true, status: args.operation === "OPEN" ? "OPENED" : "SAVED", topics: appointmentTopics };
+      if (args.operation === "ADD") appointmentTopics.push(args.value);
+      if (args.operation === "MOVE") {
+        const match = appointmentTopics.findIndex(topic => /presi[oó]n/i.test(topic));
+        if (match >= 0) appointmentTopics.unshift(...appointmentTopics.splice(match, 1));
+      }
+      return { success: true, status: "SAVED", topics: appointmentTopics };
     }
     if (name === "getSchedulingCapability") return { capability: "DIRECT_BOOKING", supportedModalities: ["IN_PERSON", "TELEHEALTH"] };
     if (name === "getProviderAvailability") return { ok: true, slots: [{ slotId: "SLOT-1", startAt: "2026-09-08T14:00:00.000Z", endAt: "2026-09-08T14:20:00.000Z", modality: "IN_PERSON", providerId: "prov-1" }] };
@@ -68,7 +79,7 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, appoint
     throw new Error(`unexpected ${name}`);
   });
   const orchestrator = new EmmiTextOrchestrator({
-    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" }, appointmentPrep }),
+    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" }, appointmentPrep, appointmentSupport }),
     getConversation: () => ({ conversationSessionId: "conv-1", conversationSummary: conversation.summary || "", recentTurns: conversation.turns || [] }),
     executeTool,
     screenExplanation: () => locale === "ES" ? "Esta pantalla explica el cuidado disponible." : "This screen explains the available care.",
@@ -79,6 +90,40 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, appoint
 }
 
 describe("Ask EMMI answer-first orchestration", () => {
+  it("shows the persisted appointment list instead of the approved-knowledge fallback", async () => {
+    const appointmentPrep = { appointmentId: "APPT-1", topics: ["Mareos", "Presión arterial"] };
+    const { orchestrator, executeTool } = harness({ appointmentPrep });
+    const answer = await orchestrator.answer("muéstrame la lista");
+    expect(answer.text).toMatch(/1\. Mareos.*2\. Presión arterial/i);
+    expect(executeTool).toHaveBeenCalledWith("manageAppointmentTopics", expect.objectContaining({ appointmentId: "APPT-1", operation: "OPEN" }));
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("executes list multi-intents in order", async () => {
+    const appointmentPrep = { appointmentId: "APPT-1", topics: ["Mareos", "Presión arterial"] };
+    const { orchestrator, calls } = harness({ appointmentPrep });
+    const answer = await orchestrator.answer("muéstrame la lista y después pon lo de la presión primero");
+    expect(calls.filter(call => call.name === "manageAppointmentTopics").map(call => call.args.operation)).toEqual(["OPEN", "MOVE"]);
+    expect(answer.text).toMatch(/1\. Presión arterial.*2\. Mareos/i);
+  });
+
+  it("runs clinical safety before a topic-list command", async () => {
+    const appointmentPrep = { appointmentId: "APPT-1", topics: ["Mareos"] };
+    const { orchestrator, executeTool } = harness({ appointmentPrep });
+    const answer = await orchestrator.answer("Agrega dolor de pecho a la lista");
+    expect(answer.emergency).toBe(true);
+    expect(executeTool).toHaveBeenCalledWith("evaluateClinicalEscalation", expect.any(Object));
+    expect(executeTool).not.toHaveBeenCalledWith("manageAppointmentTopics", expect.anything());
+  });
+
+  it("asks which appointment instead of guessing or using knowledge when context is ambiguous", async () => {
+    const appointmentPrep = { appointmentId: "", ambiguous: true, appointmentCandidates: [{ appointmentId: "APPT-1" }, { appointmentId: "APPT-2" }] };
+    const { orchestrator, executeTool } = harness({ appointmentPrep });
+    const answer = await orchestrator.answer("muéstrame la lista");
+    expect(answer.text).toMatch(/cu[aá]l cita/i);
+    expect(executeTool).not.toHaveBeenCalledWith("manageAppointmentTopics", expect.anything());
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
   it("answers ACCESS and CCM from different relevant knowledge instead of the same generic fallback", async () => {
     const { orchestrator } = harness();
     const access = await orchestrator.answer("¿Qué es ACCESS?");
@@ -218,7 +263,7 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
-  it.each(["listo", "ya terminé", "done", "mwen fini"])("recognizes %s as a natural completion of appointment preparation", phrase => {
+  it.each(["es todo", "eso es todo", "esto es todo", "sí, es todo", "por ahora es todo", "con eso sería todo", "listo", "ya terminé", "done", "mwen fini"])("recognizes %s as a natural completion of appointment preparation", phrase => {
     const response = appointmentPrepConversationResponse({
       question: phrase,
       locale: phrase === "mwen fini" ? "KR" : phrase === "done" ? "EN" : "ES",
@@ -285,6 +330,35 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(noted.update.notesByTopic.fatiga).toEqual(["Me pasa principalmente por las tardes"]);
     expect(noted.update.reviewedTopics).toContain("fatiga");
     expect(noted.text).toContain("Presión alta");
+  });
+
+  it("closes the exact headache conversation when the patient answers es todo", async () => {
+    const appointmentPrep = {
+      appointmentId: "APPT-1",
+      providerDisplayName: "Dr. Fresner Lee",
+      topics: ["Dolor de cabeza"],
+      medications: []
+    };
+    const selected = appointmentPrepConversationResponse({ question: "Dolor de cabeza", locale: "ES", appointmentPrep });
+    const noted = appointmentPrepConversationResponse({
+      question: "hace una semana, dolor intenso, luego se alivia",
+      locale: "ES",
+      appointmentPrep: { ...appointmentPrep, emmiPreparation: selected.update }
+    });
+    const { orchestrator, executeTool } = harness({
+      locale: "ES",
+      appointmentPrep: { ...appointmentPrep, emmiPreparation: noted.update },
+      conversation: { turns: [{ role: "assistant", text: noted.text }] }
+    });
+
+    const answer = await orchestrator.answer("es todo");
+
+    expect(answer.text).toMatch(/agenda.*lista/i);
+    expect(answer.text).toContain("Dolor de cabeza");
+    expect(answer.appointmentPrepUpdate.status).toBe("COMPLETED");
+    expect(answer.appointmentPrepUpdate.notesByTopic["Dolor de cabeza"]).toEqual(["hace una semana, dolor intenso, luego se alivia"]);
+    expect(answer.trace.intent).toBe("APPOINTMENT_PREPARATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
   it("answers a generic appointment-prep continuation from the saved agenda", async () => {
@@ -393,6 +467,26 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(answer.text).toMatch(/participación es voluntaria.*terminar su participación/i);
     expect(answer.trace.toolCalls).toContain("getExpectedAccessCost");
   });
+
+  it("answers both doctor continuity and cost in one compound question", async () => {
+    const { orchestrator, executeTool } = harness();
+    const answer = await orchestrator.answer("¿Esto reemplaza a mi médico y cuánto me costará?");
+    expect(answer.text).toMatch(/Dr\. Fresner/i);
+    expect(answer.text).toMatch(/no reemplaza|sigue formando parte|continúa/i);
+    expect(answer.text).toMatch(/pago esperado.*\$0/i);
+    expect(executeTool).toHaveBeenCalledWith("getCareTeam", expect.any(Object));
+    expect(executeTool).toHaveBeenCalledWith("getExpectedAccessCost", expect.any(Object));
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("treats an interrupted mandatory-enrollment question as patient choice, not legal authority", async () => {
+    const { orchestrator, executeTool } = harness();
+    const answer = await orchestrator.answer("Perdón que te interrumpa: ¿es obligatorio o puedo decidir que no?");
+    expect(answer.text).toMatch(/participación es voluntaria/i);
+    expect(answer.text).not.toMatch(/representante|autoridad legal/i);
+    expect(answer.trace.intent).toBe("VOLUNTARY_PARTICIPATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
 });
 
 describe("Ask EMMI appointment coordination", () => {
@@ -465,6 +559,16 @@ describe("Ask EMMI appointment coordination", () => {
     const { orchestrator } = harness({ locale: "EN" });
     const answer = await orchestrator.answer("I need an appointment in the morning");
     expect(answer.text).toMatch(/mornings/i);
+  });
+
+  it("acknowledges transport and a family companion in a compound appointment request", async () => {
+    const { orchestrator } = harness({ locale: "ES" });
+    const answer = await orchestrator.answer("Necesito una cita por la mañana, también un Uber y quiero que mi hija me acompañe.");
+    expect(answer.text).toMatch(/mañanas/i);
+    expect(answer.text).toMatch(/transporte/i);
+    expect(answer.text).toMatch(/hija.*acompañe/i);
+    expect(answer.text).toMatch(/después de confirmar el horario/i);
+    expect(answer.quickAction).toBe("appointment-request");
   });
 
   it("classifies an obvious reason rather than sending a blank one", async () => {
@@ -578,6 +682,52 @@ describe("Ask EMMI appointment coordination", () => {
     expect(answer.text).toMatch(/Esto es lo que tengo registrado/i);
     expect(answer.text).toMatch(/Cita confirmada/);
   });
+
+  it("answers appointment and confirmed ride details together without opening another flow", async () => {
+    const appointment = upcoming({
+      providerDisplayName: "Dr. Fresner Lee",
+      scheduledLabel: "mié, 2 sep · 11:45 a. m.",
+      locationName: "Fresner Medical Group"
+    });
+    const transportation = {
+      success: true,
+      status: "CONFIRMED",
+      reservations: [{ status: "CONFIRMED", tripType: "OUTBOUND", serviceName: "UberX", pickupLabel: "11:00 a. m.", estimatedArrivalLabel: "11:21 a. m.", reservationId: "UB-15582" }]
+    };
+    const { orchestrator, executeTool } = harness({ locale: "ES", appointments: [appointment], appointmentPrep: { appointmentId: "APPT-1" }, transportation });
+    const answer = await orchestrator.answer("Confírmame qué cita y qué transporte quedaron reservados, incluida la recogida y la reserva.");
+    expect(executeTool).toHaveBeenCalledWith("getAppointmentTransportation", expect.objectContaining({ appointmentId: "APPT-1" }));
+    expect(answer.text).toMatch(/Dr\. Fresner Lee/);
+    expect(answer.text).toMatch(/11:45 a\. m\./);
+    expect(answer.text).toMatch(/UberX/);
+    expect(answer.text).toMatch(/11:00 a\. m\./);
+    expect(answer.text).toMatch(/UB-15582/);
+    expect(answer.text).not.toMatch(/\.\.$/);
+    expect(answer.trace.responseMode).toBe("RUNTIME_GROUNDED");
+  });
+
+  it("answers every part of a combined Uber and family-companion request", async () => {
+    const appointment = upcoming({ providerDisplayName: "Dr. Fresner Lee", scheduledLabel: "mié, 2 sep · 11:45 a. m.", locationName: "Fresner Medical Group" });
+    const transportation = { success: true, status: "CONFIRMED", reservations: [{ status: "CONFIRMED", tripType: "OUTBOUND", serviceName: "UberX", pickupLabel: "11:00 a. m.", reservationId: "UB-15582" }] };
+    const { orchestrator } = harness({ locale: "ES", appointments: [appointment], appointmentPrep: { appointmentId: "APPT-1" }, transportation });
+    const answer = await orchestrator.answer("Ya tengo el Uber, pero me preocupa ir solo. ¿Puede acompañarme un familiar y cómo lo coordinamos?");
+    expect(answer.text).toMatch(/UberX/);
+    expect(answer.text).toMatch(/familiar|persona de confianza/i);
+    expect(answer.text).toMatch(/antes de enviar nada/i);
+    expect(answer.quickAction).toBe("appointment-companion");
+    expect(answer.appointmentId).toBe("APPT-1");
+  });
+
+  it("answers companion-invitation privacy from the visible structured flow", async () => {
+    const appointmentSupport = { appointmentId: "APPT-1", barrierType: "companion", step: "REVIEW", contactName: "Maria", invitationScope: { appointmentDate: true, appointmentTime: true, appointmentLocation: true, healthInformation: false } };
+    const { orchestrator, executeTool } = harness({ locale: "ES", appointmentPrep: { appointmentId: "APPT-1" }, appointmentSupport });
+    const answer = await orchestrator.answer("¿María solo verá la fecha y el lugar? No quiero compartir información de salud.");
+    expect(answer.text).toMatch(/fecha, la hora y el lugar/i);
+    expect(answer.text).toMatch(/no incluye.*salud/i);
+    expect(answer.text).toMatch(/No se envía nada/i);
+    expect(answer.trace.intent).toBe("APPOINTMENT_COMPANION_PRIVACY");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
 });
 
 // The runtime tool layer that the appointment intents above call into. Its whole job is to refuse
@@ -587,6 +737,7 @@ const appointmentTools = (hooks = {}) => new EmmiToolOrchestrator({
   getContext: () => ({ patientId: "DEMO-P001", currentScreen: "MY_APPOINTMENTS", locale: "EN" }),
   onUpcomingAppointments: () => ({ appointments: [upcoming()], requests: [] }),
   onAppointment: ({ appointmentId }) => (appointmentId === "APPT-1" ? { appointment: upcoming() } : { success: false, status: "NOT_FOUND" }),
+  onAppointmentTransportation: () => ({ success: true, status: "CONFIRMED", reservations: [{ reservationId: "UB-15582", status: "CONFIRMED", tripType: "OUTBOUND", serviceName: "UberX", pickupLabel: "11:00 AM" }] }),
   onSchedulingCapability: () => ({ capability: "DIRECT_BOOKING", supportedModalities: ["IN_PERSON"] }),
   onProviderAvailability: () => ({ ok: true, slots: [{ slotId: "SLOT-1", startAt: "2026-09-08T14:00:00.000Z" }] }),
   onStartAppointmentRequest: () => ({ needId: "NEED-1" }),
@@ -601,14 +752,24 @@ const appointmentTools = (hooks = {}) => new EmmiToolOrchestrator({
 });
 
 describe("EMMI appointment runtime tool contract", () => {
-  it("declares the twelve appointment tools the runtime contract names", () => {
+  it("declares the appointment and transportation tools the runtime contract names", () => {
     const names = EMMI_TOOL_DECLARATIONS[0].functionDeclarations.map(item => item.name);
     expect(names).toEqual(expect.arrayContaining([
       "getUpcomingAppointments", "getAppointment", "getSchedulingCapability", "getProviderAvailability",
       "startAppointmentRequest", "createAppointmentRequest", "bookAppointment", "rescheduleAppointment",
       "cancelAppointment", "createAppointmentReminder", "getCareCircle", "shareAppointment"
     ]));
+    expect(names).toContain("getAppointmentTransportation");
+    expect(names).toContain("manageAppointmentTopics");
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("reports topic writes only from the application callback", async () => {
+    const onAppointmentTopics = vi.fn(() => ({ success: true, status: "SAVED", topics: ["Mareos"] }));
+    const tools = appointmentTools({ onAppointmentTopics });
+    expect(await tools.execute("manageAppointmentTopics", { appointmentId: "APPT-1", operation: "ADD", value: "Mareos" })).toMatchObject({ success: true, topics: ["Mareos"] });
+    expect(onAppointmentTopics).toHaveBeenCalledWith(expect.objectContaining({ appointmentId: "APPT-1", operation: "ADD", value: "Mareos" }));
+    expect(await appointmentTools().execute("manageAppointmentTopics", { appointmentId: "APPT-1", operation: "ADD", value: "Mareos" })).toMatchObject({ success: false, status: "APPOINTMENT_TOPICS_UNAVAILABLE" });
   });
 
   it.each([
@@ -659,12 +820,14 @@ describe("EMMI appointment runtime tool contract", () => {
   });
 
   it("reports missing availability rather than an empty calendar", async () => {
+    expect(await appointmentTools().execute("getProviderAvailability", {})).toMatchObject({ ok: false, error: "PROVIDER_REQUIRED", availabilityChecked: false });
     expect(await appointmentTools({ onProviderAvailability: () => null }).execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: false, error: "AVAILABILITY_UNAVAILABLE" });
     expect(await appointmentTools({ onProviderAvailability: () => ({ ok: false, error: "NO_AVAILABILITY_SOURCE" }) }).execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: false, error: "NO_AVAILABILITY_SOURCE" });
     expect(await appointmentTools().execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: true, slots: [{ slotId: "SLOT-1" }] });
   });
 
   it("reports an unknown scheduling capability rather than assuming a channel", async () => {
+    expect(await appointmentTools().execute("getSchedulingCapability", {})).toMatchObject({ success: false, status: "PROVIDER_REQUIRED", availabilityChecked: false });
     expect(await appointmentTools({ onSchedulingCapability: () => null }).execute("getSchedulingCapability", { providerId: "prov-1" })).toMatchObject({ success: false, status: "CAPABILITY_UNKNOWN" });
     expect(await appointmentTools().execute("getSchedulingCapability", { providerId: "prov-1" })).toMatchObject({ capability: "DIRECT_BOOKING", supportedModalities: ["IN_PERSON"] });
   });
@@ -672,6 +835,14 @@ describe("EMMI appointment runtime tool contract", () => {
   it("reports an appointment it cannot find rather than describing one", async () => {
     expect(await appointmentTools().execute("getAppointment", { appointmentId: "APPT-9" })).toMatchObject({ success: false, status: "NOT_FOUND" });
     expect(await appointmentTools().execute("getAppointment", { appointmentId: "APPT-1" })).toMatchObject({ appointment: { id: "APPT-1" } });
+  });
+
+  it("reads confirmed appointment transportation only from the application callback", async () => {
+    const onAppointmentTransportation = vi.fn(() => ({ success: true, status: "CONFIRMED", reservations: [{ reservationId: "UB-15582", status: "CONFIRMED" }] }));
+    const tools = appointmentTools({ onAppointmentTransportation });
+    expect(await tools.execute("getAppointmentTransportation", { appointmentId: "APPT-1" })).toMatchObject({ success: true, reservations: [{ reservationId: "UB-15582" }] });
+    expect(onAppointmentTransportation).toHaveBeenCalledWith({ appointmentId: "APPT-1" });
+    expect(await appointmentTools({ onAppointmentTransportation: () => null }).execute("getAppointmentTransportation", { appointmentId: "APPT-1" })).toMatchObject({ success: false, status: "TRANSPORTATION_NOT_FOUND", reservations: [] });
   });
 
   it("saves an appointment reminder as in-app only and never as a phone notification", async () => {

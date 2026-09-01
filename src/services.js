@@ -267,6 +267,31 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       appointmentDraft: state.appointmentDraft ? serializeAppointmentDraft(state.appointmentDraft) : null,
       activeAppointmentId: state.activeAppointmentId || ""
     });
+    // Barrier resolutions persist because everything about them is mid-flight by nature: a ride
+    // half-chosen, an invitation waiting on a daughter, a device check the patient stepped away
+    // from. Losing them on a refresh would make EMMI forget it offered to help, which is worse
+    // than never having offered. `data` is written whole rather than field by field: it is
+    // playbook-owned working memory whose shape belongs to src/barrierResolution.js, and a
+    // whitelist here would silently drop whatever a playbook added tomorrow.
+    //
+    // activeResolutionId is NOT persisted, for the same reason appointmentFlow is not: which
+    // screen a patient was on is not a fact about their care, and dropping them back into a
+    // half-answered question they did not choose to resume is not resuming.
+    Object.assign(safe, {
+      barrierResolutions: (state.barrierResolutions || []).map(item => ({
+        id: item.id, appointmentId: item.appointmentId, patientId: item.patientId,
+        barrierType: item.barrierType, reasonKey: item.reasonKey || "", resolutionType: item.resolutionType,
+        step: item.step, status: item.status, careTeamTaskId: item.careTeamTaskId || "",
+        data: item.data && typeof item.data === "object" ? JSON.parse(JSON.stringify(item.data)) : {},
+        createdAt: item.createdAt, updatedAt: item.updatedAt, resolvedAt: item.resolvedAt || ""
+      })),
+      barrierActivity: (state.barrierActivity || []).slice(-100).map(event => ({
+        id: event.id, timestamp: event.timestamp, patientId: event.patientId, appointmentId: event.appointmentId,
+        resolutionId: event.resolutionId, barrierType: event.barrierType, type: event.type,
+        metadata: { ...(event.metadata || {}) }
+      })),
+      barrierReadinessAck: { ...(state.barrierReadinessAck || {}) }
+    });
     Object.assign(safe, {
       patientAddedCareTeamMembers: (state.patientAddedCareTeamMembers || []).map(member => ({
         id: member.id,

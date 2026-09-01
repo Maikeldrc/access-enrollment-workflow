@@ -29,8 +29,10 @@ export const SCHEDULING_CAPABILITY = Object.freeze({
 // Prototype directory ids, exported so the shell and the tests name the same fixtures rather than
 // hard-coding strings in four places.
 export const PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID = "dr-fresner";
-export const PROTOTYPE_STRUCTURED_REQUEST_PROVIDER_ID = "dr-martinez-cardiology";
-export const PROTOTYPE_HUMAN_COORDINATION_PROVIDER_ID = "itera-care-manager";
+// These records exercise request-only and human-coordination contracts without appearing in the
+// demo patient's care team. Every professional shown to that patient has a connected calendar.
+export const PROTOTYPE_STRUCTURED_REQUEST_PROVIDER_ID = "provider-structured-request";
+export const PROTOTYPE_HUMAN_COORDINATION_PROVIDER_ID = "provider-human-coordination";
 // §23 has to be provable: one provider the platform genuinely cannot coordinate with.
 export const PROTOTYPE_NO_CHANNEL_PROVIDER_ID = "provider-no-scheduling-channel";
 
@@ -43,9 +45,17 @@ const PROVIDER_SCHEDULING = Object.freeze({
   [PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID]: Object.freeze({
     capability: SCHEDULING_CAPABILITY.DIRECT_BOOKING,
     supportedModalities: Object.freeze([APPOINTMENT_MODALITY.IN_PERSON, APPOINTMENT_MODALITY.TELEHEALTH, APPOINTMENT_MODALITY.PHONE]),
-    locationName: "Fresner Medical Group",
-    // A new symptom is triaged by a person before a calendar slot is handed out.
-    directBookingTypes: Object.freeze(["ROUTINE_FOLLOW_UP", "BLOOD_PRESSURE_FOLLOW_UP", "MEDICATION_RENEWAL", "CARE_PLAN_REVIEW", "LAB_OR_TEST"])
+    locationName: "Fresner Medical Group"
+  }),
+  "dr-martinez-cardiology": Object.freeze({
+    capability: SCHEDULING_CAPABILITY.DIRECT_BOOKING,
+    supportedModalities: Object.freeze([APPOINTMENT_MODALITY.IN_PERSON, APPOINTMENT_MODALITY.TELEHEALTH]),
+    locationName: "Coral Gables Cardiology"
+  }),
+  "itera-care-manager": Object.freeze({
+    capability: SCHEDULING_CAPABILITY.DIRECT_BOOKING,
+    supportedModalities: Object.freeze([APPOINTMENT_MODALITY.PHONE, APPOINTMENT_MODALITY.TELEHEALTH]),
+    locationName: ""
   }),
   [PROTOTYPE_STRUCTURED_REQUEST_PROVIDER_ID]: Object.freeze({
     capability: SCHEDULING_CAPABILITY.STRUCTURED_REQUEST,
@@ -66,8 +76,8 @@ const PROVIDER_SCHEDULING = Object.freeze({
 
 const PRACTICE_SCHEDULING = Object.freeze({
   "fresner-medical-group": Object.freeze({
-    capability: SCHEDULING_CAPABILITY.STRUCTURED_REQUEST,
-    supportedModalities: Object.freeze([APPOINTMENT_MODALITY.IN_PERSON]),
+    capability: SCHEDULING_CAPABILITY.DIRECT_BOOKING,
+    supportedModalities: Object.freeze([APPOINTMENT_MODALITY.IN_PERSON, APPOINTMENT_MODALITY.TELEHEALTH, APPOINTMENT_MODALITY.PHONE]),
     locationName: "Fresner Medical Group"
   })
 });
@@ -86,11 +96,6 @@ export function resolveSchedulingCapability({ patientId = "", providerId = "", p
   const entry = directoryEntry(providerId, practiceId);
   if (!entry) {
     return { capability: SCHEDULING_CAPABILITY.HUMAN_COORDINATION, supportedModalities: [], reason: "PROVIDER_NOT_IN_SCHEDULING_DIRECTORY", source: SLOT_SOURCE };
-  }
-  // A practice can accept booking for the visits it has protocols for and no others. Asking for
-  // anything else is a downgrade, not a refusal.
-  if (entry.capability === SCHEDULING_CAPABILITY.DIRECT_BOOKING && appointmentType && entry.directBookingTypes && !entry.directBookingTypes.includes(appointmentType)) {
-    return { capability: SCHEDULING_CAPABILITY.STRUCTURED_REQUEST, supportedModalities: [...entry.supportedModalities], reason: "TYPE_NOT_DIRECTLY_BOOKABLE", source: SLOT_SOURCE };
   }
   return {
     capability: entry.capability,
@@ -179,21 +184,22 @@ const withinRange = (start, range) => {
 // Availability comes only from a provider whose directory entry says a calendar exists. Everything
 // else — a request-only office, a practice we can only phone, a provider we cannot reach at all —
 // returns no availability source rather than a plausible-looking list of times.
-export function getProviderAvailability({ providerId = "", preferredTimeOfDay = TIME_OF_DAY.NO_PREFERENCE, preferredDateRange = null, modality = "", now = new Date() } = {}) {
-  const resolved = resolveSchedulingCapability({ providerId });
+export function getProviderAvailability({ providerId = "", practiceId = "", preferredTimeOfDay = TIME_OF_DAY.NO_PREFERENCE, preferredDateRange = null, modality = "", now = new Date() } = {}) {
+  const resolved = resolveSchedulingCapability({ providerId, practiceId });
   if (resolved.capability !== SCHEDULING_CAPABILITY.DIRECT_BOOKING) {
     return { ok: false, error: "NO_AVAILABILITY_SOURCE" };
   }
-  const entry = PROVIDER_SCHEDULING[providerId];
+  const entry = directoryEntry(providerId, practiceId);
   const wantsModality = modality && modality !== APPOINTMENT_MODALITY.NO_PREFERENCE ? modality : "";
-  if (wantsModality && !entry.supportedModalities.includes(wantsModality)) {
-    return { ok: false, error: "AVAILABILITY_UNAVAILABLE" };
-  }
+  const supportedPreference = wantsModality && entry.supportedModalities.includes(wantsModality) ? wantsModality : "";
 
   const from = new Date(now);
   const bucket = TIME_BUCKETS[preferredTimeOfDay] || TIME_BUCKETS.NO_PREFERENCE;
   const expiresMs = from.getTime() + SLOT_HOLD_MINUTES * MINUTE_MS;
-  const offeredModalities = wantsModality ? [wantsModality] : entry.supportedModalities.filter(item => ALL_MODALITIES.includes(item));
+  // An unsupported modality narrows the explanation, not the calendar to zero. Returning the
+  // provider's real alternatives lets EMMI say, for example, that this care manager has phone and
+  // video times instead of incorrectly claiming no availability exists.
+  const offeredModalities = supportedPreference ? [supportedPreference] : entry.supportedModalities.filter(item => ALL_MODALITIES.includes(item));
   const slots = [];
 
   for (let offset = 1; offset <= SEARCH_WINDOW_DAYS && slots.length < MAX_BOOKABLE_SLOTS; offset += 1) {
@@ -236,7 +242,7 @@ export function getProviderAvailability({ providerId = "", preferredTimeOfDay = 
     tag: SLOT_TAG.STALE
   }));
 
-  return { ok: true, slots, source: SLOT_SOURCE };
+  return { ok: true, slots, source: SLOT_SOURCE, preferenceAdjusted: Boolean(wantsModality && !supportedPreference) };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -267,7 +273,8 @@ export function bookSlot({ appointment = null, slotId = "", idempotencyKey = "",
   }
 
   const providerId = appointment.requestedProfessionalId || "";
-  const resolved = resolveSchedulingCapability({ providerId });
+  const practiceId = String(appointment.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const resolved = resolveSchedulingCapability({ providerId, practiceId });
   if (resolved.capability !== SCHEDULING_CAPABILITY.DIRECT_BOOKING) return { ok: false, error: "NO_BOOKING_CHANNEL" };
 
   const slot = decodeSlotId(slotId);
@@ -277,7 +284,7 @@ export function bookSlot({ appointment = null, slotId = "", idempotencyKey = "",
   if (slot.tag === SLOT_TAG.STALE) return { ok: false, slotGone: true };
   if (new Date(now).getTime() > slot.expiresMs) return { ok: false, slotGone: true };
 
-  const entry = PROVIDER_SCHEDULING[providerId];
+  const entry = directoryEntry(providerId, practiceId);
   return {
     ok: true,
     status: APPOINTMENT_STATUS.CONFIRMED,
@@ -300,6 +307,7 @@ export function submitAppointmentRequest({ appointment = null, idempotencyKey = 
 
   const resolved = resolveSchedulingCapability({
     providerId: appointment.requestedProfessionalId || "",
+    practiceId: String(appointment.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     appointmentType: appointment.reasonCategory || ""
   });
   if (resolved.capability === SCHEDULING_CAPABILITY.DIRECT_BOOKING) return { ok: false, error: "USE_DIRECT_BOOKING" };

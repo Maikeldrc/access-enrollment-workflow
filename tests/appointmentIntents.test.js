@@ -161,6 +161,14 @@ describe("appointment intent hazards", () => {
   ])("treats %s as a barrier rather than a request for a visit", (text, locale) => {
     expect(classifyAppointmentIntent(text, locale)).toBe(null);
   });
+
+  it.each([
+    ["I need an appointment with my doctor and I also need an Uber to get there", "en"],
+    ["Necesito una cita presencial con el Dr. Lee y también necesito transporte porque no tengo carro", "es"],
+    ["Mwen bezwen yon randevou epi mwen bezwen yon taksi pou m ale", "ht"]
+  ])("keeps the explicit appointment request in %s when transportation is also needed", (text, locale) => {
+    expect(intentOf(text, locale)).toBe(APPOINTMENT_INTENTS.APPOINTMENT_NEED);
+  });
 });
 
 describe("appointment intent hints", () => {

@@ -83,6 +83,12 @@ export class EmmiLiveClient {
     this.nextPlaybackAt = 0;
     this.outputGain = null;
     this.activeContextVersion = 0;
+    // The newest app-context update that arrived before there was a session to send it on. Only
+    // ever one: an older view is never worth sending once a newer one exists.
+    this.pendingContextUpdate = null;
+    // True between the provider asking for a tool and the client answering. Nothing may be sent
+    // on the socket in that window except the tool response itself.
+    this.toolRoundTripInFlight = false;
     this.activeTurn = null;
     this.generationSequence = 0;
     this.activeAudioGenerationId = 0;
@@ -118,7 +124,13 @@ export class EmmiLiveClient {
       onTelemetry: (type, details) => this.emitVoiceTelemetry(type, details)
     });
   }
-  setState(value, detail = "") { this.state = value; this.onState?.(value, detail); }
+  setState(value, detail = "") {
+    this.state = value;
+    // An update that arrived before the socket was open goes out as soon as there is one to send
+    // it on, so a session that opens onto a screen the app already described starts up to date.
+    if (value === "LISTENING" && this.session && !this.toolRoundTripInFlight && this.pendingContextUpdate) this.flushContextUpdate();
+    this.onState?.(value, detail);
+  }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
   touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
     this.clearTurnWatchdog();
@@ -306,11 +318,13 @@ export class EmmiLiveClient {
       sumOfSquares += value * value;
       peak = Math.max(peak, Math.abs(value));
     }
-    // Local VAD exists only to stop audio that is already audible a little faster than the
-    // provider can. Treating an active request that is still THINKING as audible caused ambient
-    // microphone energy to cancel the welcome before its first PCM chunk arrived.
+    // Keep local speech state active while EMMI is listening too. Besides making the visible
+    // state truthful, this gives us a bounded recovery path when the provider misses a transcript.
+    // A turn that is only THINKING is still excluded from interruption detection below, so ambient
+    // energy cannot cancel a welcome before its first PCM chunk arrives.
     const audibleOutputActive = this.sources.size > 0 || this.state === "EMMI_SPEAKING";
-    if (audibleOutputActive || this.bargeIn.speechActive) {
+    const patientFloorActive = !this.activeTurn && ["LISTENING", "USER_SPEAKING"].includes(this.state);
+    if (audibleOutputActive || patientFloorActive || this.bargeIn.speechActive) {
       this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
     }
     const data = pcm16(resample(samples, this.inputContext.sampleRate, EMMI_PROVIDER_SAMPLE_RATE));
@@ -362,7 +376,30 @@ export class EmmiLiveClient {
       if (this.sessionResumptionHandle && !this.goAwayReconnectScheduled) { this.goAwayReconnectScheduled = true; this.scheduleReconnect("go_away", { proactive: true }); }
     }
     const server = message.serverContent;
+    // Gemini can put `interrupted` and the patient's input transcription in the same server
+    // message. The interruption must be applied first. Otherwise the transcript inherits the
+    // canceled assistant generation, and the subsequent interruption clears it before a response
+    // can start — the exact "EMMI stopped but ignored my question" failure seen in production.
+    const interruptionAlreadyApplied = Boolean(
+      this.currentInterruption && this.patientResponseReady && this.activeTurn?.priority === "PATIENT_RESPONSE"
+    );
+    if (server?.interrupted && !interruptionAlreadyApplied) {
+      const details = this.bargeIn.confirmProviderInterruption();
+      this.handlePatientSpeechStart(details, { providerConfirmed: true });
+    } else if (server?.interrupted) {
+      this.emitVoiceTelemetry("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED", {
+        activeGenerationId: this.activeTurn?.generationId || 0
+      });
+    }
     if (server?.inputTranscription?.text) {
+      // Some provider sequences deliver the transcript one message before the explicit
+      // interruption event. A first patient transcript while an assistant turn is still active is
+      // itself authoritative evidence that the patient has the floor. Apply the interruption now;
+      // `patientResponseReady` prevents later transcript fragments from canceling the new turn.
+      if (this.activeTurn && !this.patientResponseReady) {
+        const details = this.bargeIn.confirmProviderInterruption();
+        this.handlePatientSpeechStart(details, { providerConfirmed: true });
+      }
       const assessment = assessEmmiTranscriptReliability(server.inputTranscription.text, { locale: this.getContext?.()?.locale });
       const inputText = assessment.text;
       if (!inputText) {
@@ -370,7 +407,7 @@ export class EmmiLiveClient {
       } else {
         this.clearPatientTranscriptWatchdog();
         if (!this.activeTurn) {
-          const responseToInterruption = this.awaitingPatientResponse;
+          const responseToInterruption = Boolean(this.currentInterruption);
           this.activeAudioGenerationId = ++this.generationSequence;
           this.activeTurn = {
             id: `patient_response_${Date.now().toString(36)}`,
@@ -418,10 +455,6 @@ export class EmmiLiveClient {
     } else if (server?.outputTranscription?.text) {
       this.emitVoiceTelemetry("EMMI_STALE_TRANSCRIPT_DISCARDED", { generationId: this.activeAudioGenerationId });
     }
-    if (server?.interrupted) {
-      const details = this.bargeIn.confirmProviderInterruption();
-      this.handlePatientSpeechStart(details, { providerConfirmed: true });
-    }
     const parts = server?.modelTurn?.parts || [];
     const audioParts = parts.filter(part => part.inlineData?.data && part.inlineData?.mimeType?.startsWith("audio/pcm"));
     if (audioParts.length && !this.activeTurn && (!this.awaitingPatientResponse || this.patientResponseReady || this.state === "EMMI_THINKING")) {
@@ -464,6 +497,7 @@ export class EmmiLiveClient {
     }
     const calls = message.toolCall?.functionCalls || [];
     if (calls.length) {
+      this.toolRoundTripInFlight = true;
       this.setState("TOOL_RUNNING", calls[0].name);
       const responses = [];
       for (const call of calls) {
@@ -471,6 +505,16 @@ export class EmmiLiveClient {
         catch { responses.push({ id: call.id, name: call.name, response: { error: "tool_unavailable" } }); }
       }
       this.session?.sendToolResponse({ functionResponses: responses });
+      // A tool call and its response are one round trip and nothing may come between them. Tools
+      // that act on the screen make the screen change, which makes the app want to push a context
+      // update — and a client-content message arriving while the provider is waiting for a
+      // function response loses the turn: the patient asked EMMI to write something down, EMMI
+      // wrote it, and then said nothing at all. The push is held for the duration and sent here.
+      // The flag clears, but nothing is sent here: the provider is about to generate the reply to
+      // the tool result, and a client-content message landing in that gap is what silenced it —
+      // the topic was written down and EMMI said nothing about it. The held update goes out on the
+      // next return to LISTENING, which is the only moment on this socket that is certainly idle.
+      this.toolRoundTripInFlight = false;
       this.setState("EMMI_THINKING");
     }
   }
@@ -579,7 +623,9 @@ export class EmmiLiveClient {
     };
     this.activeTurn = null;
     this.activeAudioGenerationId = 0;
-    this.awaitingPatientResponse = outputWasActive;
+    // Track every detected patient utterance, not only barge-ins. This prevents a provider-side
+    // ASR miss from leaving the interface looking active while no response can ever arrive.
+    this.awaitingPatientResponse = true;
     this.patientResponseReady = false;
     const stoppedAt = performance.now();
     const fadeMs = audibleOutputWasActive ? 40 : 0;
@@ -661,10 +707,64 @@ export class EmmiLiveClient {
     this.allowedGracefulTurnId = "";
     handoff.resolve({ reason, durationMs: Date.now() - handoff.startedAt, forcedReconnect: false });
   }
+  // THE SILENT CONTEXT CHANNEL
+  //
+  // A live session takes its systemInstruction once, at setup. Everything EMMI knew about the app
+  // was therefore frozen at the moment the microphone opened — which was fine while a screen was a
+  // screen, and stopped being fine the moment a screen became a flow the patient walks through
+  // without the session ever closing. A patient who opened voice on the pickup-address step and
+  // then asked "what are my options?" three screens later was answered from the address step.
+  //
+  // This is the fix, and it is deliberately NOT a turn: `turnComplete: false` appends to the
+  // model's context and produces no generation, so the patient hears nothing, the barge-in
+  // machinery sees nothing, and no watchdog is armed. It is the app telling EMMI what changed, in
+  // the same way a person glancing at the screen would notice it.
+  //
+  // Sent immediately, including while EMMI is mid-utterance. Holding it back until she finished
+  // was the first version and it was wrong: screen guidance speaks for several seconds on connect,
+  // which is exactly when a patient walks on, so the updates queued and the model kept answering
+  // from the screen the microphone opened on — the defect this channel exists to fix, moved rather
+  // than removed. turnComplete:false appends to context and generates nothing, so there is nothing
+  // to interrupt; only the patient's own audio interrupts a turn.
+  //
+  // The queue survives for the one case it is right for: no session yet. Then the newest state is
+  // what goes out when one opens, rather than a backlog of stale ones.
+  sendContextUpdate(payload, { label = "APP CONTEXT" } = {}) {
+    if (!payload) return false;
+    // Held back for exactly two reasons, both of them "there is nowhere to put it right now":
+    // no socket yet, and a tool round trip the provider is waiting to complete. In both cases the
+    // newest state goes out the moment there is somewhere to put it.
+    if (!this.session || this.toolRoundTripInFlight) { this.pendingContextUpdate = { payload, label }; return false; }
+    return this.flushContextUpdate({ payload, label });
+  }
+
+  flushContextUpdate(update) {
+    const next = update || this.pendingContextUpdate;
+    if (!next || !this.session) return false;
+    this.pendingContextUpdate = null;
+    const body = typeof next.payload === "string" ? next.payload : JSON.stringify(next.payload);
+    try {
+      this.session.sendClientContent({
+        turns: `[${next.label} — this is the app telling you what the patient is looking at right now. Do not read it aloud and do not answer it. Use it for every following answer, and prefer it over anything earlier in this conversation.]
+${body}`,
+        turnComplete: false
+      });
+    } catch { return false; }
+    this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: next.label, bytes: body.length, contextVersion: this.activeContextVersion });
+    return true;
+  }
+
   // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
   // text turn sent that way is accepted silently and never produces a spoken reply.
   sendText(text, metadata = {}) {
     if (!this.session) return false;
+    const patientInitiated = ["PATIENT_RESPONSE", "CRITICAL_SAFETY"].includes(metadata.priority);
+    if (patientInitiated && this.activeTurn) {
+      // A typed question is allowed while voice guidance is playing. Treat it as the same floor
+      // transfer as spoken barge-in before allocating the new generation; otherwise late guidance
+      // audio/transcript fragments are mislabeled as the answer and can cut off its first words.
+      this.handlePatientSpeechStart({ source: "text_input", detectedAt: performance.now() }, { providerConfirmed: true });
+    }
     const generationId = ++this.generationSequence;
     const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false };
     if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;
@@ -684,7 +784,10 @@ export class EmmiLiveClient {
       currentStage: runtime.currentStage || "",
       currentGoal: continuity.currentGoal || runtime.activeGoal || null,
       lastUserIntent: continuity.lastUserIntent || "",
-      nextBestAction: runtime.nextBestAction || null
+      nextBestAction: runtime.nextBestAction || null,
+      // What is on the screen right now. Rides along here as well as on the silent channel,
+      // because a turn the app initiates is the one moment we can be certain the model reads.
+      view: runtime.view || null
     };
     const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
     this.session.sendClientContent({ turns: contextualTurn, turnComplete: true });

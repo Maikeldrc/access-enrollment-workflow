@@ -6,6 +6,7 @@ import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
 import { decomposeCompoundQuestion, hasBareReferent, isFollowUpQuestion, mergeCompoundAnswers, resolveConversationSubject, resolveTurnSubject, subjectOf } from "./conversationSubject.js";
+import { appointmentTopicListText, parseAppointmentTopicCommands } from "./appointmentTopics.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
@@ -23,9 +24,12 @@ const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to
 // untouched and is what still reaches the tools.
 // The words that make an appointment the subject of a conversation, in all three languages.
 const APPOINTMENT_MENTION = /\bappointment|\bvisit\b|\bcita\b|\bconsulta\b|\bvisita\b|randevou|vizit/i;
+const APPOINTMENT_TRANSPORTATION = /\b(uber|ride|transportation|transport|pickup|reservation|trip|transporte|recogida|reserva|viaje|transp[oò]|taksi|machin|pran)\b/i;
+const APPOINTMENT_COMPANION = /\b(companion|accompany|come with me|go with me|someone with me|family member|relative|acompa[ñn](?:ante|ar|e|a|ó|ado|ada|aría)|ir conmigo|familiar|pariente|akonpaye|vin av[eè] m|fanmi)\b/i;
+const COMPANION_PRIVACY = /\b(see|share|information|health|private|privacy|ver[aá]|compartir|informaci[oó]n|salud|privad|datos|w[eè]|pataje|enf[oò]masyon|sante|prive)\b/i;
 const foldApostrophes = value => String(value || "").replace(/[‘’ʼ]/g, "'");
 const SAFETY = { test: detectEmergencyLanguage };
-const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
+const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
 // Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
 // A question that quotes an amount is a question about money in any language, and "why does it say
@@ -62,7 +66,10 @@ const WEIGHT_SUBJECT = /weight|pounds?|\blbs?\b|bmi|%|percent|peso|libras?|imc|p
 const BLOOD_PRESSURE_SUBJECT = /blood pressure|\bbp\b|systolic|mmhg|points?|presi[oó]n|sist[oó]lica|puntos?|tansyon|sistolik|pwen/i;
 const APPOINTMENT_PREP_FOLLOW_UP = /^(what|how|why|can|could|is|are|does|do|tell me|explain|que|qué|como|cómo|por que|por qué|puede|podria|podría|es|son|diga|digame|dígame|explique|kisa|kijan|poukisa|eske|èske|esplike)\b/i;
 const APPOINTMENT_PREP_TREND = /trend|this week|recently|changed|going|how (have|are|is)|tendencia|esta semana|[uú]ltimamente|cambiado|c[oó]mo (han|ha|va)|tandans|sem[eè]n|d[eè]ny[eè]man|chanje|kijan/i;
-const APPOINTMENT_PREP_DONE = /^(solo eso|eso es todo|nada m[aá]s|no m[aá]s|solamente eso|list[oa]|ya est[aá]|ya termin[eé]|termin[eé]|he terminado|that'?s all|that is all|just that|nothing else|i'?m done|done|all done|finished|ready|se tout|sa s[eè]lman|pa gen anyen ank[oò]|mwen fini|fini|pare)[.! ]*$/i;
+// These are interpreted as completion only while structured appointment-prep context is active.
+// Include the short, natural confirmations patients actually use after EMMI asks “¿eso es todo?”;
+// without “es todo”, that exact reply fell through to the unrelated knowledge fallback.
+const APPOINTMENT_PREP_DONE = /^(solo eso|(?:s[ií][, ]+)?(?:(?:eso|esto) )?es todo|por ahora (?:eso )?es todo|con eso (?:es|ser[ií]a) todo|nada m[aá]s|no[, ]+(?:es todo|nada m[aá]s)|solamente eso|list[oa]|ya est[aá]|ya termin[eé]|termin[eé]|he terminado|that'?s all|that is all|just that|nothing else|i'?m done|done|all done|finished|ready|se tout|sa s[eè]lman|pa gen anyen ank[oò]|mwen fini|fini|pare)[.! ]*$/i;
 const APPOINTMENT_PREP_CONTINUE = /pregunta sobre (mi|la) cita|ay[uú]dame a preparar|seguir preparando|preparar (mi|la) cita|question about my appointment|help me prepare|continue preparing|prepare for my appointment|kesyon sou randevou|ede m prepare|kontinye prepare/i;
 const APPOINTMENT_PURPOSE_QUESTION = /(?:why|what).*(?:appointment|visit).*(?:for|about)|purpose of (?:my|the) (?:appointment|visit)|why (?:do i have|was).*appointment|por qu[eé].*(?:cita|consulta|visita)|para qu[eé] es (?:mi|la) cita|(?:objetivo|motivo) de (?:mi|la) cita|poukisa.*(?:randevou|vizit)|(?:objektif|rezon).*(?:randevou|vizit)/i;
 const APPOINTMENT_PREP_QUESTION = /\?$|^(what|why|how|when|where|who|can|could|is|are|does|do|qu[eé]|por qu[eé]|c[oó]mo|cu[aá]ndo|d[oó]nde|qui[eé]n|puede|es|son|kisa|poukisa|kijan|kil[eè]|ki kote|eske|[eè]ske)\b/i;
@@ -252,7 +259,7 @@ const accessBaselineGoalType = text => {
 // Patients ask for the person by role, and the roles are not only "doctor": "who is my care
 // manager", "quien es mi enfermera" and "ki moun ki enfimye mwen" are the same question about
 // the same record, and none of them reached the care-team lookup.
-const DOCTOR_STATUS = /who is my (?:care manager|nurse|cardiologist|specialist|care team)|who is on my care team|my care team is|qui[eé]n es mi (?:enfermer[ao]|gerente de cuidado|coordinador[ao]|cardi[oó]log[ao])|qui[eé]nes est[aá]n en mi equipo|ki moun ki (?:enfimy[eè]|jere swen) mwen|is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see (?:my doctor|dr\.?\s+[a-z'-]+)|mi m[eé]dico|seguir viendo a mi m[eé]dico|seguir viendo (?:al|a la)?\s*(?:dr\.?|doctor|doctora)|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|dokt[eè] mwen|toujou (patisipe|enplike)/i;
+const DOCTOR_STATUS = /who is my (?:care manager|nurse|cardiologist|specialist|care team)|who is on my care team|my care team is|qui[eé]n es mi (?:enfermer[ao]|gerente de cuidado|coordinador[ao]|cardi[oó]log[ao])|qui[eé]nes est[aá]n en mi equipo|ki moun ki (?:enfimy[eè]|jere swen) mwen|is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see (?:my doctor|dr\.?\s+[a-z'-]+)|replace(?:s|d|ing)? (?:my )?doctor|take (?:my )?doctor'?s place|mi m[eé]dico|seguir viendo a mi m[eé]dico|seguir viendo (?:al|a la)?\s*(?:dr\.?|doctor|doctora)|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|reemplaz(?:a|ar|aría) (?:a )?mi m[eé]dico|sustitu(?:ye|ir|iría) (?:a )?mi m[eé]dico|dokt[eè] mwen|toujou (patisipe|enplike)|ranplase dokt[eè] mwen/i;
 // The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
 // which asks whether that doctor stays involved, and from eligibility, which asks whether the
 // patient qualifies. Answering it means repeating the referral facts and adding nothing.
@@ -289,6 +296,10 @@ const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\
   || (/presi[oó]n/i.test(text) && /otra vez|ahora/i.test(text))
   || (/tansyon/i.test(text) && /ank[oò]|kounye a/i.test(text));
 const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+// A patient asking whether enrollment is required is exercising choice, not describing legal
+// authority. Keep this ahead of retrieval so phrases such as “puedo decidir que no” cannot be
+// mis-ranked to the Personal Representative page merely because that page also contains “decidir”.
+const VOLUNTARY_CHOICE = /(?:is (?:this|it|access) )?(?:mandatory|required|optional)|do i have to (?:enroll|join|participate)|can i (?:say|choose|decide) no|am i required|(?:esto|access|participar|inscribirme) (?:es )?obligatori[oa]|tengo que (?:inscribirme|participar|aceptar)|puedo (?:decir|elegir|decidir) que no|es opcional|(?:sa|access) obligatwa|mwen oblije|mwen ka (?:di|chwazi) non|se volont[eè]/i;
 // A direct programme definition already has reviewed copy in programAnswers. Sending that simple
 // question through generation can replace a relevant retrieval with an unrelated but fluent
 // paragraph (the production defect returned emergency-service copy for "¿Qué es ACCESS?").
@@ -404,6 +415,33 @@ const appointmentStatusAnswer = (locale, appointments) => {
   });
 };
 
+const appointmentTransportationAnswer = (locale, appointment, reservation) => {
+  const provider = appointmentWho(appointment);
+  const when = clean(appointment?.scheduledLabel || "");
+  const location = clean(appointment?.locationName || "");
+  const service = clean(reservation?.serviceName || "");
+  const pickup = clean(reservation?.pickupLabel || "");
+  const reservationId = clean(reservation?.reservationId || "");
+  const arrival = clean(reservation?.estimatedArrivalLabel || "");
+  return pick(locale, {
+    EN: `Your appointment${provider ? ` with ${provider}` : ""}${when ? ` is ${when}` : ""}${location ? ` at ${location}` : ""}. Your confirmed ${service || "ride"} pickup is ${pickup || "on file"}${reservationId ? `, reservation ${reservationId}` : ""}${arrival ? `, with estimated arrival at ${arrival}` : ""}.`,
+    ES: `Su cita${provider ? ` con ${provider}` : ""}${when ? ` es ${when}` : ""}${location ? ` en ${location}` : ""}. Su ${service || "transporte"} confirmado le recogerá a las ${pickup || "hora registrada"}${reservationId ? `, reserva ${reservationId}` : ""}${arrival ? `, con llegada estimada a las ${arrival}` : ""}.`,
+    KR: `Randevou ou${provider ? ` ak ${provider}` : ""}${when ? ` se ${when}` : ""}${location ? ` nan ${location}` : ""}. ${service || "Transpò"} ou konfime a ap vin pran ou a ${pickup || "lè ki nan dosye a"}${reservationId ? `, rezèvasyon ${reservationId}` : ""}${arrival ? `, epi lè li prevwa rive se ${arrival}` : ""}.`
+  }).replace(/\.\.$/, ".");
+};
+
+const companionOfferAnswer = locale => pick(locale, {
+  EN: "I can help you ask a family member or another trusted person to accompany you. I’ll open the companion flow so you can choose the person and review exactly what they will receive before anything is sent.",
+  ES: "Puedo ayudarle a pedírselo a un familiar u otra persona de confianza. Abriré el flujo de acompañante para que elija a la persona y revise exactamente qué recibirá antes de enviar nada.",
+  KR: "Mwen ka ede w mande yon fanmi oswa yon lòt moun ou fè konfyans pou akonpaye w. M ap louvri etap akonpayman an pou w chwazi moun nan epi verifye egzakteman sa l ap resevwa anvan anyen voye."
+});
+
+const companionPrivacyAnswer = (locale, contactName = "") => pick(locale, {
+  EN: `${contactName || "Your companion"} will see only the appointment date, time and location needed to accompany you. The invitation does not include your reason for the visit, diagnoses, medications, readings or other health information. Nothing is sent until you review and confirm it.`,
+  ES: `${contactName || "Su acompañante"} verá únicamente la fecha, la hora y el lugar de la cita necesarios para acompañarle. La invitación no incluye el motivo de la visita, diagnósticos, medicamentos, lecturas ni otra información de salud. No se envía nada hasta que usted lo revise y confirme.`,
+  KR: `${contactName || "Moun k ap akonpaye w la"} ap wè sèlman dat, lè ak kote randevou a pou li ka akonpaye w. Envitasyon an pa gen rezon vizit la, dyagnostik, medikaman, mezi oswa lòt enfòmasyon sante. Anyen pa voye anvan ou revize epi konfime l.`
+});
+
 const appointmentWhichOneAnswer = (locale, appointments) => {
   const list = appointmentListText(appointments);
   return pick(locale, {
@@ -461,6 +499,24 @@ const appointmentRequestOpenedAnswer = (locale, timeHint) => {
   });
   const echo = TIME_HINT_ECHO[timeHint] ? pick(locale, TIME_HINT_ECHO[timeHint]) : "";
   return `${opener}${echo}`;
+};
+
+const appointmentLogisticsSequenceAnswer = (locale, { transportation = false, companion = false } = {}) => {
+  if (!transportation && !companion) return "";
+  if (transportation && companion) return pick(locale, {
+    EN: " I also heard that you need a ride and want your daughter to accompany you. After the appointment time is confirmed, I’ll help you coordinate both against that date and place.",
+    ES: " También entendí que necesita transporte y desea que su hija le acompañe. Después de confirmar el horario de la cita, le ayudaré a coordinar ambos con esa fecha y ese lugar.",
+    KR: " Mwen konprann tou ou bezwen transpò epi ou vle pitit fi ou akonpaye ou. Apre lè randevou a konfime, m ap ede w kowòdone toude ak dat ak kote sa a."
+  });
+  return transportation ? pick(locale, {
+    EN: " I also heard that you need a ride. After the appointment time is confirmed, I’ll help you coordinate it against that date and place.",
+    ES: " También entendí que necesita transporte. Después de confirmar el horario de la cita, le ayudaré a coordinarlo con esa fecha y ese lugar.",
+    KR: " Mwen konprann tou ou bezwen transpò. Apre lè randevou a konfime, m ap ede w kowòdone li ak dat ak kote sa a."
+  }) : pick(locale, {
+    EN: " I also heard that you want your daughter to accompany you. After the appointment time is confirmed, I’ll help you coordinate that support for the visit.",
+    ES: " También entendí que desea que su hija le acompañe. Después de confirmar el horario de la cita, le ayudaré a coordinar ese apoyo para la consulta.",
+    KR: " Mwen konprann tou ou vle pitit fi ou akonpaye ou. Apre lè randevou a konfime, m ap ede w kowòdone sipò sa a pou vizit la."
+  });
 };
 
 const appointmentRequestUnavailable = locale => pick(locale, {
@@ -996,15 +1052,25 @@ export class EmmiTextOrchestrator {
     // A patient who asks two things in one breath used to get one answer and silence for the rest,
     // because everything below is a chain of routes that returns on the first match.
     //
-    // Safety is never decomposed. Half of "my chest hurts and when is my appointment" is not a
-    // question about an appointment, so any turn the emergency gate, the medication gate, the
-    // conversation policy or an open episode would claim is answered whole. Appointment
-    // preparation is left alone too: it is a guided exchange that owns its own turn-taking.
+    // Two kinds of turn are answered whole instead. Safety, because half of "my chest hurts and
+    // when is my appointment" is not a question about an appointment. And the routes that are
+    // already deliberately multi-intent: appointment coordination answers a combined
+    // ride-and-companion request as one action with the appointment attached, which is a better
+    // answer than two smaller ones, so splitting it would be a downgrade. Appointment preparation
+    // is left alone too — it owns its own turn-taking.
     if (!subQuestion) {
       const claimedBySafety = Boolean(openEpisode) || SAFETY.test(asked) || BP_READING.test(asked)
         || MEDICATION_SAFETY.test(asked) || Boolean(conversationPolicyResponse(question, locale));
+      const coordinatingAppointment = Boolean(context.appointmentPrep?.appointmentId)
+        && (APPOINTMENT_TRANSPORTATION.test(question) || APPOINTMENT_COMPANION.test(question));
+      const resolvingCompanionPrivacy = context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question);
+      // "How much does it cost and do I keep my doctor?" has a handler of its own. Both routes say
+      // the same two things; that one says them in the better order, leading with the reassurance
+      // and then the money, in a single paragraph. Decomposition covers the rest of the class.
+      const askingCostAndDoctor = COST.test(asked) && DOCTOR_STATUS.test(asked) && !TRANSPORT_SUBJECT.test(asked);
       const preparing = context.appointmentPrep?.emmiPreparation?.status === "IN_PROGRESS";
-      const parts = claimedBySafety || preparing ? [] : decomposeCompoundQuestion(question);
+      const claimed = claimedBySafety || coordinatingAppointment || resolvingCompanionPrivacy || askingCostAndDoctor || preparing;
+      const parts = claimed ? [] : decomposeCompoundQuestion(question);
       if (parts.length > 1) return await this.#answerCompound({ parts, locale, questionId, trace, emit });
     }
 
@@ -1039,6 +1105,10 @@ export class EmmiTextOrchestrator {
       trace.intent = "MEDICATION_SAFETY"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED");
       return { ...safetyResponseFor({ locale, medication: true }), trace };
     }
+    if (VOLUNTARY_CHOICE.test(asked)) {
+      trace.intent = "VOLUNTARY_PARTICIPATION"; trace.responseMode = "DETERMINISTIC_GROUNDED_FALLBACK"; emit("EMMI_ANSWER_ROUTED");
+      return { text: leaveProgramAnswer(locale), trace };
+    }
     // What EMMI cannot do about authority, prescriptions and the clinical record is answered from
     // approved copy, ahead of retrieval and generation, so a limit is never paraphrased into a
     // softer one. Clinical safety still runs first: a limit is not an answer to chest pain.
@@ -1070,7 +1140,11 @@ export class EmmiTextOrchestrator {
     }
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
-      return { text: this.screenExplanation(context.currentScreen), trace };
+      // The screen the patient means is the VIEW, not the route: every step of appointment
+      // coordination and of barrier resolution shares one route name, so passing only that made
+      // "what do I do here?" answer for the wrong step. The context carries the view; the shell
+      // prefers it and keeps the route as the fallback for screens with no describer.
+      return { text: this.screenExplanation(context.currentScreen, context), trace };
     }
     // "Who invited me?" is a question about the invitation, and it is checked before the care-team
     // and support routes, which would otherwise read it as a request to be called back.
@@ -1177,6 +1251,43 @@ export class EmmiTextOrchestrator {
         KR: "Mwen pa t ka louvri ranplisaj ou kounye a. Ou ka louvri Medikaman mwen yo oswa mwen ka ede w jwenn ekip swen ou."
       }), trace };
     }
+    const topicCommands = parseAppointmentTopicCommands({ question, appointmentPrep: context.appointmentPrep });
+    if (topicCommands.length) {
+      trace.intent = "APPOINTMENT_TOPIC_LIST";
+      trace.responseMode = "APPOINTMENT_TOPIC_TOOL";
+      if (!context.appointmentPrep?.appointmentId) {
+        emit("EMMI_ANSWER_ROUTED", { appointmentTopicStatus: "APPOINTMENT_REQUIRED", appointmentCandidates: context.appointmentPrep?.appointmentCandidates?.length || 0 });
+        return { text: pick(locale, { EN: "Which appointment would you like to prepare for?", ES: "¿Para cuál cita desea preparar la lista?", KR: "Pou ki randevou ou vle prepare lis la?" }), trace };
+      }
+      let lastResult = null;
+      for (const command of topicCommands) {
+        trace.toolCalls.push("manageAppointmentTopics");
+        try {
+          lastResult = await this.executeTool("manageAppointmentTopics", {
+            patientId: context.patientId,
+            appointmentId: context.appointmentPrep.appointmentId,
+            ...command
+          });
+        } catch (error) {
+          emit("EMMI_TOOL_FAILED", { tool: "manageAppointmentTopics", error: error?.message || "unknown" });
+          return { text: pick(locale, { EN: "I couldn’t update your appointment list just now. Nothing was changed.", ES: "No pude actualizar su lista para la cita ahora. No se cambió nada.", KR: "Mwen pa t ka mete lis randevou ou ajou kounye a. Anyen pa chanje." }), trace };
+        }
+        if (!lastResult?.success) {
+          emit("EMMI_ANSWER_ROUTED", { appointmentTopicStatus: lastResult?.status || "FAILED" });
+          const ambiguous = lastResult?.status === "TOPIC_AMBIGUOUS" || lastResult?.status === "TOPIC_REQUIRED";
+          return { text: ambiguous
+            ? pick(locale, { EN: "Which item on your appointment list do you mean?", ES: "¿A cuál punto de su lista para la cita se refiere?", KR: "Ki pwen nan lis randevou ou vle di?" })
+            : pick(locale, { EN: "I couldn’t find that item, so I didn’t change your list.", ES: "No encontré ese punto, así que no cambié su lista.", KR: "Mwen pa jwenn pwen sa a, kidonk mwen pa chanje lis ou a." }), trace };
+        }
+      }
+      trace.runtimeFactsUsed.push("manageAppointmentTopics");
+      emit("EMMI_ANSWER_ROUTED", { appointmentTopicOperations: topicCommands.map(item => item.operation), appointmentTopicCount: lastResult?.topics?.length || 0 });
+      const onlyRead = topicCommands.every(item => ["LIST", "OPEN", "READ_ITEM"].includes(item.operation));
+      const text = lastResult?.item
+        ? pick(locale, { EN: `That item is: “${lastResult.item}”.`, ES: `Ese punto es: “${lastResult.item}”.`, KR: `Pwen sa a se: “${lastResult.item}”.` })
+        : `${onlyRead ? "" : pick(locale, { EN: "Done. ", ES: "Listo. ", KR: "Fini. " })}${appointmentTopicListText(lastResult?.topics || [], locale)}`;
+      return { text, appointmentId: context.appointmentPrep.appointmentId, trace };
+    }
     // Appointments sit between the refill engine and the difficulty gate. A patient who says they
     // need to see their doctor is asking for a visit, not describing a barrier, so this runs before
     // the classifier that would file it as one; a patient describing a symptom never reaches this
@@ -1185,6 +1296,43 @@ export class EmmiTextOrchestrator {
     // conversation. Recent turns decide that; a bare "cancel it" out of nowhere still means nothing.
     const appointmentInContext = APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
       || (conversation.recentTurns || []).some(turn => APPOINTMENT_MENTION.test(String(turn?.text || "")));
+    if (context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question)) {
+      trace.intent = "APPOINTMENT_COMPANION_PRIVACY";
+      trace.responseMode = "DETERMINISTIC_APPOINTMENT_CONTEXT";
+      emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentSupport.appointmentId || "", companionStep: context.appointmentSupport.step || "" });
+      return { text: companionPrivacyAnswer(locale, context.appointmentSupport.contactName), appointmentId: context.appointmentSupport.appointmentId || "", trace };
+    }
+    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId) {
+      trace.intent = "APPOINTMENT_TRANSPORTATION_STATUS";
+      trace.responseMode = "RUNTIME_GROUNDED";
+      trace.toolCalls.push("getAppointment", "getAppointmentTransportation");
+      try {
+        const [appointmentResult, transportationResult] = await Promise.all([
+          this.executeTool("getAppointment", { patientId: context.patientId, appointmentId: context.appointmentPrep.appointmentId }),
+          this.executeTool("getAppointmentTransportation", { patientId: context.patientId, appointmentId: context.appointmentPrep.appointmentId })
+        ]);
+        const appointment = appointmentResult?.appointment;
+        const reservation = (transportationResult?.reservations || []).find(item => item.status === "CONFIRMED" && item.tripType === "OUTBOUND")
+          || (transportationResult?.reservations || []).find(item => item.status === "CONFIRMED");
+        trace.runtimeFactsUsed.push("getAppointment", "getAppointmentTransportation");
+        emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentPrep.appointmentId, transportationStatus: transportationResult?.status || "NOT_FOUND" });
+        if (appointment && reservation) {
+          const companionRequested = APPOINTMENT_COMPANION.test(question);
+          const text = `${appointmentTransportationAnswer(locale, appointment, reservation)}${companionRequested ? ` ${companionOfferAnswer(locale)}` : ""}`;
+          return { text, quickAction: companionRequested ? "appointment-companion" : "appointment-view", appointmentId: appointment.id || "", trace };
+        }
+        return { text: pick(locale, { EN: "I do not see confirmed transportation on file for this appointment.", ES: "No veo transporte confirmado registrado para esta cita.", KR: "Mwen pa wè transpò konfime nan dosye a pou randevou sa a." }), quickAction: "appointment-view", appointmentId: appointment?.id || context.appointmentPrep.appointmentId, trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getAppointmentTransportation", error: error?.message || "unknown" });
+        return { text: pick(locale, { EN: "I can’t check the transportation details right now, so I don’t want to guess.", ES: "Ahora mismo no puedo consultar los detalles del transporte, así que prefiero no adivinarlos.", KR: "Mwen pa ka verifye detay transpò yo kounye a, kidonk mwen pa vle devine." }), trace };
+      }
+    }
+    if (APPOINTMENT_COMPANION.test(question) && context.appointmentPrep?.appointmentId) {
+      trace.intent = "APPOINTMENT_COMPANION";
+      trace.responseMode = "APPOINTMENT_ENGINE";
+      emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentPrep.appointmentId, companionRequested: true });
+      return { text: companionOfferAnswer(locale), quickAction: "appointment-companion", appointmentId: context.appointmentPrep.appointmentId, trace };
+    }
     const appointmentIntent = classifyAppointmentIntent(question, locale, { contextual: appointmentInContext });
     if (appointmentIntent?.intent === APPOINTMENT_INTENTS.APPOINTMENT_STATUS) {
       trace.intent = "APPOINTMENT_STATUS"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getUpcomingAppointments");
@@ -1242,7 +1390,13 @@ export class EmmiTextOrchestrator {
         trace.toolCalls.push("startAppointmentRequest");
         const opened = await this.executeTool("startAppointmentRequest", { patientId: context.patientId, reasonCategory: appointmentReasonCategory(question), providerId: "", reasonSummary: clean(question).slice(0, 400) });
         emit("EMMI_ANSWER_ROUTED", { appointmentAction: appointmentIntent.action, timeHint: appointmentIntent.timeHint, hasProviderHint: Boolean(appointmentIntent.providerHint) });
-        if (opened?.success) return { text: appointmentRequestOpenedAnswer(locale, appointmentIntent.timeHint), quickAction: "appointment-request", needId: opened.needId || "", trace };
+        if (opened?.success) {
+          const logistics = appointmentLogisticsSequenceAnswer(locale, {
+            transportation: APPOINTMENT_TRANSPORTATION.test(question),
+            companion: APPOINTMENT_COMPANION.test(question)
+          });
+          return { text: `${appointmentRequestOpenedAnswer(locale, appointmentIntent.timeHint)}${logistics}`, quickAction: "appointment-request", needId: opened.needId || "", trace };
+        }
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "startAppointmentRequest", error: error?.message || "unknown" }); }
       // Nothing was opened, so nothing is claimed and nothing is described as requested.
       return { text: appointmentRequestUnavailable(locale), trace };
@@ -1274,6 +1428,27 @@ export class EmmiTextOrchestrator {
           ES: "Gracias por contármelo. No pude guardarlo ahora, pero puede decírselo a su equipo de atención y puedo ayudarle a comunicarse con ellos.",
           KR: "Mèsi paske ou di m sa. Mwen pa t ka anrejistre l kounye a, men ou ka di ekip swen ou, epi mwen ka ede w jwenn yo."
         }), trace };
+      }
+    }
+
+    // Cost and continuity with the patient's doctor are independent promises backed by different
+    // runtime records. A natural compound question must read both instead of letting the first
+    // matching intent silently discard the second half.
+    if (COST.test(asked) && DOCTOR_STATUS.test(asked) && !TRANSPORT_SUBJECT.test(asked)) {
+      trace.intent = "COST_AND_CARE_TEAM_QUESTION";
+      trace.responseMode = "RUNTIME_GROUNDED";
+      trace.toolCalls.push("getExpectedAccessCost", "getCareTeam");
+      try {
+        const [cost, careTeam] = await Promise.all([
+          this.executeTool("getExpectedAccessCost", { patientId: context.patientId, accessTrack: context.accessTrack }),
+          this.executeTool("getCareTeam", { patientId: context.patientId })
+        ]);
+        trace.runtimeFactsUsed.push("getExpectedAccessCost", "getCareTeam");
+        emit("EMMI_ANSWER_ROUTED");
+        return { text: `${runtimeAnswer({ tool: "getCareTeam", result: careTeam, locale, context, question: asked })} ${accessCostAnswer(cost, locale)}`, trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getExpectedAccessCost|getCareTeam", error: error?.message || "unknown" });
+        return { text: retrievalUnavailable(locale), trace };
       }
     }
 
@@ -1372,7 +1547,9 @@ export class EmmiTextOrchestrator {
       const response = await this.fetch("/api/emmi/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
+        // The view goes to the knowledge fallback for the same reason it goes to the voice session: a
+        // question asked in front of three ride options is not a general question about transport.
+        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, view: context.view || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
       });
       if (response.ok) {
         const generated = await response.json();
