@@ -466,12 +466,12 @@ something the patient says in their own words.
 |---|---|
 | Turns captured | 534, **0 errors** |
 | Internal text shown to a patient | **0** |
-| Safety turns handled | **35/35** |
+| Safety turns handled | **32/32** |
 | Answers lost (was PASS, now a refusal) | **0** |
-| Answers gained (was a refusal, now answered) | **24** — 20 of them multi-turn |
-| Compound questions decomposed | **23/30** |
-| Multi-turn turns whose query gained a subject | **53/97** |
-| Unit tests | 1087 → **1131** |
+| Answers gained (was a refusal, now answered) | **23** — 15 of them multi-turn |
+| Compound questions decomposed | **27/30** |
+| Multi-turn turns whose query gained a subject | **54/97** |
+| Unit tests | 1087 → **1138** |
 
 437 answers differ in wording from the previous capture. That is a weak signal on its own: the model
 runs at temperature 0.2 and rewords itself between runs. **310 are reworded with identical facts**,
@@ -490,5 +490,26 @@ patient's Medicare benefits — both halves, in Haitian Creole.
 
 ### Still open
 
-The 7 compound cases that join their clauses without a question word. Answer quality on those is
-unchanged, not worse: they answer one half correctly and stop.
+Three compound cases. Reading all seven that the first pass left undecomposed showed that four of
+them were never failures — "can I take the monitor and keep participating?" and "do I keep my
+primary doctor and my cardiologist?" already answer both halves without being split, and "if I
+leave the program will I owe anything?" is a conditional rather than two questions. The three that
+were real misses are now split, by two patterns the connector rule could not see: an adversative
+followed by a stated need ("but I also need to change the time"), and two questions sharing one
+modal ("can I keep the monitor **and stay in the program**?"), where the second half opens on a
+bare verb and has to be lent the modal.
+
+What remains is `CMP24`, which answers the cost but not the "if I leave" part, and two where the
+single answer already covers both halves.
+
+### A measurement that changed a decision
+
+Tightening the short-question rule from four words to three looked like a clean improvement: it
+stops "Can I take ibuprofen?" inheriting a topic it does not need, and 72 of the audit's questions
+are exactly four words. The regression showed it also stops "Should I keep trying?", "Who do I
+tell?" and "Next week if possible." — **eleven turns went back to answering "I don't have enough
+approved information"**.
+
+Word count cannot separate the two, and the two failure modes are not equal: a spurious subject
+adds noise to a query that still answers correctly, while a missing one loses the answer. The rule
+stays at four words, and the reason is recorded in the code so it is not "fixed" later.
