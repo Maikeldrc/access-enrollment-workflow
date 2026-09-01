@@ -939,13 +939,12 @@ function assistantContext() {
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
   const activeGoalRecord = currentGoal();
   const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
-  const activeAppointmentRecord = activeAppointment();
-  // Keep the selected appointment available to EMMI on every appointment surface, not only the
-  // preparation screen. The appointment detail's “Ask EMMI” action opens the assistant before it
-  // submits its first turn; limiting this context to PREP made that turn fall into the generic
-  // knowledge fallback even though the patient had just selected a real, scheduled visit.
-  const appointmentInAssistantContext = activeAppointmentRecord
-    && ["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING"].includes(emmiCurrentScreen);
+  const onlyUpcomingAppointment = upcomingAppointments(appointmentRecords(), new Date());
+  const activeAppointmentRecord = activeAppointment() || (onlyUpcomingAppointment.length === 1 ? onlyUpcomingAppointment[0] : null);
+  // Keep the explicitly selected appointment available across screens and refreshes. If none was
+  // selected, one — and only one — upcoming visit is unambiguous. This is the durable task context
+  // shared by the appointment UI, chat, and voice; multiple visits are never guessed between.
+  const appointmentInAssistantContext = Boolean(activeAppointmentRecord);
   const appointmentPrep = appointmentInAssistantContext
     ? {
         appointmentId: activeAppointmentRecord.id,
@@ -958,7 +957,13 @@ function assistantContext() {
         medications: (activeAppointmentRecord.prep?.medications || []).filter(item => item?.medicationId && item?.name).map(item => ({ medicationId: String(item.medicationId), name: String(item.name).slice(0, 120), details: String(item.details || "").slice(0, 160) })),
         emmiPreparation: activeAppointmentRecord.prep?.emmiPreparation && typeof activeAppointmentRecord.prep.emmiPreparation === "object" ? activeAppointmentRecord.prep.emmiPreparation : null
       }
-    : null;
+    : onlyUpcomingAppointment.length > 1
+      ? {
+          appointmentId: "",
+          ambiguous: true,
+          appointmentCandidates: onlyUpcomingAppointment.map(record => ({ appointmentId: record.id, providerDisplayName: record.providerDisplayName || "", scheduledAt: record.scheduledAt || "" }))
+        }
+      : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
   if (!emmiConversationManager) {
     emmiConversationManager = new EmmiConversationManager({
@@ -1189,6 +1194,76 @@ function ensureEmmiRuntime() {
           reminder: record.reminder ? { slot: record.reminder.slot, channel: record.reminder.channel } : null
         }
       };
+    },
+    onAppointmentTopics: ({ appointmentId, operation, target, value, detail, index, position }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const topics = (record.prep?.topics || []).map(item => String(item || "").trim()).filter(Boolean);
+      const normalize = item => String(item || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+      const preparation = record.prep?.emmiPreparation || {};
+      const resolveIndex = () => {
+        if (index === -1) return topics.length - 1;
+        if (Number.isInteger(index) && index >= 0) return index < topics.length ? index : -1;
+        const key = normalize(target);
+        if (/^(ese|esa|that|it)$/.test(key)) {
+          const recent = normalize(preparation.lastTopic || preparation.currentTopic || "");
+          return recent ? topics.findIndex(item => normalize(item) === recent || normalize(item).includes(recent) || recent.includes(normalize(item))) : -2;
+        }
+        if (!key) return -2;
+        const words = key.replace(/^(lo de|el tema de|la pregunta de) /, "").split(" ").filter(word => word.length > 2);
+        const matches = topics.map((item, topicIndex) => ({ topicIndex, score: words.filter(word => normalize(item).includes(word)).length })).filter(item => item.score > 0);
+        const best = Math.max(0, ...matches.map(item => item.score));
+        const winners = matches.filter(item => item.score === best);
+        return winners.length === 1 ? winners[0].topicIndex : winners.length > 1 ? -2 : -1;
+      };
+      let nextTopics = [...topics];
+      let item = "";
+      let changedIndex = -1;
+      if (["LIST", "OPEN"].includes(operation)) {
+        if (operation === "OPEN") {
+          openAppointmentDetail(record.id, "PREP");
+          state.assistantPendingNavigation = true;
+        }
+      } else if (operation === "READ_ITEM") {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        item = topics[changedIndex];
+      } else if (operation === "ADD") {
+        const added = String(value || "").trim().slice(0, 120);
+        if (!added) return { success: false, status: "TOPIC_REQUIRED" };
+        const existingIndex = topics.findIndex(topic => normalize(topic) === normalize(added));
+        if (existingIndex >= 0) changedIndex = existingIndex;
+        else { nextTopics.push(added); changedIndex = nextTopics.length - 1; }
+      } else {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        if (operation === "REMOVE") nextTopics.splice(changedIndex, 1);
+        else if (operation === "MOVE") {
+          const [moved] = nextTopics.splice(changedIndex, 1);
+          const destination = Math.max(0, Math.min(Number.isInteger(position) ? position : 0, nextTopics.length));
+          nextTopics.splice(destination, 0, moved);
+          changedIndex = destination;
+        } else if (operation === "UPDATE") {
+          const replacement = String(value || "").trim().slice(0, 120);
+          if (!replacement) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = replacement;
+        } else if (operation === "UPDATE_DETAIL") {
+          const addedDetail = String(detail || "").trim();
+          if (!addedDetail) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = `${topics[changedIndex]}: ${addedDetail}`.slice(0, 120);
+        } else return { success: false, status: "OPERATION_NOT_SUPPORTED" };
+      }
+      const now = new Date().toISOString();
+      const lastTopic = changedIndex >= 0 ? (nextTopics[changedIndex] || topics[changedIndex] || "") : preparation.lastTopic || "";
+      saveAppointment({
+        ...record,
+        prep: { ...(record.prep || {}), topics: nextTopics, emmiPreparation: { ...preparation, status: "IN_PROGRESS", contextActive: true, lastTopic, updatedAt: now }, updatedAt: now },
+        updatedAt: now
+      });
+      const saved = appointmentById(record.id)?.prep?.topics || [];
+      const verified = saved.length === nextTopics.length && saved.every((topic, topicIndex) => topic === nextTopics[topicIndex]);
+      if (!verified) return { success: false, status: "TOPICS_NOT_SAVED" };
+      return { success: true, status: operation === "OPEN" ? "OPENED" : "SAVED", appointmentId: record.id, topics: saved, ...(item ? { item } : {}) };
     },
     onSchedulingCapability: ({ providerId, appointmentType }) => {
       const member = patientCareTeam().find(candidate => candidate.id === providerId);

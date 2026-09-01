@@ -5,6 +5,7 @@ import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
+import { appointmentTopicListText, parseAppointmentTopicCommands } from "./appointmentTopics.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
@@ -24,7 +25,7 @@ const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to
 const APPOINTMENT_MENTION = /\bappointment|\bvisit\b|\bcita\b|\bconsulta\b|\bvisita\b|randevou|vizit/i;
 const foldApostrophes = value => String(value || "").replace(/[‘’ʼ]/g, "'");
 const SAFETY = { test: detectEmergencyLanguage };
-const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre)\s*(\d{2,3})/i;
+const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
 // Anchored on word boundaries. Without them "pri" matched inside "Lisinopril", "priority" and
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
 // A question that quotes an amount is a question about money in any language, and "why does it say
@@ -1038,6 +1039,43 @@ export class EmmiTextOrchestrator {
         ES: "No pude abrir su surtida ahora. Puede abrir Mis medicamentos o puedo ayudarle a comunicarse con su equipo.",
         KR: "Mwen pa t ka louvri ranplisaj ou kounye a. Ou ka louvri Medikaman mwen yo oswa mwen ka ede w jwenn ekip swen ou."
       }), trace };
+    }
+    const topicCommands = parseAppointmentTopicCommands({ question, appointmentPrep: context.appointmentPrep });
+    if (topicCommands.length) {
+      trace.intent = "APPOINTMENT_TOPIC_LIST";
+      trace.responseMode = "APPOINTMENT_TOPIC_TOOL";
+      if (!context.appointmentPrep?.appointmentId) {
+        emit("EMMI_ANSWER_ROUTED", { appointmentTopicStatus: "APPOINTMENT_REQUIRED", appointmentCandidates: context.appointmentPrep?.appointmentCandidates?.length || 0 });
+        return { text: pick(locale, { EN: "Which appointment would you like to prepare for?", ES: "¿Para cuál cita desea preparar la lista?", KR: "Pou ki randevou ou vle prepare lis la?" }), trace };
+      }
+      let lastResult = null;
+      for (const command of topicCommands) {
+        trace.toolCalls.push("manageAppointmentTopics");
+        try {
+          lastResult = await this.executeTool("manageAppointmentTopics", {
+            patientId: context.patientId,
+            appointmentId: context.appointmentPrep.appointmentId,
+            ...command
+          });
+        } catch (error) {
+          emit("EMMI_TOOL_FAILED", { tool: "manageAppointmentTopics", error: error?.message || "unknown" });
+          return { text: pick(locale, { EN: "I couldn’t update your appointment list just now. Nothing was changed.", ES: "No pude actualizar su lista para la cita ahora. No se cambió nada.", KR: "Mwen pa t ka mete lis randevou ou ajou kounye a. Anyen pa chanje." }), trace };
+        }
+        if (!lastResult?.success) {
+          emit("EMMI_ANSWER_ROUTED", { appointmentTopicStatus: lastResult?.status || "FAILED" });
+          const ambiguous = lastResult?.status === "TOPIC_AMBIGUOUS" || lastResult?.status === "TOPIC_REQUIRED";
+          return { text: ambiguous
+            ? pick(locale, { EN: "Which item on your appointment list do you mean?", ES: "¿A cuál punto de su lista para la cita se refiere?", KR: "Ki pwen nan lis randevou ou vle di?" })
+            : pick(locale, { EN: "I couldn’t find that item, so I didn’t change your list.", ES: "No encontré ese punto, así que no cambié su lista.", KR: "Mwen pa jwenn pwen sa a, kidonk mwen pa chanje lis ou a." }), trace };
+        }
+      }
+      trace.runtimeFactsUsed.push("manageAppointmentTopics");
+      emit("EMMI_ANSWER_ROUTED", { appointmentTopicOperations: topicCommands.map(item => item.operation), appointmentTopicCount: lastResult?.topics?.length || 0 });
+      const onlyRead = topicCommands.every(item => ["LIST", "OPEN", "READ_ITEM"].includes(item.operation));
+      const text = lastResult?.item
+        ? pick(locale, { EN: `That item is: “${lastResult.item}”.`, ES: `Ese punto es: “${lastResult.item}”.`, KR: `Pwen sa a se: “${lastResult.item}”.` })
+        : `${onlyRead ? "" : pick(locale, { EN: "Done. ", ES: "Listo. ", KR: "Fini. " })}${appointmentTopicListText(lastResult?.topics || [], locale)}`;
+      return { text, appointmentId: context.appointmentPrep.appointmentId, trace };
     }
     // Appointments sit between the refill engine and the difficulty gate. A patient who says they
     // need to see their doctor is asking for a visit, not describing a barrier, so this runs before

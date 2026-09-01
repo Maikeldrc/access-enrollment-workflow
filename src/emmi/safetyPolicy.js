@@ -1,5 +1,5 @@
 const fold = value => String(value || "").replace(/[‘’ʼ]/g, "'").replace(/\s+/g, " ").trim();
-const EMERGENCY = /chest pain|dizzy|dizziness|light[- ]?headed|mareo|mareado|mareada|t[eéè]t vire|vertij|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(en el )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
+const EMERGENCY = /chest pain|dizzy|dizziness|light[- ]?headed|mareo|mareado|mareada|t[eéè]t vire|vertij|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(?:(?:en el|de) )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
 const FOLLOW_UP = /^(and |but |so )?(why|what (now|next|should i do)|what is my next step|is that serious|can you help|por qu[eé]|qu[eé] (hago|sigue)|y ahora|kisa pou m fè|poukisa|e apre)/i;
 
 // An episode ends when the patient says help was reached, or that the symptoms have passed. Until

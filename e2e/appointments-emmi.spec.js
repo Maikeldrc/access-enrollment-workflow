@@ -683,6 +683,36 @@ test("Prepare with EMMI opens the confirmed appointment conversation and preserv
   await expect(page.locator(".appointment-topics")).toContainText("medicamentos");
 });
 
+test("chat operates on the real ordered visit list and keeps it after refresh", async ({ page }) => {
+  await openAppointments(page, {
+    language: "es",
+    appointments: [appointment({ prep: { topics: ["Mareos", "Presión arterial"], medications: [], notes: "", sharedWithProvider: false } })]
+  });
+  await page.locator('[data-action="appointment-open"]').first().click();
+  await page.locator('[data-action="appointment-open-prep"]').click();
+  await page.locator('[data-action="appointment-ask-emmi"]').click();
+
+  const shown = await tellEmmi(page, "muéstrame la lista", "es");
+  await expect(shown).toContainText(/1\. Mareos.*2\. Presión arterial/i);
+  await expect(shown).not.toContainText(/información aprobada/i);
+
+  const added = await tellEmmi(page, "agrega preguntas sobre el sueño", "es");
+  await expect(added).toContainText(/3\. preguntas sobre el sueño/i);
+  const moved = await tellEmmi(page, "pon lo de la presión primero", "es");
+  await expect(moved).toContainText(/1\. Presión arterial.*2\. Mareos.*3\. preguntas sobre el sueño/i);
+  await closeEmmi(page);
+
+  await expect(page.locator(".appointment-prep-screen")).toBeVisible();
+  await expect(page.locator(".appointment-topics .appointment-topic-text")).toHaveText(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+  expect((await storedAppointments(page))[0].prep.topics).toEqual(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+
+  await page.reload();
+  if (!(await page.locator(".appointment-prep-screen").count())) await page.locator('[data-action="appointment-open-prep"]').click();
+  await expect(page.locator(".appointment-topics .appointment-topic-text")).toHaveText(["Presión arterial", "Mareos", "preguntas sobre el sueño"]);
+  const shownAfterRefresh = await tellEmmi(page, "qué tengo apuntado", "es");
+  await expect(shownAfterRefresh).toContainText(/1\. Presión arterial.*2\. Mareos.*3\. preguntas sobre el sueño/i);
+});
+
 test("Prepare with EMMI answers the only saved BP topic instead of asking for it again", async ({ page }) => {
   await openAppointments(page, {
     language: "es",
