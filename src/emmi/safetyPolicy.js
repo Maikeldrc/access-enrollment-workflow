@@ -20,12 +20,23 @@ const REPORTED_HIGH_BP = /\b(bp|blood pressure)\b[^?.]{0,25}\b(high|elevated|too
 // which had nothing to say, so a patient reporting a symptom was told the information was not
 // available. Reporting a symptom must always reach a person, never a dead end.
 const SYMPTOM_REPORT = /\b(headache|migraine|nause(?:a|ous)|vomit|throwing up|feel (?:weak|sick|unwell|awful|terrible|off|bad|worse)|feeling (?:weak|sick|unwell|awful|terrible|off|bad|worse)|(?:do ?n'?t|not) feel(?:ing)? (?:well|good|right)|no energy|swelling|swollen|blurry vision|blurred vision|palpitations|heart racing|racing heart)\b|\b(?:bp|blood pressure)\b[^?.]{0,25}\b(?:low|too low|dropped|very low)\b|dolor de cabeza|jaqueca|n[aá]useas|v[oó]mito|me siento (?:mal|d[eé]bil|peor)|no me siento bien|sin energ[ií]a|hinchaz[oó]n|visi[oó]n borrosa|palpitaciones|presi[oó]n[^?.]{0,25}(?:baja|muy baja)|t[eè]t fè mal|kè plen|mwen santi m (?:mal|feb)|mwen pa santi m byen|tansyon[^?.]{0,25}ba/i;
+// Patients report pain with a verb far more often than with the noun the gate was built on. Every
+// pattern here recognised "chest pain" and none recognised "my chest hurts", and in Spanish the
+// gate held "dolor de pecho" while the ordinary way to say it — "me duele el pecho" — fell
+// through to a knowledge lookup. Body part required, so this stays a report of pain somewhere and
+// not the bare word "hurts".
+// First person only, and the patient's own body part. "My chest hurts" is a report; "does the cuff
+// hurt my arm?" is a question about the device, and routing that to the clinical engine would take
+// a device question away from the patient rather than answer it.
+const PAIN_REPORT = /\bmy (?:chest|heart|arm|arms|jaw|head|stomach|belly|abdomen|back|leg|legs|neck)\b[^?.!]{0,15}\b(?:hurts?|hurting|aches?|aching|killing me)\b|\bpain in my\b|\bi have (?:a lot of |bad |severe |terrible )?pain\b|\bi(?:'|’)?m in (?:a lot of |bad |severe )?pain\b|\bme duele\b|\bme duelen\b|\btengo (?:un )?(?:fuerte |mucho )?dolor\b|\bsiento (?:un )?dolor\b|\b(?:pwatrin|k[oè]|bra|t[eè]t|vant|do|janm|kou) (?:mwen |m )?f[eè] (?:m |mwen )?mal\b|\bmwen gen doul[eè]\b/i;
+
 const EMERGENCY = new RegExp([
   /chest pain|dizzy|dizziness|light[- ]?headed|mareo|mareado|mareada|t[eéè]t vire|vertij|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(en el )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/.source,
   STROKE_SIGNS.source,
   ACUTE_SIGNS.source,
   REPORTED_HIGH_BP.source,
-  SYMPTOM_REPORT.source
+  SYMPTOM_REPORT.source,
+  PAIN_REPORT.source
 ].join("|"), "i");
 const FOLLOW_UP = /^(and |but |so )?(why|what (now|next|should i do)|what is my next step|is that serious|can you help|por qu[eé]|qu[eé] (hago|sigue)|y ahora|kisa pou m fè|poukisa|e apre)/i;
 
