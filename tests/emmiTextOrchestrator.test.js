@@ -672,6 +672,7 @@ describe("Ask EMMI appointment coordination", () => {
     expect(answer.text).toMatch(/UberX/);
     expect(answer.text).toMatch(/11:00 a\. m\./);
     expect(answer.text).toMatch(/UB-15582/);
+    expect(answer.text).not.toMatch(/\.\.$/);
     expect(answer.trace.responseMode).toBe("RUNTIME_GROUNDED");
   });
 });

@@ -405,7 +405,7 @@ const appointmentTransportationAnswer = (locale, appointment, reservation) => {
     EN: `Your appointment${provider ? ` with ${provider}` : ""}${when ? ` is ${when}` : ""}${location ? ` at ${location}` : ""}. Your confirmed ${service || "ride"} pickup is ${pickup || "on file"}${reservationId ? `, reservation ${reservationId}` : ""}${arrival ? `, with estimated arrival at ${arrival}` : ""}.`,
     ES: `Su cita${provider ? ` con ${provider}` : ""}${when ? ` es ${when}` : ""}${location ? ` en ${location}` : ""}. Su ${service || "transporte"} confirmado le recogerá a las ${pickup || "hora registrada"}${reservationId ? `, reserva ${reservationId}` : ""}${arrival ? `, con llegada estimada a las ${arrival}` : ""}.`,
     KR: `Randevou ou${provider ? ` ak ${provider}` : ""}${when ? ` se ${when}` : ""}${location ? ` nan ${location}` : ""}. ${service || "Transpò"} ou konfime a ap vin pran ou a ${pickup || "lè ki nan dosye a"}${reservationId ? `, rezèvasyon ${reservationId}` : ""}${arrival ? `, epi lè li prevwa rive se ${arrival}` : ""}.`
-  });
+  }).replace(/\.\.$/, ".");
 };
 
 const appointmentWhichOneAnswer = (locale, appointments) => {
