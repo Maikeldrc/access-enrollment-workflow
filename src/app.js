@@ -41,6 +41,7 @@ import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transition
 import { EmmiConversationManager, clearEmmiConversation } from "./emmi/conversationManager.js";
 import { EMMI_PREFERENCES_KEY, clearEmmiEnrollmentContinuity, readEmmiPreferences } from "./emmi/preferences.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
+import { detectEmergencyLanguage } from "./emmi/safetyPolicy.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
@@ -7325,6 +7326,12 @@ const languageSwitchCopy = locale => ({
 function handlePatientLanguage(text) {
   const activeLocale = EMMI_LOCALE_KEYS[state.language] || "en";
   const offered = state.emmiOfferedLocale;
+
+  // Which language to continue in can wait; a symptom cannot. A Spanish-preference patient typing
+  // "my bp high what i do" was shown "I noticed you're writing in English. Would you like me to
+  // continue in English?" and had to answer that before anyone looked at the blood pressure. The
+  // health turn goes through untouched and the offer is simply skipped for it.
+  if (detectEmergencyLanguage(text)) return { handled: false, replayQuestion: "" };
 
   // A standing offer the patient answered in words rather than by carrying on.
   if (offered && offered !== activeLocale) {

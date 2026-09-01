@@ -41,6 +41,10 @@ Having Part A and Part B active does not by itself establish that someone has Or
 
 Use this page to explain how Original Medicare works. Whether this patient has Original Medicare, and what they specifically pay, must come from verified coverage data and the financial responsibility engine.
 
+## Patient answer (EN)
+
+Original Medicare is the coverage run directly by the federal Medicare program, and it has two parts. Part A is hospital insurance and covers inpatient hospital care and some other services. Part B is medical insurance and covers doctor visits, outpatient care, preventive services and more. For most Part B services Medicare pays its share after your deductible and you are responsible for the rest, which is usually 20 percent, unless you have other coverage that pays it for you. ACCESS is offered to people with Original Medicare.
+
 ## Patient answer (ES)
 
 Medicare Original es la cobertura que administra directamente el programa federal de Medicare, y tiene dos partes. La Parte A es el seguro de hospital: cubre la atención hospitalaria como paciente internado y algunos otros servicios. La Parte B cubre atención médica ambulatoria, servicios preventivos y otros servicios. Lo que usted pague depende de las reglas de Medicare para cada tipo de atención y de cualquier cobertura adicional que tenga.

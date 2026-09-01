@@ -58,7 +58,17 @@ export async function handleEmmiChat(req, res, env = process.env) {
   catch { return json(res, 503, { error: "knowledge_unavailable" }); }
   if (!retrieval.chunks.length && !payload.runtimeEvidence) return json(res, 422, { error: "empty_grounded_context", intent: retrieval.intent });
 
-  const grounding = retrieval.chunks.map((chunk, index) => `SOURCE ${index + 1} [${chunk.sourcePath}#${chunk.heading}]\n${chunk.text}`).join("\n\n");
+  // A page states its answer for each language in a `Patient answer` section, and the chunker lifts
+  // those out so they do not compete for a retrieval slot. That also kept them from ever reaching
+  // the model, so a fact written into the approved answer — what ACCESS stands for, what Medicare
+  // says an organization may charge — was invisible to the turn that needed it and the model
+  // answered from the surrounding page instead. The written answer is the best source there is for
+  // this question, so it leads the grounding.
+  const grounding = retrieval.chunks.map((chunk, index) => {
+    const written = chunk.localizedAnswers?.[locale];
+    const body = written ? `APPROVED PATIENT ANSWER:\n${written}\n\nSUPPORTING DETAIL:\n${chunk.text}` : chunk.text;
+    return `SOURCE ${index + 1} [${chunk.sourcePath}#${chunk.heading}]\n${body}`;
+  }).join("\n\n");
   const prompt = `${languageInstruction(locale)}
 
 ANSWER-FIRST TASK:
@@ -83,7 +93,17 @@ Use runtime evidence only for patient-specific facts. Use passages only for gene
     const response = await ai.models.generateContent({
       model,
       contents: prompt,
-      config: { systemInstruction: EMMI_SYSTEM_PROMPT, temperature: 0.2, maxOutputTokens: 350 }
+      // gemini-2.5-flash reasons before it answers, and those tokens are drawn from the same
+      // maxOutputTokens budget as the reply. At 350 the budget was being spent thinking and the
+      // patient was handed a sentence that stopped in the middle — "I am EMMI, your ITERA Care
+      // Assistant. I". Answers here are meant to be 2–5 sentences, so the reasoning is turned off
+      // and the ceiling raised enough that a complete answer always fits.
+      config: {
+        systemInstruction: EMMI_SYSTEM_PROMPT,
+        temperature: 0.2,
+        maxOutputTokens: 700,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
     });
     const text = clean(response.text, 1600);
     if (!text) return json(res, 502, { error: "empty_model_response", intent: retrieval.intent });

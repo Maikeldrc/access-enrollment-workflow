@@ -23,6 +23,10 @@ Never independently advise starting, stopping or changing a prescription.
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+Reviewing your medications helps your care team see what you are actually taking now, what has changed, and where you might need help. Confirming a medicine here does not change a prescription, and neither do I: only the clinician who prescribes it can start, stop or change a medicine or a dose. If something about a medicine is worrying you, such as a missed dose, an extra dose, or feeling unwell after taking it, tell your care team or your pharmacist, and I can help you reach them.
+
 ## Patient answer (ES)
 
 Revisar sus medicamentos sirve para que su equipo de cuidado sepa qué está tomando ahora, qué cambió y dónde puede necesitar ayuda. Para cada medicamento usted puede confirmar que lo toma, decir que algo cambió o decir que no está seguro; no estar seguro es una respuesta válida. Esta revisión no cambia ninguna receta por sí sola, y EMMI no puede indicarle que empiece, suspenda o modifique un medicamento o una dosis: eso es de su profesional clínico.

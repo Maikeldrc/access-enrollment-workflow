@@ -32,6 +32,10 @@ When the patient asks a personalized question such as "Am I eligible?", "What wi
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+ACCESS stands for Advancing Chronic Care with Effective, Scalable Solutions. It is a Medicare care option created and run by CMS — the federal agency for Medicare — through its Innovation Center, and it began on July 5, 2026. It gives people with Original Medicare extra, technology-supported help with long-term conditions such as high blood pressure, between their regular doctor visits. Taking part is voluntary, and it does not replace your own doctors: you keep your primary care provider and your specialists. Organizations approved by Medicare provide the support, and yours is ITERA HEALTH.
+
 ## Patient answer (ES)
 
 ACCESS es una opción de cuidado de Medicare que le da apoyo adicional entre sus visitas al médico. Según lo que usted necesite, puede incluir seguimiento de su salud, un plan de cuidado, apoyo con sus medicamentos o mediciones desde casa. Sus médicos de siempre siguen siendo parte de su cuidado, y participar es decisión suya.

@@ -165,9 +165,29 @@ const STOP_WORDS = new Set(["the", "a", "an", "is", "are", "do", "does", "did", 
   // The accented forms are the ones patients actually type, and they were not stopwords, so a
   // keyword phrase containing "qué" matched every Spanish question ever asked.
   "qué", "cómo", "como", "cuál", "cual", "cuáles", "dónde", "donde", "quién", "quien", "sí", "más", "mas",
-  "kisà", "ki", "pou", "sa", "ou", "li", "yo", "ap", "gen"]);
+  "kisà", "ki", "pou", "sa", "ou", "li", "yo", "ap", "gen",
+  // Negations and the rest of the English function words. "not" survived the length filter, so
+  // "My camera does not work" scored a heading match against "Leaving is not losing Medicare",
+  // "Why A1c is asked for when the patient is not diabetic" and "ACCESS payment is not every
+  // healthcare cost" equally — three pages tied on the word "not" and the tie-break picked the
+  // answer. A word that appears in every other sentence cannot be evidence of a topic.
+  "not", "when", "who", "whom", "where", "which", "with", "from", "about", "than", "then", "there",
+  "here", "but", "all", "any", "get", "got", "was", "were", "been", "being", "am", "if", "so", "out",
+  "would", "could", "may", "might", "must", "just", "also", "into", "over", "some", "more", "most",
+  "only", "very", "much", "many", "still", "even", "yet", "they", "them", "their", "we", "our", "us",
+  "she", "her", "him", "his", "its", "know", "need", "want", "use", "like", "make", "does", "doing",
+  "no", "para", "con", "sin", "pero", "cuando", "donde", "muy", "mas", "todo", "todos", "algo",
+  "esto", "eso", "esta", "este", "son", "ser", "estar", "hay", "ya", "pa", "men", "epi", "nou", "yon"]);
 
 const tokenize = value => String(value || "").toLowerCase().split(/[^a-z0-9áéíóúñèòàçü]+/i).filter(word => word.length > 2 && !STOP_WORDS.has(word));
+
+// A declared keyword is a phrase a patient would actually type, and it is matched as one. Stopwords
+// are deliberately kept here: dropping them collapsed "still in access" to "access" and
+// "que es medicare" to "medicare", turning a specific phrase into one of the commonest words in the
+// corpus and handing its page a keyword bonus on almost every question. Both sides of the comparison
+// are normalised the same way, so the phrase has to arrive intact.
+const normalizePhrase = value => String(value || "").toLowerCase()
+  .split(/[^a-z0-9áéíóúñèòàçü]+/i).filter(Boolean).join(" ");
 
 // Minimal YAML front-matter reader: the knowledge files use flat scalar keys only.
 function parseFrontMatter(text) {
@@ -215,7 +235,12 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
   const localizedAnswers = {};
   const remaining = [];
   for (const section of sections) {
-    const localized = /^Patient answer \((ES|KR)\)$/i.exec(section.heading);
+    // EN joins ES and KR. The lead section of a page is written for whoever maintains it as much
+    // as for the patient — it carries the retrieval keywords and the rules the model must follow —
+    // and rendering it verbatim is how English patients were shown "Never determine QMB status
+    // from a generic eligibility string" as the answer to a question about their own bill. A page
+    // now states its English answer in the same place it already states the other two.
+    const localized = /^Patient answer \((EN|ES|KR)\)$/i.exec(section.heading);
     if (localized) localizedAnswers[localized[1].toUpperCase()] = section.text.trim();
     else remaining.push(section);
   }
@@ -267,7 +292,19 @@ function chunkDocument({ sourcePath, metadata, body, maxChars = 1600 }) {
     // alone cannot tell one ACCESS page from another for a Spanish or Creole question: every page
     // scores the same category and programme boost and the winner is whatever the tie-break lands
     // on. A page declares the words a patient would actually use to ask for it, in each language.
-    keywordTokens: tokenize(String(metadata.keywords || "").replace(/,/g, " ")),
+    // Keywords are phrases, and they are matched as phrases. Splitting them into tokens meant
+    // "savings program" on the QMB page handed that page the word "program" — the single most
+    // common word in this product — so QMB came back as the answer to what a government program is,
+    // whether the monitor costs anything, and whether the invitation is a scam. A page claims the
+    // words a patient would actually use for it, not the words those phrases happen to contain.
+    // Deduplicated, because several declared phrases can normalise to the same thing once the
+    // stopwords come out: "medicare", "que es medicare" and "kisa medicare ye" all reduce to
+    // "medicare", and counted separately they paid the basics page three keyword bonuses for one
+    // word — enough to beat the page actually named in the question.
+    keywordPhrases: [...new Set(String(metadata.keywords || "")
+      .split(",")
+      .map(normalizePhrase)
+      .filter(Boolean))],
     metadata: {
       id: metadata.id || sourcePath,
       title: metadata.title || sourcePath,
@@ -319,6 +356,18 @@ export const resetKnowledgeIndex = () => { cachedIndex = null; };
 // the master only as a fallback when nothing else matched (§42).
 const isMasterSource = chunk => /emmi-master-knowledge/.test(chunk.sourcePath);
 
+// Any score above zero used to be enough to answer, so a question the corpus has nothing to say
+// about was still handed the least-irrelevant page: "My camera does not work" was answered from the
+// A1c page because both mention working, and "Are you my doctor?" from the Original Medicare page
+// on the word "doctor". Scoring alone cannot separate those, because a page with nothing to say can
+// still collect context boosts. Selection therefore asks whether anything actually pointed at the
+// page — see `claimed` below — and incidental body overlap has to be substantial to count on its
+// own. When nothing qualifies the retriever returns nothing, and EMMI says it does not know and
+// offers the care team, which is the true answer.
+const MINIMUM_BODY_OVERLAP = 4;
+// A floor under the qualified matches too: a page reached on one incidental word is not an answer.
+const MINIMUM_SCORE = 4;
+
 // The page that describes a programme as a whole, as opposed to one written about a single question
 // within it. It owns the programme's name, but a page that matches its own topic should still win:
 // naming the programme alone asks for the overview, naming it alongside a topic does not.
@@ -336,6 +385,9 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
   // ACCESS patient asking what CCM is, what coinsurance is, or who ITERA are was handed the ACCESS
   // page every time. Context still counts — as the category and programme boosts below, once.
   const queryTokens = new Set(tokenize(query));
+  // The question itself, normalised the same way the keywords are, so a multi-word keyword can be
+  // tested as a contiguous phrase rather than as a bag of words.
+  const queryPhrase = ` ${normalizePhrase(query)} `;
   const intentCategories = new Set(CATEGORY_FOR_INTENT[classification.intent] || []);
   const screenCategories = new Set(CATEGORY_FOR_SCREEN[runtime.currentScreen] || []);
   const wantedPrograms = new Set(PROGRAM_ALIASES[runtime.program] || []);
@@ -343,12 +395,16 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
 
   const scored = index.chunks.map(chunk => {
     let score = 0;
+    // Kept alongside the score so selection can ask *why* a page matched, not just how much.
+    let bodyScore = 0;
+    let headingScore = 0;
+    let screenMatched = false;
     // Each distinct word counts once. Counting repeats rewarded a page for saying the programme's
     // name often rather than for answering the question, which is how the general ACCESS page beat
     // the one written about leaving ACCESS.
-    for (const token of new Set(chunk.tokens)) if (queryTokens.has(token)) score += 1;
+    for (const token of new Set(chunk.tokens)) if (queryTokens.has(token)) { score += 1; bodyScore += 1; }
     // Heading matches are the strongest signal that a section is on-topic.
-    for (const token of tokenize(chunk.heading)) if (queryTokens.has(token)) score += 2;
+    for (const token of tokenize(chunk.heading)) if (queryTokens.has(token)) { score += 2; headingScore += 2; }
     // A declared keyword is the page saying "this is the question I answer", and it is the only
     // signal a non-English question has to go on, so it outweighs an incidental body match.
     //
@@ -359,7 +415,14 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     // containing "Medicare", instead of the lead written to answer it. Pages are authored
     // answer-first precisely because only one chunk of them is ever selected.
     let matchedKeyword = false;
-    if (/#0$/.test(chunk.id)) for (const token of chunk.keywordTokens || []) if (queryTokens.has(token)) { score += 4; matchedKeyword = true; }
+    if (/#0$/.test(chunk.id)) for (const phrase of chunk.keywordPhrases || []) {
+      // A single-word keyword still matches a single word; a multi-word one has to arrive intact.
+      const words = phrase.split(" ");
+      const present = words.length === 1
+        ? (!STOP_WORDS.has(words[0]) && queryTokens.has(words[0]))
+        : queryPhrase.includes(` ${phrase} `);
+      if (present) { score += 4; matchedKeyword = true; }
+    }
     // Category and programme break ties between pages that are about the question. They must not
     // manufacture relevance for one that is not: with a Spanish or Creole question matching almost
     // nothing lexically in an English corpus, every ACCESS-tagged page collected the same boost and
@@ -369,15 +432,23 @@ export function retrieveKnowledge({ query, runtime = {}, topK = 4, index = getKn
     const topical = score > 0;
     // The screen the patient is standing on is the signal for a question that matches nothing —
     // "why are you asking me this?" — so it is the one boost that must not require a topical match.
-    if (screenCategories.has(chunk.metadata.category)) score += 3;
+    if (screenCategories.has(chunk.metadata.category)) { score += 3; screenMatched = true; }
     if (topical && intentCategories.has(chunk.metadata.category)) score += 3;
     if (topical && chunk.metadata.program && wantedPrograms.has(chunk.metadata.program)) score += 4;
     // A program document for a program the patient is not in is noise (§45).
     if (chunk.metadata.program && wantedPrograms.size && !wantedPrograms.has(chunk.metadata.program)) score -= 3;
     if (classification.intent === "CLINICAL_SAFETY" && chunk.metadata.category === "safety") score += 6;
 
-    return { chunk, score, keywordMatched: matchedKeyword };
-  }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score);
+    const safetyMatched = classification.intent === "CLINICAL_SAFETY" && chunk.metadata.category === "safety";
+    // A page qualifies when something actually pointed at it: it declared the question's own words,
+    // a heading is on the subject, the screen the patient is standing on selects it, it is the
+    // safety corpus for a safety turn, or the body overlap is substantial rather than incidental.
+    const claimed = matchedKeyword || headingScore > 0 || screenMatched || safetyMatched || bodyScore >= MINIMUM_BODY_OVERLAP;
+    return { chunk, score, keywordMatched: matchedKeyword, claimed, screenMatched };
+    // The screen the patient is standing on is exempt from the floor: it is the signal for a
+    // question that matches nothing lexically — "why are you asking me this?" — and carries a
+    // boost of 3 on its own.
+  }).filter(entry => entry.claimed && (entry.screenMatched || entry.score >= MINIMUM_SCORE)).sort((a, b) => b.score - a.score);
 
   // The master file duplicates the topic files, so it is a fallback rather than a competitor:
   // it only fills slots the specialised documents left empty.

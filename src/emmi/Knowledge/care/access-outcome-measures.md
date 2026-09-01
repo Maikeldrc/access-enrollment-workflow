@@ -11,7 +11,7 @@ version: 1.0
 last_reviewed: 2026-08-30
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH outcome configuration
 owner: ITERA HEALTH
-keywords: target, targets, meta, metas, sib, presion, presión, blood pressure, tansyon, 130, mmhg, control, mejora, improvement, milestone, ldl, cholesterol, colesterol, kolestewòl, weight, peso, pwa, measures, medidas, mezi, outcomes, resultados
+keywords: target, targets, meta, metas, sib, presion, presión, blood pressure, tansyon, 130, mmhg, control, mejora, improvement, milestone, ldl, cholesterol, colesterol, kolestewòl, weight, peso, pwa, measures, medidas, mezi, outcomes, resultados, what are we trying to improve, how do you know if i am getting better, how do you measure progress, what if i do not improve, what if i get better quickly, que estamos tratando de mejorar, qué estamos tratando de mejorar, como saben si estoy mejor, cómo saben si estoy mejor
 ---
 
 # What ACCESS measures, and the ACCESS blood pressure target
@@ -36,6 +36,10 @@ Answer what ACCESS measures, and what the programme's targets are, from this pag
 This patient's own target, their own readings and their own progress are runtime facts, and come from getClinicalTarget, getLatestReading and getGoalProgress. A care team may set a target that differs from the programme's, and theirs wins.
 
 Never interpret a patient's result, never say whether a number is good or bad for them, and never suggest a diagnosis. That is their care team's work.
+
+## Patient answer (EN)
+
+ACCESS follows a small number of health measures over time to see whether the support is helping. For blood pressure there are two different numbers and they mean different things. The control target is the program goal of getting systolic blood pressure below 130. The improvement milestone is a step toward it, set at least 15 points below wherever you started. Your own starting point, target and milestone are in your care plan, and I can read them to you from your record.
 
 ## Patient answer (ES)
 

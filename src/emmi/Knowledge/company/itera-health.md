@@ -22,6 +22,10 @@ Do not place secrets, credentials, private contracts or PHI in this Markdown fil
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+ITERA HEALTH is the organization providing your ACCESS care. Medicare approves organizations to take part in ACCESS, and ITERA is one of them. ITERA is not your doctor and does not replace anyone on your medical team: you keep your primary care provider and your specialists, and ITERA works alongside them, sharing updates so your care stays coordinated. ITERA provides the extra support between your visits, such as check-ins, help with your care plan and medications, and connected monitoring from home.
+
 ## Patient answer (ES)
 
 ITERA HEALTH es la organización que provee su cuidado ACCESS. Trabaja junto a los médicos que usted ya tiene, no en su lugar, y da apoyo y coordinación entre las visitas al consultorio.

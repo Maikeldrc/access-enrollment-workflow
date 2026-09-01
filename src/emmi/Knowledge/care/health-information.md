@@ -24,6 +24,10 @@ A care-setup step may be completed even when the information itself is not clini
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+When we show you your health information, you have three answers and all three are fine: that everything is correct, that something has changed, or that you are not sure. If you say something has changed, it is recorded as something you told us so your care team can review it, and your medical record is not overwritten automatically. If you are not sure, your care team can go through it with you. Confirming this information is not the same as a clinician confirming it clinically.
+
 ## Patient answer (ES)
 
 Cuando le mostramos su información de salud, usted tiene tres respuestas posibles y las tres son válidas: que todo está correcto, que algo cambió, o que no está seguro. Si dice que algo cambió, se registra como algo que usted reportó para que su equipo lo revise — no se sobrescribe su expediente clínico de forma automática. Y si no está seguro, su equipo puede revisarlo con usted.
