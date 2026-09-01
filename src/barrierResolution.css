@@ -1,0 +1,148 @@
+/* Barrier resolution — EMMI solving a difficulty with the patient, rather than recording it.
+   Linked after appointments.css, which is where the --appointment-* tone tokens this sheet reads
+   are defined, and where every shape it extends (.appointment-action, .appointment-choice,
+   .appointment-facts) already lives. Nothing here restyles those: this sheet adds the components
+   the resolution playbooks need and nothing else, all under the .barrier- namespace.
+   Every size is in rem, so 125%/150% font scaling reflows rather than clips, and every card is
+   single-column so 320px never scrolls sideways. */
+.barrier-screen { display:grid; gap:0.875rem; width:100%; min-width:0; }
+
+/* EMMI speaking: one calm line, never a stack of chat bubbles (§17). */
+.barrier-emmi-line { display:flex; gap:0.625rem; align-items:flex-start; margin:0; padding:0.8125rem 0.9375rem; border:1px solid var(--primary-300); border-radius:0.875rem; color:var(--text-primary); background:var(--primary-50); font-size:1.0625rem; line-height:1.5; overflow-wrap:anywhere; }
+.barrier-emmi-line .icon { flex:0 0 1.375rem; width:1.375rem; height:1.375rem; margin-top:0.125rem; color:var(--primary-700); background:transparent; }
+.barrier-emmi-line+.barrier-emmi-line { margin-top:-0.25rem; }
+
+/* Waiting. The skeletons take the shape of the cards that are coming. */
+.barrier-loading { display:grid; gap:0.75rem; }
+.barrier-loading-text { display:flex; gap:0.5rem; align-items:center; margin:0; color:var(--text-secondary); font-size:1.0625rem; line-height:1.5; overflow-wrap:anywhere; }
+.barrier-skeletons { display:grid; gap:0.625rem; }
+.barrier-skeleton { height:4.5rem; border:1px solid var(--border-default); border-radius:1rem; background:linear-gradient(90deg,var(--surface-secondary) 25%,var(--surface-primary) 50%,var(--surface-secondary) 75%); background-size:200% 100%; animation:barrier-shimmer 1.4s linear infinite; }
+@keyframes barrier-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@media (prefers-reduced-motion:reduce) { .barrier-skeleton { animation:none; background:var(--surface-secondary); } }
+
+/* Success. A check and a sentence — the §26 register: premium, clinical, simple. */
+.barrier-success { display:grid; gap:0.375rem; justify-items:center; padding:1.25rem 1rem; border:1px solid var(--appointment-confirmed-line); border-radius:1rem; background:var(--appointment-confirmed-bg); text-align:center; }
+.barrier-success-mark { display:grid; place-items:center; width:3rem; height:3rem; margin:0; border-radius:50%; color:var(--surface-primary); background:var(--appointment-confirmed); }
+.barrier-success-mark .icon { width:1.625rem; height:1.625rem; color:currentColor; background:transparent; }
+.barrier-success-title { margin:0.25rem 0 0; font-size:1.3125rem; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-success-detail { margin:0; color:var(--text-secondary); font-size:1.0625rem; line-height:1.5; overflow-wrap:anywhere; }
+
+/* Review, before anything happens (§12). */
+.barrier-review { display:grid; gap:0.625rem; padding:0.9375rem; border:1px solid var(--border-default); border-radius:1rem; background:var(--surface-primary); }
+.barrier-review .appointment-facts dd small { display:block; margin-top:0.125rem; color:var(--text-secondary); font-size:0.9375rem; line-height:1.4; overflow-wrap:anywhere; }
+
+.barrier-address-card { display:grid; grid-template-columns:1.75rem minmax(0,1fr); gap:0.75rem; align-items:start; padding:0.9375rem; border:1px solid var(--border-default); border-radius:1rem; background:var(--surface-primary); }
+.barrier-address-card[data-selected="true"] { border-color:var(--primary-500); background:var(--primary-50); }
+.barrier-address-card .icon { width:1.75rem; height:1.75rem; color:var(--primary-600); background:transparent; }
+.barrier-address-card strong { display:block; font-size:1.0625rem; line-height:1.35; overflow-wrap:anywhere; }
+.barrier-address-card span { display:block; margin-top:0.125rem; color:var(--text-secondary); font-size:1.0625rem; line-height:1.45; overflow-wrap:anywhere; }
+
+/* Ride options. A health app listing a ride, not a rideshare app (§26). */
+.barrier-options { display:grid; gap:0.75rem; }
+.barrier-option { display:grid; gap:0.5rem; width:100%; min-height:3rem; padding:0.9375rem; border:1px solid var(--primary-300); border-radius:1rem; color:var(--text-primary); background:var(--surface-primary); font:inherit; text-align:left; cursor:pointer; }
+.barrier-option:hover { border-color:var(--primary-500); background:var(--primary-50); }
+.barrier-option[aria-pressed="true"] { padding:0.875rem; border-color:var(--primary-700); border-width:0.125rem; background:var(--primary-50); }
+.barrier-option-head { display:flex; gap:0.5rem; align-items:center; min-width:0; }
+.barrier-option-head .icon { flex:0 0 1.5rem; width:1.5rem; height:1.5rem; color:var(--primary-600); background:transparent; }
+.barrier-option-head strong { flex:1 1 auto; min-width:0; font-size:1.1875rem; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-option-selected { display:grid; flex:0 0 1.625rem; place-items:center; width:1.625rem; height:1.625rem; border-radius:50%; color:var(--surface-primary); background:var(--appointment-confirmed); }
+.barrier-option-selected .icon { width:1rem; height:1rem; color:currentColor; background:transparent; }
+.barrier-option-rows { display:grid; gap:0.25rem; }
+.barrier-option-row { display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:space-between; font-size:1.0625rem; line-height:1.45; }
+.barrier-option-row>span { min-width:0; color:var(--text-secondary); overflow-wrap:anywhere; }
+.barrier-option-row>strong { min-width:0; overflow-wrap:anywhere; }
+.barrier-option-meta { display:block; color:var(--text-muted); font-size:1rem; line-height:1.45; overflow-wrap:anywhere; }
+
+/* The booked ride. */
+.barrier-reservation { display:grid; gap:0.625rem; padding:0.9375rem; border:1px solid var(--appointment-confirmed-line); border-radius:1rem; background:var(--surface-primary); }
+.barrier-reservation-head { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin:0; font-size:1.1875rem; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-reservation-head .icon { flex:0 0 1.375rem; width:1.375rem; height:1.375rem; color:var(--primary-600); background:transparent; }
+.barrier-reservation-head span { color:var(--text-muted); font-size:1rem; font-weight:700; overflow-wrap:anywhere; }
+.barrier-reservation-when { margin:0; font-size:1.25rem; font-weight:700; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-route { display:grid; gap:0.25rem; margin:0; padding:0; list-style:none; }
+.barrier-route li { display:flex; gap:0.5rem; align-items:flex-start; color:var(--text-secondary); font-size:1.0625rem; line-height:1.45; overflow-wrap:anywhere; }
+.barrier-route .icon { flex:0 0 1.25rem; width:1.25rem; height:1.25rem; color:var(--primary-600); background:transparent; }
+
+/* Times to move to, grouped by day (§6). Wrapping pills, never a calendar grid. */
+.barrier-slot-group { display:grid; gap:0.5rem; }
+.barrier-slots { display:flex; flex-wrap:wrap; gap:0.5rem; }
+.barrier-slot { display:flex; flex:1 1 8rem; gap:0.375rem; align-items:center; justify-content:center; min-height:3.5rem; padding:0.75rem 0.875rem; border:1px solid var(--primary-300); border-radius:0.875rem; color:var(--text-primary); background:var(--surface-primary); font:inherit; cursor:pointer; }
+.barrier-slot:hover { border-color:var(--primary-500); background:var(--primary-50); }
+.barrier-slot[aria-pressed="true"] { border-color:var(--primary-700); border-width:0.125rem; background:var(--primary-50); }
+.barrier-slot-time { font-size:1.125rem; font-weight:700; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-slot-check .icon { width:1.125rem; height:1.125rem; color:var(--appointment-confirmed); background:transparent; }
+
+/* Current time vs new time (§6). Single column at 384px, so the arrow points down. */
+.barrier-change { display:grid; gap:0.5rem; align-items:center; padding:0.9375rem; border:1px solid var(--border-default); border-radius:1rem; background:var(--surface-primary); }
+.barrier-change-side { display:grid; gap:0.125rem; min-width:0; }
+.barrier-change-side[data-side="new"] .barrier-change-time { color:var(--appointment-confirmed); }
+.barrier-change-date { margin:0; color:var(--text-secondary); font-size:1.0625rem; line-height:1.4; overflow-wrap:anywhere; }
+.barrier-change-time { margin:0; font-size:1.375rem; font-weight:700; line-height:1.25; overflow-wrap:anywhere; }
+.barrier-change-arrow { display:grid; place-items:center; margin:0; }
+.barrier-change-arrow .icon { width:1.5rem; height:1.5rem; color:var(--primary-600); background:transparent; transform:rotate(90deg); }
+
+/* People. */
+.barrier-people { display:grid; gap:0.625rem; }
+.barrier-person { display:grid; grid-template-columns:2.25rem minmax(0,1fr) auto; gap:0.75rem; align-items:center; width:100%; min-height:3.5rem; padding:0.8125rem 0.9375rem; border:1px solid var(--primary-300); border-radius:0.875rem; color:var(--text-primary); background:var(--surface-primary); font:inherit; text-align:left; cursor:pointer; }
+.barrier-person:hover { border-color:var(--primary-500); background:var(--primary-50); }
+.barrier-person[aria-pressed="true"] { border-color:var(--primary-700); border-width:0.125rem; background:var(--primary-50); }
+.barrier-person>.icon { width:2.25rem; height:2.25rem; color:var(--primary-600); background:transparent; }
+.barrier-person-identity { min-width:0; }
+.barrier-person-identity strong { display:block; font-size:1.125rem; line-height:1.3; overflow-wrap:anywhere; }
+.barrier-person-identity small { display:block; margin-top:0.125rem; color:var(--text-secondary); font-size:1.0625rem; line-height:1.4; overflow-wrap:anywhere; }
+.barrier-person-check .icon { width:1.25rem; height:1.25rem; color:var(--appointment-confirmed); background:transparent; }
+
+/* Device readiness. State is an icon and a word, never colour alone (§20). */
+.barrier-checks { display:grid; gap:0.5rem; margin:0; padding:0; list-style:none; }
+.barrier-checks li { display:grid; grid-template-columns:1.5rem minmax(0,1fr); gap:0.625rem; align-items:start; padding:0.75rem 0.875rem; border:1px solid var(--border-default); border-radius:0.875rem; background:var(--surface-primary); }
+.barrier-checks li[data-state="OK"] { border-color:var(--appointment-confirmed-line); }
+.barrier-checks li[data-state="PROBLEM"] { border-color:var(--appointment-action-line); background:var(--appointment-action-bg); }
+.barrier-checks .icon { width:1.5rem; height:1.5rem; background:transparent; }
+.barrier-checks li[data-state="OK"] .icon { color:var(--appointment-confirmed); }
+.barrier-checks li[data-state="PROBLEM"] .icon { color:var(--appointment-action); }
+.barrier-checks strong { display:block; font-size:1.0625rem; line-height:1.35; overflow-wrap:anywhere; }
+.barrier-checks small { display:block; margin-top:0.125rem; color:var(--text-secondary); font-size:1.0625rem; line-height:1.45; overflow-wrap:anywhere; }
+
+.barrier-guide { display:grid; gap:0.5rem; padding:0.9375rem; border:1px solid var(--border-default); border-radius:1rem; background:var(--surface-primary); }
+.barrier-guide-steps { display:grid; gap:0.5rem; margin:0; padding:0 0 0 1.375rem; color:var(--text-primary); font-size:1.0625rem; line-height:1.5; }
+.barrier-guide-steps li { overflow-wrap:anywhere; }
+
+/* A follow-up question asked after something already succeeded (return ride, ride update). */
+.barrier-followup { display:grid; gap:0.625rem; margin-top:0.25rem; padding-top:0.875rem; border-top:1px solid var(--border-default); }
+
+/* Multi-select choices reuse .appointment-choice and add a pressed state. */
+.barrier-toggle[aria-pressed="true"] { padding:0.6875rem 0.9375rem; border-color:var(--primary-700); border-width:0.125rem; background:var(--primary-50); }
+.barrier-toggle[aria-pressed="true"] .icon { color:var(--appointment-confirmed); }
+
+/* Readiness on the appointment screen (§9). */
+.barrier-readiness { display:grid; gap:0.625rem; padding:0.9375rem; border:1px solid var(--border-default); border-radius:1rem; background:var(--surface-primary); }
+.barrier-readiness-list { display:grid; gap:0.5rem; margin:0; padding:0; list-style:none; }
+.barrier-readiness-list li { display:grid; gap:0.125rem; min-width:0; }
+.barrier-readiness-list small { padding-left:1.875rem; color:var(--text-secondary); font-size:1rem; line-height:1.4; overflow-wrap:anywhere; }
+.barrier-readiness>.appointment-status { padding-top:0.5rem; border-top:1px solid var(--border-default); }
+
+/* Barrier state next to its option on the pre-visit list (§10). One line, no badge stack. */
+.barrier-choice-label { display:grid; gap:0.125rem; min-width:0; flex:1 1 auto; }
+.barrier-choice-state { display:flex; gap:0.375rem; align-items:center; font-size:1rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+.barrier-choice-state .icon { flex:0 0 1.125rem; width:1.125rem; height:1.125rem; background:transparent; }
+.barrier-choice-state[data-tone="CONFIRMED"] { color:var(--appointment-confirmed); }
+.barrier-choice-state[data-tone="WAITING"] { color:var(--appointment-waiting); }
+
+/* §13: for the person running the demo, never for the patient. Muted, and last on the screen. */
+.barrier-demo-badge { margin:0.25rem 0 0; color:var(--text-muted); font-size:0.9375rem; line-height:1.4; letter-spacing:.02em; text-transform:uppercase; overflow-wrap:anywhere; }
+
+.barrier-option:focus-visible,.barrier-slot:focus-visible,.barrier-person:focus-visible { outline:0.1875rem solid var(--primary-500); outline-offset:0.1875rem; }
+
+@media (max-width:374px) {
+  .barrier-review,.barrier-address-card,.barrier-option,.barrier-reservation,.barrier-change,
+  .barrier-guide,.barrier-readiness,.barrier-person { padding:0.8125rem; }
+  .barrier-option[aria-pressed="true"],.barrier-toggle[aria-pressed="true"] { padding:0.75rem; }
+  .barrier-slot { flex-basis:6.5rem; }
+}
+
+@media (forced-colors:active) {
+  .barrier-option[aria-pressed="true"],.barrier-slot[aria-pressed="true"],
+  .barrier-person[aria-pressed="true"],.barrier-toggle[aria-pressed="true"] { border-width:0.1875rem; }
+  .barrier-checks li,.barrier-success,.barrier-emmi-line { forced-color-adjust:auto; }
+  .barrier-skeleton { animation:none; }
+}

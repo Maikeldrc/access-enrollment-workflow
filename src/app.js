@@ -17,12 +17,18 @@ import {
   // needs the patient's attention.
   MapPin, Video, TriangleAlert, CalendarClock
 } from "lucide";
-import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentPreferenceResumeStep, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
+import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS, APPOINTMENT_MODALITY, APPOINTMENT_REASON_CATEGORIES, APPOINTMENT_SOURCES, APPOINTMENT_STATUS, APPOINTMENT_URGENCY, TIME_OF_DAY, advanceAppointment, applyBookingConfirmation, appointmentAnalytics, appointmentCareTeamSummary, appointmentIdempotencyKey, appointmentNextStep, appointmentPatientStatus, appointmentPreferenceResumeStep, appointmentStatusTone, beginAppointmentPreferences, canActOnAppointment, createAppointmentDraft, createAppointmentNeed, draftIsSubmittable, findByIdempotencyKey, findDuplicateAppointmentNeed, findUpcomingAppointmentWithProvider, pastAppointments, pendingRequests, resolveAppointmentActor, updateAppointmentDraft, upcomingAppointments } from "./appointments.js";
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
-import { APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
+// The barrier resolution engine: the domain machine, the simulated outside world, and the views.
+// The shell owns none of the three — it connects them to this patient's record, the care-team
+// queue and the appointment the resolution is about.
+import { BARRIER_TYPES, RESOLUTION_EVENTS, RESOLUTION_STATUS, addressErrorText, advanceResolution, appointmentReadiness, barrierListState, careTeamAssistanceRequest, classifyResolutionIntent, createResolution, homeAddressFrom, isWorkingStep, recommendedPickupTime, resolutionEvent, resolutionPlaybookFor, resolutionSpeech, toggleTransportNeed, transportationSuitability, validateAddress } from "./barrierResolution.js";
+import { barrierDemoMode, barrierPause, careTeamService, companionService, schedulingAssistService, setBarrierLatencyScale, transportationService, videoReadinessService } from "./barrierProviders.js";
+import { allSetConfirmation, appointmentReadinessPanel, barrierResolutionScreen } from "./barrierResolutionViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
 import { EmmiLiveClient } from "./emmi/liveClient.js";
 import { EmmiAuditLog, EmmiToolOrchestrator, clearEmmiAuditLog, selectDemoPatientId } from "./emmi/tools.js";
@@ -66,6 +72,34 @@ const params = new URLSearchParams(location.search);
 const simulatedAppointmentServiceEnabled = params.get("appointmentService") !== "manual";
 const prototypeMode = params.get("prototype") === "1";
 const patientShareSource = params.get("source") === "patient-share";
+// The simulated provider delays are the point of the demo, so they are on by default. A test
+// harness asks for them to be skipped rather than waiting a second per step of every flow.
+if (params.get("barrierLatency") === "0") setBarrierLatencyScale(0);
+// §15. Running the same demo twice needs a way to put the barriers back — and only the barriers.
+// "/new" throws the whole enrollment away, which is far too much when all somebody wants is to
+// show the transportation flow again to the next person in the room. Carried out at module scope,
+// before boot() reads the draft, and the parameter is rewritten out of the URL in the same breath
+// so a refresh does not silently wipe a resolution the patient has since started.
+const resettingBarrierDemo = params.get("resetBarriers") === "1";
+if (resettingBarrierDemo) {
+  try {
+    const key = "itera.enrollment.safe-draft.v2";
+    const stored = JSON.parse(localStorage.getItem(key) || "null");
+    if (stored) {
+      localStorage.setItem(key, JSON.stringify({
+        ...stored,
+        barrierResolutions: [],
+        barrierActivity: [],
+        barrierReadinessAck: {},
+        // The tasks EMMI escalated belong to those resolutions and would otherwise outlive them.
+        careTeamTasks: (stored.careTeamTasks || []).filter(task => task.type !== "APPOINTMENT_BARRIER")
+      }));
+    }
+  } catch { /* storage can be unavailable; the demo simply starts with whatever is there */ }
+  params.delete("resetBarriers");
+  const query = params.toString();
+  history.replaceState(null, "", `${location.pathname}${query ? `?${query}` : ""}${location.hash}`);
+}
 // ---------------------------------------------------------------------------------------------
 // How the app was opened
 //
@@ -140,7 +174,12 @@ let state = {
   alignmentConfirmed: false, devicePath: null, addressConfirmed: false, setupComplete: false, readingReceived: false,
   enrollmentStatus: "NOT_STARTED", enrollmentCompletedAt: "", activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "", baselineStatus: "NOT_STARTED", baselineStartedAt: "", baselineCompletedAt: "", baselineDeferredAt: "", baselineResumeScreen: "", baselineReminderStatus: "NOT_SCHEDULED",
   flowProgress: { GETTING_STARTED: emptyFlowProgress() }, flowTransitionNotice: "",
-  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "", bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
+  bpBaselineStatus: "NOT_STARTED", bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, bpDevicePath: "", bpDeviceIdentificationMethod: "", bpDeviceVerificationStatus: "NOT_STARTED", bpDeviceVerificationResult: "", patientHasBloodPressureMonitor: false, deviceSource: "UNKNOWN", deviceVerificationStatus: "NOT_STARTED", integrationProvider: "UNKNOWN", assignedDeviceId: "", deviceVendor: "", deviceModel: "", deviceStatus: "", integrationStatus: "", lastTransmissionAt: "", last4DeviceId: "", patientDeviceConfirmationChoice: "", patientDeviceConfirmed: null, patientDeviceConfirmedAt: "", confirmedDeviceId: "", firstTransmissionVerified: null, firstTransmissionDeviceId: "", firstTransmissionAt: "", firstTransmissionSystolic: null, firstTransmissionDiastolic: null, deviceUncertaintyStep: false, bpDevice: null, armCircumferenceValue: "", armCircumferenceUnit: "cm", armMeasurementStatus: "", cuffSelectionMethod: "", selectedCuffOption: "", cuffSelectionStatus: "", cuffSizeSelected: null, deviceModelSelected: null, shippingAddress: null, shippingAddressConfirmed: false, shippingAddressMode: "existing", deviceFulfillmentId: "", deviceFulfillmentStatus: "NOT_REQUESTED", careTeamTasks: [], appointments: [], appointmentDraft: null, appointmentFlow: null, activeAppointmentId: "", appointmentNotice: "",
+  // Barrier resolution. `barrierResolutions` is the record of every difficulty EMMI has been
+  // asked to solve for an appointment and how far it got; `barrierActivity` is the internal
+  // activity log (§23) that is never shown to the patient; `barrierReadinessAck` remembers the
+  // patients who answered "I’m all set", which no resolution record can carry.
+  barrierResolutions: [], activeResolutionId: "", barrierActivity: [], barrierError: "", barrierReadinessAck: {}, bpDeviceFulfillmentStatus: "NOT_STARTED", bpDeviceFulfillmentRequestedAt: "", bpBaselineSourceType: "", bpReadings: [], bpReadingCount: 0, bpReadingReceipts: [], bpMeasurementPhase: "WAITING", bpBaseline: null, bpEscalationState: null, bpMonitoringEpisode: null, clinicalReportedBloodPressure: null, accessBaselineBloodPressure: null,
   reading: null, callbackRequested: false, onboarding: {},
   healthInformationStepStatus: "NOT_STARTED", healthInformationReviewStatus: "UNREVIEWED", healthInformationReviewResult: "", healthInformationReviewedAt: "", healthInformationReviewedBy: "", healthInformationReviewSource: "", healthInformationFlowStep: "CHOICE", healthInformationUpdateDraft: { id: "", updateType: "", relatedConditionIds: [], patientReportedText: "" }, patientReportedHealthUpdates: [], healthInformationHelpNote: "",
   // Prototype medication fixture. The supply, pharmacy and dispense fields are shaped the way a
@@ -4126,6 +4165,415 @@ async function recordAppointmentBarrier(record, reasonKey) {
   return { ok: true, barrier, routed: "BARRIER_ENGINE" };
 }
 
+// ---------------------------------------------------------------------------
+// Barrier resolution — the shell's half.
+//
+// recordAppointmentBarrier() above still does what it always did: it maps the difficulty onto the
+// barrier taxonomy and puts it in front of the care team. What follows is the part that used to be
+// missing — EMMI actually trying to solve it, with the patient still on the screen.
+//
+// Everything below is plumbing. The state machine is src/barrierResolution.js, the outside world is
+// src/barrierProviders.js, and the pixels are src/barrierResolutionViews.js. This layer connects
+// them to the patient's record, the appointment, the care-team queue and the audit trail, and it
+// owns exactly one rule of its own: nothing that changes the world runs anywhere except in
+// runBarrierResolutionWork(), which is only ever reached from a step the patient confirmed onto.
+// ---------------------------------------------------------------------------
+
+const barrierResolutions = () => state.barrierResolutions || [];
+const barrierResolutionById = id => barrierResolutions().find(item => item.id === id) || null;
+const activeResolution = () => (state.activeResolutionId ? barrierResolutionById(state.activeResolutionId) : null);
+
+const saveResolution = record => {
+  const exists = barrierResolutions().some(item => item.id === record.id);
+  state.barrierResolutions = exists
+    ? barrierResolutions().map(item => (item.id === record.id ? record : item))
+    : [...barrierResolutions(), record];
+  draftStore.save(state);
+  return record;
+};
+
+// §23. Two writes, on purpose: the activity log is what EMMI did on this patient's behalf and a
+// care team reads it; the audit row is analytics and never carries an address, a name, a phone
+// number or a price. `metadata` is checked into the second one, so only ids and enums go in it.
+const logResolution = (type, resolution, metadata = {}) => {
+  const event = resolutionEvent(type, { resolution, patientId: state.offer?.patient?.id || "", metadata });
+  state.barrierActivity = [...(state.barrierActivity || []), event].slice(-100);
+  audit(state, type, "success", { ...metadata, barrierType: resolution?.barrierType || "", resolutionId: resolution?.id || "", appointmentId: resolution?.appointmentId || "" });
+  draftStore.save(state);
+  return event;
+};
+
+// The only writer of a resolution's step. Everything that moves a patient forward goes through it,
+// which is why the step machine's validation cannot be routed around.
+const advanceTo = (resolution, step, patch = {}) => saveResolution(advanceResolution(resolution, step, patch));
+
+const openResolution = resolution => {
+  state.activeResolutionId = resolution.id;
+  state.activeAppointmentId = resolution.appointmentId;
+  state.appointmentFlow = { appointmentId: resolution.appointmentId, view: "RESOLUTION" };
+  state.screen = "APPOINTMENT_DETAIL";
+  state.barrierError = "";
+  draftStore.save(state);
+};
+
+// Where the car is going. Built from the appointment record rather than a directory, so an office
+// with no address on file produces a destination with a name and no street — which is what the
+// review screen then shows, instead of an invented one.
+const resolutionDestination = record => ({
+  name: record?.locationName || record?.providerDisplayName || "",
+  formatted: record?.locationAddress || ""
+});
+
+const patientHomeAddress = () => homeAddressFrom(state.shippingAddress || state.offer?.patient?.shippingAddress || null);
+
+// §24's "patient returns to a previously resolved barrier": the same appointment and the same
+// difficulty is the same resolution, resumed exactly where it stopped — including when it stopped
+// on a success screen. Only a resolution the patient cancelled starts over.
+function startBarrierResolution(record, reasonKey) {
+  const barrierType = resolutionPlaybookFor(reasonKey);
+  if (!record || !barrierType) return null;
+  const existing = barrierResolutions().find(item => item.appointmentId === record.id
+    && item.barrierType === barrierType
+    && item.status !== RESOLUTION_STATUS.CANCELLED);
+  if (existing) { openResolution(existing); return existing; }
+  const created = createResolution({
+    appointmentId: record.id,
+    patientId: state.offer?.patient?.id || "",
+    barrierType,
+    reasonKey
+  });
+  if (!created) return null;
+  saveResolution(created);
+  logResolution(RESOLUTION_EVENTS.BARRIER_IDENTIFIED, created, { reasonKey: String(reasonKey || "") });
+  logResolution(RESOLUTION_EVENTS.ASSISTANCE_OFFERED, created);
+  openResolution(created);
+  return created;
+}
+
+// §11 / §28. The end of every path EMMI could not finish, and never a dead end: the task joins the
+// same care-team queue an appointment request joins, so nothing downstream needs a second inbox.
+async function escalateResolution(resolution, reason, { keepStep = false } = {}) {
+  const task = careTeamAssistanceRequest({
+    resolution,
+    patientId: state.offer?.patient?.id || "",
+    reason,
+    // A patient who cannot physically use a standard car, or whose visit is about to be missed,
+    // is not a routine ticket.
+    priority: ["ACCESSIBLE_TRANSPORT_REQUIRED", "NO_TRANSPORT_AVAILABLE"].includes(reason) ? "PRIORITY" : "ROUTINE"
+  });
+  const created = await careTeamService.createAssistanceRequest({ task });
+  if (!created.ok) return { ok: false };
+  state.careTeamTasks = [...(state.careTeamTasks || []), created.task];
+  // Some escalations are about a part of a resolution rather than the whole of it — the ride home
+  // when the ride there is booked and confirmed. Moving those to ESCALATED would make the
+  // readiness panel say the care team is arranging transportation that the patient already has,
+  // so the step stays where it is and only the task is created.
+  const carrying = { ...resolution, careTeamTaskId: created.task.id };
+  const updated = keepStep
+    ? saveResolution({ ...carrying, data: { ...(carrying.data || {}), escalationReason: reason } })
+    : advanceTo(carrying, "ESCALATED", { escalationReason: reason });
+  logResolution(RESOLUTION_EVENTS.CARE_TEAM_ASSISTANCE_REQUESTED, updated, { reason, taskId: created.task.id, partial: keepStep });
+  return { ok: true, resolution: updated, task: created.task };
+}
+
+// The escalations that are about one leg of a resolution rather than the whole of it.
+const PARTIAL_ESCALATIONS = Object.freeze(["NO_RETURN_TRANSPORT_AVAILABLE"]);
+
+// Moving to the ride step of a transportation resolution, with the pickup time recomputed from
+// whatever the appointment currently says. Called on the way in and again after a reschedule, so a
+// ride is never quoted against a time the appointment no longer has.
+function transportationTimeStep(resolution, record, patch = {}) {
+  const pickup = recommendedPickupTime(record?.scheduledAt) || {};
+  return advanceTo(resolution, "TIME", {
+    ...patch,
+    pickupAt: pickup.pickupAt || "",
+    recommendedPickupAt: pickup.pickupAt || "",
+    arriveByAt: pickup.arriveByAt || "",
+    travelMinutes: pickup.travelMinutes || 0
+  });
+}
+
+/* ---------------------------------------------------------------- the work driver --------- */
+
+// Steps where something is in flight. The driver is idempotent by key: a re-render while a search
+// is running does not start a second search, and a step the patient has left is never resumed.
+let barrierWorkKey = "";
+let barrierCompanionTimer = null;
+
+function startBarrierResolutionWorkIfPending() {
+  clearTimeout(barrierCompanionTimer);
+  const resolution = activeResolution();
+  if (!resolution || state.screen !== "APPOINTMENT_DETAIL" || state.appointmentFlow?.view !== "RESOLUTION") return;
+  // An invitation that has gone out is not work in flight — it is a person deciding. The screen
+  // waits, and asks the provider once the answer is due rather than polling it.
+  if (resolution.step === "SENT") {
+    const invitation = resolution.data?.invitation;
+    if (!invitation) return;
+    const due = new Date(invitation.answersAt || 0).getTime() - Date.now();
+    barrierCompanionTimer = setTimeout(() => { readCompanionAnswer(resolution.id); }, Math.max(250, Number.isFinite(due) ? due : companionService.answerDelayMs));
+    return;
+  }
+  if (!isWorkingStep(resolution.step)) return;
+  const key = `${resolution.id}:${resolution.step}:${resolution.updatedAt}`;
+  if (barrierWorkKey === key) return;
+  barrierWorkKey = key;
+  runBarrierResolutionWork(resolution)
+    .catch(() => { /* a provider that throws is a provider that failed; the step below says so */ })
+    .finally(() => { if (barrierWorkKey === key) barrierWorkKey = ""; });
+}
+
+// Every call to the outside world this feature makes. One function, so there is exactly one place
+// to look when asking "what can this feature actually do to the world?" — and one place to swap
+// when a demo provider becomes a real one.
+async function runBarrierResolutionWork(resolution) {
+  const record = appointmentById(resolution.appointmentId);
+  const data = resolution.data || {};
+  const locale = state.language;
+  // The patient walked away mid-step. Nothing is executed on their behalf while they are gone.
+  const stillHere = () => activeResolution()?.id === resolution.id && state.appointmentFlow?.view === "RESOLUTION";
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "SEARCHING") {
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_SEARCH_STARTED, resolution, { needCount: (data.needs || []).length });
+    const suitability = transportationSuitability(data.needs || []);
+    const result = await transportationService.search({
+      appointmentId: resolution.appointmentId,
+      pickupAt: data.pickupAt,
+      pickupAddress: data.pickupAddress,
+      destination: resolutionDestination(record),
+      needs: { ...suitability, travelMinutes: data.travelMinutes || 24 },
+      locale
+    });
+    if (!stillHere()) return;
+    const options = result.ok ? result.options : [];
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_OPTIONS_RETURNED, resolution, { optionCount: options.length, ok: result.ok === true });
+    advanceTo(resolution, options.length ? "OPTIONS" : "OPTIONS_EMPTY", { options, selectedOptionId: "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "BOOKING") {
+    const option = (data.options || []).find(item => item.optionId === data.selectedOptionId);
+    if (!option) { advanceTo(resolution, "OPTIONS"); render(); return; }
+    const result = await transportationService.reserve({
+      option,
+      pickupAddress: data.pickupAddress,
+      destination: resolutionDestination(record),
+      appointmentId: resolution.appointmentId,
+      tripType: "OUTBOUND"
+    });
+    if (!stillHere()) return;
+    if (!result.ok) {
+      logResolution(RESOLUTION_EVENTS.TRANSPORTATION_RESERVATION_FAILED, resolution, { error: result.error || "UNKNOWN" });
+      advanceTo(resolution, "BOOKING_FAILED", { lastError: result.error || "" });
+      render(); return;
+    }
+    // A ride booked to replace one that a reschedule invalidated releases the old car now that a
+    // real replacement exists — never before, so the patient is not left with neither.
+    if (data.replacingReservationId) {
+      const released = await transportationService.cancel({ reservationId: data.replacingReservationId });
+      if (released.ok) logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CANCELED, resolution, { replaced: true });
+    }
+    const booked = advanceTo(resolution, data.returnReservation ? "BOOKED" : "RETURN_OFFER", {
+      reservation: { ...result.reservation, pickupLabel: formatBarrierTime(result.reservation.pickupAt, record) },
+      replacingReservationId: "",
+      reservationOutdated: false
+    });
+    logResolution(RESOLUTION_EVENTS.TRANSPORTATION_RESERVED, booked, { rideType: option.rideType, tripType: "OUTBOUND" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.TRANSPORTATION && resolution.step === "RETURN_BOOKING") {
+    const suitability = transportationSuitability(data.needs || []);
+    const search = await transportationService.search({
+      appointmentId: `${resolution.appointmentId}:return`,
+      pickupAt: data.returnPickupAt,
+      pickupAddress: resolutionDestination(record),
+      destination: data.pickupAddress,
+      needs: { ...suitability, travelMinutes: data.travelMinutes || 24 },
+      locale
+    });
+    if (!stillHere()) return;
+    // The return leg reuses the ride type the patient already chose when it is still offered, so
+    // the wheelchair-accessible car they picked going does not become a sedan coming back.
+    const option = (search.ok ? search.options : []).find(item => item.rideType === data.selectedRideType)
+      || (search.ok ? search.options : [])[0];
+    if (!option) { advanceTo(resolution, "BOOKED", { returnUnavailable: true }); render(); return; }
+    const result = await transportationService.reserve({
+      option,
+      pickupAddress: resolutionDestination(record),
+      destination: data.pickupAddress,
+      appointmentId: resolution.appointmentId,
+      tripType: "RETURN"
+    });
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "BOOKED", { returnUnavailable: true }); render(); return; }
+    const booked = advanceTo(resolution, "BOOKED", { returnReservation: result.reservation, returnUnavailable: false });
+    logResolution(RESOLUTION_EVENTS.RETURN_TRIP_RESERVED, booked, { rideType: option.rideType });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.VIDEO_VISIT && resolution.step === "CHECKING") {
+    logResolution(RESOLUTION_EVENTS.VIDEO_READINESS_STARTED, resolution);
+    const result = await videoReadinessService.check({ appointment: record, locale });
+    if (!stillHere()) return;
+    const done = advanceTo(resolution, result.ready ? "READY" : "ISSUES", { results: result.results || [], issues: result.issues || [] });
+    logResolution(RESOLUTION_EVENTS.VIDEO_READINESS_COMPLETED, done, { ready: result.ready === true, issues: (result.issues || []).join(",") });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.COMPANION && resolution.step === "SENDING") {
+    const result = await companionService.invite({
+      contact: { contactId: data.contactId, firstName: data.contactName, relationship: data.contactRelationship },
+      appointmentId: resolution.appointmentId
+    });
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "REVIEW"); render(); return; }
+    const sent = advanceTo(resolution, "SENT", { invitation: result.invitation });
+    logResolution(RESOLUTION_EVENTS.COMPANION_INVITED, sent, { contactSource: data.contactSource || "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.RESCHEDULE && resolution.step === "SEARCHING") {
+    logResolution(RESOLUTION_EVENTS.APPOINTMENT_RESCHEDULE_REQUESTED, resolution);
+    const result = await schedulingAssistService.getAvailableSlots({ appointment: record, now: new Date() });
+    if (!stillHere()) return;
+    const slots = result.ok ? result.slots : [];
+    advanceTo(resolution, slots.length ? "SLOTS" : "SLOTS_EMPTY", { slots, selectedSlotId: "" });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.RESCHEDULE && resolution.step === "CHANGING") {
+    const slot = (data.slots || []).find(item => item.slotId === data.selectedSlotId);
+    const result = slot ? await schedulingAssistService.reschedule({ appointment: record, slot }) : { ok: false, error: "SLOT_GONE" };
+    if (!stillHere()) return;
+    if (!result.ok) { advanceTo(resolution, "CHANGE_FAILED", { lastError: result.error || "" }); render(); return; }
+    // The appointment itself moves, and it moves through the status machine rather than around it.
+    // CONFIRMED -> CONFIRMED is refused by design (that guard is what makes a double tap harmless),
+    // so a reschedule is what the machine already says it is: the change is requested, the original
+    // stays live, and the new time is confirmed on top of it. The record ends up carrying both
+    // events, which is exactly what a care team needs to see afterwards.
+    const requested = advanceAppointment(record, {
+      status: APPOINTMENT_STATUS.RESCHEDULE_REQUESTED,
+      source: "PATIENT",
+      actor: appointmentActor(),
+      detail: { via: "BARRIER_RESOLUTION" }
+    });
+    const moved = applyBookingConfirmation(requested, {
+      confirmationNumber: result.confirmationNumber,
+      scheduledAt: result.scheduledAt,
+      scheduledEndAt: result.scheduledEndAt,
+      modality: result.modality,
+      locationName: result.locationName,
+      locationAddress: record?.locationAddress || "",
+      timezone: record?.timezone || "",
+      source: "PATIENT_RESCHEDULE",
+      actor: appointmentActor()
+    });
+    saveAppointment(moved);
+    auditAppointment(APPOINTMENT_AUDIT_EVENTS.BOOKING_CONFIRMED, moved, { rescheduledByPatient: true });
+    // §6's orchestration: a ride booked against the old time is now wrong, and the patient is told
+    // so on the success screen rather than finding out on the day.
+    const ride = transportationResolutionFor(record?.id);
+    if (ride?.data?.reservation) saveResolution({ ...ride, data: { ...ride.data, reservationOutdated: true } });
+    const changed = advanceTo(resolution, "CHANGED", { transportationNeedsUpdate: Boolean(ride?.data?.reservation), hasTransportation: Boolean(ride?.data?.reservation) });
+    logResolution(RESOLUTION_EVENTS.APPOINTMENT_RESCHEDULED, changed, { transportationNeedsUpdate: Boolean(ride?.data?.reservation) });
+    render(); return;
+  }
+
+  if (resolution.barrierType === BARRIER_TYPES.OTHER && resolution.step === "CLASSIFYING") {
+    // The classifier is instant. The pause is the product being honest about thinking rather than
+    // flashing an answer the patient cannot see arrive — and it is the seam where an LLM call goes.
+    await barrierPause(600);
+    if (!stillHere()) return;
+    const verdict = classifyResolutionIntent(data.text || "");
+    const routed = advanceTo(resolution, verdict.barrierType ? "ROUTED" : "ESCALATE_OFFER", {
+      routedTo: verdict.barrierType || "",
+      confidence: verdict.confidence
+    });
+    // The patient's own words are never in analytics — only what EMMI made of them.
+    logResolution(RESOLUTION_EVENTS.BARRIER_INTENT_CLASSIFIED, routed, { routedTo: verdict.barrierType || "NONE", confidence: verdict.confidence });
+    render(); return;
+  }
+}
+
+// The companion answer, read once it is due. It is a read of the provider rather than a timer that
+// decides the outcome, so the answer is the same whoever asks and whenever they ask.
+async function readCompanionAnswer(resolutionId) {
+  const resolution = barrierResolutionById(resolutionId);
+  if (!resolution || resolution.step !== "SENT") return;
+  const status = companionService.getStatus({ invitation: resolution.data?.invitation, now: new Date() });
+  if (!status.ok || status.status === "PENDING") return;
+  if (activeResolution()?.id !== resolutionId) {
+    // The patient is elsewhere. The answer is still recorded — they will see it on the appointment
+    // and on the barrier list — but the screen they are on is not taken away from them.
+    const settled = advanceTo(resolution, status.status === "CONFIRMED" ? "CONFIRMED" : "DECLINED_BY_CONTACT", {});
+    logResolution(status.status === "CONFIRMED" ? RESOLUTION_EVENTS.COMPANION_CONFIRMED : RESOLUTION_EVENTS.COMPANION_DECLINED, settled);
+    return;
+  }
+  const settled = advanceTo(resolution, status.status === "CONFIRMED" ? "CONFIRMED" : "DECLINED_BY_CONTACT", {});
+  logResolution(status.status === "CONFIRMED" ? RESOLUTION_EVENTS.COMPANION_CONFIRMED : RESOLUTION_EVENTS.COMPANION_DECLINED, settled);
+  render();
+}
+
+/* -------------------------------------------------------------- reading it back out ------- */
+
+const transportationResolutionFor = appointmentId => barrierResolutions().find(item =>
+  item.appointmentId === appointmentId
+  && item.barrierType === BARRIER_TYPES.TRANSPORTATION
+  && item.status !== RESOLUTION_STATUS.CANCELLED) || null;
+
+// A time in the appointment's own zone, for the one place a resolution stores a pre-formatted
+// string: the readiness panel's "Uber · Pickup 2:00 p.m." line, which has no appointment to hand.
+const formatBarrierTime = (value, record) => formatAppointmentTime(value, record?.timezone || "", state.language);
+
+// §10. Which barrier options on the pre-visit list already have something under way, keyed by the
+// reason the button emits so the view never has to know about resolutions.
+function appointmentBarrierStates(record) {
+  const states = {};
+  if (!record) return states;
+  const mine = barrierResolutions().filter(item => item.appointmentId === record.id);
+  if (!mine.length) return states;
+  Object.keys(APPOINTMENT_BARRIER_REASONS).forEach(reasonKey => {
+    const barrierType = resolutionPlaybookFor(reasonKey);
+    if (!barrierType) return;
+    const resolution = [...mine].filter(item => item.barrierType === barrierType)
+      .sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt))).at(-1);
+    const listState = barrierListState(resolution, state.language);
+    if (listState) states[reasonKey] = listState;
+  });
+  return states;
+}
+
+// §9. Only shown once the patient has actually engaged with getting ready for this visit — a
+// readiness panel on an appointment nobody raised anything about invents a problem.
+function appointmentReadinessFor(record) {
+  if (!record) return null;
+  const raised = barrierResolutions().some(item => item.appointmentId === record.id);
+  const acknowledged = Boolean(state.barrierReadinessAck?.[record.id]);
+  if (!raised && !acknowledged) return null;
+  return appointmentReadiness({ appointment: record, resolutions: barrierResolutions(), locale: state.language });
+}
+
+// §13. The badge is for whoever is running the demo, never for the patient, so it is off in a
+// production build unless a tester deliberately asked for it in the URL.
+const showBarrierDemoBadge = () => barrierDemoMode() && (!import.meta.env.PROD || params.get("demoBadge") === "1");
+
+function barrierResolutionProps(resolution) {
+  const record = appointmentById(resolution.appointmentId);
+  const data = resolution.data || {};
+  return appointmentViewProps({
+    resolution,
+    appointment: record,
+    timezone: record?.timezone || "",
+    homeAddress: patientHomeAddress(),
+    destination: resolutionDestination(record),
+    options: data.options || [],
+    slots: data.slots || [],
+    contacts: companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts,
+    error: state.barrierError || "",
+    showDemoBadge: showBarrierDemoBadge()
+  });
+}
+
 // §82/§83: an upcoming visit or an open request with the same office, for the same reason, is the
 // thing the patient is already waiting on — not a reason to start a second one.
 const existingAppointmentFor = record => {
@@ -4246,7 +4694,19 @@ function appointmentDetailScreen() {
   const props = appointmentViewProps({ appointment: record });
   if (view === "PREP") return appointmentPrepView(props);
   if (view === "BRIEF") return appointmentBriefView(props);
-  if (view === "BARRIER") return appointmentBarrierCheckView(appointmentViewProps({ appointment: record, preVisitCheck: preVisitCheckOptions({ appointment: record, locale: state.language }) }));
+  if (view === "BARRIER") return appointmentBarrierCheckView(appointmentViewProps({ appointment: record, preVisitCheck: preVisitCheckOptions({ appointment: record, locale: state.language }), barrierStates: appointmentBarrierStates(record) }));
+  // A resolution in flight owns the screen. It is a view of the appointment, not a separate place:
+  // the header, EMMI's anchor and the way back are all the ones the patient already had.
+  if (view === "RESOLUTION") {
+    const resolution = activeResolution();
+    if (resolution && resolution.appointmentId === record.id) return barrierResolutionScreen(barrierResolutionProps(resolution));
+  }
+  // §8. Saying nothing is wrong is an answer, not a flow: one sentence and the way back.
+  if (view === "ALL_SET") {
+    return `<div class="appointment-screen barrier-screen">${titleBlock(L("Thanks for telling me", "Gracias por decírmelo", "Mèsi paske ou di m sa"), "", L("Appointment", "Cita", "Randevou"))}
+      ${allSetConfirmation(appointmentViewProps({ appointment: record }))}
+      ${appointmentReadinessPanel(appointmentViewProps({ readiness: appointmentReadinessFor(record) }))}</div>`;
+  }
   if (view === "SHARE") {
     const sharing = appointmentCareCircle();
     return appointmentShareView(appointmentViewProps({ appointment: record, members: sharing.eligibleMembers, sharing, scope: appointmentShareScope(state.language) }));
@@ -4260,6 +4720,7 @@ function appointmentDetailScreen() {
   state.appointmentNotice = "";
   return notice + appointmentDetailView(appointmentViewProps({
     appointment: record,
+    readinessPanel: appointmentReadinessPanel(appointmentViewProps({ readiness: appointmentReadinessFor(record) })),
     capability: appointmentCapability(record),
     patientStatus: appointmentPatientStatus(record, state.language),
     nextStep: appointmentNextStep(record, state.language),
@@ -5554,7 +6015,7 @@ function devPanel() {
 // and lands halfway down the new question. Same reason MY_GOALS carries its detail suffix.
 const scrollViewKey = () => {
   if (state.screen === "MY_GOALS" && state.activeGoalId) return `${state.screen}#detail`;
-  if (state.screen === "APPOINTMENT_DETAIL") return `${state.screen}#${state.activeAppointmentId || ""}#${state.appointmentFlow?.view || ""}`;
+  if (state.screen === "APPOINTMENT_DETAIL") return `${state.screen}#${state.activeAppointmentId || ""}#${state.appointmentFlow?.view || ""}${state.appointmentFlow?.view === "RESOLUTION" ? `#${activeResolution()?.step || ""}` : ""}`;
   if (state.screen === "APPOINTMENT_SCHEDULING") return `${state.screen}#${state.appointmentFlow?.step || ""}`;
   if (state.screen === "MY_APPOINTMENTS") return `${state.screen}#${state.appointmentFlow?.tab || ""}`;
   return state.screen;
@@ -5588,6 +6049,10 @@ function render() {
   // Only a genuinely new screen hands focus to its heading. Re-focusing the h1 after an in-place
   // update drags a screen reader back to the title the patient already heard.
   if (newScreen) requestAnimationFrame(() => document.querySelector("h1")?.focus({ preventScroll: true }));
+  // A resolution parked on a searching / booking / checking step is what makes the provider call.
+  // Driving it from the paint rather than from the click means a patient who reloads mid-search
+  // sees the search finish rather than a spinner nobody is turning.
+  startBarrierResolutionWorkIfPending();
   finishRender(scrollSnapshot, errorAppeared);
 }
 
@@ -5703,6 +6168,7 @@ async function launchPrototype() {
   Object.assign(state, { goalsStatus: "NOT_STARTED", careGoals: [], careGoalsNote: "", goalFlowStep: "DISCOVERY", goalFlowOrigin: "ONBOARDING", patientGoals: [], goalPrimaryId: "", goalSecondaryId: "", goalPlanningGoalId: "", goalPlanStatus: "NOT_STARTED", goalPlanDraft: { actionIds: [], customAction: "", frequency: "few-days", remindersEnabled: false, whyItMatters: "" }, activeGoalId: "", goalDetailView: "SUMMARY", goalBarrierDraft: { category: "", patientDescription: "" }, activeBarrierId: "", goalSupportDraft: "", goalNotice: "", goalHistory: [], supportNeedsStatus: "NOT_STARTED", supportNeedsAnswers: {}, supportNeedsOther: "" });
   Object.assign(state, { bpBaselineRequiredReadings: 3, bpBaselineReadingCount: 0, bpBaselineRemainingReadings: 3, firstTransmissionSystolic: null, firstTransmissionDiastolic: null });
   Object.assign(state, { activationStatus: "NOT_STARTED", activationStartedAt: "", deviceSetupStatus: "NOT_STARTED", deviceSetupStartedAt: "" });
+  Object.assign(state, { barrierResolutions: [], activeResolutionId: "", barrierActivity: [], barrierError: "", barrierReadinessAck: {} });
   state.flowProgress = { GETTING_STARTED: emptyFlowProgress() };
   state.flowTransitionNotice = "";
   applyScenarioDeviceContext();
@@ -7312,6 +7778,219 @@ function bind() {
       else { state.goalDetailView = "SUMMARY"; state.goalNotice = L("Your check-in was saved.", "Su seguimiento fue guardado.", "Nou sove tcheke ou a."); }
       draftStore.save(state); render(); return;
     }
+    // --- Barrier resolution ---------------------------------------------------------------
+    //
+    // §12's pattern is enforced structurally rather than by convention: no handler below calls a
+    // provider. The ones that matter move the resolution onto a working step and let the render
+    // driver make the call — which means the only way to reach a provider is through a step the
+    // patient arrived at by pressing a button on a review screen.
+    if (action.startsWith("barrier-")) {
+      const resolution = barrierResolutionById(el.dataset.resolutionId || state.activeResolutionId || "");
+      if (!resolution) { state.appointmentFlow = { ...state.appointmentFlow, view: "" }; render(); return; }
+      const record = appointmentById(resolution.appointmentId);
+      const data = resolution.data || {};
+      state.barrierError = "";
+
+      // Leaving is never destructive (§25). The resolution keeps its step, so coming back through
+      // the barrier list resumes here rather than starting over.
+      if (action === "barrier-close") {
+        state.activeResolutionId = "";
+        openAppointmentDetail(resolution.appointmentId);
+        render(); return;
+      }
+      if (action === "barrier-back") {
+        advanceTo(resolution, el.dataset.step || resolution.step);
+        render(); return;
+      }
+      if (action === "barrier-decline") {
+        const declined = advanceTo(resolution, "DECLINED");
+        logResolution(RESOLUTION_EVENTS.ASSISTANCE_DECLINED, declined);
+        render(); return;
+      }
+      if (action === "barrier-escalate") {
+        const reason = el.dataset.reason || "EMMI_COULD_NOT_RESOLVE";
+        await escalateResolution(resolution, reason, { keepStep: PARTIAL_ESCALATIONS.includes(reason) });
+        render(); return;
+      }
+
+      // --- transportation -------------------------------------------------------------------
+      if (action === "barrier-accept") {
+        // Accepting help never re-asks for what the record already holds (§3): the address the
+        // patient confirmed and the needs they already answered survive a second pass.
+        advanceTo(resolution, "PICKUP", { pickupAddress: data.pickupAddress || null });
+        render(); return;
+      }
+      if (action === "barrier-pickup-home") {
+        const home = patientHomeAddress();
+        if (!home) { advanceTo(resolution, "PICKUP_EDIT"); render(); return; }
+        advanceTo(resolution, "NEEDS", { pickupAddress: home, needs: data.needs || [] });
+        render(); return;
+      }
+      if (action === "barrier-pickup-other") { advanceTo(resolution, "PICKUP_EDIT"); render(); return; }
+      if (action === "barrier-pickup-save") {
+        const form = document.querySelector("#barrier-address-form");
+        const draft = form ? Object.fromEntries(new FormData(form)) : {};
+        const checked = validateAddress(draft);
+        if (!checked.ok) {
+          state.barrierError = addressErrorText(checked.errors[0], state.language);
+          advanceTo(resolution, "PICKUP_EDIT", { addressDraft: draft });
+          render(); return;
+        }
+        advanceTo(resolution, "NEEDS", { pickupAddress: checked.address, addressDraft: draft, needs: data.needs || [] });
+        render(); return;
+      }
+      if (action === "barrier-need-toggle") {
+        advanceTo(resolution, "NEEDS", { needs: toggleTransportNeed(data.needs || [], el.dataset.need || "") });
+        render(); return;
+      }
+      if (action === "barrier-needs-continue") {
+        // The one place a difficulty stops being a search and becomes a coordination job. A patient
+        // who cannot get in and out of a car unaided is not offered one (§3.2).
+        const suitability = transportationSuitability(data.needs || []);
+        if (!suitability.standardRideAppropriate) {
+          advanceTo(resolution, "NEEDS_UNSUPPORTED", { blockingNeeds: suitability.blockingNeeds });
+          render(); return;
+        }
+        transportationTimeStep(resolution, record);
+        render(); return;
+      }
+      if (action === "barrier-time-accept") { advanceTo(resolution, "SEARCHING"); render(); return; }
+      if (action === "barrier-time-change") { advanceTo(resolution, "TIME_EDIT"); render(); return; }
+      if (action === "barrier-time-select") {
+        advanceTo(resolution, "TIME", { pickupAt: el.dataset.pickupAt || data.pickupAt });
+        render(); return;
+      }
+      if (action === "barrier-option-select") {
+        const optionId = el.dataset.optionId || "";
+        const option = (data.options || []).find(item => item.optionId === optionId);
+        const chosen = advanceTo(resolution, "REVIEW", { selectedOptionId: optionId, selectedRideType: option?.rideType || "" });
+        logResolution(RESOLUTION_EVENTS.TRANSPORTATION_OPTION_SELECTED, chosen, { rideType: option?.rideType || "" });
+        render(); return;
+      }
+      if (action === "barrier-reserve-confirm") {
+        // The patient has now said it out loud on a review screen. This is the only path to a
+        // reservation, and it books nothing itself — it hands the step to the driver.
+        const confirmed = advanceTo(resolution, "BOOKING");
+        logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CONFIRMED, confirmed, { rideType: data.selectedRideType || "" });
+        render(); return;
+      }
+      if (action === "barrier-retry") { advanceTo(resolution, "BOOKING"); render(); return; }
+      if (action === "barrier-ride-cancel") { advanceTo(resolution, "CANCEL_CONFIRM"); render(); return; }
+      if (action === "barrier-ride-cancel-confirm") {
+        const released = await transportationService.cancel({ reservationId: data.reservation?.reservationId || "" });
+        const canceled = advanceTo(resolution, "CANCELED", released.ok ? { reservation: null, returnReservation: null, reservationOutdated: false } : {});
+        if (released.ok) logResolution(RESOLUTION_EVENTS.TRANSPORTATION_CANCELED, canceled, { replaced: false });
+        render(); return;
+      }
+      if (action === "barrier-ride-change" || action === "barrier-transport-update") {
+        // Changing a ride keeps the car that exists until a replacement is booked, so the patient
+        // is never left with neither. The old reservation id travels forward as `replacing`.
+        const ride = action === "barrier-transport-update" ? transportationResolutionFor(resolution.appointmentId) : resolution;
+        if (!ride) { render(); return; }
+        const rideRecord = appointmentById(ride.appointmentId);
+        transportationTimeStep(ride, rideRecord, { replacingReservationId: ride.data?.reservation?.reservationId || "", reservationOutdated: false });
+        openResolution(barrierResolutionById(ride.id));
+        render(); return;
+      }
+      if (action === "barrier-return-yes") { advanceTo(resolution, "RETURN_TIME", { returnUnavailable: false }); render(); return; }
+      if (action === "barrier-return-no") { advanceTo(resolution, "BOOKED"); render(); return; }
+      if (action === "barrier-return-select") {
+        advanceTo(resolution, "RETURN_BOOKING", {
+          returnChoice: el.dataset.returnChoice || "WHEN_VISIT_ENDS",
+          returnPickupAt: transportationService.returnPickup(record, el.dataset.returnChoice || "WHEN_VISIT_ENDS")
+        });
+        render(); return;
+      }
+
+      // --- video visit ----------------------------------------------------------------------
+      if (action === "barrier-video-start" || action === "barrier-video-recheck") { advanceTo(resolution, "CHECKING"); render(); return; }
+      if (action === "barrier-video-guide") { advanceTo(resolution, "GUIDE"); render(); return; }
+
+      // --- companion ------------------------------------------------------------------------
+      if (action === "barrier-companion-answer") {
+        if ((el.dataset.answer || "") === "NO") { advanceTo(resolution, "NO_CONTACT"); render(); return; }
+        advanceTo(resolution, "CONTACTS");
+        render(); return;
+      }
+      if (action === "barrier-companion-select") {
+        const contacts = companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts;
+        const contact = contacts.find(item => item.contactId === (el.dataset.contactId || ""));
+        if (!contact) { render(); return; }
+        advanceTo(resolution, "REVIEW", {
+          contactId: contact.contactId,
+          contactName: contact.firstName,
+          contactRelationship: contact.relationship || "",
+          contactSource: contact.source || ""
+        });
+        render(); return;
+      }
+      if (action === "barrier-companion-new") { advanceTo(resolution, "NEW_CONTACT"); render(); return; }
+      if (action === "barrier-companion-save") {
+        const form = document.querySelector("#barrier-contact-form");
+        const draft = form ? Object.fromEntries(new FormData(form)) : {};
+        const firstName = String(draft.firstName || "").trim().slice(0, 40);
+        const phone = String(draft.phone || "").replace(/[^\d+]/g, "");
+        // §115 minimum necessary: a first name and a way to reach them. Nothing else is asked for
+        // and nothing else is stored.
+        if (!firstName || phone.replace(/\D/g, "").length < 10) {
+          state.barrierError = !firstName
+            ? L("Add their first name.", "Agregue su nombre.", "Ajoute non li.")
+            : L("Add a phone number with 10 numbers.", "Agregue un teléfono de 10 números.", "Ajoute yon nimewo telefòn ak 10 chif.");
+          advanceTo(resolution, "NEW_CONTACT", { contactDraft: draft });
+          render(); return;
+        }
+        advanceTo(resolution, "REVIEW", {
+          contactId: `new-${phone.slice(-4)}`,
+          contactName: firstName,
+          contactRelationship: String(draft.relationship || "").trim().slice(0, 40),
+          contactPhone: phone,
+          contactSource: "PATIENT_ENTERED",
+          contactDraft: draft
+        });
+        render(); return;
+      }
+      if (action === "barrier-companion-send") { advanceTo(resolution, "SENDING"); render(); return; }
+      if (action === "barrier-companion-another") { advanceTo(resolution, "CONTACTS", { contactId: "", contactName: "", invitation: null }); render(); return; }
+
+      // --- reschedule -----------------------------------------------------------------------
+      if (action === "barrier-reschedule-start") { advanceTo(resolution, "SEARCHING"); render(); return; }
+      if (action === "barrier-slot-select") {
+        advanceTo(resolution, "REVIEW", {
+          selectedSlotId: el.dataset.slotId || "",
+          hasTransportation: Boolean(transportationResolutionFor(resolution.appointmentId)?.data?.reservation)
+        });
+        render(); return;
+      }
+      if (action === "barrier-reschedule-confirm") { advanceTo(resolution, "CHANGING"); render(); return; }
+
+      // --- something else -------------------------------------------------------------------
+      if (action === "barrier-other-submit") {
+        const text = String(document.querySelector("#barrier-describe")?.value || "").trim().slice(0, 400);
+        if (!text) { state.barrierError = L("Tell me a little about it.", "Cuénteme un poco.", "Di m yon ti kras sou li."); render(); return; }
+        const described = advanceTo(resolution, "CLASSIFYING", { text });
+        // What the patient wrote stays on the record and out of analytics: only its length goes in.
+        logResolution(RESOLUTION_EVENTS.BARRIER_DESCRIBED, described, { characters: text.length });
+        render(); return;
+      }
+      if (action === "barrier-route") {
+        // The classifier said which playbook this is. Opening it is a new resolution of that type,
+        // linked back to the one the patient described it in, so the activity log keeps the chain.
+        const target = el.dataset.barrierType || data.routedTo || "";
+        const created = createResolution({ appointmentId: resolution.appointmentId, patientId: state.offer?.patient?.id || "", barrierType: target });
+        if (!created) { advanceTo(resolution, "ESCALATE_OFFER"); render(); return; }
+        const existing = barrierResolutions().find(item => item.appointmentId === resolution.appointmentId && item.barrierType === target && item.status !== RESOLUTION_STATUS.CANCELLED);
+        advanceTo(resolution, "ROUTED", { openedResolutionId: (existing || created).id });
+        if (!existing) {
+          saveResolution({ ...created, data: { fromResolutionId: resolution.id } });
+          logResolution(RESOLUTION_EVENTS.BARRIER_IDENTIFIED, created, { via: "INTENT_CLASSIFIER" });
+          logResolution(RESOLUTION_EVENTS.ASSISTANCE_OFFERED, created);
+        }
+        openResolution(existing || barrierResolutionById(created.id));
+        render(); return;
+      }
+      render(); return;
+    }
+
     // --- Appointment coordination -------------------------------------------------------------
     if (action.startsWith("appointment-")) {
       const appointmentId = el.dataset.appointmentId || el.dataset.needId || state.activeAppointmentId || "";
@@ -7464,10 +8143,25 @@ function bind() {
         openAppointmentDetail(record.id); render(); return;
       }
 
-      // §51/§113: the pre-visit check asks; the answer routes into the barrier engine or nowhere.
+      // §51/§113: the pre-visit check asks. The answer still records the barrier for the care team
+      // exactly as it always did — and then, when EMMI has a playbook for it, opens the attempt to
+      // solve it. The resolution screen is entered BEFORE the barrier is recorded because
+      // recordAppointmentBarrier() paints on its way through, and a flash of the question the
+      // patient just answered reads as the tap not registering.
       if (action === "appointment-barrier-answer") {
-        await recordAppointmentBarrier(record, el.dataset.barrierReason || "");
-        if (state.screen === "APPOINTMENT_DETAIL") openAppointmentDetail(record.id);
+        const reasonKey = el.dataset.barrierReason || "";
+        if (reasonKey === APPOINTMENT_BARRIER_REASONS.ALL_SET) {
+          // §8: nothing to solve, so nothing is started. The answer is still recorded, because a
+          // patient who said their visit is fine is not the same as one who was never asked.
+          state.barrierReadinessAck = { ...(state.barrierReadinessAck || {}), [record.id]: new Date().toISOString() };
+          audit(state, "appointment_readiness_confirmed", "success", { appointmentId: record.id });
+          state.activeResolutionId = "";
+          openAppointmentDetail(record.id, "ALL_SET");
+          render(); return;
+        }
+        const started = startBarrierResolution(record, reasonKey);
+        await recordAppointmentBarrier(record, reasonKey);
+        if (!started && state.screen === "APPOINTMENT_DETAIL") openAppointmentDetail(record.id);
         render(); return;
       }
 
@@ -8788,6 +9482,14 @@ async function boot() {
       if (!saved.appointmentDraft || typeof saved.appointmentDraft !== "object") state.appointmentDraft = null;
       state.appointmentFlow = null;
       if (typeof saved.activeAppointmentId !== "string") state.activeAppointmentId = "";
+      // A draft written before barrier resolution existed restores without any. activeResolutionId
+      // is deliberately not restored: the resolutions are, so the patient can walk back into one
+      // from their appointment, but nobody is dropped into a half-finished booking on open.
+      if (!Array.isArray(saved.barrierResolutions)) state.barrierResolutions = [];
+      if (!Array.isArray(saved.barrierActivity)) state.barrierActivity = [];
+      if (!saved.barrierReadinessAck || typeof saved.barrierReadinessAck !== "object") state.barrierReadinessAck = {};
+      state.activeResolutionId = "";
+      state.barrierError = "";
       if (state.screen === "APPOINTMENT_SCHEDULING"
         && state.appointments.some(record => record.id === state.activeAppointmentId && record.status === APPOINTMENT_STATUS.CONFIRMED)) {
         state.screen = "APPOINTMENT_DETAIL";
