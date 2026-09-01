@@ -21,7 +21,7 @@ import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS,
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, formatAppointmentWhen, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentSlotReviewView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, formatAppointmentWhen, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 // The barrier resolution engine: the domain machine, the simulated outside world, and the views.
 // The shell owns none of the three — it connects them to this patient's record, the care-team
@@ -1029,6 +1029,17 @@ function assistantContext() {
     // bubble. It lets a short reply such as "BP readings" or "what does that mean?" stay attached
     // to the topic the patient saved even when an older clinical topic remains in chat history.
     appointmentPrep,
+    appointmentSupport: activeResolution() && activeResolution().appointmentId === activeAppointmentRecord?.id
+      ? {
+          appointmentId: activeResolution().appointmentId,
+          barrierType: activeResolution().barrierType,
+          step: activeResolution().step,
+          contactName: activeResolution().data?.contactName || "",
+          invitationScope: activeResolution().barrierType === BARRIER_TYPES.COMPANION
+            ? { appointmentDate: true, appointmentTime: true, appointmentLocation: true, healthInformation: false }
+            : null
+        }
+      : null,
     // Where this patient started and what ACCESS will recognise as progress, resolved by the same
     // functions the goals screen and the care plan render. "What was my starting blood pressure"
     // is a question about this patient, and the knowledge base has no way to answer it: it knows
@@ -2212,7 +2223,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-companion" ? L("Coordinate a companion", "Coordinar acompañante", "Kowòdone yon moun pou akonpaye m") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -4850,6 +4861,10 @@ function appointmentSchedulingScreen() {
     const slots = [...(record.proposedTimes || [])].sort((a, b) => String(a.startAt).localeCompare(String(b.startAt)));
     return slotPickerView(appointmentViewProps({ appointment: record, slots, expanded: flow.expanded === true, error: flow.error || "" }));
   }
+  if (flow.step === "REVIEW_SLOT") {
+    const slot = (record.proposedTimes || []).find(item => item.slotId === flow.selectedSlotId);
+    if (slot) return appointmentSlotReviewView(appointmentViewProps({ appointment: record, slot }));
+  }
   if (flow.step === "BOOKED") return bookingConfirmationView(appointmentViewProps({ appointment: record }));
   if (flow.step === "REQUESTED") return requestConfirmationView(appointmentViewProps({ appointment: record }));
   if (flow.step === "COORDINATING") return appointmentCoordinationConfirmation(record);
@@ -7362,6 +7377,13 @@ function bindAssistantLayer() {
       return;
     }
     // An appointment EMMI helped with opens where it can be acted on rather than described again.
+    if (growthAction === "appointment-companion") {
+      const record = appointmentById(button.dataset.appointmentId || "");
+      if (record) startBarrierResolution(record, APPOINTMENT_BARRIER_REASONS.CAREGIVER_AVAILABILITY);
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; draftStore.save(state); }
+      render();
+      return;
+    }
     if (growthAction === "appointment-view") {
       const appointmentId = button.dataset.appointmentId || "";
       if (appointmentId && appointmentById(appointmentId)) openAppointmentDetail(appointmentId);
@@ -8402,6 +8424,10 @@ function bind() {
       // §123/§124: a time that could not be held sends the patient back to real times, never to a
       // confirmation screen, and never with the blame.
       if (action === "appointment-select-slot") {
+        state.appointmentFlow = { appointmentId: record.id, step: "REVIEW_SLOT", selectedSlotId: el.dataset.slotId || "", error: "" };
+        draftStore.save(state); render(); return;
+      }
+      if (action === "appointment-confirm-slot") {
         const result = confirmAppointmentSlot(record, el.dataset.slotId || "");
         if (result.ok) { state.appointmentFlow = { appointmentId: record.id, step: "BOOKED" }; state.screen = "APPOINTMENT_SCHEDULING"; draftStore.save(state); render(); return; }
         const availability = loadAppointmentAvailability(result.record || record);

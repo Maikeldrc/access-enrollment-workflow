@@ -17,6 +17,7 @@ import {
   needAnAppointmentCard,
   requestConfirmationView,
   slotPickerView,
+  appointmentSlotReviewView,
   upcomingCareSection
 } from "../src/appointmentViews.js";
 
@@ -70,6 +71,7 @@ const everyView = (overrides = {}) => {
     appointmentDetailView: appointmentDetailView({ ...props, appointment: confirmed }),
     appointmentDetailViewRequest: appointmentDetailView({ ...props, appointment: request }),
     slotPickerView: slotPickerView({ ...props, appointment: confirmed, slots }),
+    appointmentSlotReviewView: appointmentSlotReviewView({ ...props, appointment: confirmed, slot: slots[0] }),
     bookingConfirmationView: bookingConfirmationView({ ...props, appointment: confirmed }),
     requestConfirmationView: requestConfirmationView({ ...props, appointment: request }),
     appointmentPrepView: appointmentPrepView({ ...props, appointment: { ...confirmed, prep: { topics: ["My blood pressure"], medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg" }], sharedWithProvider: false } } }),
@@ -228,6 +230,16 @@ describe("appointment views — no dense calendar anywhere (§32, §100, §154)"
     expect(html).toContain('data-slot-id="s1"');
     expect(html).toContain('data-appointment-id="appt-1"');
     expect(html).toContain("Monday, September 7");
+  });
+
+  it("reviews a selected time before exposing the explicit booking action", () => {
+    const html = appointmentSlotReviewView({ ...base, appointment: confirmed, slot: slots[0] });
+    expect(html).toContain("Nothing is booked until you confirm.");
+    expect(html).toContain('data-action="appointment-confirm-slot"');
+    expect(html).toContain('data-slot-id="s1"');
+    expect(html).toContain("Reserve this appointment");
+    expect(html).toContain("Choose a different time");
+    expect(html).not.toContain('data-action="appointment-select-slot"');
   });
 });
 

@@ -22,6 +22,7 @@
 //   appointment-back                    —                      Leave the screen (route to the
 //                                                              existing "back-to-my-care").
 //   appointment-select-slot             data-appointment-id, data-slot-id
+//   appointment-confirm-slot            data-appointment-id, data-slot-id
 //   appointment-more-times              data-appointment-id    "See more times" (§32).
 //   appointment-change-preferences      data-appointment-id    "Choose another day" (§32).
 //   appointment-preference-answer       data-need-id, data-field, data-value
@@ -86,7 +87,7 @@ export const APPOINTMENT_PREFERENCE_STEPS = Object.freeze(["PROVIDER", "REASON",
 // Every data-action this module can emit, for the lead's handler switch.
 export const APPOINTMENT_VIEW_ACTIONS = Object.freeze([
   "appointment-ask-emmi", "appointment-open", "appointment-open-list", "appointment-list-tab",
-  "appointment-back", "appointment-select-slot", "appointment-more-times",
+  "appointment-back", "appointment-select-slot", "appointment-confirm-slot", "appointment-more-times",
   "appointment-change-preferences", "appointment-preference-answer",
   "appointment-preference-other-time", "appointment-preference-back", "appointment-submit-request",
   "appointment-get-directions", "appointment-join-visit", "appointment-request-reschedule",
@@ -671,6 +672,33 @@ export function slotPickerView(props = {}) {
     </section>
     ${body}
     <button type="button" class="appointment-inline-link" data-action="appointment-change-preferences" data-appointment-id="${esc(appointment.id)}">${t("Choose another day", "Elegir otro día", "Chwazi yon lòt jou")}</button>
+    ${askEmmiButton(props, appointment.id)}
+    ${backButton(props)}
+  </div>`;
+}
+
+// Choosing a card only selects a time. Booking is a separate, explicit action so a patient never
+// creates a medical appointment by tapping what looks like a navigation row.
+export function appointmentSlotReviewView(props = {}) {
+  const appointment = props.appointment || {};
+  const slot = props.slot || {};
+  const locale = localeOf(props);
+  const esc = escaper(props);
+  const t = say(locale);
+  const parts = wallClock(slot.startAt, slot.timezone || appointment.timezone);
+  const where = [modalityLabel(slot.modality, locale), slot.locationName].filter(Boolean).join(" · ");
+  return `<div class="appointment-screen appointment-slot-review-screen">
+    ${screenTitle(props, t("Review this appointment", "Revise esta cita", "Revize randevou sa a"), t("Nothing is booked until you confirm.", "No se reserva nada hasta que usted confirme.", "Anyen pa rezève jiskaske ou konfime."), t("Appointment", "Cita", "Randevou"))}
+    <section class="appointment-slot-context">
+      <div class="appointment-identity">${identityBlock(appointment, props)}</div>
+      <dl class="appointment-facts">
+        <dt>${t("Date", "Fecha", "Dat")}</dt><dd>${esc(formatLongDate(parts, locale))}</dd>
+        <dt>${t("Time", "Hora", "Lè")}</dt><dd>${esc(formatTime(parts, locale))}</dd>
+        ${where ? `<dt>${t("Visit", "Visita", "Vizit")}</dt><dd>${esc(where)}</dd>` : ""}
+      </dl>
+    </section>
+    <button type="button" class="appointment-action primary" data-action="appointment-confirm-slot" data-appointment-id="${esc(appointment.id)}" data-slot-id="${esc(slot.slotId)}"><span>${t("Reserve this appointment", "Reservar esta cita", "Rezève randevou sa a")}</span></button>
+    <button type="button" class="appointment-action secondary" data-action="appointment-more-times" data-appointment-id="${esc(appointment.id)}"><span>${t("Choose a different time", "Elegir otra hora", "Chwazi yon lòt lè")}</span></button>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;

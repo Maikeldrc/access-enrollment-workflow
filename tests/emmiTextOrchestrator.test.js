@@ -18,7 +18,7 @@ const passage = (program, text = "Approved patient-facing concepts") => ({ sourc
 // string, never an internal one, and only the fields the tool contract promises.
 const upcoming = (overrides = {}) => ({ id: "APPT-1", patientStatus: "Cita confirmada", providerDisplayName: "Dr. Martinez", specialty: "Cardiology", scheduledAt: "2026-09-08T14:00:00.000Z", modality: "IN_PERSON", ...overrides });
 
-function harness({ locale = "ES", program = "ACCESS", conversation = {}, appointmentPrep = null, transportation = null, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
+function harness({ locale = "ES", program = "ACCESS", conversation = {}, appointmentPrep = null, appointmentSupport = null, transportation = null, retrievalFailure = false, knowledgePassages = null, appointments = [], appointmentLookupFails = false, appointmentRequestFails = false, accessBaselines = demoAccessBaselines } = {}) {
   const calls = [];
   const events = [];
   let appointmentTopics = [...(appointmentPrep?.topics || [])];
@@ -79,7 +79,7 @@ function harness({ locale = "ES", program = "ACCESS", conversation = {}, appoint
     throw new Error(`unexpected ${name}`);
   });
   const orchestrator = new EmmiTextOrchestrator({
-    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" }, appointmentPrep }),
+    getContext: () => ({ locale, program, currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", accessTrack: "eCKM", activeGoal: { id: "goal-bp" }, appointmentPrep, appointmentSupport }),
     getConversation: () => ({ conversationSessionId: "conv-1", conversationSummary: conversation.summary || "", recentTurns: conversation.turns || [] }),
     executeTool,
     screenExplanation: () => locale === "ES" ? "Esta pantalla explica el cuidado disponible." : "This screen explains the available care.",
@@ -467,6 +467,26 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(answer.text).toMatch(/participación es voluntaria.*terminar su participación/i);
     expect(answer.trace.toolCalls).toContain("getExpectedAccessCost");
   });
+
+  it("answers both doctor continuity and cost in one compound question", async () => {
+    const { orchestrator, executeTool } = harness();
+    const answer = await orchestrator.answer("¿Esto reemplaza a mi médico y cuánto me costará?");
+    expect(answer.text).toMatch(/Dr\. Fresner/i);
+    expect(answer.text).toMatch(/no reemplaza|sigue formando parte|continúa/i);
+    expect(answer.text).toMatch(/pago esperado.*\$0/i);
+    expect(executeTool).toHaveBeenCalledWith("getCareTeam", expect.any(Object));
+    expect(executeTool).toHaveBeenCalledWith("getExpectedAccessCost", expect.any(Object));
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("treats an interrupted mandatory-enrollment question as patient choice, not legal authority", async () => {
+    const { orchestrator, executeTool } = harness();
+    const answer = await orchestrator.answer("Perdón que te interrumpa: ¿es obligatorio o puedo decidir que no?");
+    expect(answer.text).toMatch(/participación es voluntaria/i);
+    expect(answer.text).not.toMatch(/representante|autoridad legal/i);
+    expect(answer.trace.intent).toBe("VOLUNTARY_PARTICIPATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
 });
 
 describe("Ask EMMI appointment coordination", () => {
@@ -539,6 +559,16 @@ describe("Ask EMMI appointment coordination", () => {
     const { orchestrator } = harness({ locale: "EN" });
     const answer = await orchestrator.answer("I need an appointment in the morning");
     expect(answer.text).toMatch(/mornings/i);
+  });
+
+  it("acknowledges transport and a family companion in a compound appointment request", async () => {
+    const { orchestrator } = harness({ locale: "ES" });
+    const answer = await orchestrator.answer("Necesito una cita por la mañana, también un Uber y quiero que mi hija me acompañe.");
+    expect(answer.text).toMatch(/mañanas/i);
+    expect(answer.text).toMatch(/transporte/i);
+    expect(answer.text).toMatch(/hija.*acompañe/i);
+    expect(answer.text).toMatch(/después de confirmar el horario/i);
+    expect(answer.quickAction).toBe("appointment-request");
   });
 
   it("classifies an obvious reason rather than sending a blank one", async () => {
@@ -674,6 +704,29 @@ describe("Ask EMMI appointment coordination", () => {
     expect(answer.text).toMatch(/UB-15582/);
     expect(answer.text).not.toMatch(/\.\.$/);
     expect(answer.trace.responseMode).toBe("RUNTIME_GROUNDED");
+  });
+
+  it("answers every part of a combined Uber and family-companion request", async () => {
+    const appointment = upcoming({ providerDisplayName: "Dr. Fresner Lee", scheduledLabel: "mié, 2 sep · 11:45 a. m.", locationName: "Fresner Medical Group" });
+    const transportation = { success: true, status: "CONFIRMED", reservations: [{ status: "CONFIRMED", tripType: "OUTBOUND", serviceName: "UberX", pickupLabel: "11:00 a. m.", reservationId: "UB-15582" }] };
+    const { orchestrator } = harness({ locale: "ES", appointments: [appointment], appointmentPrep: { appointmentId: "APPT-1" }, transportation });
+    const answer = await orchestrator.answer("Ya tengo el Uber, pero me preocupa ir solo. ¿Puede acompañarme un familiar y cómo lo coordinamos?");
+    expect(answer.text).toMatch(/UberX/);
+    expect(answer.text).toMatch(/familiar|persona de confianza/i);
+    expect(answer.text).toMatch(/antes de enviar nada/i);
+    expect(answer.quickAction).toBe("appointment-companion");
+    expect(answer.appointmentId).toBe("APPT-1");
+  });
+
+  it("answers companion-invitation privacy from the visible structured flow", async () => {
+    const appointmentSupport = { appointmentId: "APPT-1", barrierType: "companion", step: "REVIEW", contactName: "Maria", invitationScope: { appointmentDate: true, appointmentTime: true, appointmentLocation: true, healthInformation: false } };
+    const { orchestrator, executeTool } = harness({ locale: "ES", appointmentPrep: { appointmentId: "APPT-1" }, appointmentSupport });
+    const answer = await orchestrator.answer("¿María solo verá la fecha y el lugar? No quiero compartir información de salud.");
+    expect(answer.text).toMatch(/fecha, la hora y el lugar/i);
+    expect(answer.text).toMatch(/no incluye.*salud/i);
+    expect(answer.text).toMatch(/No se envía nada/i);
+    expect(answer.trace.intent).toBe("APPOINTMENT_COMPANION_PRIVACY");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 });
 
