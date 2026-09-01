@@ -218,6 +218,20 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
+  it.each(["listo", "ya terminé", "done", "mwen fini"])("recognizes %s as a natural completion of appointment preparation", phrase => {
+    const response = appointmentPrepConversationResponse({
+      question: phrase,
+      locale: phrase === "mwen fini" ? "KR" : phrase === "done" ? "EN" : "ES",
+      appointmentPrep: {
+        providerDisplayName: "Dr. Fresner Lee",
+        topics: ["Mis Medicamentos"],
+        medications: [{ medicationId: "med-1", name: "Lisinopril 10 mg" }]
+      }
+    });
+    expect(response.update.status).toBe("COMPLETED");
+    expect(response.text).toMatch(/agenda|ajanda/i);
+  });
+
   it("answers a general question about a scheduled visit with its recorded purpose and asks for the patient's concern", async () => {
     const appointmentPrep = {
       appointmentId: "APPT-1",
