@@ -65,7 +65,17 @@ export const subjectOf = text => {
 // carrying its subject over from earlier. So is a very short turn: "how much?" is a whole question
 // only because something came before it.
 const CONTINUATION_OPENER = /^(?:and|also|ok(?:ay)?[, ]+(?:and|but)|but|what about|how about|and what|and how|y|e|pero|tambi[eé]n|qu[eé] tal|y qu[eé]|epi|men)\b/i;
-const BARE_REFERENT = /\b(?:that|this|it|its|those|these|them|they|the same|eso|esto|esa|ese|esos|esas|lo mismo|la misma|sa|sa a|li|yo)\b/i;
+// A demonstrative only stands for an earlier subject when it is standing alone. In "who created
+// this program?" the "this" is a determiner naming the thing right there in the sentence, and
+// reading it as a referent made a self-contained question inherit an unrelated topic. So a
+// demonstrative counts only when a verb follows it, or when the clause ends on it. Pronouns
+// proper — it, them, they — always count.
+const VERB_AFTER_REFERENT = "is|are|was|were|will|would|can|could|do|does|did|has|have|cost|costs|mean|means|work|works|help|helps|cover|covered|covers|include|included|includes|apply|applies|matter|matters|take|takes|change|changes|count|counts|required|needed|allowed|paid";
+const BARE_REFERENT = new RegExp(
+  `\\b(?:it|its|them|they|the same|lo mismo|la misma|li|yo)\\b`
+  + `|\\b(?:that|this|those|these|eso|esto|esa|ese|esos|esas|sa)\\b(?:\\s*[?.!,]|$|\\s+(?:${VERB_AFTER_REFERENT})\\b)`,
+  "i"
+);
 
 // "Is it private?" names privacy, but "it" is still pointing at something said earlier. Inside a
 // compound question that earlier thing is the other half, so a bare referent is enough to inherit
@@ -79,14 +89,32 @@ export const hasBareReferent = question => BARE_REFERENT.test(String(question ||
 // patient asking about where they are, and it carries nothing.
 const SELF_REFERENTIAL = /^(?:so\s+)?(?:is|are|was|were)\s+(?:this|that|it|all of this)\s+(?:a|an|some kind of|for)?\s*(?:scam|fraud|fake|real|legit(?:imate)?|safe|true|trick|spam|phishing|serious)\b|^(?:¿\s*)?(?:es|ser[aá])\s+(?:esto|eso)\s+(?:una?\s+)?(?:estafa|fraude|falso|real|leg[ií]timo|seguro|verdad|enga[nñ]o)\b|^(?:¿\s*)?(?:esto|eso)\s+es\s+(?:una?\s+)?(?:estafa|fraude|falso|real|leg[ií]timo|seguro|verdad|enga[nñ]o)\b|^(?:[eè]ske\s+)?(?:sa|li)\s+se\s+(?:yon\s+)?(?:awnak|magouy|vre|serye|s[eè]|fo)\b/i;
 
+// A short copula question about "this" or "that" with a bare predicate — "Is this HIPAA compliant?",
+// "Is this required?" — asks about the situation the patient is in, the same way "Is this a scam?"
+// does. "It" is left out on purpose: it is a pronoun standing for something already named, so "is
+// it free?" after a turn about the monitor is genuinely asking whether the monitor is free.
+// "This", not "that". "That" points back at something just said — "is that covered?" is a genuine
+// follow-up and must keep inheriting its subject.
+const SITUATION_COPULA = /^(?:¿\s*)?(?:is|are|was|were)\s+(?:this|all of this)\s+(?:a|an)?\s*[\w-]+(?:\s+[\w-]+)?\s*\??$/i;
+
 export const isFollowUpQuestion = question => {
   const value = String(question || "").trim();
   if (!value) return false;
   if (CONTINUATION_OPENER.test(value)) return true;
-  if (SELF_REFERENTIAL.test(value)) return false;
+  if (SELF_REFERENTIAL.test(value) || SITUATION_COPULA.test(value)) return false;
   const own = subjectOf(value);
   if (own && !own.weak) return false;
   if (BARE_REFERENT.test(value)) return true;
+  // Four words, and this was measured rather than reasoned. Three looks tidier — it stops "Can I
+  // take ibuprofen?" inheriting a topic it does not need — but the regression showed it also stops
+  // "Should I keep trying?", "Who do I tell?" and "Next week if possible.", which are follow-ups
+  // that have genuinely stopped saying what they are about. Those eleven turns went back to
+  // answering "I don't have enough approved information".
+  //
+  // Word count cannot tell the two apart, and the two failures are not equal: a spurious subject
+  // adds noise to a query that still answers correctly, while a missing one loses the answer
+  // entirely. So this stays at four, and the cost is a little noise on short self-contained
+  // questions.
   return words(value).length <= 4;
 };
 
@@ -134,7 +162,7 @@ export const resolveTurnSubject = ({ question, conversation = {}, carriedSubject
 const QUESTION_OPENER = [
   "what", "what's", "whats", "how", "when", "where", "who", "which", "why",
   "can", "could", "do", "does", "did", "is", "are", "will", "would", "should", "am",
-  "tell me", "explain", "i (?:also )?(?:want|need|would like) to know",
+  "tell me", "explain", "i (?:also )?(?:want|need|would like|have) to",
   "qu[eé]", "cu[aá]l(?:es)?", "cu[aá]nto(?:s|a|as)?", "c[oó]mo", "cu[aá]ndo", "d[oó]nde", "qui[eé]n(?:es)?", "por qu[eé]",
   "puedo", "puede", "hay", "es", "son", "tengo", "debo", "necesito", "d[ií]game", "expl[ií]queme",
   "(?:tambi[eé]n )?quiero saber",
@@ -142,9 +170,25 @@ const QUESTION_OPENER = [
 ].join("|");
 
 const COMPOUND_JOIN = new RegExp(
-  `[,;]?\\s+(?:and(?:\\s+also)?|also|plus|y(?:\\s+tambi[eé]n)?|adem[aá]s|tambi[eé]n|epi(?:\\s+tou)?)\\s+(?=(?:${QUESTION_OPENER})\\b)`,
+  `[,;]?\\s+(?:and(?:\\s+also)?|also|plus|but|y(?:\\s+tambi[eé]n)?|adem[aá]s|tambi[eé]n|pero|epi(?:\\s+tou)?|men)\\s+(?=(?:${QUESTION_OPENER})\\b)`,
   "i"
 );
+
+// "Can I keep the monitor and stay in the program?" is two questions sharing one modal. The second
+// half has no question word of its own — it starts with a bare verb — so the connector split cannot
+// see it, and the patient got an answer about the monitor and nothing about staying enrolled.
+// Splitting here lends the modal to the half that lost it.
+const SHARED_MODAL_VERB = /\s+(?:and|y|epi)\s+(?=(?:keep|stay|continue|remain|still\s+\w+|seguir|continuar|quedarme|mantener|permanecer|rete|kontinye|kenbe)\b)/i;
+const MODAL_HEAD = /\b(?:can|could|will|would|may|do|am|should)\s+(?:i|we)\b|\b(?:puedo|podr[ií]a|podemos|debo)\b|\bmwen ka\b/i;
+
+const lendModal = part => {
+  const split = part.match(SHARED_MODAL_VERB);
+  if (!split) return [part];
+  const head = part.slice(0, split.index);
+  const modal = head.match(MODAL_HEAD);
+  if (!modal) return [part];
+  return [head, `${modal[0]} ${part.slice(split.index + split[0].length)}`];
+};
 
 const splitOnce = (value, pattern) => {
   const match = value.match(pattern);
@@ -170,8 +214,10 @@ export const decomposeCompoundQuestion = text => {
   const parts = [];
   for (const sentence of bySentence.length ? bySentence : [value]) {
     for (const piece of splitOnce(sentence, COMPOUND_JOIN)) {
-      const trimmed = piece.trim().replace(/^[,;\s]+/, "");
-      if (trimmed) parts.push(trimmed);
+      for (const clause of lendModal(piece)) {
+        const trimmed = clause.trim().replace(/^[,;\s]+/, "");
+        if (trimmed) parts.push(trimmed);
+      }
     }
   }
 
