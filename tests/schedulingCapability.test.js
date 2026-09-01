@@ -67,15 +67,13 @@ describe("resolving whether this can be scheduled at all", () => {
   });
 
   it("falls back to what the practice can do when the provider is not listed", () => {
-    expect(resolveSchedulingCapability({ providerId: "dr-nobody", practiceId: "fresner-medical-group" }).capability).toBe(SCHEDULING_CAPABILITY.STRUCTURED_REQUEST);
+    expect(resolveSchedulingCapability({ providerId: "dr-nobody", practiceId: "fresner-medical-group" }).capability).toBe(SCHEDULING_CAPABILITY.DIRECT_BOOKING);
   });
 
-  it("downgrades a visit type the office does not take through its calendar", () => {
-    expect(resolveSchedulingCapability({ providerId: PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, appointmentType: APPOINTMENT_REASON_CATEGORIES.NEW_CONCERN })).toMatchObject({
-      capability: SCHEDULING_CAPABILITY.STRUCTURED_REQUEST,
-      reason: "TYPE_NOT_DIRECTLY_BOOKABLE"
+  it("keeps the connected calendar available for every visit reason", () => {
+    Object.values(APPOINTMENT_REASON_CATEGORIES).forEach(appointmentType => {
+      expect(resolveSchedulingCapability({ providerId: PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, appointmentType }).capability).toBe(SCHEDULING_CAPABILITY.DIRECT_BOOKING);
     });
-    expect(resolveSchedulingCapability({ providerId: PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, appointmentType: APPOINTMENT_REASON_CATEGORIES.MEDICATION_RENEWAL }).capability).toBe(SCHEDULING_CAPABILITY.DIRECT_BOOKING);
   });
 });
 
@@ -116,9 +114,13 @@ describe("availability", () => {
     afternoon.slots.forEach(slot => expect(new Date(slot.startAt).getHours()).toBeGreaterThanOrEqual(12));
   });
 
-  it("offers only the modality the patient asked for, and refuses one the office does not support", () => {
+  it("offers the requested modality when supported and real alternatives when it is not", () => {
     const telehealth = getProviderAvailability({ providerId: PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, modality: APPOINTMENT_MODALITY.TELEHEALTH, now: NOW });
     telehealth.slots.forEach(slot => expect(slot.modality).toBe(APPOINTMENT_MODALITY.TELEHEALTH));
+    const careManagerAlternatives = getProviderAvailability({ providerId: "itera-care-manager", modality: APPOINTMENT_MODALITY.IN_PERSON, now: NOW });
+    expect(careManagerAlternatives.ok).toBe(true);
+    expect(careManagerAlternatives.preferenceAdjusted).toBe(true);
+    expect(careManagerAlternatives.slots.every(slot => [APPOINTMENT_MODALITY.PHONE, APPOINTMENT_MODALITY.TELEHEALTH].includes(slot.modality))).toBe(true);
     expect(getProviderAvailability({ providerId: PROTOTYPE_STRUCTURED_REQUEST_PROVIDER_ID, modality: APPOINTMENT_MODALITY.PHONE, now: NOW })).toEqual({ ok: false, error: "NO_AVAILABILITY_SOURCE" });
   });
 
@@ -150,6 +152,22 @@ describe("availability", () => {
     expect(stale).toHaveLength(1);
     // It is last, so the two or three cards a patient is shown first are all bookable.
     expect(result.slots.at(-1).slotId).toBe(stale[0].slotId);
+  });
+
+  it("returns availability for every professional displayed in the demo care team", () => {
+    [PROTOTYPE_DIRECT_BOOKING_PROVIDER_ID, "dr-martinez-cardiology", "itera-care-manager"].forEach(providerId => {
+      const result = getProviderAvailability({ providerId, now: NOW });
+      expect(result.ok, providerId).toBe(true);
+      expect(reservableAvailabilitySlots(result.slots, NOW).length, providerId).toBeGreaterThan(0);
+    });
+  });
+
+  it("uses the connected practice calendar for a configured physician id", () => {
+    const result = getProviderAvailability({ providerId: "dr-configured", practiceId: "fresner-medical-group", now: NOW });
+    const slot = reservableAvailabilitySlots(result.slots, NOW)[0];
+    expect(result.ok).toBe(true);
+    expect(slot.providerId).toBe("dr-configured");
+    expect(bookSlot({ appointment: need({ requestedProfessionalId: "dr-configured", practiceName: "Fresner Medical Group" }), slotId: slot.slotId, now: NOW })).toMatchObject({ ok: true, status: APPOINTMENT_STATUS.CONFIRMED });
   });
 
   it("gives conversational surfaces only held slots that can be confirmed", () => {
@@ -246,8 +264,8 @@ describe("sending a request", () => {
     expect(submitAppointmentRequest({ appointment: null })).toEqual({ ok: false, error: "MISSING_INPUT" });
   });
 
-  it("treats a visit type the calendar will not take as a request instead of a refusal", () => {
-    expect(submitAppointmentRequest({ appointment: need({ reasonCategory: APPOINTMENT_REASON_CATEGORIES.NEW_CONCERN }), now: NOW })).toMatchObject({ ok: true, status: APPOINTMENT_STATUS.REQUEST_SENT });
+  it("keeps a new concern on the direct calendar after clinical safety has run", () => {
+    expect(submitAppointmentRequest({ appointment: need({ reasonCategory: APPOINTMENT_REASON_CATEGORIES.NEW_CONCERN }), now: NOW })).toEqual({ ok: false, error: "USE_DIRECT_BOOKING" });
   });
 
   it("returns the first request on a rapid double tap instead of sending a second one", () => {

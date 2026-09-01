@@ -195,8 +195,27 @@ test("§136 direct booking: real slots, a real confirmation, and a CONFIRMED rec
   expect(record.confirmationNumber).toBeTruthy();
   expect(record.scheduledAt).toBeTruthy();
   expect(record.confirmedAt).toBeTruthy();
-  expect(confirmation).toContain(record.confirmationNumber);
+  // The operational confirmation remains on the record, but it is intentionally not exposed in
+  // the patient UI; the useful next action there is See my list.
+  expect(confirmation).not.toContain(record.confirmationNumber);
+  expect(confirmation).toContain("See my list");
 });
+
+for (const provider of [
+  { id: "dr-martinez-cardiology", name: "Dr. Pedro Martinez-Clark", reason: "SYMPTOM_REVIEW", modality: "IN_PERSON" },
+  { id: "itera-care-manager", name: "Alicia Ramírez, RN", reason: "MEDICATION_RENEWAL", modality: "TELEHEALTH" }
+]) {
+  test(`the connected calendar always shows times for ${provider.name}`, async ({ page }) => {
+    test.setTimeout(120000);
+    await openScheduling(page, need({ requestedProfessionalId: provider.id, providerDisplayName: provider.name }));
+    await walkPreferences(page, { provider: provider.id, reason: provider.reason, modality: provider.modality });
+    await submitRequest(page);
+
+    await expect(page.locator('[data-action="appointment-select-slot"]').first()).toBeVisible();
+    expect(await screenText(page)).toContain("Choose a time");
+    expect((await storedAppointment(page)).status).toBe("SLOTS_AVAILABLE");
+  });
+}
 
 /* ============================================== §16 availability only where it is real ==== */
 

@@ -1191,10 +1191,11 @@ function ensureEmmiRuntime() {
       };
     },
     onSchedulingCapability: ({ providerId, appointmentType }) => {
+      const member = patientCareTeam().find(candidate => candidate.id === providerId);
       const capability = resolveSchedulingCapability({
         patientId: state.offer?.patient?.id || "",
         providerId: providerId || "",
-        practiceId: "",
+        practiceId: String(member?.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
         appointmentType: appointmentType || ""
       });
       return { capability: capability.capability, supportedModalities: capability.supportedModalities, reason: capability.reason };
@@ -1203,7 +1204,9 @@ function ensureEmmiRuntime() {
     // reported as a failure; it is never filled in with a plausible-looking time.
     onProviderAvailability: ({ providerId, preferredTimeOfDay, modality }) => {
       const now = new Date();
-      const result = getProviderAvailability({ providerId: providerId || "", preferredTimeOfDay, modality, now });
+      const member = patientCareTeam().find(candidate => candidate.id === providerId);
+      const practiceId = String(member?.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const result = getProviderAvailability({ providerId: providerId || "", practiceId, preferredTimeOfDay, modality, now });
       if (!result.ok) return { ok: false, error: result.error };
       const heldSlots = reservableAvailabilitySlots(result.slots, now);
       if (!heldSlots.length) return { ok: false, error: "AVAILABILITY_UNAVAILABLE" };
@@ -3873,6 +3876,7 @@ function loadAppointmentAvailability(record) {
   const searching = advanceAppointment(record, { status: APPOINTMENT_STATUS.SEARCHING_AVAILABILITY, source: "ITERA", actor: appointmentActor() });
   const result = getProviderAvailability({
     providerId: record.requestedProfessionalId,
+    practiceId: (record.practiceName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
     preferredTimeOfDay: record.preferredTimeOfDay,
     preferredDateRange: record.preferredDateRange,
     modality: record.preferredModality,

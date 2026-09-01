@@ -218,7 +218,7 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
-  it.each(["listo", "ya terminé", "done", "mwen fini"])("recognizes %s as a natural completion of appointment preparation", phrase => {
+  it.each(["es todo", "eso es todo", "esto es todo", "sí, es todo", "por ahora es todo", "con eso sería todo", "listo", "ya terminé", "done", "mwen fini"])("recognizes %s as a natural completion of appointment preparation", phrase => {
     const response = appointmentPrepConversationResponse({
       question: phrase,
       locale: phrase === "mwen fini" ? "KR" : phrase === "done" ? "EN" : "ES",
@@ -285,6 +285,35 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(noted.update.notesByTopic.fatiga).toEqual(["Me pasa principalmente por las tardes"]);
     expect(noted.update.reviewedTopics).toContain("fatiga");
     expect(noted.text).toContain("Presión alta");
+  });
+
+  it("closes the exact headache conversation when the patient answers es todo", async () => {
+    const appointmentPrep = {
+      appointmentId: "APPT-1",
+      providerDisplayName: "Dr. Fresner Lee",
+      topics: ["Dolor de cabeza"],
+      medications: []
+    };
+    const selected = appointmentPrepConversationResponse({ question: "Dolor de cabeza", locale: "ES", appointmentPrep });
+    const noted = appointmentPrepConversationResponse({
+      question: "hace una semana, dolor intenso, luego se alivia",
+      locale: "ES",
+      appointmentPrep: { ...appointmentPrep, emmiPreparation: selected.update }
+    });
+    const { orchestrator, executeTool } = harness({
+      locale: "ES",
+      appointmentPrep: { ...appointmentPrep, emmiPreparation: noted.update },
+      conversation: { turns: [{ role: "assistant", text: noted.text }] }
+    });
+
+    const answer = await orchestrator.answer("es todo");
+
+    expect(answer.text).toMatch(/agenda.*lista/i);
+    expect(answer.text).toContain("Dolor de cabeza");
+    expect(answer.appointmentPrepUpdate.status).toBe("COMPLETED");
+    expect(answer.appointmentPrepUpdate.notesByTopic["Dolor de cabeza"]).toEqual(["hace una semana, dolor intenso, luego se alivia"]);
+    expect(answer.trace.intent).toBe("APPOINTMENT_PREPARATION");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
   it("answers a generic appointment-prep continuation from the saved agenda", async () => {
@@ -659,12 +688,14 @@ describe("EMMI appointment runtime tool contract", () => {
   });
 
   it("reports missing availability rather than an empty calendar", async () => {
+    expect(await appointmentTools().execute("getProviderAvailability", {})).toMatchObject({ ok: false, error: "PROVIDER_REQUIRED", availabilityChecked: false });
     expect(await appointmentTools({ onProviderAvailability: () => null }).execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: false, error: "AVAILABILITY_UNAVAILABLE" });
     expect(await appointmentTools({ onProviderAvailability: () => ({ ok: false, error: "NO_AVAILABILITY_SOURCE" }) }).execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: false, error: "NO_AVAILABILITY_SOURCE" });
     expect(await appointmentTools().execute("getProviderAvailability", { providerId: "prov-1" })).toMatchObject({ ok: true, slots: [{ slotId: "SLOT-1" }] });
   });
 
   it("reports an unknown scheduling capability rather than assuming a channel", async () => {
+    expect(await appointmentTools().execute("getSchedulingCapability", {})).toMatchObject({ success: false, status: "PROVIDER_REQUIRED", availabilityChecked: false });
     expect(await appointmentTools({ onSchedulingCapability: () => null }).execute("getSchedulingCapability", { providerId: "prov-1" })).toMatchObject({ success: false, status: "CAPABILITY_UNKNOWN" });
     expect(await appointmentTools().execute("getSchedulingCapability", { providerId: "prov-1" })).toMatchObject({ capability: "DIRECT_BOOKING", supportedModalities: ["IN_PERSON"] });
   });

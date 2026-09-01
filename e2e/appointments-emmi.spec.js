@@ -778,9 +778,9 @@ test("Prepare with EMMI closes a coherent agenda after medications and added top
   await panel.getByRole("button", { name: /Lisinopril 10 mg/ }).click();
   await panel.getByRole("button", { name: /Atorvastatin 20 mg/ }).click();
 
-  // Patients naturally say “listo” after selecting their medications; that closes the agenda just
-  // like the more literal instruction “eso es todo”.
-  const summary = await tellEmmi(page, "listo", "es");
+  // The short answer from the real conversation must retain the appointment-prep context and
+  // close the agenda rather than falling through to a generic knowledge response.
+  const summary = await tellEmmi(page, "es todo", "es");
   await expect(summary).toContainText(/agenda.*lista/i);
   await expect(summary).toContainText("Presión alta");
   await expect(summary).toContainText("fatiga");

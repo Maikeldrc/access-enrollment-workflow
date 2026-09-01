@@ -7,8 +7,8 @@ import { expect } from "@playwright/test";
 // The prototype scheduling capability is keyed by provider id. These are the four levels the
 // spec requires and the only way a test can choose which path it is exercising.
 export const DIRECT_BOOKING_PROVIDER = "dr-fresner";
-export const STRUCTURED_REQUEST_PROVIDER = "dr-martinez-cardiology";
-export const HUMAN_COORDINATION_PROVIDER = "itera-care-manager";
+export const STRUCTURED_REQUEST_PROVIDER = "provider-structured-request";
+export const HUMAN_COORDINATION_PROVIDER = "provider-human-coordination";
 export const NO_CHANNEL_PROVIDER = "provider-no-scheduling-channel";
 
 export const inDays = (days, hour = 10) => {

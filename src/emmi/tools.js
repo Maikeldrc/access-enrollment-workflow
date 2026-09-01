@@ -222,15 +222,21 @@ export class EmmiToolOrchestrator {
     } else if (name === "getSchedulingCapability") {
       // Not every office can be booked, and some cannot be reached at all. An unresolved capability
       // is reported as unknown rather than assumed, because assuming it invents a channel.
-      const resolved = this.onSchedulingCapability({ providerId: String(args.providerId || ""), appointmentType: String(args.appointmentType || "") });
-      result = resolved?.capability
+      const providerId = String(args.providerId || "");
+      const resolved = providerId ? this.onSchedulingCapability({ providerId, appointmentType: String(args.appointmentType || "") }) : null;
+      result = !providerId
+        ? { success: false, status: "PROVIDER_REQUIRED", nextStep: "ASK_PATIENT_TO_CHOOSE_PROVIDER", availabilityChecked: false }
+        : resolved?.capability
         ? { capability: resolved.capability, supportedModalities: clone(resolved.supportedModalities || []) }
         : { success: false, status: "CAPABILITY_UNKNOWN" };
     } else if (name === "getProviderAvailability") {
       // Real availability only. A lookup that did not succeed is a failure, never an empty calendar
       // and never a time the model may fill in for itself.
-      const availability = this.onProviderAvailability({ providerId: String(args.providerId || ""), preferredTimeOfDay: String(args.preferredTimeOfDay || ""), modality: String(args.modality || "") });
-      result = availability?.ok
+      const providerId = String(args.providerId || "");
+      const availability = providerId ? this.onProviderAvailability({ providerId, preferredTimeOfDay: String(args.preferredTimeOfDay || ""), modality: String(args.modality || "") }) : null;
+      result = !providerId
+        ? { ok: false, error: "PROVIDER_REQUIRED", nextStep: "ASK_PATIENT_TO_CHOOSE_PROVIDER", availabilityChecked: false }
+        : availability?.ok
         ? { ok: true, slots: clone(availability.slots || []) }
         : { ok: false, error: availability?.error || "AVAILABILITY_UNAVAILABLE" };
     } else if (name === "startAppointmentRequest") {
