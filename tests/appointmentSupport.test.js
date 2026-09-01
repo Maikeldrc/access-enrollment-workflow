@@ -222,6 +222,10 @@ describe("appointmentBarrierPlan (§52)", () => {
     expect(inPerson.options.map(option => option.reasonKey)).toContain("TRANSPORTATION");
     expect(inPerson.question).toBeTruthy();
 
+    const spanishLabels = preVisitCheckOptions({ appointment: appointment(), locale: "es" }).options.map(option => option.label);
+    expect(spanishLabels).toEqual(["Todo listo", "Transporte", "Necesito acompañante", "Necesito cambiar la hora", "Otra cosa"]);
+    expect(spanishLabels).not.toContain("Necesito que alguien me acompañe");
+
     const video = preVisitCheckOptions({ appointment: appointment({ modality: "TELEHEALTH" }), locale: "es" });
     expect(video.options.map(option => option.reasonKey)).toContain("TECHNOLOGY_TELEHEALTH");
     expect(video.options.map(option => option.reasonKey)).not.toContain("TRANSPORTATION");

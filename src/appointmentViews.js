@@ -543,7 +543,7 @@ const confirmedActions = (appointment, props) => {
     ${appointment?.locationAddress ? `<button type="button" class="appointment-action secondary" data-action="appointment-get-directions" data-appointment-id="${id}">${glyph("mapPin")}<span>${t("Get directions", "Cómo llegar", "Jwenn direksyon")}</span></button>` : ""}
     <button type="button" class="appointment-action secondary" data-action="appointment-open-prep" data-appointment-id="${id}">${glyph("plan")}<span>${t("Prepare with EMMI", "Prepararse con EMMI", "Prepare w ak EMMI")}</span></button>
     <button type="button" class="appointment-action secondary" data-action="appointment-open-reminder" data-appointment-id="${id}">${glyph("bell")}<span>${t("Remind me in the app", "Recordármelo en la aplicación", "Fè m sonje nan aplikasyon an")}</span></button>
-    <button type="button" class="appointment-action secondary" data-action="appointment-open-share" data-appointment-id="${id}">${glyph("people")}<span>${t("Share with my Care Circle", "Compartir con mi Círculo de cuidado", "Pataje ak Sèk swen mwen")}</span></button>
+    <button type="button" class="appointment-action secondary" data-action="appointment-open-share" data-appointment-id="${id}">${glyph("people")}<span>${t("Share this appointment", "Compartir esta cita", "Pataje randevou sa a")}</span></button>
     <button type="button" class="appointment-action secondary" data-action="appointment-open-barrier" data-appointment-id="${id}">${glyph("car")}<span>${t("Anything making this hard?", "¿Algo se lo dificulta?", "Gen anyen k ap fè sa difisil?")}</span></button>
     <div class="appointment-change-actions">
       <button type="button" class="appointment-inline-link" data-action="appointment-request-reschedule" data-appointment-id="${id}">${t("Change the time", "Cambiar la hora", "Chanje lè a")}</button>
@@ -590,7 +590,7 @@ export function appointmentDetailView(props = {}) {
       </section>
       ${capabilityNote}
       ${props.readinessPanel || ""}
-      <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
+      <div class="appointment-actions appointment-confirmed-actions">${confirmedActions(appointment, props)}</div>
       ${askEmmiButton(props, appointment.id)}
       ${backButton(props)}
     </div>`;
@@ -698,7 +698,7 @@ export function bookingConfirmationView(props = {}) {
       ${whereBlock(appointment, props)}
       ${viewListButton(props, appointment.id)}
     </section>
-    <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
+    <div class="appointment-actions appointment-confirmed-actions">${confirmedActions(appointment, props)}</div>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;
@@ -841,7 +841,7 @@ export function appointmentBarrierCheckView(props = {}) {
     : [
       ["ALL_SET", "check", t("I’m all set", "Todo está listo", "Tout bagay pare")],
       ["TRANSPORTATION", "car", t("I don’t have a way to get there", "No tengo cómo llegar", "Mwen pa gen mwayen pou rive")],
-      ["CAREGIVER_AVAILABILITY", "people", t("I need someone to come with me", "Necesito que alguien me acompañe", "Mwen bezwen yon moun vin ak mwen")],
+      ["CAREGIVER_AVAILABILITY", "people", t("I need someone to come with me", "Necesito acompañante", "Mwen bezwen yon moun vin ak mwen")],
       ["TIME_CONFLICT", "clock", t("I need to change the time", "Necesito cambiar la hora", "Mwen bezwen chanje lè a")],
       ...(appointment.modality === "TELEHEALTH"
         ? [["TECHNOLOGY_TELEHEALTH", "video", t("I’m not sure how to start the video visit", "No sé cómo comenzar la visita por video", "Mwen pa konnen kijan pou kòmanse vizit videyo a")]]
@@ -860,7 +860,7 @@ export function appointmentBarrierCheckView(props = {}) {
   };
   return `<div class="appointment-screen appointment-barrier-screen">
     ${screenTitle(props, question, lead, t("Appointment", "Cita", "Randevou"))}
-    <div class="appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}"${states[reason]?.label ? ` data-barrier-state="${esc(states[reason].tone || "WAITING")}"` : ""}>${glyph(name)}<span class="barrier-choice-label"><span>${esc(label)}</span>${stateLine(reason)}</span></button>`).join("")}</div>
+    <div class="appointment-choices barrier-appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}"${states[reason]?.label ? ` data-barrier-state="${esc(states[reason].tone || "WAITING")}"` : ""}>${glyph(name)}<span class="barrier-choice-label"><span>${esc(label)}</span>${stateLine(reason)}</span></button>`).join("")}</div>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;

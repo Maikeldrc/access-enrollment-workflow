@@ -374,6 +374,15 @@ describe("appointment views — three real locales (§en, §es, §ht)", () => {
     expect(html).toContain('class="appointment-action secondary"');
   });
 
+  it("uses the concise sharing label without changing the other confirmed actions", () => {
+    const html = appointmentDetailView({ ...base, locale: "es", appointment: confirmed });
+    expect(html).toContain("Prepararse con EMMI");
+    expect(html).toContain("Recordármelo en la aplicación");
+    expect(html).toContain("Compartir esta cita");
+    expect(html).toContain("¿Algo se lo dificulta?");
+    expect(html).not.toContain("Compartir con mi Círculo de cuidado");
+  });
+
   it("localises dates and times rather than leaving them English", () => {
     expect(bookingConfirmationView({ ...base, locale: "es", appointment: confirmed })).toContain("martes, 8 de septiembre");
     expect(bookingConfirmationView({ ...base, locale: "ht", appointment: confirmed })).toContain("madi, 8 septanm");
