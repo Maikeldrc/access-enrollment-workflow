@@ -11,7 +11,7 @@ version: 1.1
 last_reviewed: 2026-08-30
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH consent terms
 owner: ITERA HEALTH
-keywords: leave, leaving, dejar, salir, terminar, finalizar, kite, end participation, terminar participacion, terminar participación, switch provider, cambiar de proveedor, chanje founise, chanje founisè, 90 days, 90 dias, 90 días, 90 jou, voluntary, voluntaria, volonte, disenroll, darse de baja
+keywords: leave, leaving, leave the program, can i leave, quit, cancel, opt out, withdraw, disenroll, unenroll, do i have to participate, do i have to join, is this required, is it mandatory, mandatory, required, voluntary, my choice, change my mind, switch provider, switch organizations, 90 days, ninety days, dejar, dejarlo, dejar el programa, salir, salirme, puedo salirme, puedo dejarlo, cancelar, darse de baja, retirarme, terminar, terminar participacion, terminar participación, finalizar, obligatorio, es obligatorio, tengo que participar, voluntario, voluntaria, es voluntario, cambiar de opinion, cambiar de opinión, cambiar de proveedor, 90 dias, 90 días, what happens if i say no, if i say no, affect my benefits, lose my benefits, lose coverage, force me to join, make me join, can my doctor force me, can medicare force me, afectar mis beneficios, perder mis beneficios, obligarme, me pueden obligar, mi medico puede obligarme, mi médico puede obligarme, fose m antre, pedi benefis mwen, what if i decline, can i say no, will i lose medicare, que pasa si digo que no, qué pasa si digo que no, si digo que no, puedo decir que no, voy a perder medicare, kite, kite pwogram nan, sispann, obligatwa, volonte, volontè, chanje founise, chanje founisè, 90 jou, si mwen di non, how long does this last, how long does it last, how long am i committing, is there an end date, when does it end, how long do i have to stay, cuanto dura, cuánto dura, cuanto tiempo dura, cuánto tiempo dura, hay una fecha de fin, konbyen tan sa dire
 ---
 
 # Leaving ACCESS, ending participation or changing provider: the 90 day term
@@ -55,6 +55,10 @@ it.
 
 What a particular patient would pay, and whether they are enrolled at all, are facts about them and
 come from the runtime tools rather than from this page.
+
+## Patient answer (EN)
+
+Taking part is your choice, and you are not locked in. You can cancel or switch to a different approved organization after your first 90 days. Leaving does not change your Medicare in any way — your benefits, coverage and rights continue exactly as they would if you had never joined. If you want to stop or change, tell your care team and they will help you do it.
 
 ## Patient answer (ES)
 

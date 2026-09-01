@@ -1,5 +1,32 @@
 const fold = value => String(value || "").replace(/[‘’ʼ]/g, "'").replace(/\s+/g, " ").trim();
-const EMERGENCY = /chest pain|dizzy|dizziness|light[- ]?headed|mareo|mareado|mareada|t[eéè]t vire|vertij|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(?:(?:en el|de) )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/i;
+// The gate that decides whether a turn is a health turn at all. It is deliberately wider than the
+// severity engine it feeds: matching here only means the escalation engine is asked and the care
+// team is offered, so a false match costs a careful sentence, while a miss costs the whole route.
+//
+// The word "stroke" was here, but none of the ways a person actually describes one were: a patient
+// typing "I have weakness on one side of my body" or "I cannot speak properly" — two thirds of the
+// FAST test — reached no safety route at all and was answered from the knowledge base.
+const STROKE_SIGNS = /weak(?:ness)?\s+(?:on|in|down)\s+(?:one|the left|the right|my left|my right|left|right)\s+side|numb(?:ness)?\s+(?:on|in)\s+(?:one|the left|the right|my left|my right|left|right)\s+side|(?:one|left|right) side of (?:my |the )?(?:body|face)|(?:face|mouth)\s+(?:is\s+)?droop|facial droop|slurred|slurring|trouble (?:speaking|talking|getting my words)|difficulty speaking|can(?:'?t| ?not) speak (?:properly|clearly|right)|words (?:are )?not coming|(?:one|left|right) side[^.?!]{0,25}\b(?:weak|numb|paralys|droop|gone dead)|worst headache|sudden(?:ly)? (?:severe )?(?:weakness|numbness|headache)|debilidad (?:en|de) un lado|entumecimiento (?:en|de) un lado|un lado (?:del|de mi) cuerpo|se me (?:cae|torci[oó]) la cara|no puedo hablar|habla arrastrada|se me traba la lengua|peor dolor de cabeza|febl[eè]s yon b[oò]|yon b[oò] k[oò]|figi (?:l|mwen) tonbe|pa ka pale|lang mwen mare/i;
+const ACUTE_SIGNS = /seizure|convulsion|unconscious|unresponsive|won'?t wake up|not waking up|crushing (?:chest )?pain|pressure in my chest|tight(?:ness)? in my chest|short(?:ness)? of breath|can'?t catch my breath|convulsi[oó]n|no responde|no despierta|presi[oó]n en el pecho|opresi[oó]n en el pecho|falta de aire|me falta el aire|kriz|pa reveye|presyon nan pwatrin|souf kout/i;
+// A patient telling us their blood pressure is high, without giving a number. It is not an
+// emergency by itself — the escalation engine still decides that — but it is unmistakably a health
+// turn, and "my bp high what i do" was being handled as neither: not safety, not a reading, just
+// text for the knowledge base to answer with programme education.
+const REPORTED_HIGH_BP = /\b(bp|blood pressure)\b[^?.]{0,25}\b(high|elevated|too high|way up|through the roof)\b|\b(high|elevated)\b[^?.]{0,15}\b(bp|blood pressure)\b|presi[oó]n[^?.]{0,25}(alta|elevada|muy alta|por las nubes)|tansyon[^?.]{0,25}(wo|monte|twò wo)/i;
+// A patient telling us how they feel. None of these is an emergency on its own — the escalation
+// engine returns CONTINUE for them and the answer becomes "how you are feeling comes first, shall I
+// tell your care team?" — but every one of them is a health turn. Without this they matched nothing
+// anywhere: "I have a headache", "I feel weak" and "I do not feel well" reached the knowledge base,
+// which had nothing to say, so a patient reporting a symptom was told the information was not
+// available. Reporting a symptom must always reach a person, never a dead end.
+const SYMPTOM_REPORT = /\b(headache|migraine|nause(?:a|ous)|vomit|throwing up|feel (?:weak|sick|unwell|awful|terrible|off|bad|worse)|feeling (?:weak|sick|unwell|awful|terrible|off|bad|worse)|(?:do ?n'?t|not) feel(?:ing)? (?:well|good|right)|no energy|swelling|swollen|blurry vision|blurred vision|palpitations|heart racing|racing heart)\b|\b(?:bp|blood pressure)\b[^?.]{0,25}\b(?:low|too low|dropped|very low)\b|dolor de cabeza|jaqueca|n[aá]useas|v[oó]mito|me siento (?:mal|d[eé]bil|peor)|no me siento bien|sin energ[ií]a|hinchaz[oó]n|visi[oó]n borrosa|palpitaciones|presi[oó]n[^?.]{0,25}(?:baja|muy baja)|t[eè]t fè mal|kè plen|mwen santi m (?:mal|feb)|mwen pa santi m byen|tansyon[^?.]{0,25}ba/i;
+const EMERGENCY = new RegExp([
+  /chest pain|dizzy|dizziness|light[- ]?headed|mareo|mareado|mareada|t[eéè]t vire|vertij|can'?t breathe|cannot breathe|difficulty breathing|stroke|severe bleeding|pass(?:ed)? out|faint(?:ed|ing)?|suicid|emergency|dolor (fuerte )?(?:(?:en el|de) )?pecho|no puedo respirar|derrame|sangrado grave|me desmay|emergencia|doulè nan pwatrin|pa ka respire|konjesyon serebral|senyen anpil|endispoze|pèdi konesans|ijans|swisid/.source,
+  STROKE_SIGNS.source,
+  ACUTE_SIGNS.source,
+  REPORTED_HIGH_BP.source,
+  SYMPTOM_REPORT.source
+].join("|"), "i");
 const FOLLOW_UP = /^(and |but |so )?(why|what (now|next|should i do)|what is my next step|is that serious|can you help|por qu[eé]|qu[eé] (hago|sigue)|y ahora|kisa pou m fè|poukisa|e apre)/i;
 
 // An episode ends when the patient says help was reached, or that the symptoms have passed. Until

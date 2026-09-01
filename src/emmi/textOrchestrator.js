@@ -16,7 +16,7 @@ const topicKey = value => lower(value).normalize("NFD").replace(/[\u0300-\u036f]
 // invitation *arrived* is INVITATION_SOURCE below, and asking why something on a record is held
 // — "why do you need my medications" — is a question about that content, not about the screen.
 // So the object has to be the screen itself or the verification it is asking for.
-const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to verify|my (zip|postal|date of birth|birth ?date|identity|information|info))|why are you asking (me )?(for )?(this|that|my (zip|postal|date of birth|birth ?date))|why do i (have to|need to) (give|provide|share|enter) (this|that|my (zip|postal|date of birth|birth ?date))|por qu[eé] (necesitan|necesita|piden|pide) (esto|eso|verificar|mi (c[oó]digo postal|fecha de nacimiento|identidad|informaci[oó]n))|para qu[eé] (necesitan|necesita) (esto|eso|mi (c[oó]digo postal|fecha de nacimiento))|poukisa (ou|nou) bezwen (sa|k[oò]d postal|dat nesans|verifye)|poukisa w ap mande (sa|k[oò]d postal|dat nesans)|what (do i|should i) do|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|help (me )?with this|(don'?t|do not) understand|qué (debo|tengo que) hacer|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|no entiendo|kisa pou m fè|ki opsyon pou m chwazi|eksplike ekran|mwen pa konprann/i;
+const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to verify|my (zip|postal|date of birth|birth ?date|identity|information|info))|why are you asking (me )?(for )?(this|that|my (zip|postal|date of birth|birth ?date))|why do i (have to|need to) (give|provide|share|enter) (this|that|my (zip|postal|date of birth|birth ?date))|por qu[eé] (necesitan|necesita|piden|pide) (esto|eso|verificar|mi (c[oó]digo postal|fecha de nacimiento|identidad|informaci[oó]n))|para qu[eé] (necesitan|necesita) (esto|eso|mi (c[oó]digo postal|fecha de nacimiento))|poukisa (ou|nou) bezwen (sa|k[oò]d postal|dat nesans|verifye)|poukisa w ap mande (sa|k[oò]d postal|dat nesans)|what is this screen|which (one|option) should i (choose|pick)|explain (this|the screen)|qué significa esta pantalla|cuál debo escoger|qué opción debo elegir|explique (esto|esta pantalla)|ki opsyon pou m chwazi|eksplike ekran|(?:what (?:do i|should i) do|help (?:me )?with this|(?:don'?t|do not) understand|qué (?:debo|tengo que) hacer|no entiendo|kisa pou m fè|mwen pa konprann)(?:\s+(?:this|it|that|any of this|the screen|this screen|this page|this step|this part|these questions|now|next|here|esto|eso|nada de esto|esta pantalla|en esta pantalla|la pantalla|aqu[ií]|ahora|este paso|sa|ekran sa a|kounye a)){0,3}\s*[?.!]*\s*$/i;
 // Phones and speech transcription produce a typographic apostrophe. Every gate below is written
 // with a straight one, so "I can’t breathe" used to fall past the safety gate entirely. The
 // patterns are matched against a folded copy of the question; the patient's own text is
@@ -33,6 +33,8 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
 // "private", so asking what a medication is came back as an answer about the ACCESS cost.
 // A question that quotes an amount is a question about money in any language, and "why does it say
 // $0" is the most likely thing a patient asks on the consent screen.
+// What a patient is talking about when the cost question is not about ACCESS at all.
+const TRANSPORT_SUBJECT = /\b(uber|lyft|taxi|cab|ride|rides|rideshare|transportation|transport|bus fare|mileage)\b|transporte|taxi|viaje|pasaje|transp[o\u00f2]|woulib/i;
 const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
@@ -253,7 +255,10 @@ const accessBaselineGoalType = text => {
 // Asking whether the doctor stays involved is the same question as asking who the doctor is: both
 // are answered from the care team, and both deserve the reassurance that ITERA adds to that doctor
 // rather than replacing them. Naming the physician in the question is the most natural way to ask it.
-const DOCTOR_STATUS = /is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see (?:my doctor|dr\.?\s+[a-z'-]+)|replace(?:s|d|ing)? (?:my )?doctor|take (?:my )?doctor'?s place|mi m[eé]dico|seguir viendo a mi m[eé]dico|seguir viendo (?:al|a la)?\s*(?:dr\.?|doctor|doctora)|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|reemplaz(?:a|ar|aría) (?:a )?mi m[eé]dico|sustitu(?:ye|ir|iría) (?:a )?mi m[eé]dico|dokt[eè] mwen|toujou (patisipe|enplike)|ranplase dokt[eè] mwen/i;
+// Patients ask for the person by role, and the roles are not only "doctor": "who is my care
+// manager", "quien es mi enfermera" and "ki moun ki enfimye mwen" are the same question about
+// the same record, and none of them reached the care-team lookup.
+const DOCTOR_STATUS = /who is my (?:care manager|nurse|cardiologist|specialist|care team)|who is on my care team|my care team is|qui[eé]n es mi (?:enfermer[ao]|gerente de cuidado|coordinador[ao]|cardi[oó]log[ao])|qui[eé]nes est[aá]n en mi equipo|ki moun ki (?:enfimy[eè]|jere swen) mwen|is my doctor|who is my doctor|keep (seeing )?my doctor|doctor stays|still (be |stay )?involved|stay involved|remain involved|still my doctor|still see (?:my doctor|dr\.?\s+[a-z'-]+)|replace(?:s|d|ing)? (?:my )?doctor|take (?:my )?doctor'?s place|mi m[eé]dico|seguir viendo a mi m[eé]dico|seguir viendo (?:al|a la)?\s*(?:dr\.?|doctor|doctora)|qui[eé]n es mi m[eé]dico|sigue (involucrado|participando)|seguir[aá] (involucrado|participando)|reemplaz(?:a|ar|aría) (?:a )?mi m[eé]dico|sustitu(?:ye|ir|iría) (?:a )?mi m[eé]dico|dokt[eè] mwen|toujou (patisipe|enplike)|ranplase dokt[eè] mwen/i;
 // The invitation itself: who sent it and why it arrived. Distinct from "who is my doctor",
 // which asks whether that doctor stays involved, and from eligibility, which asks whether the
 // patient qualifies. Answering it means repeating the referral facts and adding nothing.
@@ -261,17 +266,27 @@ const INVITATION_SOURCE = /who (invited|referred|sent)|who is this from|why (am 
 const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
 const REPEAT_FOLLOW_UP = /^(can you |could you |please )?(repeat|say that again|repeat that)|^(repita|puede repetir|d[ií]galo otra vez)|^(repete|di sa ank[oò])/i;
 const SIMPLIFY_FOLLOW_UP = /explain (that|it) (more )?simply|simpler|i (did not|didn'?t|don'?t) understand (that|it)|no entend[ií] (eso|esto)|expl[ií]quelo m[aá]s (f[aá]cil|sencillo)|mwen pa konprann|esplike sa pi senp/i;
-const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|hablar con alguien|que me llamen|ll[aá]meme|pale ak yon moun|rele m/i;
+// Asking for a person. "I want to speak with a person", "I want to speak to a supervisor" and
+// "I do not want to talk to an AI" all missed this and were answered from the knowledge base —
+// the one request that must always be honoured was the one most reliably dropped. Dissatisfaction
+// belongs here too: a patient saying this did not help is asking for a person, not for a retry.
+const HUMAN_SUPPORT = /call me|someone call|talk (to|with) someone|human|speak (to|with) (a |an |the )?(person|human|someone|representative|rep\b|supervisor|manager|agent)|talk (to|with) (a |an |the )?(person|representative|supervisor|manager)|real person|(don'?t|do not) want to (talk|speak) (to|with)|supervisor|complaint|complain|(did ?n'?t|did not) (solve|help|answer)|(you|emmi) (are|is) not understanding|not understanding me|hablar con (alguien|una persona|un supervisor|una representante)|persona real|no quiero hablar con (una|un) (ia|m[aá]quina|inteligencia artificial|robot)|queja|quejarme|supervisor|que me llamen|ll[aá]meme|no me (entiende|entiendes|est[aá] entendiendo)|esto no (resolvi[oó]|sirvi[oó]|ayud[oó])|pale ak yon moun|yon moun rey[eè]l|plent|rele m/i;
 // A patient asking whether to stop a medicine names the medicine. The old pattern required the
 // generic word, so "should I stop my lisinopril?" — the exact phrasing the QA spec lists — walked
 // past it into the model. Drug-name suffixes catch the whole class without needing a formulary,
 // and an accidental extra dose is a safety event even though no verb of change appears in it.
 const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|prazole|oxacin|cycline)";
+// What a patient says when something has gone wrong with a medicine. "Missed", "forgot" and
+// "another dose" were absent, so "I forgot to take my medicine" and "Should I take another dose?"
+// — the two commonest dosing questions there are — fell past this gate into the knowledge base and
+// came back as programme education. Missing a dose is not a question EMMI may answer; it is a
+// question it must hand to a clinician.
 const MEDICATION_SAFETY = new RegExp(
-  "(stop|quit|skip|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|pill|dose|tablet|" + DRUG_SUFFIX + ")"
-  + "|(took|take|taken)[^?.]{0,20}(two|three|2|3|double|an extra|extra)[^?.]{0,10}(dose|pill|tablet)"
-  + "|dejar de tomar|suspender[^?.]{0,30}medic|cambiar la dosis|tom[eé][^?.]{0,15}dos dosis"
-  + "|sispann pran|chanje d[oò]z",
+  "(stop|quit|skip|skipped|miss|missed|missing|forgot|forget|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|medicines|pill|pills|dose|doses|tablet|" + DRUG_SUFFIX + ")"
+  + "|(took|take|taken|taking)[^?.]{0,20}(two|three|2|3|double|an extra|extra|another|a second)[^?.]{0,10}(dose|pill|tablet)"
+  + "|(dose|pill|tablet)[^?.]{0,20}(twice|two times)"
+  + "|dejar de tomar|suspender[^?.]{0,30}medic|cambiar la dosis|tom[eé][^?.]{0,15}dos dosis|se me olvid[oó][^?.]{0,25}(pastilla|medicamento|medicina|dosis)|olvid[eé][^?.]{0,25}(pastilla|medicamento|medicina|dosis|tomar)|otra (dosis|pastilla)|doble dosis"
+  + "|sispann pran|chanje d[oò]z|bliye pran|yon l[oò]t d[oò]z",
   "i"
 );
 // The two halves can arrive in either order, and both must be present: a patient asking whether to
@@ -634,6 +649,32 @@ const programAnswers = Object.freeze({
 // The generic page for a programme, as opposed to a page written for one question about it.
 const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|tcm|rtm|ccm-rpm|pcm-rpm)\.md$/i;
 
+// A sentence written to whoever maintains the knowledge base, not to the patient reading it.
+// These are instructions ("Never determine QMB status from a generic eligibility string alone"),
+// internal vocabulary (runtime, tool, guardrail, chunk, PHI), and editorial scaffolding (source
+// registries, "Answer from this page"). They belong in the model's grounding, where they steer the
+// answer, and never in the answer itself — which is exactly where they were being printed.
+const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep |use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
+const INTERNAL_VOCABULARY = /\b(runtime|tool|guardrail|chunk|retrieval|markdown|PHI|credential|configuration|config\b|this page|the model|prompt|G-?code|_sources?:|\(READ\)|\bUso:|\bNota:)/i;
+// A directive can also be phrased about the patient rather than to the reader.
+const THIRD_PERSON_DIRECTIVE = /\b(must (not|never|remain|be)|should (not|be given|use)|is not answered by|it must appear|rather than assumed)\b/i;
+
+export const patientFacingProse = text => {
+  const sentences = String(text || "").match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || [];
+  const kept = sentences.filter(sentence => {
+    const s = sentence.trim();
+    if (!s) return false;
+    if (AUTHORING_VOICE.test(s)) return false;
+    if (INTERNAL_VOCABULARY.test(s)) return false;
+    if (THIRD_PERSON_DIRECTIVE.test(s)) return false;
+    return true;
+  });
+  const prose = kept.join(" ").replace(/\s+/g, " ").trim();
+  // Half an answer is worse than none: if the page had little to say to the patient once its
+  // instructions came out, the caller falls through to offering a person instead.
+  return prose.length >= 60 ? prose : "";
+};
+
 // Turn a retrieved page into something that reads as an answer: no headings, no markdown, and only
 // as much as a patient will read. The pages lead with their answer for exactly this reason.
 const passageAnswer = passage => {
@@ -668,13 +709,17 @@ const passageAnswer = passage => {
     .join(" ")
     .replace(/\s+/g, " ")
     .trim();
-  if (prose.length <= 460) return prose;
+  // Last gate before the words reach a patient. A page that turns out to be all instruction
+  // returns nothing, and the caller offers the care team rather than reading the instruction out.
+  const patientProse = patientFacingProse(prose);
+  if (!patientProse) return "";
+  if (patientProse.length <= 460) return patientProse;
   let cut = "";
-  for (const sentence of prose.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) {
+  for (const sentence of patientProse.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) || []) {
     if ((cut + sentence).length > 460 && cut) break;
     cut += sentence;
   }
-  return cut.trim() || prose.slice(0, 460);
+  return cut.trim() || patientProse.slice(0, 460);
 };
 
 const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
@@ -704,7 +749,10 @@ const fallbackKnowledgeAnswer = ({ question, retrieval, locale, program }) => {
   const focused = sources[0] && !GENERIC_PROGRAM_PAGE.test(sources[0].sourcePath || "") ? sources[0] : null;
   if (focused) {
     const key = String(locale).toUpperCase();
-    const written = key === "EN" ? passageAnswer(focused) : passageAnswer({ text: focused.localizedAnswers?.[key] || "" });
+    // English reads its own written answer first, exactly as Spanish and Creole already do, and only
+    // falls back to the page body — now filtered — when the page has not been given one yet.
+    const written = passageAnswer({ text: focused.localizedAnswers?.[key] || "" })
+      || (key === "EN" ? passageAnswer(focused) : "");
     if (written) return written;
   }
   if (LEAVE_PROGRAM.test(question)) return leaveProgramAnswer(locale);
@@ -895,13 +943,43 @@ const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
   }
   if (tool === "getClinicalTarget") return result.target ? pick(locale, { EN: `Your care-team-defined target is less than ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Your care team owns this clinical target.`, ES: `El objetivo definido por su equipo es menos de ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Este objetivo clínico pertenece a su equipo de atención.`, KR: `Sib ekip swen ou fikse a se mwens pase ${result.target.systolicMaximum + 1}/${result.target.diastolicMaximum + 1} mmHg. Ekip swen ou responsab sib klinik sa a.` }) : unavailable(locale);
   if (tool === "getGoalProgress") return result.progress ? pick(locale, { EN: `${result.progress.readingCountThisWeek || 0} connected readings were received this week. Other steps are counted only when you report them or complete the related EMMI lesson.`, ES: `Esta semana se recibieron ${result.progress.readingCountThisWeek || 0} lecturas conectadas. Los demás pasos solo se cuentan cuando usted los registra o completa la lección correspondiente con EMMI.`, KR: `Nou resevwa ${result.progress.readingCountThisWeek || 0} lekti konekte semèn sa a. Lòt etap yo konte sèlman lè ou rapòte yo oswa fini leson EMMI ki mache avè l.` }) : unavailable(locale);
-  if (tool === "getCareTeam") return result.physicianDisplayName ? pick(locale, { EN: `${result.physicianDisplayName} remains part of your care. ITERA provides additional support and does not replace your doctor.`, ES: `${result.physicianDisplayName} continúa siendo parte de su cuidado. ITERA brinda apoyo adicional y no reemplaza a su médico.`, KR: `${result.physicianDisplayName} rete yon pati nan swen ou. ITERA bay sipò anplis epi li pa ranplase doktè ou.` }) : pick(locale, { EN: "Your regular doctors remain part of your care. ITERA provides additional support and does not replace them.", ES: "Sus médicos habituales continúan formando parte de su cuidado. ITERA brinda apoyo adicional y no los reemplaza.", KR: "Doktè ou deja genyen yo rete nan swen ou. ITERA bay sipò anplis epi li pa ranplase yo." });
+  // "Who is my care manager?", "who is my cardiologist?" and "who is on my care team?" are three
+  // different questions about the same record, and all three used to be answered with the primary
+  // care physician's name — so a patient asking for their nurse was confidently given their doctor.
+  // The member list is already in the tool result; the answer names the person actually asked for.
+  if (tool === "getCareTeam") {
+    const members = (result.members || []).filter(member => member?.displayName);
+    if (/who is on my care team|my care team is|whole care team|everyone on my|qui[eé]nes est[aá]n en mi equipo|mi equipo de (?:atenci[oó]n|cuidado) es|ekip swen mwen an se/i.test(question) && members.length) {
+      const listed = members.map(member => (member.roleLabel || member.specialty ? `${member.displayName} (${member.roleLabel || member.specialty})` : member.displayName)).join("; ");
+      return pick(locale, {
+        EN: `Your care team is: ${listed}. ITERA provides additional support and does not replace them.`,
+        ES: `Su equipo de atención es: ${listed}. ITERA brinda apoyo adicional y no los reemplaza.`,
+        KR: `Ekip swen ou se: ${listed}. ITERA bay sipò anplis epi li pa ranplase yo.`
+      });
+    }
+    const resolution = resolveRequestedProfessional(members, { text: question, locale: String(locale).toLowerCase() });
+    if (resolution.status === "RESOLVED" && resolution.match) {
+      const role = resolution.match.roleLabel || resolution.match.specialty || "";
+      return pick(locale, {
+        EN: `${resolution.match.displayName}${role ? `, ${role},` : ""} is part of your care team. ITERA provides additional support and does not replace them.`,
+        ES: `${resolution.match.displayName}${role ? `, ${role},` : ""} forma parte de su equipo de atención. ITERA brinda apoyo adicional y no los reemplaza.`,
+        KR: `${resolution.match.displayName}${role ? `, ${role},` : ""} fè pati ekip swen ou. ITERA bay sipò anplis epi li pa ranplase yo.`
+      });
+    }
+    return result.physicianDisplayName ? pick(locale, { EN: `${result.physicianDisplayName} remains part of your care. ITERA provides additional support and does not replace your doctor.`, ES: `${result.physicianDisplayName} continúa siendo parte de su cuidado. ITERA brinda apoyo adicional y no reemplaza a su médico.`, KR: `${result.physicianDisplayName} rete yon pati nan swen ou. ITERA bay sipò anplis epi li pa ranplase doktè ou.` }) : pick(locale, { EN: "Your regular doctors remain part of your care. ITERA provides additional support and does not replace them.", ES: "Sus médicos habituales continúan formando parte de su cuidado. ITERA brinda apoyo adicional y no los reemplaza.", KR: "Doktè ou deja genyen yo rete nan swen ou. ITERA bay sipò anplis epi li pa ranplase yo." });
+  }
   if (tool === "getNextBestAction") return pick(locale, { EN: `Your next step is “${result.label}.”`, ES: `Su próximo paso es “${result.label}”.`, KR: `Pwochen etap ou se “${result.label}”.` });
   return unavailable(locale);
 };
 
 export class EmmiTextOrchestrator {
-  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = globalThis.fetch, onEvent = () => {}, onSafetyEpisode = () => {}, onSafetyResolved = () => {} }) {
+  // `fetch` is a native browser method that requires `window` as its receiver. Stored bare and
+  // then called as `this.fetch(...)`, every call threw "Illegal invocation" before it left the
+  // page, the catch below swallowed it, and every knowledge answer fell through to the
+  // deterministic fallback — in production, for every patient, since the model layer shipped.
+  // The tests never saw it because they all inject their own fetchImpl. Wrap it so the default
+  // keeps its receiver, and so an injected implementation is still called exactly as given.
+  constructor({ getContext, getConversation, executeTool, screenExplanation, fetchImpl = (...args) => globalThis.fetch(...args), onEvent = () => {}, onSafetyEpisode = () => {}, onSafetyResolved = () => {} }) {
     this.getContext = getContext;
     this.getConversation = getConversation;
     this.executeTool = executeTool;
@@ -989,7 +1067,11 @@ export class EmmiTextOrchestrator {
     }
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
-      return { text: this.screenExplanation(context.currentScreen), trace };
+      // The screen the patient means is the VIEW, not the route: every step of appointment
+      // coordination and of barrier resolution shares one route name, so passing only that made
+      // "what do I do here?" answer for the wrong step. The context carries the view; the shell
+      // prefers it and keeps the route as the fallback for screens with no describer.
+      return { text: this.screenExplanation(context.currentScreen, context), trace };
     }
     // "Who invited me?" is a question about the invitation, and it is checked before the care-team
     // and support routes, which would otherwise read it as a request to be called back.
@@ -1279,7 +1361,7 @@ export class EmmiTextOrchestrator {
     // Cost and continuity with the patient's doctor are independent promises backed by different
     // runtime records. A natural compound question must read both instead of letting the first
     // matching intent silently discard the second half.
-    if (COST.test(asked) && DOCTOR_STATUS.test(asked)) {
+    if (COST.test(asked) && DOCTOR_STATUS.test(asked) && !TRANSPORT_SUBJECT.test(asked)) {
       trace.intent = "COST_AND_CARE_TEAM_QUESTION";
       trace.responseMode = "RUNTIME_GROUNDED";
       trace.toolCalls.push("getExpectedAccessCost", "getCareTeam");
@@ -1297,8 +1379,14 @@ export class EmmiTextOrchestrator {
       }
     }
 
+    // "Who pays for the Uber?" is a cost question, but not a question about the ACCESS cost. Sent to
+    // the financial engine it came back "your expected payment for ACCESS is $0" — which a patient
+    // asking about a ride reads as a promise that the ride is free. What transportation costs, and
+    // who pays it, is not something this product knows; that belongs to the transportation route,
+    // which says so plainly.
+    const asksAboutTransportCost = COST.test(asked) && TRANSPORT_SUBJECT.test(asked);
     let tool = "";
-    if (COST.test(asked)) tool = "getExpectedAccessCost";
+    if (COST.test(asked) && !asksAboutTransportCost) tool = "getExpectedAccessCost";
     else if (ELIGIBILITY.test(asked)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(asked)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(asked)) tool = "getAssignedDevice";
@@ -1319,7 +1407,25 @@ export class EmmiTextOrchestrator {
               : ["getEnrollmentContext", "getMedicationList", "getAssignedDevice", "getPatientGoals", "getCareTeam", "getNextBestAction"].includes(tool) ? { patientId: context.patientId } : {};
         const result = await this.executeTool(tool, args);
         trace.responseMode = "RUNTIME_GROUNDED"; trace.runtimeFactsUsed.push(tool); emit("EMMI_ANSWER_ROUTED");
-        const text = runtimeAnswer({ tool, result, locale, context, question: asked });
+        let text = runtimeAnswer({ tool, result, locale, context, question: asked });
+        // The patient has two blood-pressure numbers in this app and they are not the same thing:
+        // their care team's threshold, and the ACCESS control target on their care plan. Answering
+        // "what is my target?" with only the first left the plan's "below 130" unexplained and
+        // looking like a contradiction. Both are read from the record; neither is computed here.
+        if (tool === "getClinicalTarget" && result?.target) {
+          try {
+            const resolved = await this.executeTool("getAccessBaseline", { patientId: context.patientId, goalType: "BLOOD_PRESSURE_CONTROL" });
+            const control = (resolved?.baselines || [])[0]?.measure?.control;
+            if (control?.value) {
+              trace.runtimeFactsUsed.push("getAccessBaseline");
+              text = `${text} ${pick(locale, {
+                EN: `Your ACCESS care plan also shows a control target of below ${control.value} mmHg systolic, which is the program's goal rather than your care team's threshold.`,
+                ES: `Su plan de cuidado de ACCESS también muestra una meta de control de menos de ${control.value} mmHg sistólica, que es el objetivo del programa y no el umbral de su equipo de atención.`,
+                KR: `Plan swen ACCESS ou an montre tou yon objektif kontwòl anba ${control.value} mmHg sistolik, ki se objektif pwogram nan olye pou sib ekip swen ou an.`
+              })}`;
+            }
+          } catch { /* the care-team target still stands on its own */ }
+        }
         if (context.appointmentPrep && ["getLatestReading", "getReadingTrend"].includes(tool) && appointmentPrepTopic) {
           const preparation = context.appointmentPrep.emmiPreparation || {};
           return {
@@ -1361,7 +1467,9 @@ export class EmmiTextOrchestrator {
       const response = await this.fetch("/api/emmi/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
+        // The view goes to the knowledge fallback for the same reason it goes to the voice session: a
+        // question asked in front of three ride options is not a general question about transport.
+        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, view: context.view || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
       });
       if (response.ok) {
         const generated = await response.json();

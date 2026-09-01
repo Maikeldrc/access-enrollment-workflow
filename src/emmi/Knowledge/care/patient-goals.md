@@ -22,6 +22,10 @@ Clinical targets, escalation thresholds and CMS outcomes remain governed separat
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+Your goals are yours. You decide what matters most to you, what you want to work toward, and what is getting in the way, and your care team helps you build a plan around that. They are not the same as clinical targets: a target such as a blood pressure number is set by your care team, while a goal is what you want your daily life to look like. You can change your personal goals later, and telling us what is making something hard is one of the most useful things you can do.
+
 ## Patient answer (ES)
 
 Sus objetivos son suyos y no son lo mismo que las metas clínicas que fija su equipo. Usted puede decir qué le importa, poner sus prioridades, armar sus propios pasos, contar cómo va y qué se lo está poniendo difícil, y pedir ayuda. Las metas clínicas, los umbrales de alerta y los resultados del programa se gobiernan aparte y siguen en manos de su equipo de cuidado.
