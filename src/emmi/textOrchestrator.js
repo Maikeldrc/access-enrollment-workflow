@@ -5,6 +5,7 @@ import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
+import { decomposeCompoundQuestion, hasBareReferent, isFollowUpQuestion, mergeCompoundAnswers, resolveConversationSubject, resolveTurnSubject, subjectOf } from "./conversationSubject.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
 const lower = value => clean(value).toLowerCase();
@@ -506,13 +507,23 @@ const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
   return `${prefix} ${base}`;
 };
 
-export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null } = {}) => {
+export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null, carriedSubject = "" } = {}) => {
   const raw = clean(question);
   const prepTopic = resolveAppointmentPrepTopic({ question: raw, conversation, appointmentPrep });
   if (prepTopic && topicKey(raw) !== topicKey(prepTopic)) return `${raw} Appointment preparation topic: ${prepTopic}`;
   const context = `${conversation.conversationSummary || ""} ${(conversation.recentTurns || []).map(turn => turn.text).join(" ")}`;
   const mentioned = ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"].filter(item => new RegExp(`\\b${item}\\b`, "i").test(context));
   if (/(difference|different|compare|diferencia|diferente|comparar|diferans)/i.test(raw) && mentioned.length >= 2) return `${raw} ${mentioned.slice(-2).join(" ")}`;
+  // The half of a compound question that named the subject hands it to the half that did not:
+  // "am I eligible and how much does it cost?" asks the second half about eligibility's subject.
+  if (carriedSubject) return `${raw} ${carriedSubject}`;
+  // "And does that cost anything?" carries no subject of its own. Retrieval had only those words
+  // to rank on and returned whatever page mentioned cost, so a question about the monitor came
+  // back as the programme's cost page. Put the subject the patient stopped repeating back in.
+  if (isFollowUpQuestion(raw)) {
+    const subject = resolveConversationSubject(conversation);
+    if (subject) return `${raw} ${subject}`;
+  }
   if (/^(and|what about|y|e)\b/i.test(raw) && mentioned.length) return `${raw} Previous topic: ${mentioned.at(-1)}`;
   if (/\b(this|that|it|esto|eso|este programa|sa a)\b/i.test(raw) && program) return `${raw} Current program: ${program}`;
   return raw;
@@ -934,17 +945,66 @@ export class EmmiTextOrchestrator {
     this.onSafetyResolved = onSafetyResolved;
   }
 
-  async answer(question, { questionId = "" } = {}) {
+  // Each half of a compound turn is routed on its own and the answers are merged. The half that
+  // names the subject hands it to the half that does not, so "am I eligible and how much does it
+  // cost?" asks the second question about the same thing as the first.
+  async #answerCompound({ parts, locale, questionId, trace, emit }) {
+    const results = [];
+    let carried = "";
+    for (const part of parts) {
+      const own = subjectOf(part);
+      const inherits = !own || own.weak || hasBareReferent(part);
+      results.push(await this.answer(part, { questionId, subQuestion: true, carriedSubject: inherits ? carried : "" }));
+      if (own && !own.weak) carried = own.label;
+    }
+    const text = mergeCompoundAnswers(results.map(item => item?.text), { unavailableText: unavailable(locale) });
+    Object.assign(trace, {
+      intent: "COMPOUND_QUESTION",
+      responseMode: "COMPOUND",
+      compoundParts: parts,
+      toolCalls: results.flatMap(item => item?.trace?.toolCalls || []),
+      knowledgeChunkIds: results.flatMap(item => item?.trace?.knowledgeChunkIds || []),
+      runtimeFactsUsed: results.flatMap(item => item?.trace?.runtimeFactsUsed || []),
+      partIntents: results.map(item => item?.trace?.intent || "UNKNOWN")
+    });
+    emit("EMMI_ANSWER_ROUTED");
+    const carriedField = field => results.find(item => item?.[field])?.[field];
+    return {
+      text: text || results[0]?.text || unavailable(locale),
+      ...(carriedField("pendingAction") ? { pendingAction: carriedField("pendingAction") } : {}),
+      ...(carriedField("quickAction") ? { quickAction: carriedField("quickAction") } : {}),
+      ...(carriedField("appointmentPrepUpdate") ? { appointmentPrepUpdate: carriedField("appointmentPrepUpdate"), appointmentId: carriedField("appointmentId") || "" } : {}),
+      trace
+    };
+  }
+
+  async answer(question, { questionId = "", subQuestion = false, carriedSubject = "" } = {}) {
     const context = this.getContext();
     const locale = context.locale || "EN";
     const conversation = this.getConversation?.() || {};
     const appointmentPrepTopic = resolveAppointmentPrepTopic({ question, conversation, appointmentPrep: context.appointmentPrep });
-    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep });
+    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep, carriedSubject });
     const trace = { turnId: `emmi_turn_${Date.now().toString(36)}`, conversationSessionId: conversation.conversationSessionId || "", screenId: context.currentScreen, retrievalQuery, intent: "UNKNOWN", knowledgeChunkIds: [], toolCalls: [], runtimeFactsUsed: [], responseMode: "UNKNOWN" };
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
     const openEpisode = safetyEpisodeIsActive(conversation.activeSafetyEpisode) ? conversation.activeSafetyEpisode : null;
+
+    // A patient who asks two things in one breath used to get one answer and silence for the rest,
+    // because everything below is a chain of routes that returns on the first match.
+    //
+    // Safety is never decomposed. Half of "my chest hurts and when is my appointment" is not a
+    // question about an appointment, so any turn the emergency gate, the medication gate, the
+    // conversation policy or an open episode would claim is answered whole. Appointment
+    // preparation is left alone too: it is a guided exchange that owns its own turn-taking.
+    if (!subQuestion) {
+      const claimedBySafety = Boolean(openEpisode) || SAFETY.test(asked) || BP_READING.test(asked)
+        || MEDICATION_SAFETY.test(asked) || Boolean(conversationPolicyResponse(question, locale));
+      const preparing = context.appointmentPrep?.emmiPreparation?.status === "IN_PROGRESS";
+      const parts = claimedBySafety || preparing ? [] : decomposeCompoundQuestion(question);
+      if (parts.length > 1) return await this.#answerCompound({ parts, locale, questionId, trace, emit });
+    }
+
     if (openEpisode) {
       // Resolution is read before the emergency gate. A patient saying "I called 911" or "the
       // emergency team is with me now" uses the words that raise an emergency, so the gate treated
@@ -1219,9 +1279,16 @@ export class EmmiTextOrchestrator {
     // asking about a ride reads as a promise that the ride is free. What transportation costs, and
     // who pays it, is not something this product knows; that belongs to the transportation route,
     // which says so plainly.
-    const asksAboutTransportCost = COST.test(asked) && TRANSPORT_SUBJECT.test(asked);
+    // The same words carry three different answers depending on what they are asked about. The
+    // programme's $0 is true of the programme only: said about a ride it reads as a promise the
+    // ride is free, said about a prescription it reads as a promise the copay is nothing. The
+    // monitor, the ride and the medication each have their own answer, so a cost question about
+    // one of them is left to the route that knows it. The subject can come from an earlier turn:
+    // "and does that cost anything?" is about whatever the patient was just asking about.
+    const costSubject = resolveTurnSubject({ question: asked, conversation, carriedSubject })?.key || "";
+    const asksAboutTransportCost = COST.test(asked) && (TRANSPORT_SUBJECT.test(asked) || costSubject === "TRANSPORT");
     let tool = "";
-    if (COST.test(asked) && !asksAboutTransportCost) tool = "getExpectedAccessCost";
+    if (COST.test(asked) && !asksAboutTransportCost && !["DEVICE", "MEDICATION"].includes(costSubject)) tool = "getExpectedAccessCost";
     else if (ELIGIBILITY.test(asked)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(asked)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(asked)) tool = "getAssignedDevice";
