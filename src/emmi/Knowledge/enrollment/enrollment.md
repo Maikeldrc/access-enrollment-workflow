@@ -22,6 +22,10 @@ At natural stopping points, explain the next flow and let the patient choose whe
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+Enrolling means agreeing to join ACCESS with ITERA HEALTH, and it is your choice. You review the details first, including what you would be expected to pay, and nothing is final until you agree. Enrolling is a separate step from getting set up afterwards, so you can finish the setup steps whenever you are ready and stop partway if you need to. Your progress is saved, and you can pick it up later.
+
 ## Patient answer (ES)
 
 Inscribirse es voluntario y usted revisa la información antes de decidir. Inscribirse y configurar su cuidado son dos cosas distintas: primero se completa la inscripción, y después vienen los pasos para poner en marcha su cuidado. Nadie le dirá que está inscrito hasta que su registro lo confirme.

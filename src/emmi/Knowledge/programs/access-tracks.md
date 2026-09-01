@@ -43,6 +43,10 @@ Answer what a track is from this page. Which track *this* patient is on, and whe
 
 Never quote a monthly amount from this page — it carries none. Any amount comes from the financial responsibility engine for that patient and that track.
 
+## Patient answer (EN)
+
+ACCESS is organised into tracks, and each one covers a group of related conditions. Yours is the early cardio-kidney-metabolic track, usually written eCKM, which is for people managing early heart, kidney and metabolic conditions, most often high blood pressure, before they become more serious. The other tracks cover more advanced cardio-kidney-metabolic conditions, musculoskeletal pain, and behavioural health. Which track you are in comes from your own enrollment record, and your care team can go through it with you.
+
 ## Patient answer (ES)
 
 eCKM significa «Early Cardio-Kidney-Metabolic»: es la vía de ACCESS para personas que manejan afecciones tempranas del corazón, el riñón y el metabolismo — la más común es la presión arterial alta — antes de que se vuelvan más serias. Es una de las cuatro vías que Medicare abrió para ACCESS, junto con CKM, MSK y BH. Cada organización puede ofrecer solo algunas de ellas.

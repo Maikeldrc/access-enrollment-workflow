@@ -11,7 +11,7 @@ version: 1.0
 last_reviewed: 2026-08-27
 source_authority: CMS ACCESS Model documentation / ITERA HEALTH participant configuration
 owner: ITERA HEALTH
-keywords: cost, costo, coste, pagar, pago, pay, payment, kou, peye, cost sharing, coseguro, coinsurance, cuanto, cuánto, konbyen, amount, monto, montan
+keywords: cost, costo, coste, pagar, pago, pay, payment, kou, peye, cost sharing, coseguro, coinsurance, cuanto, cuánto, konbyen, amount, monto, montan, who bills me, who sends me the bill, who charges me, will my doctor charge me, will itera charge me, quien me cobra, quién me cobra, quien me manda la factura, quién me manda la factura
 ---
 
 # ACCESS cost sharing
@@ -47,6 +47,11 @@ If a patient asks whether a $0 ACCESS payment means everything is $0, the answer
 ## EMMI response rule
 
 Explain the structure from this page. Never state an amount from it. Amounts come from the financial responsibility engine, which reads the track configuration and the patient's verified coverage.
+
+## Patient answer (EN)
+
+Medicare describes ACCESS as available at low or no cost. Most approved organizations charge between $0 and $7 a month, and if one organization is helping you with more than one condition they cannot charge you more than $13 a month in total. Your own amount depends on the coverage that has been verified for you, so it is worked out for your situation rather than being a fixed price, and you are shown it before you decide. That amount covers ACCESS only: your office visits, medicines, hospital care and other services still have their own separate costs. You are never charged for equipment provided as part of your ACCESS care, and there is no cost to you when your own doctor reviews and coordinates your ACCESS care.
+
 
 ## Patient answer (ES)
 

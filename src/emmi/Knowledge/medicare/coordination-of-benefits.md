@@ -35,6 +35,10 @@ When a patient says their insurance has changed, coverage must be verified again
 
 Explain the general idea simply. For what a specific patient's coverage pays, use verified coverage data and the expected payment the financial responsibility engine returns.
 
+## Patient answer (EN)
+
+When you have more than one kind of coverage, one of them pays first. The one that pays first is called the primary payer, and coverage that may pay some of what is left is called secondary. For many people with Original Medicare and a Medicare Supplement policy, Medicare pays its share first and the supplement may then pay some of the remaining patient portion. This is why the amount you are expected to pay is worked out from your own verified coverage rather than from a standard price.
+
 ## Patient answer (ES)
 
 Cuando alguien tiene más de una cobertura, una paga primero: esa es la primaria. La que puede pagar parte de lo que queda es la secundaria. Para muchas personas con Medicare Original y una póliza suplementaria, Medicare paga su parte primero y el suplemento puede cubrir parte del resto. Tener una segunda cobertura no significa automáticamente que usted no pague nada.

@@ -30,6 +30,10 @@ Answer why A1c is collected from this page: it is one of the four measures the t
 
 The patient's own result, and what it means for them, are not on this page. Readings come from the runtime, and interpretation belongs to the care team.
 
+## Patient answer (EN)
+
+Being asked for an A1c does not mean anyone thinks you have diabetes. A1c, also written HbA1c, is a blood test that shows average blood sugar over about three months. It is one of a few measures this track follows for everyone in it, alongside blood pressure, cholesterol and weight, because those things sit together in the same picture of health. What any particular result means for you is a question for your care team, and they will go through it with you.
+
 ## Patient answer (ES)
 
 Que le pidan una A1c no significa que usted tenga diabetes. La A1c — también escrita HbA1c — es una de las cuatro medidas que esta vía sigue para todas las personas, junto con la presión arterial, el colesterol LDL y el peso. Se sigue en todos porque el azúcar en sangre forma parte del mismo cuadro de riesgo, y porque verlo temprano es justamente el propósito del programa. Lo que significa su resultado es una pregunta para su equipo de cuidado.

@@ -43,6 +43,10 @@ When a patient is told their expected payment for a specific service is $0, that
 
 Explain these in plain language and only when the patient asks. Never state what a specific patient's deductible, coinsurance or premium is from this page: that is patient-specific and must come from verified coverage data.
 
+## Patient answer (EN)
+
+These are the three ways Medicare can leave part of a cost with you. A deductible is the amount you pay before Medicare starts paying. Coinsurance is a share of the cost, usually a percentage: for most Part B services Medicare pays about 80 percent and the remaining 20 percent is coinsurance. A copayment is a set dollar amount for a service. Whether you actually pay any of these depends on your own coverage, because Medicaid, QMB or a Medicare Supplement policy may cover them for you.
+
 ## Patient answer (ES)
 
 Son cuatro palabras distintas y conviene no confundirlas. El deducible es lo que puede tener que pagar usted antes de que su cobertura empiece a pagar su parte. El coseguro es un porcentaje del costo de un servicio. El copago es una cantidad fija por un servicio. Y la prima es lo que se paga por tener la cobertura, se use o no. Cuál de ellos le aplica y por cuánto depende del servicio y de su cobertura.

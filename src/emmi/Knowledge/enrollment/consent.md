@@ -9,7 +9,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
-keywords: consentimiento, consent, konsantman, firmar, sign, siyen, aceptar, acuerdo, agreement, dakò, autorizacion, autorización
+keywords: consentimiento, consent, konsantman, firmar, sign, siyen, aceptar, acuerdo, agreement, dakò, autorizacion, autorización, what am i authorizing, what am i agreeing to, what did i agree to, what did i sign, can i get a copy of what i signed, copy of my consent, why do you need my consent, what happens if i do not sign, que estoy autorizando, qué estoy autorizando, que firme, que acepte, copia de lo que firme, copia de lo que firmé, por que necesitan mi consentimiento, por qué necesitan mi consentimiento
 ---
 
 # Consent
@@ -21,6 +21,10 @@ Preserve signer role, disclosure version and timestamp in the product workflow.
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (EN)
+
+Agreeing to join is something only you can do, or a personal representative with the legal authority to make healthcare decisions for you. I can explain what the agreement says and take you to the screen, but I cannot agree, sign or enroll on your behalf, and neither can a family member who is simply helping you. What you are agreeing to is joining ACCESS with ITERA HEALTH and letting the information needed for your care be shared for that purpose. You can ask for a copy of what you agreed to at any time, and you can change your mind, because taking part stays voluntary.
 
 ## Patient answer (ES)
 

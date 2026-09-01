@@ -61,6 +61,10 @@ answer; a callback may be offered after the answer if the patient still wants on
 Whether a *particular* patient was placed in a comparison group is a fact about them, not a fact
 about the programme. That comes from the runtime enrollment context, never from this page.
 
+## Patient answer (EN)
+
+Medicare is studying how well ACCESS works, so a small number of people who apply are chosen at random for a comparison group. If that happens to you, you would not be able to use ACCESS for 12 months. It is decided randomly and has nothing to do with you or your health. Either way, your normal Medicare coverage, benefits and rights are not affected at all. If you have questions about it you can call 1-800-MEDICARE (1-800-633-4227); TTY users can call 1-877-486-2048.
+
 ## Patient answer (ES)
 
 Medicare está evaluando cómo funciona ACCESS. Como parte de esa evaluación, algunas personas son seleccionadas al azar para un grupo de comparación. Si eso le ocurre, no podría participar en ACCESS durante 12 meses. La selección es al azar: no depende de su salud, de sus respuestas ni de nada que usted haya hecho. Ni esta verificación ni una asignación a ese grupo cambian sus beneficios, su cobertura ni sus derechos de Medicare.
