@@ -89,6 +89,23 @@ const RESCHEDULE_PATTERNS = [
   /\brandevou\b[^?.!]{0,30}\byon l[oò]t (jou|l[eè])/i
 ];
 
+// Patients rarely ask to "reschedule an appointment". They say they cannot come. Every reschedule
+// pattern above needs an appointment noun, so "I cannot make it that day" and "no puedo ir mañana" —
+// the ordinary way to ask for a different time — reached no appointment intent at all and were
+// answered from the knowledge base. These are checked after the cancel patterns, because a patient
+// who says "I can't make it, I want to cancel my appointment" is cancelling, not rescheduling.
+const UNABLE_TO_ATTEND = [
+  /\b(can'?t|cannot|can not|unable to|won'?t be able to)\b[^?.!]{0,20}\b(make it|come in|come|attend|be there|make that|go)\b/i,
+  /\bnot going to (?:be able to|make it)\b/i,
+  /\bsomething came up\b/i,
+  /\bno (?:puedo|podr[ée]|voy a poder)\b[^?.!]{0,20}\b(ir|asistir|venir|llegar|acudir)\b/i,
+  /\bme surgi[oó] algo\b/i,
+  /\bmwen pa (?:ka|pral ka)\b[^?.!]{0,20}\b(vini|ale|rive)\b/i
+];
+// "I can't go because I have no ride" is a barrier to solve, not a time to change. The patient has
+// told us why, and moving the appointment does not address it — the barrier route does.
+const ATTENDANCE_BARRIER = /\b(ride|lift|transport(ation)?|car\b|drive|driver|bus\b|taxi|uber|lyft|wheelchair|walker|way to get (?:there|to)|no one to take me|nobody to take me)\b|transporte|carro\b|quien me lleve|quién me lleve|nadie que me lleve|c[oó]mo llegar|transp[oò]|machin\b|pa gen mwayen/i;
+
 // Every cancel pattern requires an appointment noun. "Can I cancel my enrollment?" is a question
 // about the program and must never reach an appointment cancellation.
 const CANCEL_PATTERNS = [
@@ -216,6 +233,7 @@ export function classifyAppointmentIntent(text = "", locale = "en", { contextual
   }
   if (matchesAny(RESCHEDULE_PATTERNS, value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_CHANGE, APPOINTMENT_INTENT_ACTIONS.RESCHEDULE, value, language);
   if (matchesAny(CANCEL_PATTERNS, value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_CHANGE, APPOINTMENT_INTENT_ACTIONS.CANCEL, value, language);
+  if (matchesAny(UNABLE_TO_ATTEND, value) && !ATTENDANCE_BARRIER.test(value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_CHANGE, APPOINTMENT_INTENT_ACTIONS.RESCHEDULE, value, language);
   if (matchesAny(NEED_PATTERNS, value) && !NEED_BLOCKERS.test(value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_NEED, APPOINTMENT_INTENT_ACTIONS.REQUEST, value, language);
   return null;
 }
