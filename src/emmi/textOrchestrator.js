@@ -23,6 +23,7 @@ const SCREEN_HELP = /why (do|does) (you|we|itera|medicare) need (this|that|it|to
 // untouched and is what still reaches the tools.
 // The words that make an appointment the subject of a conversation, in all three languages.
 const APPOINTMENT_MENTION = /\bappointment|\bvisit\b|\bcita\b|\bconsulta\b|\bvisita\b|randevou|vizit/i;
+const APPOINTMENT_TRANSPORTATION = /\b(uber|ride|transportation|transport|pickup|reservation|trip|transporte|recogida|reserva|viaje|transp[oò]|taksi|machin|pran)\b/i;
 const foldApostrophes = value => String(value || "").replace(/[‘’ʼ]/g, "'");
 const SAFETY = { test: detectEmergencyLanguage };
 const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
@@ -389,6 +390,21 @@ const appointmentStatusAnswer = (locale, appointments) => {
     EN: `Here is what I have on file: ${list}. You can open it to see the date, the time and what happens next.`,
     ES: `Esto es lo que tengo registrado: ${list}. Puede abrirla para ver la fecha, la hora y qué sigue.`,
     KR: `Men sa mwen genyen nan dosye a: ${list}. Ou ka louvri l pou wè dat la, lè a ak sa k ap vini apre.`
+  });
+};
+
+const appointmentTransportationAnswer = (locale, appointment, reservation) => {
+  const provider = appointmentWho(appointment);
+  const when = clean(appointment?.scheduledLabel || "");
+  const location = clean(appointment?.locationName || "");
+  const service = clean(reservation?.serviceName || "");
+  const pickup = clean(reservation?.pickupLabel || "");
+  const reservationId = clean(reservation?.reservationId || "");
+  const arrival = clean(reservation?.estimatedArrivalLabel || "");
+  return pick(locale, {
+    EN: `Your appointment${provider ? ` with ${provider}` : ""}${when ? ` is ${when}` : ""}${location ? ` at ${location}` : ""}. Your confirmed ${service || "ride"} pickup is ${pickup || "on file"}${reservationId ? `, reservation ${reservationId}` : ""}${arrival ? `, with estimated arrival at ${arrival}` : ""}.`,
+    ES: `Su cita${provider ? ` con ${provider}` : ""}${when ? ` es ${when}` : ""}${location ? ` en ${location}` : ""}. Su ${service || "transporte"} confirmado le recogerá a las ${pickup || "hora registrada"}${reservationId ? `, reserva ${reservationId}` : ""}${arrival ? `, con llegada estimada a las ${arrival}` : ""}.`,
+    KR: `Randevou ou${provider ? ` ak ${provider}` : ""}${when ? ` se ${when}` : ""}${location ? ` nan ${location}` : ""}. ${service || "Transpò"} ou konfime a ap vin pran ou a ${pickup || "lè ki nan dosye a"}${reservationId ? `, rezèvasyon ${reservationId}` : ""}${arrival ? `, epi lè li prevwa rive se ${arrival}` : ""}.`
   });
 };
 
@@ -1085,6 +1101,27 @@ export class EmmiTextOrchestrator {
     // conversation. Recent turns decide that; a bare "cancel it" out of nowhere still means nothing.
     const appointmentInContext = APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
       || (conversation.recentTurns || []).some(turn => APPOINTMENT_MENTION.test(String(turn?.text || "")));
+    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId) {
+      trace.intent = "APPOINTMENT_TRANSPORTATION_STATUS";
+      trace.responseMode = "RUNTIME_GROUNDED";
+      trace.toolCalls.push("getAppointment", "getAppointmentTransportation");
+      try {
+        const [appointmentResult, transportationResult] = await Promise.all([
+          this.executeTool("getAppointment", { patientId: context.patientId, appointmentId: context.appointmentPrep.appointmentId }),
+          this.executeTool("getAppointmentTransportation", { patientId: context.patientId, appointmentId: context.appointmentPrep.appointmentId })
+        ]);
+        const appointment = appointmentResult?.appointment;
+        const reservation = (transportationResult?.reservations || []).find(item => item.status === "CONFIRMED" && item.tripType === "OUTBOUND")
+          || (transportationResult?.reservations || []).find(item => item.status === "CONFIRMED");
+        trace.runtimeFactsUsed.push("getAppointment", "getAppointmentTransportation");
+        emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentPrep.appointmentId, transportationStatus: transportationResult?.status || "NOT_FOUND" });
+        if (appointment && reservation) return { text: appointmentTransportationAnswer(locale, appointment, reservation), quickAction: "appointment-view", appointmentId: appointment.id || "", trace };
+        return { text: pick(locale, { EN: "I do not see confirmed transportation on file for this appointment.", ES: "No veo transporte confirmado registrado para esta cita.", KR: "Mwen pa wè transpò konfime nan dosye a pou randevou sa a." }), quickAction: "appointment-view", appointmentId: appointment?.id || context.appointmentPrep.appointmentId, trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getAppointmentTransportation", error: error?.message || "unknown" });
+        return { text: pick(locale, { EN: "I can’t check the transportation details right now, so I don’t want to guess.", ES: "Ahora mismo no puedo consultar los detalles del transporte, así que prefiero no adivinarlos.", KR: "Mwen pa ka verifye detay transpò yo kounye a, kidonk mwen pa vle devine." }), trace };
+      }
+    }
     const appointmentIntent = classifyAppointmentIntent(question, locale, { contextual: appointmentInContext });
     if (appointmentIntent?.intent === APPOINTMENT_INTENTS.APPOINTMENT_STATUS) {
       trace.intent = "APPOINTMENT_STATUS"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getUpcomingAppointments");

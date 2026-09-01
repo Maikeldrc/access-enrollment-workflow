@@ -21,7 +21,7 @@ import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS,
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, formatAppointmentWhen, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 // The barrier resolution engine: the domain machine, the simulated outside world, and the views.
 // The shell owns none of the three — it connects them to this patient's record, the care-team
@@ -1083,6 +1083,7 @@ const emmiToolStatusLabel = name => ({
   createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   getUpcomingAppointments: L("Checking your appointments…", "Revisando sus citas…", "N ap verifye randevou ou yo…"),
   getAppointment: L("Checking your appointment…", "Revisando su cita…", "N ap verifye randevou ou…"),
+  getAppointmentTransportation: L("Checking your transportation…", "Revisando su transporte…", "N ap verifye transpò ou…"),
   getSchedulingCapability: L("Checking how this office schedules…", "Revisando cómo agenda este consultorio…", "N ap verifye kijan kabinè sa a bay randevou…"),
   getProviderAvailability: L("Looking for open times…", "Buscando horarios disponibles…", "N ap chache lè ki lib…"),
   startAppointmentRequest: L("Opening your appointment request…", "Abriendo su solicitud de cita…", "N ap louvri demann randevou ou…"),
@@ -1188,12 +1189,37 @@ function ensureEmmiRuntime() {
           providerDisplayName: record.providerDisplayName || "",
           specialty: record.requestedSpecialty || "",
           scheduledAt: record.scheduledAt || "",
+          scheduledLabel: record.scheduledAt ? formatAppointmentWhen(record.scheduledAt, record.timezone || "", state.language) : "",
           modality: record.modality || "",
           locationName: record.locationName || "",
           reasonCategory: record.reasonCategory,
           reminder: record.reminder ? { slot: record.reminder.slot, channel: record.reminder.channel } : null
         }
       };
+    },
+    onAppointmentTransportation: ({ appointmentId }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "APPOINTMENT_NOT_FOUND" };
+      const resolution = transportationResolutionFor(record.id);
+      const outbound = resolution?.data?.reservation;
+      const returning = resolution?.data?.returnReservation;
+      const reservations = [outbound, returning].filter(item => item?.status === "CONFIRMED").map(item => ({
+        reservationId: item.reservationId || "",
+        tripType: item.tripType || "OUTBOUND",
+        status: item.status,
+        serviceName: item.serviceName || "",
+        pickupAt: item.pickupAt || "",
+        pickupLabel: item.pickupAt ? formatBarrierTime(item.pickupAt, record) : "",
+        estimatedArrivalAt: item.estimatedArrivalAt || "",
+        estimatedArrivalLabel: item.estimatedArrivalAt ? formatBarrierTime(item.estimatedArrivalAt, record) : "",
+        estimatedCost: item.estimatedCost || "",
+        pickupAddress: item.pickupFormatted || "",
+        destinationName: item.destinationName || "",
+        destinationAddress: item.destinationFormatted || ""
+      }));
+      return reservations.length
+        ? { success: true, status: "CONFIRMED", appointmentId: record.id, reservations }
+        : { success: false, status: "TRANSPORTATION_NOT_FOUND", reservations: [] };
     },
     onAppointmentTopics: ({ appointmentId, operation, target, value, detail, index, position }) => {
       const record = appointmentById(appointmentId);

@@ -54,6 +54,17 @@ const CARE_PERSON = "(?:doctors?|dr\\.?|physicians?|cardiologists?|specialists?|
 // it is word-boundaried here so it can never be read as the English "machine".
 const NEED_BLOCKERS = /\b(ride|lift|transportation|transport|car|bus|taxi|cab|someone to|help getting|avent[oó]n|transporte|carro|coche|autob[uú]s|alguien que|machin|taksi|otobis|moun pou)\b/i;
 
+// A blocker only suppresses scheduling when it is the thing the patient needs ("I need a ride to
+// my appointment"). Patients commonly ask for the visit first and mention the ride in the same
+// breath ("Necesito una cita ... y también un Uber"). In that case the explicit appointment need
+// must win so the turn opens the structured scheduler instead of falling through to generative
+// chat, where no calendar result is available.
+const explicitAppointmentBeforeBlocker = value => {
+  const appointment = value.search(/\b(appointments?|appts?|visits?|citas?|consultas?|randevou|vizit)\b/i);
+  const blocker = value.search(NEED_BLOCKERS);
+  return appointment >= 0 && blocker >= 0 && appointment < blocker;
+};
+
 const STATUS_PATTERNS = [
   // EN — a question about an appointment the patient already has. "an appointment" is a request,
   // so only a possessive or definite reference counts as a status question.
@@ -216,6 +227,6 @@ export function classifyAppointmentIntent(text = "", locale = "en", { contextual
   }
   if (matchesAny(RESCHEDULE_PATTERNS, value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_CHANGE, APPOINTMENT_INTENT_ACTIONS.RESCHEDULE, value, language);
   if (matchesAny(CANCEL_PATTERNS, value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_CHANGE, APPOINTMENT_INTENT_ACTIONS.CANCEL, value, language);
-  if (matchesAny(NEED_PATTERNS, value) && !NEED_BLOCKERS.test(value)) return result(APPOINTMENT_INTENTS.APPOINTMENT_NEED, APPOINTMENT_INTENT_ACTIONS.REQUEST, value, language);
+  if (matchesAny(NEED_PATTERNS, value) && (!NEED_BLOCKERS.test(value) || explicitAppointmentBeforeBlocker(value))) return result(APPOINTMENT_INTENTS.APPOINTMENT_NEED, APPOINTMENT_INTENT_ACTIONS.REQUEST, value, language);
   return null;
 }
