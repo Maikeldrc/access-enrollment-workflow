@@ -96,11 +96,17 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "createAppointmentReminder", description: "Save a reminder for an appointment after the patient explicitly chose a reminder time. Reminders appear inside ITERA; this does not send phone, text or email notifications, and must never be described as one. Only say a reminder was set after this returns success.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, slot: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "slot", "confirmed"] } },
   { name: "getCareCircle", description: "Get the Care Circle members this patient has actually invited and their invitation status. Use before offering to share anything with a support person, so nobody is offered who is not really there.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "shareAppointment", description: "Share limited appointment details with one Care Circle member after the patient explicitly confirms. Sharing is scoped: a Care Circle member is a support person, never a decision maker, and sharing an appointment never gives them access to the rest of the patient's information.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, inviteId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["appointmentId", "inviteId", "confirmed"] } },
+  // The two tools that make EMMI part of the screen rather than a commentary on it. describeCurrentView
+  // is the pull to match the app's push, for the moment a session has been running long enough that
+  // the newest context update has been summarised out of the window. performViewAction is the only
+  // way EMMI may change anything on screen, and it can only press a control the patient could press.
+  { name: "describeCurrentView", description: "Get what the patient is looking at right now: the view, what they have to do on it, the values on screen, the choices available with the number each one can be addressed by, what is selected, what has really been completed, what is still pending, and which controls exist. Use it whenever the patient refers to what is on screen — 'what are my options', 'what do I do here', 'the first one', 'is it booked yet' — and whenever the conversation has run long enough that the screen may have moved on. Never describe a screen this tool did not return.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } } } },
+  { name: "performViewAction", description: "Press a control that is really on the patient's screen. actionId is an id from the current view's availableActions; optionRef selects one of the view's choices by its id or by its number n. Only ever acts on what is on screen right now: if the control is gone the result says so and nothing happened. Actions of kind CONFIRM or DESTRUCTIVE change something outside the app — a booking, a message to a person, an appointment time, a cancellation — and are refused unless confirmed is true, which requires the patient to have said so in this same turn. An action marked acceptsText needs the patient's own words in text — that is how a topic the patient dictated is added to their visit list. Never report an action as done unless the result says it was.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, actionId: { type: "STRING" }, optionRef: { type: "STRING" }, text: { type: "STRING" }, confirmed: { type: "BOOLEAN" } } } },
   { name: "searchKnowledge", description: "Look up ITERA's approved explanations of programs, Medicare, enrollment, devices, care and safety topics. Use for conceptual questions such as 'What is CCM?' or 'What is a Care Circle?'. This returns general education only and is never a source for what is true for this patient: for eligibility, cost, devices, medications, enrollment status or next step, call the matching patient tool instead.", parameters: { type: "OBJECT", properties: { query: { type: "STRING" } }, required: ["query"] } }
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, onDescribeView = () => null, onPerformViewAction = () => null, auditLog }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
@@ -129,6 +135,11 @@ export class EmmiToolOrchestrator {
     this.onAppointmentReminder = onAppointmentReminder;
     this.onCareCircle = onCareCircle;
     this.onShareAppointment = onShareAppointment;
+    // What the patient is looking at, and pressing something on it. Both belong to the shell: the
+    // screen is the shell's, and EMMI reading or acting on a second copy of it would be the same
+    // class of bug this whole change exists to fix.
+    this.onDescribeView = onDescribeView;
+    this.onPerformViewAction = onPerformViewAction;
     this.auditLog = auditLog;
   }
   async execute(name, args = {}) {
@@ -290,6 +301,20 @@ export class EmmiToolOrchestrator {
         // Sharing is scoped. What was shared comes back from the application, never from here.
         result = shared?.success ? { success: true, status: shared.status || "SHARED", scope: clone(shared.scope || null) } : { success: false, status: shared?.status || "NOT_SHARED" };
       }
+    } else if (name === "describeCurrentView") {
+      const view = this.onDescribeView();
+      result = view ? clone(view) : { found: false, note: "There is no screen description available right now." };
+    } else if (name === "performViewAction") {
+      // Every rule about what EMMI may press lives in the shell, next to the controls themselves.
+      // This branch only carries the request across and reports back exactly what happened, which
+      // is what keeps "I booked it" from ever being said by a tool that did not book anything.
+      const performed = await this.onPerformViewAction({
+        actionId: String(args.actionId || ""),
+        optionRef: args.optionRef === undefined || args.optionRef === null ? "" : String(args.optionRef),
+        text: String(args.text || ""),
+        confirmed: args.confirmed === true
+      });
+      result = clone(performed || { success: false, status: "NOT_AVAILABLE" });
     } else if (name === "saveEnrollmentProgress") { result = { success: true, patientId, currentScreen: context.currentScreen, protectedFieldsUnchanged: ["consent", "eligibility", "enrollmentStatus"] }; this.onProgress(result); }
     else if (name === "evaluateClinicalEscalation") {
       // Thresholds are read from the monitoring rules rather than written here. They used to be

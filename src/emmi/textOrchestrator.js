@@ -929,7 +929,11 @@ export class EmmiTextOrchestrator {
     }
     if (SCREEN_HELP.test(asked)) {
       trace.intent = "CURRENT_SCREEN_HELP"; trace.responseMode = "SCREEN_CONTEXT"; emit("EMMI_ANSWER_ROUTED");
-      return { text: this.screenExplanation(context.currentScreen), trace };
+      // The screen the patient means is the VIEW, not the route: every step of appointment
+      // coordination and of barrier resolution shares one route name, so passing only that made
+      // "what do I do here?" answer for the wrong step. The context carries the view; the shell
+      // prefers it and keeps the route as the fallback for screens with no describer.
+      return { text: this.screenExplanation(context.currentScreen, context), trace };
     }
     // "Who invited me?" is a question about the invitation, and it is checked before the care-team
     // and support routes, which would otherwise read it as a request to be called back.
@@ -1200,7 +1204,9 @@ export class EmmiTextOrchestrator {
       const response = await this.fetch("/api/emmi/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
+        // The view goes to the knowledge fallback for the same reason it goes to the voice session: a
+        // question asked in front of three ride options is not a general question about transport.
+        body: JSON.stringify({ question, retrievalQuery, locale, program: context.program || null, currentScreen: context.currentScreen || null, view: context.view || null, conversationSummary: conversation.conversationSummary || "", appointmentPrep: context.appointmentPrep || null })
       });
       if (response.ok) {
         const generated = await response.json();
