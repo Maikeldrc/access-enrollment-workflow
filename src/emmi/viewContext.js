@@ -112,6 +112,11 @@ export function normalizeEmmiView(raw = {}) {
   const explicit = raw.selection ? normalizeEntry(raw.selection) : null;
   return Object.freeze({
     version: EMMI_VIEW_CONTEXT_VERSION,
+    // DESCRIBER means a person wrote down what this screen is and what each control does. DOM
+    // means this module read the markup and inferred the rest from the verbs in the action names.
+    // The second is enough to explain a screen and never enough to authorise acting on it: a
+    // guess that reads "pause my goal" as navigation is a guess that must not be able to press it.
+    source: raw.source === "DOM" ? "DOM" : "DESCRIBER",
     viewId: text(raw.viewId, 80) || "UNKNOWN_VIEW",
     screenId: text(raw.screenId, 80),
     title: text(raw.title),
@@ -169,8 +174,11 @@ const CONTROL_SELECTOR = "button[data-action], a[data-action], button[data-assis
 // removes or commits something is treated as needing confirmation, and a name nobody recognises is
 // NAVIGATE, which is the kind that can do the least.
 const KIND_BY_PATTERN = Object.freeze([
-  [/cancel|remove|delete|decline|revoke|clear/i, VIEW_ACTION_KINDS.DESTRUCTIVE],
-  [/confirm|submit|book|reserve|send|save|share|apply|accept|invite|complete|create/i, VIEW_ACTION_KINDS.CONFIRM],
+  [/cancel|remove|delete|decline|revoke|clear|stop|pause/i, VIEW_ACTION_KINDS.DESTRUCTIVE],
+  // Everything that changes the patient's record, their plan, or somebody else's day. The four
+  // that were missing — pausing a goal, marking one achieved, changing its priority, asking for a
+  // callback — were being read as navigation, which is the permissive direction to be wrong in.
+  [/confirm|submit|book|reserve|send|save|share|apply|accept|invite|complete|create|achiev|priority|request|callback|reactivate|mark/i, VIEW_ACTION_KINDS.CONFIRM],
   [/select|choose|answer|toggle|option|slot|need|pick/i, VIEW_ACTION_KINDS.SELECT],
   [/add|edit|write/i, VIEW_ACTION_KINDS.INPUT]
 ]);
@@ -216,6 +224,7 @@ export function describeEmmiViewFromDom(root, { screenId = "", viewId = "", loca
     .filter(element => !element.disabled && !element.closest("[aria-hidden='true']"))
     .filter(element => controlLabel(element));
   return normalizeEmmiView({
+    source: "DOM",
     viewId: viewId || `SCREEN_${screenId}`,
     screenId,
     title: heading?.textContent || "",
@@ -286,6 +295,9 @@ export function emmiViewForModel(view) {
     // window: what is actually done, and what is still owed.
     alreadyDone: view.completed.map(entry => entry.label),
     stillPending: view.pending.map(entry => entry.label),
+    // False on a screen nobody has described. EMMI can still name the button the patient should
+    // press — which is most of what "guide by voice" means — but may not press it herself.
+    youMayPressTheseYourself: view.source !== "DOM",
     ...(view.actions.length ? { availableActions: view.actions.map(action => ({ id: action.id, label: action.label, kind: action.kind, ...(action.effect ? { effect: action.effect } : {}), ...(action.inputSelector ? { acceptsText: true, textIsFor: action.inputHint } : {}) })) } : {}),
     ...(view.notes.length ? { notes: view.notes } : {})
   };

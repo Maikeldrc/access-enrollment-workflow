@@ -593,3 +593,101 @@ test.describe("EMMI Voice walks the flows with the patient", () => {
     expect(view.alreadyDone.join(" ")).toMatch(/blood pressure/i);
   });
 });
+
+/* ==========================================================================================
+   THE REST OF THE PRODUCT — the five areas that used to have only the DOM floor
+   ==========================================================================================
+   Each of these screens reached EMMI as a heading and a list of buttons whose nature was guessed
+   from a verb. These assert that a person has now written down what each one is, and that a screen
+   nobody has written down can be explained but not acted on. */
+
+test.describe("the rest of the product is described, not inferred", () => {
+  const jumpTo = async (page, screen) => {
+    await page.goto("/?scenario=access-happy");
+    await page.waitForSelector("#screen-content", { state: "visible", timeout: 30000 });
+    await page.locator("#screen-select").selectOption(screen, { force: true });
+    await page.waitForTimeout(600);
+  };
+
+  const seen = page => page.evaluate(() => window.__emmiViewProbe?.());
+
+  // My Goals and My Care live after enrollment, so the dev console's journey list cannot reach
+  // them. They are seeded the way the appointment specs seed theirs.
+  const openAfterEnrollment = async (page, screen, extra = {}) => {
+    await page.setViewportSize(MOBILE);
+    await openAppointments(page, { appointments: [], screen, ...extra });
+    await page.goto("/?scenario=access-happy");
+    await page.waitForSelector("#screen-content", { state: "visible", timeout: 30000 });
+  };
+
+  const planGoal = () => ({
+    id: "goal-bp", patientId: "patient_demo", goalType: "BLOOD_PRESSURE_CONTROL",
+    title: "Lower my blood pressure", goalSource: "PATHWAY", selectedBy: "PATIENT",
+    status: "ACTIVE", priority: "PRIMARY", planStatus: "READY", whyItMatters: "",
+    actions: [
+      { id: "a1", goalId: "goal-bp", templateId: "check-bp", title: "Check my blood pressure", actionType: "MEASURE", source: "TEMPLATE", frequency: "daily", status: "ACTIVE", completionHistory: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: "a2", goalId: "goal-bp", templateId: "medications-as-directed", title: "Take my medication", actionType: "MEDICATION", source: "TEMPLATE", frequency: "daily", status: "COMPLETED", completionHistory: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+    ],
+    progress: [], barriers: [], reviews: [], supportRequests: [],
+    createdBy: "PATIENT", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  });
+
+  test("goals carry the plan, split into done and still owed", async ({ page }) => {
+    test.setTimeout(120000);
+    await openAfterEnrollment(page, "MY_GOALS", { patientGoals: [planGoal()] });
+    const view = await seen(page);
+    expect(view.youMayPressTheseYourself, "MY_GOALS should be described, not inferred").toBe(true);
+    expect(view.viewId).toMatch(/^GOAL_/);
+    expect(view.whatThePatientMustDoHere.length).toBeGreaterThan(10);
+    // Pausing a goal changes the patient's plan, so it is not navigation.
+    // Every control the describer names is a control that is really there — anything else is
+    // dropped before EMMI sees it, so an empty list here means the describer has drifted.
+    expect(view.availableActions.length).toBeGreaterThan(0);
+    const onScreen = await page.evaluate(() => [...document.querySelectorAll("#screen-content [data-action]")].map(el => el.dataset.action));
+    for (const item of view.availableActions) expect(onScreen, item.id).toContain(item.id);
+  });
+
+  test("medications say which ones are still unreviewed", async ({ page }) => {
+    test.setTimeout(120000);
+    await jumpTo(page, "MEDICATIONS_REVIEW");
+    const view = await seen(page);
+    expect(view.youMayPressTheseYourself).toBe(true);
+    expect(view.viewId).toMatch(/^MEDICATION_/);
+    expect(view.notes.join(" ")).toMatch(/never renew a prescription/i);
+  });
+
+  test("the enrollment screens answer with the sentence EMMI speaks", async ({ page }) => {
+    test.setTimeout(120000);
+    await jumpTo(page, "CONSENT_REVIEW");
+    const view = await seen(page);
+    expect(view.youMayPressTheseYourself).toBe(true);
+    expect(view.viewId).toBe("ENROLLMENT_CONSENT_REVIEW");
+    expect(view.notes.join(" ")).toMatch(/never mark a checkbox, consent, sign/i);
+  });
+
+  test("the monitor counts the readings received against the readings still needed", async ({ page }) => {
+    test.setTimeout(120000);
+    await jumpTo(page, "ACCESS_BP_DEVICE_INFO");
+    const view = await seen(page);
+    expect(view.youMayPressTheseYourself).toBe(true);
+    expect(view.viewId).toBe("ACCESS_BP_DEVICE_INFO");
+    expect(view.notes.join(" ")).toMatch(/never from anyone saying a number/i);
+  });
+
+  test("a screen nobody described is explained but never pressed", async ({ page }) => {
+    test.setTimeout(120000);
+    await openAfterEnrollment(page, "MY_CARE");
+    const view = await seen(page);
+    // It is still visible: EMMI can say what is on it and which button to press.
+    expect(view.title.length).toBeGreaterThan(0);
+    expect(view.availableActions.length).toBeGreaterThan(0);
+    // And it cannot be acted on, because nothing here was decided by a person.
+    expect(view.youMayPressTheseYourself).toBe(false);
+    const refused = await page.evaluate(() => window.__emmiActionProbe?.({ actionId: window.__emmiViewProbe().availableActions[0].id }));
+    expect(refused.success).toBe(false);
+    expect(refused.status).toBe("SCREEN_NOT_DESCRIBED");
+    // And the refusal tells EMMI what to do instead rather than leaving her stuck.
+    expect(refused.note).toMatch(/tell the patient which control/i);
+    expect(refused.availableActions.length).toBeGreaterThan(0);
+  });
+});

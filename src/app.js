@@ -24,6 +24,7 @@ import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUT
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { CONFIRMATION_REQUIRED_KINDS, VIEW_ACTION_KINDS, describeEmmiViewFromDom, emmiViewForModel, emmiViewSignature, findViewAction, findViewOption, normalizeEmmiView, withLiveControls } from "./emmi/viewContext.js";
 import { describeAppointmentView, describeResolutionView } from "./appointmentViewContext.js";
+import { describeCareCircleView, describeDeviceView, describeEnrollmentView, describeGoalView, describeMedicationView } from "./careViewContext.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 // The barrier resolution engine: the domain machine, the simulated outside world, and the views.
 // The shell owns none of the three — it connects them to this patient's record, the care-team
@@ -4660,6 +4661,73 @@ function resolutionViewExtras(resolution) {
   };
 }
 
+// The snapshots the rest of the product's describers read. Each one is assembled from the same
+// functions the screens themselves render from, so a value EMMI says and a value on screen cannot
+// come apart.
+const goalViewSnapshot = () => {
+  const goal = currentGoal();
+  const health = goal?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+  return {
+    screen: state.screen,
+    detailView: state.goalDetailView || "",
+    flowStep: state.goalFlowStep || "",
+    goal: goal ? {
+      id: goal.id,
+      title: goalDisplayName(goal, state.language),
+      status: goal.status,
+      priority: goal.priority,
+      whyItMatters: goal.whyItMatters || "",
+      actions: (goal.actions || []).map(item => ({ id: item.id, title: item.title, status: item.status, frequency: item.frequency || "", verificationMethod: resolveGoalActionVerification(item) })),
+      barriers: activeGoalBarriers(goal).map(item => ({ id: item.id, category: item.category, status: item.status })),
+      latestReading: health?.latest || null,
+      clinicalTarget: health?.clinicalTarget || null
+    } : null,
+    goals: activePatientGoals().map(item => ({ id: item.id, title: goalDisplayName(item, state.language), status: item.status, priority: item.priority, planStatus: item.planStatus })),
+    locale: state.language
+  };
+};
+
+const medicationViewSnapshot = () => ({
+  screen: state.screen,
+  refillStep: state.refillFlow?.step || "",
+  medications: (state.careMedications || []).map(item => ({ id: item.id, name: medicationLabel(item), strength: item.strength || "", details: medicationDetails(item) || medicationSig(item) || "", active: item.active !== false, pharmacy: item.pharmacy || null })),
+  reviews: state.medicationReviews || {},
+  refills: state.medicationRefills || [],
+  activeMedication: (state.careMedications || []).find(item => item.id === state.refillFlow?.medicationId) || null,
+  locale: state.language
+});
+
+const careCircleViewSnapshot = () => ({
+  screen: state.screen,
+  members: appointmentCareCircle().eligibleMembers || [],
+  invitePending: state.supportInviteStatus === "SENT" || state.careCircleInvitePending === true,
+  permissions: state.careCirclePermissions || null,
+  supportPersonName: state.supportPersonName || "",
+  locale: state.language
+});
+
+const deviceViewSnapshot = () => ({
+  screen: state.screen,
+  deviceVerificationStatus: state.deviceVerificationStatus || "",
+  device: state.assignedDeviceId || state.deviceModel ? { vendor: state.deviceVendor || "", model: state.deviceModel || "" } : null,
+  baselineTaken: state.bpBaselineReadingCount || 0,
+  baselineRemaining: state.bpBaselineRemainingReadings ?? 0,
+  baselineRequired: state.bpBaselineRequiredReadings || 0,
+  locale: state.language
+});
+
+const enrollmentViewSnapshot = () => ({
+  screen: state.screen,
+  enrollment: {
+    identityVerified: Boolean(state.identityVerified),
+    consentSaved: Boolean(state.consentSaved),
+    enrollmentComplete: state.enrollmentStatus === "COMPLETED",
+    canContinue: state.accessOutcome ? state.accessOutcome === "eligible" : null,
+    disclosureAcknowledged: Boolean(state.disclosureAcknowledgedAt)
+  },
+  locale: state.language
+});
+
 // The descriptor for right now. Describer first, document second, and the document always has the
 // last word on which controls exist.
 function emmiViewContext() {
@@ -4675,6 +4743,14 @@ function emmiViewContext() {
     });
   } else if (["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING", "MY_APPOINTMENTS"].includes(state.screen)) {
     described = describeAppointmentView(appointmentViewSnapshot());
+  } else {
+    // The rest of the product. Each describer answers for its own screens and null for everything
+    // else, so the order here is not a priority list — it is just the order they were written in.
+    described = describeGoalView(goalViewSnapshot())
+      || describeMedicationView(medicationViewSnapshot())
+      || describeCareCircleView(careCircleViewSnapshot())
+      || describeDeviceView(deviceViewSnapshot())
+      || describeEnrollmentView(enrollmentViewSnapshot());
   }
   if (described) return withLiveControls(normalizeEmmiView({ ...described, screenId: described.screenId || state.screen }), root);
   // The floor. Every other screen in the product still tells EMMI its heading, the sentence under
@@ -4761,7 +4837,8 @@ const VIEW_ACTION_STATUS = Object.freeze({
   NOT_AVAILABLE: "CONTROL_NOT_ON_SCREEN",
   CONFIRMATION_REQUIRED: "CONFIRMATION_REQUIRED",
   NEEDS_TYPED_INPUT: "NEEDS_TYPED_INPUT",
-  UNKNOWN_ACTION: "UNKNOWN_ACTION"
+  UNKNOWN_ACTION: "UNKNOWN_ACTION",
+  SCREEN_NOT_DESCRIBED: "SCREEN_NOT_DESCRIBED"
 });
 
 // EMMI pressing a button. The authorization rules live here, next to the controls, rather than in
@@ -4770,6 +4847,21 @@ async function performEmmiViewAction({ actionId = "", optionRef = "", confirmed 
   const view = publishedView || emmiViewContext();
   const root = screenRoot();
   if (!view || !root) return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE };
+
+  // A screen nobody has described reaches EMMI through the DOM floor, where the kind of every
+  // control is inferred from the verb in its name. That inference is good enough to explain a
+  // screen and it is not good enough to authorise acting on one: it read "pause my goal" as
+  // navigation until this week. So on those screens EMMI names the button and the patient presses
+  // it. Being able to act is earned by writing the describer, which is where somebody actually
+  // decides what each control does.
+  if (view.source === "DOM") {
+    return {
+      success: false,
+      status: VIEW_ACTION_STATUS.SCREEN_NOT_DESCRIBED,
+      note: "Nothing was pressed. On this screen, tell the patient which control to use and let them press it.",
+      availableActions: view.actions.map(item => ({ id: item.id, label: item.label }))
+    };
+  }
 
   // An option reference wins when both are given: "select the first one" names a choice, and the
   // action that selects it is whatever that choice's own control is.
