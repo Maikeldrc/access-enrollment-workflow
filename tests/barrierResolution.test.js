@@ -271,6 +271,16 @@ describe("appointment readiness", () => {
     expect(companion.label).toContain("Maria");
   });
 
+  it("does not claim it is waiting for a companion response before the invitation is sent", () => {
+    const review = readiness([resolutionOn(BARRIER_TYPES.COMPANION, "REVIEW", { contactName: "Maria" })]);
+    const beforeSend = review.items.find(item => item.id === "COMPANION");
+    expect(beforeSend.label).toMatch(/Coordinating/i);
+    expect(beforeSend.label).not.toMatch(/Waiting/i);
+
+    const sent = readiness([resolutionOn(BARRIER_TYPES.COMPANION, "SENT", { contactName: "Maria" })]);
+    expect(sent.items.find(item => item.id === "COMPANION").label).toMatch(/Waiting/i);
+  });
+
   it("shows the ride under the transportation row rather than as a second item", () => {
     const state = readiness([resolutionOn(BARRIER_TYPES.TRANSPORTATION, "BOOKED", {
       reservation: { serviceName: "UberX", pickupLabel: "2:00 PM" }

@@ -21,7 +21,7 @@ import { APPOINTMENT_ACTORS, APPOINTMENT_AUDIT_EVENTS, APPOINTMENT_DRAFT_FIELDS,
 import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAvailabilitySlots, resolveSchedulingCapability, submitAppointmentRequest } from "./schedulingCapability.js";
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
-import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentSlotReviewView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, formatAppointmentWhen, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
 import { CONFIRMATION_REQUIRED_KINDS, VIEW_ACTION_KINDS, describeEmmiViewFromDom, emmiViewForModel, emmiViewSignature, findViewAction, findViewOption, normalizeEmmiView, withLiveControls } from "./emmi/viewContext.js";
 import { describeAppointmentView, describeResolutionView } from "./appointmentViewContext.js";
 import { describeCareCircleView, describeDeviceView, describeEnrollmentView, describeGoalView, describeMedicationView } from "./careViewContext.js";
@@ -41,6 +41,7 @@ import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transition
 import { EmmiConversationManager, clearEmmiConversation } from "./emmi/conversationManager.js";
 import { EMMI_PREFERENCES_KEY, clearEmmiEnrollmentContinuity, readEmmiPreferences } from "./emmi/preferences.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
+import { detectEmergencyLanguage } from "./emmi/safetyPolicy.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
@@ -944,13 +945,12 @@ function assistantContext() {
   const currentConditions = (state.offer?.qualifyingConditions?.length ? state.offer.qualifyingConditions : [state.offer?.qualifyingCondition].filter(Boolean)).map(condition => ({ id: condition.id || "", name: localizedCondition(condition.name || condition.patientFriendlyName) }));
   const activeGoalRecord = currentGoal();
   const activeGoalHealth = activeGoalRecord?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(activeGoalRecord) : null;
-  const activeAppointmentRecord = activeAppointment();
-  // Keep the selected appointment available to EMMI on every appointment surface, not only the
-  // preparation screen. The appointment detail's “Ask EMMI” action opens the assistant before it
-  // submits its first turn; limiting this context to PREP made that turn fall into the generic
-  // knowledge fallback even though the patient had just selected a real, scheduled visit.
-  const appointmentInAssistantContext = activeAppointmentRecord
-    && ["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING"].includes(emmiCurrentScreen);
+  const onlyUpcomingAppointment = upcomingAppointments(appointmentRecords(), new Date());
+  const activeAppointmentRecord = activeAppointment() || (onlyUpcomingAppointment.length === 1 ? onlyUpcomingAppointment[0] : null);
+  // Keep the explicitly selected appointment available across screens and refreshes. If none was
+  // selected, one — and only one — upcoming visit is unambiguous. This is the durable task context
+  // shared by the appointment UI, chat, and voice; multiple visits are never guessed between.
+  const appointmentInAssistantContext = Boolean(activeAppointmentRecord);
   const appointmentPrep = appointmentInAssistantContext
     ? {
         appointmentId: activeAppointmentRecord.id,
@@ -963,7 +963,13 @@ function assistantContext() {
         medications: (activeAppointmentRecord.prep?.medications || []).filter(item => item?.medicationId && item?.name).map(item => ({ medicationId: String(item.medicationId), name: String(item.name).slice(0, 120), details: String(item.details || "").slice(0, 160) })),
         emmiPreparation: activeAppointmentRecord.prep?.emmiPreparation && typeof activeAppointmentRecord.prep.emmiPreparation === "object" ? activeAppointmentRecord.prep.emmiPreparation : null
       }
-    : null;
+    : onlyUpcomingAppointment.length > 1
+      ? {
+          appointmentId: "",
+          ambiguous: true,
+          appointmentCandidates: onlyUpcomingAppointment.map(record => ({ appointmentId: record.id, providerDisplayName: record.providerDisplayName || "", scheduledAt: record.scheduledAt || "" }))
+        }
+      : null;
   const progress = state.offer ? progressFor({ ...state, screen: currentScreen }) : { stage: "YOUR_CARE" };
   if (!emmiConversationManager) {
     emmiConversationManager = new EmmiConversationManager({
@@ -1047,6 +1053,17 @@ function assistantContext() {
     // bubble. It lets a short reply such as "BP readings" or "what does that mean?" stay attached
     // to the topic the patient saved even when an older clinical topic remains in chat history.
     appointmentPrep,
+    appointmentSupport: activeResolution() && activeResolution().appointmentId === activeAppointmentRecord?.id
+      ? {
+          appointmentId: activeResolution().appointmentId,
+          barrierType: activeResolution().barrierType,
+          step: activeResolution().step,
+          contactName: activeResolution().data?.contactName || "",
+          invitationScope: activeResolution().barrierType === BARRIER_TYPES.COMPANION
+            ? { appointmentDate: true, appointmentTime: true, appointmentLocation: true, healthInformation: false }
+            : null
+        }
+      : null,
     // Where this patient started and what ACCESS will recognise as progress, resolved by the same
     // functions the goals screen and the care plan render. "What was my starting blood pressure"
     // is a question about this patient, and the knowledge base has no way to answer it: it knows
@@ -1117,6 +1134,7 @@ const emmiToolStatusLabel = name => ({
   createCareTeamTask: L("Talking with your care team…", "Comunicándonos con su equipo…", "N ap kontakte ekip swen ou…"),
   getUpcomingAppointments: L("Checking your appointments…", "Revisando sus citas…", "N ap verifye randevou ou yo…"),
   getAppointment: L("Checking your appointment…", "Revisando su cita…", "N ap verifye randevou ou…"),
+  getAppointmentTransportation: L("Checking your transportation…", "Revisando su transporte…", "N ap verifye transpò ou…"),
   getSchedulingCapability: L("Checking how this office schedules…", "Revisando cómo agenda este consultorio…", "N ap verifye kijan kabinè sa a bay randevou…"),
   getProviderAvailability: L("Looking for open times…", "Buscando horarios disponibles…", "N ap chache lè ki lib…"),
   startAppointmentRequest: L("Opening your appointment request…", "Abriendo su solicitud de cita…", "N ap louvri demann randevou ou…"),
@@ -1222,12 +1240,107 @@ function ensureEmmiRuntime() {
           providerDisplayName: record.providerDisplayName || "",
           specialty: record.requestedSpecialty || "",
           scheduledAt: record.scheduledAt || "",
+          scheduledLabel: record.scheduledAt ? formatAppointmentWhen(record.scheduledAt, record.timezone || "", state.language) : "",
           modality: record.modality || "",
           locationName: record.locationName || "",
           reasonCategory: record.reasonCategory,
           reminder: record.reminder ? { slot: record.reminder.slot, channel: record.reminder.channel } : null
         }
       };
+    },
+    onAppointmentTransportation: ({ appointmentId }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "APPOINTMENT_NOT_FOUND" };
+      const resolution = transportationResolutionFor(record.id);
+      const outbound = resolution?.data?.reservation;
+      const returning = resolution?.data?.returnReservation;
+      const reservations = [outbound, returning].filter(item => item?.status === "CONFIRMED").map(item => ({
+        reservationId: item.reservationId || "",
+        tripType: item.tripType || "OUTBOUND",
+        status: item.status,
+        serviceName: item.serviceName || "",
+        pickupAt: item.pickupAt || "",
+        pickupLabel: item.pickupAt ? formatBarrierTime(item.pickupAt, record) : "",
+        estimatedArrivalAt: item.estimatedArrivalAt || "",
+        estimatedArrivalLabel: item.estimatedArrivalAt ? formatBarrierTime(item.estimatedArrivalAt, record) : "",
+        estimatedCost: item.estimatedCost || "",
+        pickupAddress: item.pickupFormatted || "",
+        destinationName: item.destinationName || "",
+        destinationAddress: item.destinationFormatted || ""
+      }));
+      return reservations.length
+        ? { success: true, status: "CONFIRMED", appointmentId: record.id, reservations }
+        : { success: false, status: "TRANSPORTATION_NOT_FOUND", reservations: [] };
+    },
+    onAppointmentTopics: ({ appointmentId, operation, target, value, detail, index, position }) => {
+      const record = appointmentById(appointmentId);
+      if (!record) return { success: false, status: "NOT_FOUND" };
+      const topics = (record.prep?.topics || []).map(item => String(item || "").trim()).filter(Boolean);
+      const normalize = item => String(item || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+      const preparation = record.prep?.emmiPreparation || {};
+      const resolveIndex = () => {
+        if (index === -1) return topics.length - 1;
+        if (Number.isInteger(index) && index >= 0) return index < topics.length ? index : -1;
+        const key = normalize(target);
+        if (/^(ese|esa|that|it)$/.test(key)) {
+          const recent = normalize(preparation.lastTopic || preparation.currentTopic || "");
+          return recent ? topics.findIndex(item => normalize(item) === recent || normalize(item).includes(recent) || recent.includes(normalize(item))) : -2;
+        }
+        if (!key) return -2;
+        const words = key.replace(/^(lo de|el tema de|la pregunta de) /, "").split(" ").filter(word => word.length > 2);
+        const matches = topics.map((item, topicIndex) => ({ topicIndex, score: words.filter(word => normalize(item).includes(word)).length })).filter(item => item.score > 0);
+        const best = Math.max(0, ...matches.map(item => item.score));
+        const winners = matches.filter(item => item.score === best);
+        return winners.length === 1 ? winners[0].topicIndex : winners.length > 1 ? -2 : -1;
+      };
+      let nextTopics = [...topics];
+      let item = "";
+      let changedIndex = -1;
+      if (["LIST", "OPEN"].includes(operation)) {
+        if (operation === "OPEN") {
+          openAppointmentDetail(record.id, "PREP");
+          state.assistantPendingNavigation = true;
+        }
+      } else if (operation === "READ_ITEM") {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        item = topics[changedIndex];
+      } else if (operation === "ADD") {
+        const added = String(value || "").trim().slice(0, 120);
+        if (!added) return { success: false, status: "TOPIC_REQUIRED" };
+        const existingIndex = topics.findIndex(topic => normalize(topic) === normalize(added));
+        if (existingIndex >= 0) changedIndex = existingIndex;
+        else { nextTopics.push(added); changedIndex = nextTopics.length - 1; }
+      } else {
+        changedIndex = resolveIndex();
+        if (changedIndex < 0) return { success: false, status: changedIndex === -2 ? "TOPIC_AMBIGUOUS" : "TOPIC_NOT_FOUND" };
+        if (operation === "REMOVE") nextTopics.splice(changedIndex, 1);
+        else if (operation === "MOVE") {
+          const [moved] = nextTopics.splice(changedIndex, 1);
+          const destination = Math.max(0, Math.min(Number.isInteger(position) ? position : 0, nextTopics.length));
+          nextTopics.splice(destination, 0, moved);
+          changedIndex = destination;
+        } else if (operation === "UPDATE") {
+          const replacement = String(value || "").trim().slice(0, 120);
+          if (!replacement) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = replacement;
+        } else if (operation === "UPDATE_DETAIL") {
+          const addedDetail = String(detail || "").trim();
+          if (!addedDetail) return { success: false, status: "TOPIC_REQUIRED" };
+          nextTopics[changedIndex] = `${topics[changedIndex]}: ${addedDetail}`.slice(0, 120);
+        } else return { success: false, status: "OPERATION_NOT_SUPPORTED" };
+      }
+      const now = new Date().toISOString();
+      const lastTopic = changedIndex >= 0 ? (nextTopics[changedIndex] || topics[changedIndex] || "") : preparation.lastTopic || "";
+      saveAppointment({
+        ...record,
+        prep: { ...(record.prep || {}), topics: nextTopics, emmiPreparation: { ...preparation, status: "IN_PROGRESS", contextActive: true, lastTopic, updatedAt: now }, updatedAt: now },
+        updatedAt: now
+      });
+      const saved = appointmentById(record.id)?.prep?.topics || [];
+      const verified = saved.length === nextTopics.length && saved.every((topic, topicIndex) => topic === nextTopics[topicIndex]);
+      if (!verified) return { success: false, status: "TOPICS_NOT_SAVED" };
+      return { success: true, status: operation === "OPEN" ? "OPENED" : "SAVED", appointmentId: record.id, topics: saved, ...(item ? { item } : {}) };
     },
     onSchedulingCapability: ({ providerId, appointmentType }) => {
       const member = patientCareTeam().find(candidate => candidate.id === providerId);
@@ -1539,10 +1652,16 @@ function ensureEmmiRuntime() {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       const last = state.assistantMessages.at(-1);
-      const sameVoiceTurn = last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
-        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId);
+      // Screen narration is intentionally split into short provider turns so navigation can yield
+      // at a safe boundary. It is still one logical message to the patient, so keep all segments
+      // with the same narration id in one transcript bubble even after an individual segment has
+      // drained. Patient answers continue to group strictly by generation.
+      const sameNarration = guidance && metadata.narrationId && last?.guidance && !last.interrupted
+        && last.narrationId === metadata.narrationId;
+      const sameVoiceTurn = sameNarration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+        && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId));
       if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
-      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0 });
+      else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0, narrationId: metadata.narrationId || "" });
       // Screen narration is visible context, not a patient/assistant exchange. Keeping it out of
       // model memory prevents a medication prompt from resurfacing on goals or completion screens.
       if (!guidance) emmiConversationManager?.recordTurn(role, cleaned, { screen: state.screen });
@@ -2328,7 +2447,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-companion" ? L("Coordinate a companion", "Coordinar acompañante", "Kowòdone yon moun pou akonpaye m") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -5362,6 +5481,10 @@ function appointmentSchedulingScreen() {
     const slots = [...(record.proposedTimes || [])].sort((a, b) => String(a.startAt).localeCompare(String(b.startAt)));
     return slotPickerView(appointmentViewProps({ appointment: record, slots, expanded: flow.expanded === true, error: flow.error || "" }));
   }
+  if (flow.step === "REVIEW_SLOT") {
+    const slot = (record.proposedTimes || []).find(item => item.slotId === flow.selectedSlotId);
+    if (slot) return appointmentSlotReviewView(appointmentViewProps({ appointment: record, slot }));
+  }
   if (flow.step === "BOOKED") return bookingConfirmationView(appointmentViewProps({ appointment: record }));
   if (flow.step === "REQUESTED") return requestConfirmationView(appointmentViewProps({ appointment: record }));
   if (flow.step === "COORDINATING") return appointmentCoordinationConfirmation(record);
@@ -7889,6 +8012,12 @@ function handlePatientLanguage(text) {
   const activeLocale = EMMI_LOCALE_KEYS[state.language] || "en";
   const offered = state.emmiOfferedLocale;
 
+  // Which language to continue in can wait; a symptom cannot. A Spanish-preference patient typing
+  // "my bp high what i do" was shown "I noticed you're writing in English. Would you like me to
+  // continue in English?" and had to answer that before anyone looked at the blood pressure. The
+  // health turn goes through untouched and the offer is simply skipped for it.
+  if (detectEmergencyLanguage(text)) return { handled: false, replayQuestion: "" };
+
   // A standing offer the patient answered in words rather than by carrying on.
   if (offered && offered !== activeLocale) {
     if (isLanguageOfferAccepted(text)) {
@@ -8184,6 +8313,13 @@ function bindAssistantLayer() {
       return;
     }
     // An appointment EMMI helped with opens where it can be acted on rather than described again.
+    if (growthAction === "appointment-companion") {
+      const record = appointmentById(button.dataset.appointmentId || "");
+      if (record) startBarrierResolution(record, APPOINTMENT_BARRIER_REASONS.CAREGIVER_AVAILABILITY);
+      else { state.screen = "MY_APPOINTMENTS"; state.appointmentFlow = { tab: "" }; draftStore.save(state); }
+      render();
+      return;
+    }
     if (growthAction === "appointment-view") {
       const appointmentId = button.dataset.appointmentId || "";
       if (appointmentId && appointmentById(appointmentId)) openAppointmentDetail(appointmentId);
@@ -9514,6 +9650,10 @@ function bind() {
       // §123/§124: a time that could not be held sends the patient back to real times, never to a
       // confirmation screen, and never with the blame.
       if (action === "appointment-select-slot") {
+        state.appointmentFlow = { appointmentId: record.id, step: "REVIEW_SLOT", selectedSlotId: el.dataset.slotId || "", error: "" };
+        draftStore.save(state); render(); return;
+      }
+      if (action === "appointment-confirm-slot") {
         const result = confirmAppointmentSlot(record, el.dataset.slotId || "");
         if (result.ok) { state.appointmentFlow = { appointmentId: record.id, step: "BOOKED" }; state.screen = "APPOINTMENT_SCHEDULING"; draftStore.save(state); render(); return; }
         const availability = loadAppointmentAvailability(result.record || record);

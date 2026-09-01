@@ -35,6 +35,10 @@ A patient can have secondary coverage that is Medicaid, a Qualified Medicare Ben
 
 This page explains how Medigap works in general. Whether a specific patient has a Medigap policy, and whether that policy pays a specific cost, are patient-specific facts that must come from verified coverage data, never from this page.
 
+## Patient answer (EN)
+
+Medicare Supplement Insurance, usually called Medigap, is private insurance you can buy to work alongside Original Medicare. It is designed to help pay costs that Original Medicare leaves to you, such as certain coinsurance, copayments and deductibles. What any particular policy pays depends on that specific policy, so two people who both have Medigap can still owe different amounts. Whether you have one, and what it covers, comes from your verified coverage rather than from a general rule.
+
 ## Patient answer (ES)
 
 El seguro suplementario de Medicare, que se suele llamar Medigap, es un seguro privado que funciona junto a Medicare Original y ayuda a pagar algunos de los costos que Medicare Original deja a su cargo. Lo que paga una póliza depende de esa póliza en concreto: dos personas con Medigap pueden deber cantidades distintas. Tener Medigap no significa por sí solo que usted no pague nada.

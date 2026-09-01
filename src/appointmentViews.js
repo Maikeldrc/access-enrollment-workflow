@@ -22,6 +22,7 @@
 //   appointment-back                    —                      Leave the screen (route to the
 //                                                              existing "back-to-my-care").
 //   appointment-select-slot             data-appointment-id, data-slot-id
+//   appointment-confirm-slot            data-appointment-id, data-slot-id
 //   appointment-more-times              data-appointment-id    "See more times" (§32).
 //   appointment-change-preferences      data-appointment-id    "Choose another day" (§32).
 //   appointment-preference-answer       data-need-id, data-field, data-value
@@ -86,7 +87,7 @@ export const APPOINTMENT_PREFERENCE_STEPS = Object.freeze(["PROVIDER", "REASON",
 // Every data-action this module can emit, for the lead's handler switch.
 export const APPOINTMENT_VIEW_ACTIONS = Object.freeze([
   "appointment-ask-emmi", "appointment-open", "appointment-open-list", "appointment-list-tab",
-  "appointment-back", "appointment-select-slot", "appointment-more-times",
+  "appointment-back", "appointment-select-slot", "appointment-confirm-slot", "appointment-more-times",
   "appointment-change-preferences", "appointment-preference-answer",
   "appointment-preference-other-time", "appointment-preference-back", "appointment-submit-request",
   "appointment-get-directions", "appointment-join-visit", "appointment-request-reschedule",
@@ -543,7 +544,7 @@ const confirmedActions = (appointment, props) => {
     ${appointment?.locationAddress ? `<button type="button" class="appointment-action secondary" data-action="appointment-get-directions" data-appointment-id="${id}">${glyph("mapPin")}<span>${t("Get directions", "Cómo llegar", "Jwenn direksyon")}</span></button>` : ""}
     <button type="button" class="appointment-action secondary" data-action="appointment-open-prep" data-appointment-id="${id}">${glyph("plan")}<span>${t("Prepare with EMMI", "Prepararse con EMMI", "Prepare w ak EMMI")}</span></button>
     <button type="button" class="appointment-action secondary" data-action="appointment-open-reminder" data-appointment-id="${id}">${glyph("bell")}<span>${t("Remind me in the app", "Recordármelo en la aplicación", "Fè m sonje nan aplikasyon an")}</span></button>
-    <button type="button" class="appointment-action secondary" data-action="appointment-open-share" data-appointment-id="${id}">${glyph("people")}<span>${t("Share with my Care Circle", "Compartir con mi Círculo de cuidado", "Pataje ak Sèk swen mwen")}</span></button>
+    <button type="button" class="appointment-action secondary" data-action="appointment-open-share" data-appointment-id="${id}">${glyph("people")}<span>${t("Share this appointment", "Compartir esta cita", "Pataje randevou sa a")}</span></button>
     <button type="button" class="appointment-action secondary" data-action="appointment-open-barrier" data-appointment-id="${id}">${glyph("car")}<span>${t("Anything making this hard?", "¿Algo se lo dificulta?", "Gen anyen k ap fè sa difisil?")}</span></button>
     <div class="appointment-change-actions">
       <button type="button" class="appointment-inline-link" data-action="appointment-request-reschedule" data-appointment-id="${id}">${t("Change the time", "Cambiar la hora", "Chanje lè a")}</button>
@@ -590,7 +591,7 @@ export function appointmentDetailView(props = {}) {
       </section>
       ${capabilityNote}
       ${props.readinessPanel || ""}
-      <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
+      <div class="appointment-actions appointment-confirmed-actions">${confirmedActions(appointment, props)}</div>
       ${askEmmiButton(props, appointment.id)}
       ${backButton(props)}
     </div>`;
@@ -676,6 +677,33 @@ export function slotPickerView(props = {}) {
   </div>`;
 }
 
+// Choosing a card only selects a time. Booking is a separate, explicit action so a patient never
+// creates a medical appointment by tapping what looks like a navigation row.
+export function appointmentSlotReviewView(props = {}) {
+  const appointment = props.appointment || {};
+  const slot = props.slot || {};
+  const locale = localeOf(props);
+  const esc = escaper(props);
+  const t = say(locale);
+  const parts = wallClock(slot.startAt, slot.timezone || appointment.timezone);
+  const where = [modalityLabel(slot.modality, locale), slot.locationName].filter(Boolean).join(" · ");
+  return `<div class="appointment-screen appointment-slot-review-screen">
+    ${screenTitle(props, t("Review this appointment", "Revise esta cita", "Revize randevou sa a"), t("Nothing is booked until you confirm.", "No se reserva nada hasta que usted confirme.", "Anyen pa rezève jiskaske ou konfime."), t("Appointment", "Cita", "Randevou"))}
+    <section class="appointment-slot-context">
+      <div class="appointment-identity">${identityBlock(appointment, props)}</div>
+      <dl class="appointment-facts">
+        <dt>${t("Date", "Fecha", "Dat")}</dt><dd>${esc(formatLongDate(parts, locale))}</dd>
+        <dt>${t("Time", "Hora", "Lè")}</dt><dd>${esc(formatTime(parts, locale))}</dd>
+        ${where ? `<dt>${t("Visit", "Visita", "Vizit")}</dt><dd>${esc(where)}</dd>` : ""}
+      </dl>
+    </section>
+    <button type="button" class="appointment-action primary" data-action="appointment-confirm-slot" data-appointment-id="${esc(appointment.id)}" data-slot-id="${esc(slot.slotId)}"><span>${t("Reserve this appointment", "Reservar esta cita", "Rezève randevou sa a")}</span></button>
+    <button type="button" class="appointment-action secondary" data-action="appointment-more-times" data-appointment-id="${esc(appointment.id)}"><span>${t("Choose a different time", "Elegir otra hora", "Chwazi yon lòt lè")}</span></button>
+    ${askEmmiButton(props, appointment.id)}
+    ${backButton(props)}
+  </div>`;
+}
+
 /* --------------------------------------------------------------------------- §34 --------- */
 
 // §34. Only a genuinely confirmed record gets confirmed formatting — anything else falls
@@ -698,7 +726,7 @@ export function bookingConfirmationView(props = {}) {
       ${whereBlock(appointment, props)}
       ${viewListButton(props, appointment.id)}
     </section>
-    <div class="appointment-actions">${confirmedActions(appointment, props)}</div>
+    <div class="appointment-actions appointment-confirmed-actions">${confirmedActions(appointment, props)}</div>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;
@@ -841,7 +869,7 @@ export function appointmentBarrierCheckView(props = {}) {
     : [
       ["ALL_SET", "check", t("I’m all set", "Todo está listo", "Tout bagay pare")],
       ["TRANSPORTATION", "car", t("I don’t have a way to get there", "No tengo cómo llegar", "Mwen pa gen mwayen pou rive")],
-      ["CAREGIVER_AVAILABILITY", "people", t("I need someone to come with me", "Necesito que alguien me acompañe", "Mwen bezwen yon moun vin ak mwen")],
+      ["CAREGIVER_AVAILABILITY", "people", t("I need someone to come with me", "Necesito acompañante", "Mwen bezwen yon moun vin ak mwen")],
       ["TIME_CONFLICT", "clock", t("I need to change the time", "Necesito cambiar la hora", "Mwen bezwen chanje lè a")],
       ...(appointment.modality === "TELEHEALTH"
         ? [["TECHNOLOGY_TELEHEALTH", "video", t("I’m not sure how to start the video visit", "No sé cómo comenzar la visita por video", "Mwen pa konnen kijan pou kòmanse vizit videyo a")]]
@@ -860,7 +888,7 @@ export function appointmentBarrierCheckView(props = {}) {
   };
   return `<div class="appointment-screen appointment-barrier-screen">
     ${screenTitle(props, question, lead, t("Appointment", "Cita", "Randevou"))}
-    <div class="appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}"${states[reason]?.label ? ` data-barrier-state="${esc(states[reason].tone || "WAITING")}"` : ""}>${glyph(name)}<span class="barrier-choice-label"><span>${esc(label)}</span>${stateLine(reason)}</span></button>`).join("")}</div>
+    <div class="appointment-choices barrier-appointment-choices">${options.map(([reason, name, label]) => `<button type="button" class="appointment-choice" data-action="appointment-barrier-answer" data-appointment-id="${esc(appointment.id)}" data-barrier-reason="${reason}"${states[reason]?.label ? ` data-barrier-state="${esc(states[reason].tone || "WAITING")}"` : ""}>${glyph(name)}<span class="barrier-choice-label"><span>${esc(label)}</span>${stateLine(reason)}</span></button>`).join("")}</div>
     ${askEmmiButton(props, appointment.id)}
     ${backButton(props)}
   </div>`;

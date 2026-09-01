@@ -9,7 +9,7 @@ requires_tool_when_personalized: true
 version: 1.0
 last_reviewed: 2026-08-27
 owner: ITERA HEALTH
-keywords: circulo de cuidado, círculo de cuidado, care circle, sèk swen, hija, hijo, familiar, cuidador, caregiver, pitit, fanmi, invitar, invite, envite, permisos, permissions, pèmisyon, apoyo
+keywords: circulo de cuidado, círculo de cuidado, care circle, sèk swen, hija, hijo, daughter, son, wife, husband, spouse, family member, relative, familiar, cuidador, caregiver, pitit, fanmi, invitar, invite, envite, permisos, permissions, pèmisyon, apoyo, someone i trust, help me with my care, i do not have anyone, i have nobody, no one to help me, can you let her know, can you tell her, can you call my son, can you call my daughter, let my family know, no tengo a nadie, puede avisarle, puede llamar a mi hijo, puede llamar a mi hija, mwen pa gen pèsonn
 ---
 
 # Care Circle
@@ -22,6 +22,10 @@ Use a secure invitation flow and minimal necessary permissions.
 ## EMMI response rule
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
+
+## Patient answer (EN)
+
+Your Care Circle is optional support from someone you trust, such as a daughter, son, spouse, another family member or a caregiver. You choose who to invite and what they can see or help with, and nothing is sent until you review the details and send the invitation yourself. They can help with things like reminders, setting up your monitor, and getting to appointments. They cannot agree, sign, or make healthcare decisions for you unless they are your personal representative, and you stay in control of your care.
 
 ## Patient answer (ES)
 

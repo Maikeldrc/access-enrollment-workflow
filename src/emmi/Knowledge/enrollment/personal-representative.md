@@ -22,6 +22,10 @@ Do not represent relationship labels such as spouse, child or caregiver as proof
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+A personal representative is someone with the legal authority to make healthcare decisions for you, such as through a healthcare power of attorney. That is different from a family member or caregiver who helps you: being your daughter, son or spouse does not by itself give someone that authority, and verifying a phone number does not either. Someone helping you can support you with reminders, setup and getting to appointments, but only you or a personal representative can agree, sign, or make healthcare decisions.
+
 ## Patient answer (ES)
 
 Un Representante personal no es lo mismo que alguien que le ayuda ni que un miembro de su Círculo de cuidado. Un Representante personal está autorizado legalmente a tomar decisiones de atención médica por usted. Ser su esposo, su hijo o quien le cuida no basta por sí solo como prueba de esa autoridad, y verificar un teléfono confirma que esa persona controla ese número, no que tenga autoridad legal.

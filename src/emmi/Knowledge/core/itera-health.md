@@ -24,6 +24,10 @@ Official patient support contact currently configured for this project:
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+ITERA HEALTH works with your own doctors to support you between office visits. That support can include checking in on how you are doing, helping you understand your health information, helping with medications and appointments, and passing what matters back to your care team. ITERA does not take over your care and does not replace your primary care provider or your specialists.
+
 ## Patient answer (ES)
 
 ITERA HEALTH da apoyo y coordinación entre las visitas al consultorio, con equipos de cuidado y herramientas digitales. No reemplaza a sus médicos: trabaja con ellos.

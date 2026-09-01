@@ -21,7 +21,7 @@ export function clearEmmiAuditLog() {
 }
 const readLogs = () => { try { return store() ? JSON.parse(store().getItem(LOG_KEY) || "[]") : memoryLogs; } catch { return memoryLogs; } };
 const writeLogs = logs => { memoryLogs = logs.slice(-25); try { store()?.setItem(LOG_KEY, JSON.stringify(memoryLogs)); } catch {} };
-const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey/i;
+const sensitive = /question|query|symptoms|patientDescription|transcript|text|audio|token|apiKey|target|value|detail|topic/i;
 const safe = value => Array.isArray(value) ? value.map(safe) : value && typeof value === "object" ? Object.fromEntries(Object.entries(value).filter(([key]) => !sensitive.test(key)).map(([key,item]) => [key,safe(item)])) : value;
 
 export const selectDemoPatientId = ({ language = "en", completionRole = "patient", eligibilityStatus = "", deviceScenario = null } = {}) => {
@@ -95,6 +95,8 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "startRefillReview", description: "Open the refill review for one medication so the patient can confirm they still take it and whether they are running low. Use when the patient says they are running out or asks for a refill. This starts a review; it never requests, approves or renews anything.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, medicationId: { type: "STRING" } }, required: ["patientId", "medicationId"] } },
   { name: "getUpcomingAppointments", description: "Get the appointments already on file for this patient with their patient-facing status. Always use before answering when an appointment is, whether one exists, or before offering to request another one, so an existing appointment is reported rather than duplicated. Never state a date, time, provider or status that is not in this result.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getAppointment", description: "Get one appointment the patient already has, including its patient-facing status and next step. Use for any question about a specific visit. If it is not found, say so; never describe an appointment this tool did not return.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" } }, required: ["appointmentId"] } },
+  { name: "getAppointmentTransportation", description: "Get the confirmed transportation reservations associated with one appointment, including the exact pickup time, ride service, reservation number, destination, estimated arrival and estimated cost. Always call this before answering patient-specific transportation questions. Never infer a ride from an appointment or say transportation is reserved unless this result contains a confirmed reservation.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" } }, required: ["appointmentId"] } },
+  { name: "manageAppointmentTopics", description: "Read, open, add, update, remove, move, or read one item from the patient's real appointment-preparation list. Use for every contextual reference to the visit list, agenda, saved questions, or 'it/that one'. Operations run in call order. Never claim a change unless this returns success; TOPIC_AMBIGUOUS or TOPIC_REQUIRED means ask one short clarification question. Clinical safety always comes first.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, appointmentId: { type: "STRING" }, operation: { type: "STRING" }, target: { type: "STRING" }, value: { type: "STRING" }, detail: { type: "STRING" }, index: { type: "NUMBER" }, position: { type: "NUMBER" } }, required: ["appointmentId", "operation"] } },
   { name: "getSchedulingCapability", description: "Find out how this professional's office can actually be scheduled with: direct booking, a structured request, human coordination by the care team, or no available channel. Always call this before offering to book, request or coordinate anything, because offering a booking the office cannot accept is a promise the product cannot keep.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, providerId: { type: "STRING" }, appointmentType: { type: "STRING" } }, required: ["providerId"] } },
   { name: "getProviderAvailability", description: "Get real appointment times from the trusted scheduling source. Every returned time is reservable and held through its expiresAt value; if the patient chooses and explicitly confirms one during that hold, book that exact slotId. This is the only source of availability: never invent, estimate, remember or reuse a time, and never present a time the result did not contain. If it returns ok false, tell the patient you could not check the times and offer to try again or reach the care team.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, providerId: { type: "STRING" }, preferredTimeOfDay: { type: "STRING" }, modality: { type: "STRING" } }, required: ["providerId"] } },
   { name: "startAppointmentRequest", description: "Open the appointment request so the patient can confirm who they need to see, why, and when. Use when the patient says they need a visit or need to see a professional. This starts the flow; it requests, books and sends nothing by itself.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, reasonCategory: { type: "STRING" }, providerId: { type: "STRING" }, reasonSummary: { type: "STRING" } }, required: ["reasonCategory"] } },
@@ -115,7 +117,7 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onClassifyStatement = () => null, onCreatePersonalGoal = () => null, onGoalActionWrite = () => null, onGoalWording = () => null, onStartPersonalGoal = () => null, onStartGoalStepEdit = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, onDescribeView = () => null, onPerformViewAction = () => null, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onAppointmentTransportation = () => null, onAppointmentTopics = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, onDescribeView = () => null, onPerformViewAction = () => null, auditLog, onClassifyStatement = () => null, onCreatePersonalGoal = () => null, onGoalActionWrite = () => null, onGoalWording = () => null, onStartPersonalGoal = () => null, onStartGoalStepEdit = () => null }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
@@ -143,6 +145,8 @@ export class EmmiToolOrchestrator {
     // application, and every write asks the application after the patient confirmed it.
     this.onUpcomingAppointments = onUpcomingAppointments;
     this.onAppointment = onAppointment;
+    this.onAppointmentTransportation = onAppointmentTransportation;
+    this.onAppointmentTopics = onAppointmentTopics;
     this.onSchedulingCapability = onSchedulingCapability;
     this.onProviderAvailability = onProviderAvailability;
     this.onStartAppointmentRequest = onStartAppointmentRequest;
@@ -318,6 +322,20 @@ export class EmmiToolOrchestrator {
       // than by being falsy — otherwise a missing appointment is reported as a found one.
       const found = this.onAppointment({ appointmentId: String(args.appointmentId || "") });
       result = found?.appointment ? clone(found) : { success: false, status: "NOT_FOUND" };
+    } else if (name === "getAppointmentTransportation") {
+      const found = this.onAppointmentTransportation({ appointmentId: String(args.appointmentId || "") });
+      result = found?.success ? clone(found) : { success: false, status: found?.status || "TRANSPORTATION_NOT_FOUND", reservations: [] };
+    } else if (name === "manageAppointmentTopics") {
+      const managed = this.onAppointmentTopics({
+        appointmentId: String(args.appointmentId || ""),
+        operation: String(args.operation || "").toUpperCase(),
+        target: String(args.target || ""),
+        value: String(args.value || ""),
+        detail: String(args.detail || ""),
+        index: Number.isInteger(args.index) ? args.index : null,
+        position: Number.isInteger(args.position) ? args.position : null
+      });
+      result = managed?.success ? clone(managed) : { success: false, status: managed?.status || "APPOINTMENT_TOPICS_UNAVAILABLE" };
     } else if (name === "getSchedulingCapability") {
       // Not every office can be booked, and some cannot be reached at all. An unresolved capability
       // is reported as unknown rather than assumed, because assuming it invents a channel.

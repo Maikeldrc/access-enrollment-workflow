@@ -36,6 +36,10 @@ If asked, “Am I creating my medical care plan?”, explain plainly: “Not exa
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+Your care plan brings together your goals, your health information and your next steps in one place, so you and your care team are working from the same picture. Your care team sets the clinical parts, such as targets, medicines, and when something needs review, and you set what matters to you, what you want to work toward, and what is making things harder. It is not fixed: it is meant to be updated as your care goes on. You can see yours in the app, and I can walk you through it.
+
 ## Patient answer (ES)
 
 Su plan de cuidado es un conjunto coordinado de orientación clínica, objetivos, próximos pasos y apoyo. Usted no lo construye desde cero: su equipo de cuidado define los objetivos clínicamente apropiados y conserva la autoridad sobre las metas clínicas, las recetas, los diagnósticos, el tratamiento y los umbrales de seguimiento. Lo que sí es suyo es decir qué le importa, priorizar, contar qué le está costando y pedir ayuda.

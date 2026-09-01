@@ -22,6 +22,10 @@ ACCESS eligibility in this project is restricted to applicable Original Medicare
 
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
+## Patient answer (EN)
+
+Medicare Advantage plans, also called Part C, are private plans that provide your Medicare benefits under the plan's own rules. ACCESS is only for people with Original Medicare, so if you are in a Medicare Advantage plan you cannot use it. Your plan may offer something similar, and the best way to find out is to contact your plan directly. If your coverage has changed or is about to change, tell your care team so it can be checked.
+
 ## Patient answer (ES)
 
 Los planes Medicare Advantage son planes privados que ofrecen los beneficios cubiertos por Medicare según las reglas del plan. No son lo mismo que Medicare Original, y esa diferencia importa: la disponibilidad de un programa y lo que usted pague pueden cambiar según cuál tenga. Cuál tiene usted es un dato de su cobertura verificada.
