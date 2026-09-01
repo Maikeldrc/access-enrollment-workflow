@@ -22,11 +22,14 @@ import { SCHEDULING_CAPABILITY, bookSlot, getProviderAvailability, reservableAva
 import { CARE_TEAM_SOURCES, PROFESSIONAL_TYPES, buildCareTeam, professionalNotFoundPlan, resolveRequestedProfessional } from "./careTeamDirectory.js";
 import { APPOINTMENT_BARRIER_REASONS, APPOINTMENT_REMINDER_SLOTS, ATTENDANCE_OUTCOMES, appointmentBarrierPlan, appointmentFollowUpDue, appointmentReminderCapability, appointmentReminderSlotOptions, appointmentShareScope, attendanceFollowUpPlan, careCircleSharingOptions, createAppointmentReminder, preVisitCheckOptions, sharedAppointmentPayload } from "./appointmentSupport.js";
 import { APPOINTMENT_PREFERENCE_STEPS, appointmentBarrierCheckView, appointmentBriefView, appointmentDetailView, appointmentFollowUpView, appointmentPrepConversationOpening, appointmentPrepView, appointmentPreferenceView, appointmentShareView, appointmentsListScreen, bookingConfirmationView, formatAppointmentTime, needAnAppointmentCard, requestConfirmationView, slotPickerView, upcomingCareSection } from "./appointmentViews.js";
+import { CONFIRMATION_REQUIRED_KINDS, VIEW_ACTION_KINDS, describeEmmiViewFromDom, emmiViewForModel, emmiViewSignature, findViewAction, findViewOption, normalizeEmmiView, withLiveControls } from "./emmi/viewContext.js";
+import { describeAppointmentView, describeResolutionView } from "./appointmentViewContext.js";
+import { describeCareCircleView, describeDeviceView, describeEnrollmentView, describeGoalView, describeMedicationView } from "./careViewContext.js";
 import { SIMULATED_APPOINTMENT_RESPONSE_DELAY_MS, simulateAppointmentServiceResponse, simulatedAppointmentResponseDueAt, simulatedAppointmentResponseIsDue } from "./appointmentResponseSimulator.js";
 // The barrier resolution engine: the domain machine, the simulated outside world, and the views.
 // The shell owns none of the three — it connects them to this patient's record, the care-team
 // queue and the appointment the resolution is about.
-import { BARRIER_TYPES, RESOLUTION_EVENTS, RESOLUTION_STATUS, addressErrorText, advanceResolution, appointmentReadiness, barrierListState, careTeamAssistanceRequest, classifyResolutionIntent, createResolution, homeAddressFrom, isWorkingStep, recommendedPickupTime, resolutionEvent, resolutionPlaybookFor, resolutionSpeech, toggleTransportNeed, transportationSuitability, validateAddress } from "./barrierResolution.js";
+import { BARRIER_TYPES, RESOLUTION_EVENTS, RESOLUTION_STATUS, addressErrorText, advanceResolution, pickupTimeChoices, returnTripChoices, transportNeedOptions, appointmentReadiness, barrierListState, careTeamAssistanceRequest, classifyResolutionIntent, createResolution, homeAddressFrom, isWorkingStep, recommendedPickupTime, resolutionEvent, resolutionPlaybookFor, resolutionSpeech, toggleTransportNeed, transportationSuitability, validateAddress } from "./barrierResolution.js";
 import { barrierDemoMode, barrierPause, careTeamService, companionService, schedulingAssistService, setBarrierLatencyScale, transportationService, videoReadinessService } from "./barrierProviders.js";
 import { allSetConfirmation, appointmentReadinessPanel, barrierResolutionScreen } from "./barrierResolutionViews.js";
 import { EMMI_CONFIG, emmiPrototypeIsSafe } from "./emmi/config.js";
@@ -1057,6 +1060,15 @@ function assistantContext() {
       }))
     } : null,
     medications: (state.careMedications || []).map(({ id, name, details, active }) => ({ id, name, details, active: Boolean(active) })),
+    // What the patient is looking at RIGHT NOW: the view, what they have to do on it, the values
+    // and choices on screen, what is selected, what has really happened and what has not.
+    //
+    // This is the field the original defect was missing. `currentScreen` above is a route, and a
+    // route stopped identifying a screen the moment a route grew a flow inside it — every step of
+    // appointment coordination and of barrier resolution is "APPOINTMENT_DETAIL". Chat reads this
+    // fresh on every turn because it calls assistantContext() per turn; Voice is sent it again
+    // whenever it changes, because a live session takes its system instruction only once.
+    view: emmiModelView(),
     emmiConversation: emmiConversationManager.contextForModel()
   };
 }
@@ -1290,6 +1302,8 @@ function ensureEmmiRuntime() {
         members: options.eligibleMembers.map(({ inviteId, firstName, relationship, status }) => ({ inviteId, firstName, relationship, status }))
       };
     },
+    onDescribeView: () => emmiModelView(),
+    onPerformViewAction: params => performEmmiViewAction(params),
     onShareAppointment: ({ appointmentId, inviteId, confirmed }) => {
       if (confirmed !== true) return { success: false, status: "CONFIRMATION_REQUIRED" };
       const record = appointmentById(appointmentId);
@@ -1486,7 +1500,16 @@ const assistantQuickQuestions = context => getEmmiQuickQuestions({
   context
 });
 
-function assistantScreenExplanation(screen) {
+function assistantScreenExplanation(screen, context = null) {
+  // "What do I do here?" is a question about the view, not about the route. Every step of
+  // appointment coordination and barrier resolution lives on one route, so the describer's own
+  // sentence — which is written as an instruction for that exact step — is what answers it. The
+  // route table below stays as the fallback for the enrollment screens, which are one-to-one.
+  const view = context?.view;
+  if (view?.whatThePatientMustDoHere) {
+    const pending = (view.stillPending || []).filter(Boolean);
+    return [view.whatThePatientMustDoHere, pending.length ? `${L("Still to do", "Falta", "Rete pou fè")}: ${pending[0]}.` : ""].filter(Boolean).join(" ");
+  }
   const explanations = {
     INVITATION: L("This screen introduces the care support available to you and lets you choose whether to learn more.", "Esta pantalla presenta el apoyo de cuidado disponible y le permite decidir si desea conocer más.", "Ekran sa a entwodui sipò swen ki disponib pou ou epi li pèmèt ou chwazi si pou w aprann plis."),
     DECISION_MAKER: L("This screen asks who is completing the enrollment so we can show the right information.", "Esta pantalla pregunta quién completa la inscripción para mostrar la información correcta.", "Ekran sa a mande ki moun ki ranpli enskripsyon an pou nou ka montre bon enfòmasyon an."),
@@ -4579,6 +4602,345 @@ function barrierResolutionProps(resolution) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// What the patient is looking at — assembled, checked against the document, and published.
+//
+// Three things happen here and nothing else:
+//
+//   1. emmiViewContext()      builds the descriptor for whatever is on screen. A describer if the
+//                             feature has one, and otherwise the screen's own heading, lead and
+//                             controls — so a feature nobody has written a describer for is
+//                             degraded, never invisible.
+//   2. syncEmmiViewContext()  notices the descriptor changed and pushes it into the live voice
+//                             session, silently. This is the fix for the original defect: a voice
+//                             session takes its system instruction once, so without a push EMMI
+//                             answers every question from the screen the microphone opened on.
+//   3. performEmmiViewAction() presses a control EMMI asked for — by finding the real element and
+//                             clicking it, which is why EMMI cannot do anything the patient could
+//                             not do themselves at that exact moment.
+//
+// Chat needs none of this plumbing: it calls assistantContext() fresh on every turn and therefore
+// reads the same descriptor by construction. That is the point — one context, two modalities.
+// ---------------------------------------------------------------------------
+
+// The descriptor last published, and its signature. Held here rather than on state because it is
+// derived from the DOM and belongs to the paint, not to the patient's record.
+let publishedView = null;
+let publishedViewSignature = "";
+
+const screenRoot = () => document.querySelector("#screen-content");
+
+// The snapshot the appointment describers read. Assembled from the same functions the screens
+// render from, so a value EMMI says and a value the patient reads cannot drift apart.
+function appointmentViewSnapshot() {
+  const record = activeAppointment();
+  const flow = state.appointmentFlow || {};
+  const view = state.screen === "APPOINTMENT_DETAIL"
+    ? (flow.view || (record && appointmentFollowUpDue(record, new Date()) ? "FOLLOW_UP" : ""))
+    : "";
+  return {
+    screen: state.screen,
+    view,
+    appointment: record,
+    appointments: appointmentRecords(),
+    tab: flow.tab || "",
+    schedulingStep: flow.step || "",
+    preVisitCheck: record ? preVisitCheckOptions({ appointment: record, locale: state.language }) : null,
+    barrierStates: record ? appointmentBarrierStates(record) : null,
+    readiness: record ? appointmentReadinessFor(record) : null,
+    members: appointmentCareCircle().eligibleMembers || [],
+    locale: state.language
+  };
+}
+
+// The extras a resolution describer needs that live outside the resolution record: the contacts
+// the companion step is choosing between, the pickup times, the return times, the special needs.
+function resolutionViewExtras(resolution) {
+  const data = resolution.data || {};
+  return {
+    contacts: companionService.contacts({ careCircleMembers: appointmentCareCircle().eligibleMembers, locale: state.language }).contacts,
+    needOptions: transportNeedOptions(state.language),
+    pickupChoices: pickupTimeChoices(data.recommendedPickupAt || data.pickupAt, state.language),
+    returnChoices: returnTripChoices(state.language),
+    homeAddress: patientHomeAddress()
+  };
+}
+
+// The snapshots the rest of the product's describers read. Each one is assembled from the same
+// functions the screens themselves render from, so a value EMMI says and a value on screen cannot
+// come apart.
+const goalViewSnapshot = () => {
+  const goal = currentGoal();
+  const health = goal?.goalType === "BLOOD_PRESSURE_CONTROL" ? bloodPressureGoalRuntime(goal) : null;
+  return {
+    screen: state.screen,
+    detailView: state.goalDetailView || "",
+    flowStep: state.goalFlowStep || "",
+    goal: goal ? {
+      id: goal.id,
+      title: goalDisplayName(goal, state.language),
+      status: goal.status,
+      priority: goal.priority,
+      whyItMatters: goal.whyItMatters || "",
+      actions: (goal.actions || []).map(item => ({ id: item.id, title: item.title, status: item.status, frequency: item.frequency || "", verificationMethod: resolveGoalActionVerification(item) })),
+      barriers: activeGoalBarriers(goal).map(item => ({ id: item.id, category: item.category, status: item.status })),
+      latestReading: health?.latest || null,
+      clinicalTarget: health?.clinicalTarget || null
+    } : null,
+    goals: activePatientGoals().map(item => ({ id: item.id, title: goalDisplayName(item, state.language), status: item.status, priority: item.priority, planStatus: item.planStatus })),
+    locale: state.language
+  };
+};
+
+const medicationViewSnapshot = () => ({
+  screen: state.screen,
+  refillStep: state.refillFlow?.step || "",
+  medications: (state.careMedications || []).map(item => ({ id: item.id, name: medicationLabel(item), strength: item.strength || "", details: medicationDetails(item) || medicationSig(item) || "", active: item.active !== false, pharmacy: item.pharmacy || null })),
+  reviews: state.medicationReviews || {},
+  refills: state.medicationRefills || [],
+  activeMedication: (state.careMedications || []).find(item => item.id === state.refillFlow?.medicationId) || null,
+  locale: state.language
+});
+
+const careCircleViewSnapshot = () => ({
+  screen: state.screen,
+  members: appointmentCareCircle().eligibleMembers || [],
+  invitePending: state.supportInviteStatus === "SENT" || state.careCircleInvitePending === true,
+  permissions: state.careCirclePermissions || null,
+  supportPersonName: state.supportPersonName || "",
+  locale: state.language
+});
+
+const deviceViewSnapshot = () => ({
+  screen: state.screen,
+  deviceVerificationStatus: state.deviceVerificationStatus || "",
+  device: state.assignedDeviceId || state.deviceModel ? { vendor: state.deviceVendor || "", model: state.deviceModel || "" } : null,
+  baselineTaken: state.bpBaselineReadingCount || 0,
+  baselineRemaining: state.bpBaselineRemainingReadings ?? 0,
+  baselineRequired: state.bpBaselineRequiredReadings || 0,
+  locale: state.language
+});
+
+const enrollmentViewSnapshot = () => ({
+  screen: state.screen,
+  enrollment: {
+    identityVerified: Boolean(state.identityVerified),
+    consentSaved: Boolean(state.consentSaved),
+    enrollmentComplete: state.enrollmentStatus === "COMPLETED",
+    canContinue: state.accessOutcome ? state.accessOutcome === "eligible" : null,
+    disclosureAcknowledged: Boolean(state.disclosureAcknowledgedAt)
+  },
+  locale: state.language
+});
+
+// The descriptor for right now. Describer first, document second, and the document always has the
+// last word on which controls exist.
+function emmiViewContext() {
+  const root = screenRoot();
+  let described = null;
+  const resolution = state.screen === "APPOINTMENT_DETAIL" && state.appointmentFlow?.view === "RESOLUTION" ? activeResolution() : null;
+  if (resolution) {
+    described = describeResolutionView({
+      resolution,
+      appointment: appointmentById(resolution.appointmentId),
+      locale: state.language,
+      extras: resolutionViewExtras(resolution)
+    });
+  } else if (["APPOINTMENT_DETAIL", "APPOINTMENT_SCHEDULING", "MY_APPOINTMENTS"].includes(state.screen)) {
+    described = describeAppointmentView(appointmentViewSnapshot());
+  } else {
+    // The rest of the product. Each describer answers for its own screens and null for everything
+    // else, so the order here is not a priority list — it is just the order they were written in.
+    described = describeGoalView(goalViewSnapshot())
+      || describeMedicationView(medicationViewSnapshot())
+      || describeCareCircleView(careCircleViewSnapshot())
+      || describeDeviceView(deviceViewSnapshot())
+      || describeEnrollmentView(enrollmentViewSnapshot());
+  }
+  if (described) return withLiveControls(normalizeEmmiView({ ...described, screenId: described.screenId || state.screen }), root);
+  // The floor. Every other screen in the product still tells EMMI its heading, the sentence under
+  // it and the controls it drew, which is enough to answer "what do I do here?" and enough that a
+  // feature added tomorrow is never a blank.
+  return describeEmmiViewFromDom(root, { screenId: state.screen, viewId: `SCREEN_${state.screen}`, locale: state.language });
+}
+
+// Called from the paint. Compares meaning rather than markup, so a re-render that changed nothing
+// costs nothing and a changed price, selection or completed action reaches EMMI immediately.
+function syncEmmiViewContext() {
+  const view = emmiViewContext();
+  const signature = emmiViewSignature(view);
+  if (signature === publishedViewSignature) return false;
+  publishedView = view;
+  publishedViewSignature = signature;
+  // Voice only. Chat reads the same descriptor through assistantContext() on its next turn, so
+  // pushing to it would be sending it something it is about to ask for.
+  if (emmiLive?.isActive()) emmiLive.sendContextUpdate(emmiViewForModel(view), { label: "APP SCREEN UPDATE" });
+  return true;
+}
+
+// The descriptor as the model reads it. Rebuilt rather than cached when nothing has published yet,
+// so a chat turn on a screen voice never saw still gets the real thing.
+const emmiModelView = () => emmiViewForModel(publishedView || emmiViewContext());
+
+// What EMMI can see, and what EMMI can press, reachable from a test or a QA console. Development
+// builds only: this is the same pair of functions the tools call, so a test asserting on them is
+// asserting on the real path rather than on a copy of it — but a production build must not hand a
+// page script a way to press the patient's buttons.
+if (!import.meta.env.PROD) {
+  globalThis.__emmiViewProbe = () => emmiModelView();
+  // Any tool, through the orchestrator the model calls — so a tool that fails for EMMI fails here
+  // in the same way, with the same error, rather than only inside a live session.
+  globalThis.__emmiToolProbe = async (name, args = {}) => {
+    try { return { ok: true, result: await ensureEmmiRuntime().tools.execute(name, args) }; }
+    catch (error) { return { ok: false, error: String(error?.message || error) }; }
+  };
+  globalThis.__emmiActionProbe = params => performEmmiViewAction(params || {});
+  // Whether a live session is open, which is what decides whether a screen change is pushed.
+  globalThis.__emmiVoiceProbe = () => ({ state: state.assistantVoiceState, active: Boolean(emmiLive?.isActive()), error: state.assistantVoiceError || "", socket: Boolean(emmiLive?.session), contextVersion: emmiLive?.activeContextVersion ?? null });
+  // Ask the live session a question as the patient, and read back what EMMI answered. The words go
+  // in as a patient turn on the same session, against the same context a spoken question would
+  // reach — which is what makes this a real test of the context rather than of the microphone.
+  globalThis.__emmiVoiceAsk = async question => {
+    if (!emmiLive?.isActive()) return { ok: false, reason: "NO_SESSION" };
+    // A patient speaks when they want to, including over screen guidance — that is what barge-in
+    // is for — so this does not wait for silence. It only retries a turn the client refuses,
+    // which happens while a context handoff is in flight and clears in a few hundred milliseconds.
+    const before = state.assistantMessages.length;
+    let sent = false;
+    for (let attempt = 0; attempt < 30 && !sent; attempt += 1) {
+      sent = emmiLive.sendText(String(question || ""), { priority: "PATIENT_RESPONSE", contextIndependent: true });
+      if (!sent) await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    if (!sent) return { ok: false, reason: "TURN_REFUSED", voiceState: state.assistantVoiceState, socket: Boolean(emmiLive.session) };
+    // Screen narration is not an answer, so it is filtered out by the same flag the transcript
+    // uses to keep it out of model memory.
+    const answerSoFar = () => state.assistantMessages.slice(before).filter(message => message.role === "assistant" && !message.guidance);
+    // The answer arrives as a stream of transcript chunks, and the state can touch LISTENING
+    // between two of them. So the turn is finished when the text has stopped growing, not when the
+    // state says idle — otherwise the test reads the first two words and calls it an answer.
+    const deadline = Date.now() + 45000;
+    let text = "";
+    let steadyFor = 0;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const next = answerSoFar().map(message => message.text).join(" ");
+      steadyFor = next === text && next ? steadyFor + 250 : 0;
+      text = next;
+      if (steadyFor >= 2500) return { ok: true, text };
+    }
+    const late = answerSoFar();
+    return late.length
+      ? { ok: true, text: late.map(message => message.text).join(" "), timedOut: true }
+      : { ok: false, reason: "NO_ANSWER", voiceState: state.assistantVoiceState, voiceError: state.assistantVoiceError || "", tail: state.assistantMessages.slice(-3).map(message => `${message.role}:${message.guidance ? "guidance:" : ""}${String(message.text || "").slice(0, 80)}`) };
+  };
+}
+
+/* ---------------------------------------------------------------- acting on the screen ---- */
+
+const VIEW_ACTION_STATUS = Object.freeze({
+  PERFORMED: "PERFORMED",
+  NOT_AVAILABLE: "CONTROL_NOT_ON_SCREEN",
+  CONFIRMATION_REQUIRED: "CONFIRMATION_REQUIRED",
+  NEEDS_TYPED_INPUT: "NEEDS_TYPED_INPUT",
+  UNKNOWN_ACTION: "UNKNOWN_ACTION",
+  SCREEN_NOT_DESCRIBED: "SCREEN_NOT_DESCRIBED"
+});
+
+// EMMI pressing a button. The authorization rules live here, next to the controls, rather than in
+// a prompt — a prompt can be talked out of them.
+async function performEmmiViewAction({ actionId = "", optionRef = "", confirmed = false, text = "" } = {}) {
+  const view = publishedView || emmiViewContext();
+  const root = screenRoot();
+  if (!view || !root) return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE };
+
+  // A screen nobody has described reaches EMMI through the DOM floor, where the kind of every
+  // control is inferred from the verb in its name. That inference is good enough to explain a
+  // screen and it is not good enough to authorise acting on one: it read "pause my goal" as
+  // navigation until this week. So on those screens EMMI names the button and the patient presses
+  // it. Being able to act is earned by writing the describer, which is where somebody actually
+  // decides what each control does.
+  if (view.source === "DOM") {
+    return {
+      success: false,
+      status: VIEW_ACTION_STATUS.SCREEN_NOT_DESCRIBED,
+      note: "Nothing was pressed. On this screen, tell the patient which control to use and let them press it.",
+      availableActions: view.actions.map(item => ({ id: item.id, label: item.label }))
+    };
+  }
+
+  // An option reference wins when both are given: "select the first one" names a choice, and the
+  // action that selects it is whatever that choice's own control is.
+  const option = optionRef ? findViewOption(view, optionRef) : null;
+  if (optionRef && !option) {
+    // A reference to something that is not on this screen. Handing back both lists rather than
+    // only the choices matters on a screen that has none: EMMI asking for "the second one" on a
+    // review page should learn what that page does have, not receive an empty array.
+    return {
+      success: false,
+      status: VIEW_ACTION_STATUS.UNKNOWN_ACTION,
+      availableChoices: view.options.map(item => ({ n: item.ordinal, id: item.id, label: item.label })),
+      availableActions: view.actions.map(item => ({ id: item.id, label: item.label, kind: item.kind })),
+      currentView: emmiViewForModel(view)
+    };
+  }
+  const target = option || findViewAction(view, actionId);
+  if (!target) {
+    return { success: false, status: VIEW_ACTION_STATUS.UNKNOWN_ACTION, availableActions: view.actions.map(item => ({ id: item.id, label: item.label, kind: item.kind })) };
+  }
+
+  // An option is a selection by definition; an action carries its own kind.
+  const kind = option ? VIEW_ACTION_KINDS.SELECT : target.kind;
+  const typed = String(text || "").trim().slice(0, 400);
+  if (kind === VIEW_ACTION_KINDS.INPUT) {
+    // A single-box action can be completed with the patient's own words — that is what makes
+    // "add that I want to ask about my dizziness" something EMMI can actually do rather than
+    // only describe. A control with no named box, or a call with no words, is refused: EMMI
+    // asking the patient to type it is the honest outcome, and guessing five form fields is not.
+    if (!target.inputSelector) return { success: false, status: VIEW_ACTION_STATUS.NEEDS_TYPED_INPUT, note: "This control reads a form the patient has to fill in themselves. Ask them to type it." };
+    if (!typed) return { success: false, status: VIEW_ACTION_STATUS.NEEDS_TYPED_INPUT, note: `Call again with text: ${target.inputHint || "what the patient said"}.` };
+  }
+  // The line EMMI may not cross without being told to in the same turn. It is enforced here, on
+  // the kind the describer assigned, so no wording in a prompt can move it.
+  if (CONFIRMATION_REQUIRED_KINDS.includes(kind) && confirmed !== true) {
+    return { success: false, status: VIEW_ACTION_STATUS.CONFIRMATION_REQUIRED, actionLabel: target.label, effect: target.effect || "", note: "Ask the patient to confirm in their own words, then call again with confirmed true." };
+  }
+
+  const element = target.selector ? root.querySelector(target.selector) : null;
+  if (!element || element.disabled) {
+    // The screen moved on between EMMI reading it and acting on it. Nothing happened, and the
+    // caller is handed the current screen rather than an error it would have to guess about.
+    return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE, currentView: emmiViewForModel(emmiViewContext()) };
+  }
+
+  // The patient's words go into the real box, through the real input event, so the handler that
+  // reads it cannot tell EMMI apart from a keyboard — and so nothing is stored that the screen
+  // does not also show.
+  if (kind === VIEW_ACTION_KINDS.INPUT) {
+    const field = root.querySelector(target.inputSelector);
+    if (!field) return { success: false, status: VIEW_ACTION_STATUS.NOT_AVAILABLE, currentView: emmiViewForModel(emmiViewContext()) };
+    field.value = typed;
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  // The audit row records that EMMI pressed something and which kind it was. Never the words:
+  // a topic can carry a symptom, and the EMMI transcript is the deliberate sink for those.
+  audit(state, "emmi_view_action_performed", "success", { viewId: view.viewId, actionId: option ? "select-option" : target.id, kind, withText: Boolean(typed), viaVoice: Boolean(emmiLive?.isActive()) });
+  element.click();
+  // The handlers are async and re-render; wait a paint so the result describes what the patient
+  // can now see rather than what they could see a moment ago.
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const after = emmiViewContext();
+  publishedView = after;
+  publishedViewSignature = emmiViewSignature(after);
+  return {
+    success: true,
+    status: VIEW_ACTION_STATUS.PERFORMED,
+    performed: { id: option ? option.id : target.id, label: target.label, kind },
+    // What the patient is now looking at. The model answers from this rather than from what it
+    // expected the button to do, which is what stops it announcing a result that did not happen.
+    currentView: emmiViewForModel(after)
+  };
+}
+
 // §82/§83: an upcoming visit or an open request with the same office, for the same reason, is the
 // thing the patient is already waiting on — not a reason to start a second one.
 const existingAppointmentFor = record => {
@@ -6058,6 +6420,10 @@ function render() {
   // Driving it from the paint rather than from the click means a patient who reloads mid-search
   // sees the search finish rather than a spinner nobody is turning.
   startBarrierResolutionWorkIfPending();
+  // And this is what keeps EMMI looking at the same screen as the patient. It runs on every paint
+  // because a paint is the only moment the document is guaranteed to be what the patient can see;
+  // it compares meaning, so a paint that changed nothing sends nothing.
+  syncEmmiViewContext();
   finishRender(scrollSnapshot, errorAppeared);
 }
 

@@ -1,0 +1,490 @@
+// What EMMI sees on the rest of the product: goals, medications, the Care Circle, the blood
+// pressure monitor, and the enrollment journey.
+//
+// src/appointmentViewContext.js did this for appointment coordination. This file finishes the job,
+// and the reason it is a separate file is the same reason that one is: a describer belongs next to
+// the thing it describes, and a single module holding every screen in the product would be a
+// module nobody could keep true.
+//
+// The same three-way rule decides where every fact goes:
+//
+//   `selection`  the patient has picked it. Nothing has happened yet.
+//   `pending`    it still has to happen, and EMMI must say so.
+//   `completed`  a real source said it happened. ONLY here may EMMI say it is done.
+//
+// WHY THIS FILE EXISTS AT ALL
+//
+// Without a describer a screen still reaches EMMI, through the DOM floor in
+// src/emmi/viewContext.js — its heading, its lead and its controls. That is enough to explain a
+// screen and deliberately not enough to act on one, because the floor infers what each control
+// does from the verb in its name and an inference read "pause my goal" as navigation. Writing the
+// describer is how a screen earns the right to be acted on: it is the moment somebody decides,
+// in writing, what each control really does.
+//
+// ENROLLMENT IS DIFFERENT ON PURPOSE
+//
+// The enrollment screens already have per-screen purpose, benefit and action text, authored and
+// translated, in src/emmi/narrative.js — it is what EMMI narrates out loud. Writing a second
+// version here would create two answers to "what do I do on this screen" that drift apart. So the
+// enrollment describer reads that one instead, and this file adds only what narration has no
+// concept of: what is already done, and what is still owed.
+//
+// Pure module: no DOM, no app state, no storage.
+
+import { NARRATIVE_OBJECTIVES } from "./emmi/narrative.js";
+
+const T = (en, es, ht) => Object.freeze({ en, es, ht });
+const L = (value, locale = "en") => (typeof value === "string" ? value : value?.[locale] || value?.en || "");
+
+const action = (id, label, kind, { selector = "", effect = "", inputSelector = "", inputHint = "" } = {}) =>
+  ({ id, label, kind, selector: selector || `[data-action="${id}"]`, effect, inputSelector, inputHint });
+
+const entry = (id, label, detail = "") => ({ id, label, detail });
+
+/* =========================================================================================
+   Goals
+   ========================================================================================= */
+
+const GOAL_TASK = Object.freeze({
+  SUMMARY: T(
+    "This is one of your goals: what you chose, the steps in your plan, and how it is going.",
+    "Esta es una de sus metas: lo que eligió, los pasos de su plan y cómo va.",
+    "Sa a se youn nan objektif ou yo: sa ou chwazi, etap plan ou an, ak kijan l ap mache."
+  ),
+  CHECK_IN: T(
+    "Say how you feel this goal is going. Your answer is not a clinical measurement.",
+    "Diga cómo siente que va esta meta. Su respuesta no es una medición clínica.",
+    "Di kijan ou santi objektif sa a ap mache. Repons ou se pa yon mezi klinik."
+  ),
+  BARRIERS: T(
+    "Choose what is making this goal hard, and I will try to help with it.",
+    "Elija qué dificulta esta meta y trataré de ayudarle con eso.",
+    "Chwazi sa k ap fè objektif sa a difisil, epi m ap eseye ede w."
+  ),
+  BARRIER_DESCRIBE: T(
+    "Say in your own words what is making this hard.",
+    "Diga con sus palabras qué lo dificulta.",
+    "Di nan mo pa ou kisa k ap fè sa difisil."
+  ),
+  BARRIER_HELP: T(
+    "This is the help I can offer for that difficulty. Nothing is decided until you choose.",
+    "Esta es la ayuda que puedo ofrecer para esa dificultad. Nada se decide hasta que elija.",
+    "Sa a se èd mwen ka ofri pou difikilte sa a. Anyen pa deside jiskaske ou chwazi."
+  ),
+  BARRIER_FOLLOW_UP: T(
+    "Say whether the help we tried actually worked.",
+    "Diga si la ayuda que probamos realmente funcionó.",
+    "Di si èd nou te eseye a te mache vre."
+  ),
+  READINGS: T(
+    "These are the readings received for your care. They come from your monitor, not from me.",
+    "Estas son las lecturas recibidas para su cuidado. Vienen de su monitor, no de mí.",
+    "Sa yo se lekti nou resevwa pou swen ou. Yo soti nan monitè ou, pa nan mwen."
+  ),
+  WHY_EDIT: T(
+    "Write why this goal matters to you. It is yours, and nobody else decides it.",
+    "Escriba por qué esta meta le importa. Es suya, y nadie más la decide.",
+    "Ekri poukisa objektif sa a enpòtan pou ou. Se pa ou, epi pèsonn lòt pa deside l."
+  ),
+  ACHIEVE_CONFIRM: T(
+    "Confirm whether to mark this goal achieved. This changes your personal goal only, never a clinical target.",
+    "Confirme si marca esta meta como lograda. Esto solo cambia su meta personal, nunca un objetivo clínico.",
+    "Konfime si w make objektif sa a kòm reyalize. Sa chanje objektif pèsonèl ou sèlman, pa yon sib klinik."
+  )
+});
+
+// The plan steps, as things that can be pointed at and completed. "Mark that one done" needs a
+// numbered list; "which ones do I still have?" needs the completed/pending split.
+const goalActionOptions = (goal, locale) => (goal?.actions || [])
+  .filter(item => item?.id && item?.title)
+  .map(item => ({
+    id: item.id,
+    label: item.title,
+    detail: item.frequency || "",
+    selected: false,
+    // A DEVICE-verified step is completed by a reading arriving, never by anyone saying so, so it
+    // deliberately has no control for EMMI to press.
+    selector: item.verificationMethod === "DEVICE" ? "" : `[data-action="complete-goal-action"][data-action-id="${item.id}"]`,
+    attributes: { verifiedBy: item.verificationMethod || "PATIENT", status: item.status || "" }
+  }));
+
+export function describeGoalView({ screen = "", detailView = "", flowStep = "", goal = null, goals = [], locale = "en" } = {}) {
+  const t = (en, es, ht) => L(T(en, es, ht), locale);
+
+  if (screen === "GOALS") {
+    return {
+      viewId: `GOAL_FLOW_${flowStep || "DISCOVERY"}`,
+      screenId: screen,
+      title: t("Choosing your goals", "Elegir sus metas", "Chwazi objektif ou yo"),
+      task: flowStep === "PRIORITY"
+        ? t("Pick which goal matters most right now. You can change this later.", "Elija qué meta importa más ahora. Puede cambiarlo después.", "Chwazi ki objektif ki pi enpòtan kounye a. Ou ka chanje sa pita.")
+        : flowStep === "PLAN_ACTIONS"
+          ? t("Choose the practical steps you want in your plan.", "Elija los pasos prácticos que quiere en su plan.", "Chwazi etap pratik ou vle nan plan ou.")
+          : t("Choose the goals that matter to you. Your care team keeps the clinical targets.", "Elija las metas que le importan. Su equipo de cuidado conserva los objetivos clínicos.", "Chwazi objektif ki enpòtan pou ou. Ekip swen ou kenbe sib klinik yo."),
+      flow: { id: "GOALS", name: t("Choosing your goals", "Elegir sus metas", "Chwazi objektif ou yo"), step: flowStep || "DISCOVERY" },
+      actions: [action("advance", t("Continue", "Continuar", "Kontinye"), "NAVIGATE")]
+    };
+  }
+
+  if (screen !== "MY_GOALS") return null;
+
+  // The list of goals, before one is opened.
+  if (!goal) {
+    return {
+      viewId: "GOAL_LIST",
+      screenId: screen,
+      title: t("My goals", "Mis metas", "Objektif mwen yo"),
+      task: t("Open a goal to see your plan, how it is going, and anything making it hard.", "Abra una meta para ver su plan, cómo va y qué la dificulta.", "Louvri yon objektif pou wè plan ou, kijan l ap mache, ak sa k ap fè l difisil."),
+      options: (goals || []).filter(item => item?.id).map(item => ({
+        id: item.id,
+        label: item.title || "",
+        detail: item.priority && item.priority !== "NONE" ? item.priority : "",
+        selected: false,
+        selector: `[data-action="view-goal"]`,
+        attributes: { status: item.status || "", planStatus: item.planStatus || "" }
+      })),
+      actions: [
+        action("view-goal", t("Open a goal", "Abrir una meta", "Louvri yon objektif"), "NAVIGATE"),
+        action("add-another-goal", t("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif"), "NAVIGATE"),
+        action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
+      ]
+    };
+  }
+
+  const view = detailView || "SUMMARY";
+  const steps = goal.actions || [];
+  const done = steps.filter(item => item.status === "COMPLETED");
+  const open = steps.filter(item => item.status !== "COMPLETED");
+  const barriers = (goal.barriers || []).filter(item => item?.status && item.status !== "RESOLVED");
+
+  return {
+    viewId: `GOAL_${view}`,
+    screenId: screen,
+    title: goal.title || t("My goal", "Mi meta", "Objektif mwen"),
+    task: L(GOAL_TASK[view] || GOAL_TASK.SUMMARY, locale),
+    facts: [
+      { label: t("Goal", "Meta", "Objektif"), value: goal.title || "" },
+      goal.priority && goal.priority !== "NONE" ? { label: t("Priority", "Prioridad", "Priyorite"), value: goal.priority } : null,
+      goal.latestReading ? { label: t("Latest reading", "Última lectura", "Dènye lekti"), value: String(goal.latestReading.display || goal.latestReading.value || "") } : null,
+      goal.clinicalTarget ? { label: t("Care team target", "Objetivo del equipo", "Sib ekip swen"), value: String(goal.clinicalTarget.display || goal.clinicalTarget.value || "") } : null
+    ].filter(Boolean),
+    options: view === "SUMMARY" ? goalActionOptions(goal, locale) : [],
+    completed: [
+      ...done.map(item => entry(`STEP_${item.id}`, item.title)),
+      goal.whyItMatters ? entry("WHY", t("You wrote why this matters to you", "Escribió por qué esto le importa", "Ou ekri poukisa sa enpòtan pou ou"), goal.whyItMatters) : null
+    ].filter(Boolean),
+    pending: [
+      ...open.map(item => entry(`STEP_${item.id}`, item.title)),
+      ...barriers.map(item => entry(`BARRIER_${item.id}`, t(`Something is making this hard: ${item.category}`, `Algo lo dificulta: ${item.category}`, `Yon bagay ap fè sa difisil: ${item.category}`)))
+    ],
+    actions: [
+      action("open-goal-checkin", t("Say how this goal is going", "Decir cómo va esta meta", "Di kijan objektif sa a ap mache"), "NAVIGATE"),
+      action("open-goal-barriers", t("Say what is making this hard", "Decir qué lo dificulta", "Di sa k ap fè sa difisil"), "NAVIGATE"),
+      action("complete-goal-action", t("Report a step as done", "Registrar un paso como hecho", "Rapòte yon etap kòm fèt"), "CONFIRM", { effect: t("Records that the patient did it today", "Registra que el paciente lo hizo hoy", "Anrejistre ke pasyan an fè l jodi a") }),
+      action("goal-checkin-response", t("Answer how the goal is going", "Responder cómo va la meta", "Reponn kijan objektif la ap mache"), "SELECT"),
+      // Everything under here changes the patient's own plan, so none of it is navigation.
+      action("pause-goal", t("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz"), "DESTRUCTIVE", { effect: t("Stops this goal until you restart it", "Detiene esta meta hasta que la reanude", "Sispann objektif sa a jiskaske ou rekòmanse l") }),
+      action("reactivate-goal", t("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a"), "CONFIRM"),
+      action("change-goal-priority", t("Change which goal matters most", "Cambiar qué meta importa más", "Chanje ki objektif ki pi enpòtan"), "CONFIRM"),
+      action("goal-mark-achieved", t("Mark this goal achieved", "Marcar esta meta como lograda", "Make objektif sa a kòm reyalize"), "CONFIRM", { effect: t("Changes your personal goal only, never a clinical target", "Solo cambia su meta personal, nunca un objetivo clínico", "Chanje objektif pèsonèl ou sèlman, pa yon sib klinik") }),
+      action("confirm-goal-achieved", t("Yes, mark it achieved", "Sí, marcarla como lograda", "Wi, make l kòm reyalize"), "CONFIRM"),
+      action("goal-detail-back", t("Back", "Atrás", "Retounen"), "NAVIGATE"),
+      action("goal-detail-to-list", t("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen"), "NAVIGATE"),
+      action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
+    ],
+    notes: [
+      t(
+        "A personal goal is the patient's own. It never changes a clinical target, a medication or the care plan, and marking one achieved changes nothing clinical.",
+        "Una meta personal es del paciente. Nunca cambia un objetivo clínico, un medicamento ni el plan de cuidado, y marcarla como lograda no cambia nada clínico.",
+        "Yon objektif pèsonèl se pou pasyan an. Li pa janm chanje yon sib klinik, yon medikaman ni plan swen an, epi make l kòm reyalize pa chanje anyen klinik."
+      )
+    ]
+  };
+}
+
+/* =========================================================================================
+   Medications and refills
+   ========================================================================================= */
+
+const REFILL_TASK = Object.freeze({
+  REVIEW: T(
+    "Confirm whether you still take this medication as written.",
+    "Confirme si todavía toma este medicamento como está indicado.",
+    "Konfime si ou toujou pran medikaman sa a jan li ekri a."
+  ),
+  CHANGE: T(
+    "Say what changed. Telling me does not change the prescription — it goes to your care team.",
+    "Diga qué cambió. Decírmelo no cambia la receta: va a su equipo de cuidado.",
+    "Di sa ki chanje. Di m sa pa chanje preskripsyon an: li ale bay ekip swen ou."
+  ),
+  SUPPLY: T(
+    "Say whether you are running low. The estimate is a reason to ask, not a fact.",
+    "Diga si se le está acabando. La estimación es un motivo para preguntar, no un hecho.",
+    "Di si l ap fini. Estimasyon an se yon rezon pou mande, se pa yon reyalite."
+  ),
+  CONFIRM: T(
+    "Check the request before it is sent. Requested is not the same as approved or ready.",
+    "Revise la solicitud antes de enviarla. Solicitado no es lo mismo que aprobado ni listo.",
+    "Gade demann nan anvan li ale. Mande se pa menm bagay ak apwouve ni pare."
+  ),
+  STATUS: T(
+    "This is where the request stands. Only the pharmacy can say it is ready.",
+    "Aquí está la solicitud. Solo la farmacia puede decir que está lista.",
+    "Men kote demann nan ye. Se sèlman famasi a ki ka di li pare."
+  )
+});
+
+export function describeMedicationView({ screen = "", refillStep = "", medications = [], reviews = {}, refills = [], activeMedication = null, locale = "en" } = {}) {
+  const t = (en, es, ht) => L(T(en, es, ht), locale);
+  if (!["MY_MEDICATIONS", "MEDICATIONS_REVIEW"].includes(screen)) return null;
+  const active = (medications || []).filter(item => item?.id && item.active !== false);
+
+  // A refill in progress owns the screen: it is a flow with steps, and the medication list behind
+  // it is not what the patient is being asked about.
+  if (refillStep) {
+    const open = (refills || []).filter(item => item?.status && !["COMPLETED", "CANCELED"].includes(item.status));
+    return {
+      viewId: `REFILL_${refillStep}`,
+      screenId: screen,
+      title: activeMedication?.name || t("Refill", "Resurtido", "Ranplisman"),
+      task: L(REFILL_TASK[refillStep] || REFILL_TASK.REVIEW, locale),
+      flow: { id: "REFILL", name: t("Asking about a refill", "Consultar un resurtido", "Mande yon ranplisman"), step: refillStep },
+      facts: [
+        activeMedication?.name ? { label: t("Medication", "Medicamento", "Medikaman"), value: [activeMedication.name, activeMedication.strength].filter(Boolean).join(" ") } : null,
+        activeMedication?.details ? { label: t("As written", "Como está indicado", "Jan li ekri"), value: activeMedication.details } : null,
+        activeMedication?.pharmacy?.name ? { label: t("Pharmacy", "Farmacia", "Famasi"), value: activeMedication.pharmacy.name } : null
+      ].filter(Boolean),
+      completed: open.filter(item => item.requestedAt).map(item => entry(`REQUESTED_${item.id}`, t("A refill request was sent", "Se envió una solicitud de resurtido", "Yon demann ranplisman voye"))),
+      pending: [
+        refillStep !== "STATUS" ? entry("NOT_REQUESTED", t("Nothing has been requested yet on this screen", "Todavía no se ha solicitado nada en esta pantalla", "Anyen poko mande nan ekran sa a")) : null,
+        ...open.filter(item => item.requestedAt).map(item => entry(`WAITING_${item.id}`, t("The pharmacy has not said it is ready", "La farmacia no ha dicho que esté listo", "Famasi a poko di li pare")))
+      ].filter(Boolean),
+      actions: [
+        action("refill-taking-answer", t("Answer whether you still take it", "Responder si todavía lo toma", "Reponn si ou toujou pran l"), "SELECT"),
+        action("refill-change-answer", t("Say what changed", "Decir qué cambió", "Di sa ki chanje"), "SELECT"),
+        action("refill-supply-answer", t("Say whether you are running low", "Decir si se le está acabando", "Di si l ap fini"), "SELECT"),
+        action("confirm-refill-request", t("Send the refill request", "Enviar la solicitud de resurtido", "Voye demann ranplisman an"), "CONFIRM", { effect: t("Asks the pharmacy. It does not approve or renew anything", "Le pregunta a la farmacia. No aprueba ni renueva nada", "Mande famasi a. Li pa apwouve ni renouvle anyen") }),
+        action("close-refill-flow", t("Close this", "Cerrar esto", "Fèmen sa"), "NAVIGATE")
+      ],
+      notes: [
+        t(
+          "A supply estimate is a reason to ask, never a fact. Requested is not approved, and approved is not ready for pickup. Never say a refill happened unless a real source said so.",
+          "Una estimación de suministro es un motivo para preguntar, nunca un hecho. Solicitado no es aprobado, y aprobado no es listo para recoger. Nunca diga que hubo un resurtido si una fuente real no lo dijo.",
+          "Yon estimasyon rezèv se yon rezon pou mande, pa yon reyalite. Mande se pa apwouve, epi apwouve se pa pare pou pran. Pa janm di yon ranplisman fèt si yon sous reyèl pa di sa."
+        )
+      ]
+    };
+  }
+
+  const reviewed = Object.values(reviews || {}).filter(item => item?.reviewStatus && item.reviewStatus !== "UNREVIEWED");
+  return {
+    viewId: screen === "MEDICATIONS_REVIEW" ? "MEDICATION_REVIEW_LIST" : "MEDICATION_LIST",
+    screenId: screen,
+    title: t("My medications", "Mis medicamentos", "Medikaman mwen yo"),
+    task: screen === "MEDICATIONS_REVIEW"
+      ? t("Go through each medication and say whether it is still correct. Your answers do not change a prescription.", "Revise cada medicamento y diga si sigue correcto. Sus respuestas no cambian ninguna receta.", "Pase chak medikaman epi di si li toujou kòrèk. Repons ou pa chanje okenn preskripsyon.")
+      : t("These are the medications on file. Open one to ask about a refill.", "Estos son los medicamentos registrados. Abra uno para consultar un resurtido.", "Sa yo se medikaman ki nan dosye a. Louvri youn pou mande yon ranplisman."),
+    options: active.map(item => ({
+      id: item.id,
+      label: [item.name, item.strength].filter(Boolean).join(" "),
+      detail: item.details || "",
+      selected: false,
+      selector: `[data-action="open-medication"][data-medication-id="${item.id}"]`,
+      attributes: { reviewed: Boolean(reviews?.[item.id]?.reviewStatus && reviews[item.id].reviewStatus !== "UNREVIEWED") }
+    })),
+    completed: reviewed.map(item => entry(`REVIEWED_${item.medicationId}`, t("Reviewed", "Revisado", "Revize"), item.medicationId)),
+    pending: active.filter(item => !reviews?.[item.id] || reviews[item.id].reviewStatus === "UNREVIEWED")
+      .map(item => entry(`UNREVIEWED_${item.id}`, t(`Not reviewed yet: ${item.name}`, `Todavía sin revisar: ${item.name}`, `Poko revize: ${item.name}`))),
+    actions: [
+      action("open-my-medications", t("See my medications", "Ver mis medicamentos", "Gade medikaman mwen yo"), "NAVIGATE"),
+      action("back-to-my-care", t("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen"), "NAVIGATE")
+    ],
+    notes: [
+      t(
+        "You may never renew a prescription, change a dose or frequency, or tell the patient to take more or less. A patient report is information for the care team, not an edit to the medication order.",
+        "Nunca puede renovar una receta, cambiar una dosis o frecuencia, ni decirle al paciente que tome más o menos. Lo que el paciente reporta es información para el equipo, no una edición de la orden.",
+        "Ou pa ka janm renouvle yon preskripsyon, chanje yon dòz oswa yon frekans, ni di pasyan an pran plis oswa mwens. Sa pasyan an rapòte se enfòmasyon pou ekip la, se pa yon chanjman nan lòd la."
+      )
+    ]
+  };
+}
+
+/* =========================================================================================
+   Care Circle
+   ========================================================================================= */
+
+export function describeCareCircleView({ screen = "", members = [], invitePending = false, permissions = null, supportPersonName = "", locale = "en" } = {}) {
+  const t = (en, es, ht) => L(T(en, es, ht), locale);
+  const CARE_CIRCLE_SCREENS = ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION"];
+  if (!CARE_CIRCLE_SCREENS.includes(screen)) return null;
+  const granted = Object.entries(permissions || {}).filter(([, value]) => value === true).map(([key]) => key);
+
+  const task = {
+    CARE_CIRCLE_INVITE: t("Enter who you want to invite. Nothing is sent until you confirm.", "Escriba a quién quiere invitar. No se envía nada hasta que confirme.", "Ekri ki moun ou vle envite. Anyen pa ale jiskaske ou konfime."),
+    CARE_CIRCLE_INVITE_SENT: t("The invitation is sent and waiting. They are not a member until they accept and verify.", "La invitación fue enviada y espera. No es miembro hasta que acepte y verifique.", "Envitasyon an voye epi l ap tann. Li pa yon manm jiskaske li aksepte epi verifye."),
+    CARE_CIRCLE_PERMISSIONS: t("Choose what this person may help with. Nothing is shared that you do not choose here.", "Elija con qué puede ayudar esta persona. No se comparte nada que usted no elija aquí.", "Chwazi ak kisa moun sa a ka ede. Anyen pa pataje si ou pa chwazi l isit la."),
+    MY_CARE_CIRCLE: t("These are the people helping you, and what each one may help with.", "Estas son las personas que le ayudan y con qué puede ayudar cada una.", "Sa yo se moun k ap ede w, ak ak kisa chak moun ka ede."),
+    CARE_CIRCLE_REMOVE_CONFIRMATION: t("Confirm whether to remove this person from your Care Circle.", "Confirme si quita a esta persona de su Círculo de cuidado.", "Konfime si w retire moun sa a nan Sèk swen ou.")
+  }[screen];
+
+  return {
+    viewId: `CARE_CIRCLE_${screen.replace("CARE_CIRCLE_", "").replace("MY_", "MY_")}`,
+    screenId: screen,
+    title: t("My Care Circle", "Mi Círculo de cuidado", "Sèk swen mwen"),
+    task,
+    options: (members || []).filter(item => item?.inviteId).map(item => ({
+      id: item.inviteId,
+      label: item.firstName || item.name || "",
+      detail: item.relationship || "",
+      selected: false,
+      selector: `[data-action="manage-care-circle-member"][data-invite-id="${item.inviteId}"]`,
+      attributes: { status: item.status || "" }
+    })),
+    facts: granted.length ? [{ label: t("They may help with", "Puede ayudar con", "Li ka ede ak"), value: granted.join(", ") }] : [],
+    completed: (members || []).filter(item => item.status === "ACCEPTED").map(item => entry(`MEMBER_${item.inviteId}`, t(`${item.firstName || ""} accepted`, `${item.firstName || ""} aceptó`, `${item.firstName || ""} aksepte`))),
+    pending: [
+      invitePending || supportPersonName ? entry("INVITE_PENDING", t(`${supportPersonName || "They"} has not accepted yet`, `${supportPersonName || "Esa persona"} todavía no ha aceptado`, `${supportPersonName || "Moun nan"} poko aksepte`)) : null,
+      ...(members || []).filter(item => item.status && item.status !== "ACCEPTED").map(item => entry(`PENDING_${item.inviteId}`, t(`${item.firstName || ""} has not accepted yet`, `${item.firstName || ""} todavía no ha aceptado`, `${item.firstName || ""} poko aksepte`)))
+    ].filter(Boolean),
+    actions: [
+      action("save-care-circle", t("Send the invitation", "Enviar la invitación", "Voye envitasyon an"), "CONFIRM", { effect: t("Invites this person", "Invita a esta persona", "Envite moun sa a") }),
+      action("care-circle-remove", t("Remove this person", "Quitar a esta persona", "Retire moun sa a"), "DESTRUCTIVE"),
+      action("dismiss-care-circle-post", t("Not now", "Ahora no", "Pa kounye a"), "NAVIGATE"),
+      action("back-to-my-care", t("Back to My Care", "Volver a Mi cuidado", "Retounen nan Swen mwen"), "NAVIGATE")
+    ],
+    notes: [
+      t(
+        "A Care Circle member is a support person, never a Personal Representative. They may never consent, sign, attest authority or make healthcare decisions, whatever permissions they hold.",
+        "Un miembro del Círculo de cuidado es una persona de apoyo, nunca un representante personal. Nunca puede consentir, firmar, atestiguar autoridad ni tomar decisiones médicas, tenga los permisos que tenga.",
+        "Yon manm Sèk swen se yon moun sipò, pa janm yon Reprezantan Pèsonèl. Li pa ka janm bay konsantman, siyen, atestè otorite ni pran desizyon swen sante, kèlkeswa pèmisyon li genyen."
+      )
+    ]
+  };
+}
+
+/* =========================================================================================
+   The blood pressure monitor
+   ========================================================================================= */
+
+const DEVICE_TASK = Object.freeze({
+  ACCESS_BP_DEVICE_INFO: T(
+    "Tell us about the monitor you have, or say you need one.",
+    "Cuéntenos sobre el monitor que tiene, o diga que necesita uno.",
+    "Di nou sou monitè ou genyen an, oswa di ou bezwen youn."
+  ),
+  ACCESS_BP_SHIPPING_ADDRESS: T(
+    "Confirm where the monitor should be sent.",
+    "Confirme a dónde debe enviarse el monitor.",
+    "Konfime ki kote pou voye monitè a."
+  ),
+  ACCESS_BP_DEVICE_VERIFICATION: T(
+    "We are checking whether a monitor is connected to your care. Nothing is needed from you.",
+    "Estamos verificando si hay un monitor conectado a su cuidado. No necesita hacer nada.",
+    "N ap tcheke si gen yon monitè ki konekte ak swen ou. Ou pa bezwen fè anyen."
+  ),
+  ACCESS_BP_DEVICE_RESULT: T(
+    "This is what we found about your monitor. Say whether it is the one you have.",
+    "Esto es lo que encontramos sobre su monitor. Diga si es el que tiene.",
+    "Men sa nou jwenn sou monitè ou. Di si se sa ou genyen an."
+  ),
+  ACCESS_BP_GUIDED_SETUP: T(
+    "Follow the steps to set the monitor up.",
+    "Siga los pasos para configurar el monitor.",
+    "Swiv etap yo pou konfigire monitè a."
+  ),
+  ACCESS_BP_MEASUREMENT: T(
+    "Take a reading with your monitor. The reading arrives on its own — nobody types it in.",
+    "Tome una lectura con su monitor. La lectura llega sola: nadie la escribe.",
+    "Pran yon lekti ak monitè ou. Lekti a rive pou kont li: pèsonn pa ekri l."
+  )
+});
+
+export function describeDeviceView({ screen = "", deviceVerificationStatus = "", device = null, baselineTaken = 0, baselineRemaining = 0, baselineRequired = 0, locale = "en" } = {}) {
+  const t = (en, es, ht) => L(T(en, es, ht), locale);
+  if (!DEVICE_TASK[screen]) return null;
+  return {
+    viewId: screen,
+    screenId: screen,
+    title: t("Your blood pressure monitor", "Su monitor de presión arterial", "Monitè tansyon ou"),
+    task: L(DEVICE_TASK[screen], locale),
+    facts: [
+      device?.model ? { label: t("Monitor", "Monitor", "Monitè"), value: [device.vendor, device.model].filter(Boolean).join(" ") } : null,
+      deviceVerificationStatus ? { label: t("Connection", "Conexión", "Koneksyon"), value: deviceVerificationStatus } : null,
+      baselineRequired ? { label: t("Readings received", "Lecturas recibidas", "Lekti resevwa"), value: `${baselineTaken} / ${baselineRequired}` } : null
+    ].filter(Boolean),
+    completed: [
+      deviceVerificationStatus === "ASSIGNED" || deviceVerificationStatus === "VERIFIED" ? entry("DEVICE_CONNECTED", t("A monitor is connected to your care", "Hay un monitor conectado a su cuidado", "Gen yon monitè ki konekte ak swen ou")) : null,
+      baselineTaken > 0 ? entry("READINGS", t(`${baselineTaken} reading${baselineTaken === 1 ? "" : "s"} received`, `${baselineTaken} lectura${baselineTaken === 1 ? "" : "s"} recibida${baselineTaken === 1 ? "" : "s"}`, `${baselineTaken} lekti resevwa`)) : null
+    ].filter(Boolean),
+    pending: baselineRemaining > 0
+      ? [entry("READINGS_LEFT", t(`${baselineRemaining} more reading${baselineRemaining === 1 ? "" : "s"} still needed`, `Faltan ${baselineRemaining} lectura${baselineRemaining === 1 ? "" : "s"}`, `Gen ${baselineRemaining} lekti ki manke`))]
+      : [],
+    actions: [
+      action("advance", t("Continue", "Continuar", "Kontinye"), "NAVIGATE"),
+      action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
+    ],
+    notes: [
+      t(
+        "A reading comes from the monitor and never from anyone saying a number out loud. Never state a reading, a baseline or a milestone that a tool did not return.",
+        "Una lectura viene del monitor y nunca de que alguien diga un número. Nunca indique una lectura, una línea base ni un hito que una herramienta no haya devuelto.",
+        "Yon lekti soti nan monitè a, pa nan yon moun ki di yon chif. Pa janm bay yon lekti, yon baz ni yon etap zouti a pa retounen."
+      )
+    ]
+  };
+}
+
+/* =========================================================================================
+   Enrollment — read from the narration, never re-written
+   ========================================================================================= */
+
+export const ENROLLMENT_DESCRIBED_SCREENS = Object.freeze(Object.keys(NARRATIVE_OBJECTIVES));
+
+// The enrollment screens are one-to-one with their route, which is why they never needed a view
+// contract to be distinguishable. What they did need is the completed/pending split and a task
+// sentence EMMI can answer "what do I do here?" with — and that sentence already exists, authored
+// and translated, as the `action` line of the narration. Reading it here rather than writing a
+// second one is what keeps the spoken guidance and the answered question saying the same thing.
+export function describeEnrollmentView({ screen = "", enrollment = {}, locale = "en" } = {}) {
+  const objective = NARRATIVE_OBJECTIVES[screen];
+  if (!objective) return null;
+  const t = (en, es, ht) => L(T(en, es, ht), locale);
+  const {
+    identityVerified = false, consentSaved = false, enrollmentComplete = false,
+    canContinue = null, disclosureAcknowledged = false
+  } = enrollment;
+
+  return {
+    viewId: `ENROLLMENT_${screen}`,
+    screenId: screen,
+    title: L(objective.summary, locale) || screen,
+    // The instruction the patient is given out loud, so the spoken guide and the answer to
+    // "what do I do here?" cannot say two different things.
+    task: L(objective.action, locale) || L(objective.purpose, locale),
+    completed: [
+      identityVerified ? entry("IDENTITY", t("Your identity was verified", "Su identidad fue verificada", "Idantite ou verifye")) : null,
+      disclosureAcknowledged ? entry("DISCLOSURE", t("You reviewed the important information", "Revisó la información importante", "Ou revize enfòmasyon enpòtan an")) : null,
+      canContinue === true ? entry("CLEARED", t("You were cleared to keep going", "Puede continuar", "Ou ka kontinye")) : null,
+      consentSaved ? entry("CONSENT", t("You gave consent", "Dio su consentimiento", "Ou bay konsantman")) : null,
+      enrollmentComplete ? entry("ENROLLED", t("Enrollment is complete", "La inscripción está completa", "Enskripsyon an fini")) : null
+    ].filter(Boolean),
+    pending: [
+      // The one distinction this journey must never blur, stated as a fact rather than left to
+      // be inferred from which screen the patient happens to be on.
+      canContinue === true && !enrollmentComplete
+        ? entry("NOT_ENROLLED", t("Cleared to continue is NOT enrolled — there is still a choice to make", "Poder continuar NO es estar inscrito: todavía hay una decisión que tomar", "Ka kontinye se PA enskri: gen yon desizyon ki rete pou pran"))
+        : null
+    ].filter(Boolean),
+    actions: [
+      action("advance", t("Continue", "Continuar", "Kontinye"), "NAVIGATE"),
+      action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE"),
+      action("help", t("Ask EMMI", "Preguntar a EMMI", "Mande EMMI"), "NAVIGATE")
+    ],
+    notes: [
+      t(
+        "You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone.",
+        "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie.",
+        "Ou ka eksplike konsantman, idantite ak otorite, men pa janm make yon kaz, bay konsantman, siyen, enskri ni atestè otorite pou pèsonn."
+      )
+    ]
+  };
+}
