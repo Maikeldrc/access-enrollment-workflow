@@ -191,7 +191,10 @@ test("goal detail turns connected readings into understandable longitudinal prog
   await expect(page.getByRole("heading", { name: "How my blood pressure has been" })).toBeVisible();
   await expect(page.locator(".goal-trend-summary")).toContainText("124 / 81");
   await expect(page.locator(".goal-trend-chart")).toHaveAttribute("role", "img");
-  await expect(page.getByRole("heading", { name: "My actions" })).toBeVisible();
+  // The plan section says what a step is, so "my actions" and "my goal" cannot read as the same
+  // kind of thing on the one screen that holds both.
+  await expect(page.getByRole("heading", { name: "My plan" })).toBeVisible();
+  await expect(page.locator(".goal-plan-section")).toContainText("They are not the goal itself");
   await expect(page.getByRole("heading", { name: "My progress" })).toBeVisible();
   const actions = page.locator(".goal-action");
   await expect(actions.first().locator(".goal-action-icon svg")).toBeVisible();
@@ -468,7 +471,9 @@ test("My Goals leads with the priority, its real progress and the next step", as
 
   // Goals with no plan yet report readiness instead of inventing progress.
   const other = page.locator('.goal-card:not(.goal-card-primary):has-text("Avoid hospital visits")');
-  await expect(page.getByRole("heading", { name: "Other goals" })).toBeVisible();
+  // Goals the care plan set and goals the patient set are two different things, and the headings
+  // are where a patient reads which is which.
+  await expect(page.getByRole("heading", { name: "Goals from my care plan" })).toBeVisible();
   await expect(other).toContainText("Ready when you are");
   await expect(other).toContainText("Personalize how you’d like to work on this goal.");
   await expect(other).not.toContainText(/This week|readings received|0 of/);
@@ -481,7 +486,7 @@ test("My Goals leads with the priority, its real progress and the next step", as
   // Adding a goal is an action, and going back is a full-width navigation control.
   const addGoal = page.locator(".add-goal-action");
   await expect(addGoal).toContainText("Add another goal");
-  await expect(addGoal).toContainText("Choose another goal you’d like to work toward.");
+  await expect(addGoal).toContainText("Choose one your care team suggests, or set a goal of your own.");
   const backButton = page.getByRole("button", { name: /Back to My Care/ });
   const layout = await page.evaluate(() => {
     const back = document.querySelector(".goal-back-to-care").getBoundingClientRect();

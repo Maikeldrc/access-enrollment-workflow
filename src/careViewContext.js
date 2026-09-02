@@ -90,13 +90,36 @@ const GOAL_TASK = Object.freeze({
     "Confirm whether to mark this goal achieved. This changes your personal goal only, never a clinical target.",
     "Confirme si marca esta meta como lograda. Esto solo cambia su meta personal, nunca un objetivo clínico.",
     "Konfime si w make objektif sa a kòm reyalize. Sa chanje objektif pèsonèl ou sèlman, pa yon sib klinik."
+  ),
+  EDIT_TITLE: T(
+    "Change how this goal is written. The steps in the plan do not change.",
+    "Cambie cómo está escrita esta meta. Los pasos del plan no cambian.",
+    "Chanje kijan objektif sa a ekri. Etap nan plan an pa chanje."
+  ),
+  ADD_ACTION: T(
+    "Add one step to the plan. A step is what the patient will do; the goal stays as it is.",
+    "Agregue un paso al plan. Un paso es lo que el paciente hará; la meta queda como está.",
+    "Ajoute yon etap nan plan an. Yon etap se sa pasyan an ap fè; objektif la rete jan li ye."
+  ),
+  EDIT_ACTION: T(
+    "Change one step of the plan. Changing a step never changes the goal.",
+    "Cambie un paso del plan. Cambiar un paso nunca cambia la meta.",
+    "Chanje yon etap nan plan an. Chanje yon etap pa janm chanje objektif la."
+  ),
+  DELETE_CONFIRM: T(
+    "Confirm whether to remove this personal goal and its steps. Nothing in the care plan changes.",
+    "Confirme si elimina esta meta personal y sus pasos. Nada del plan de cuidado cambia.",
+    "Konfime si w retire objektif pèsonèl sa a ak etap li yo. Anyen nan plan swen an pa chanje."
   )
 });
 
 // The plan steps, as things that can be pointed at and completed. "Mark that one done" needs a
 // numbered list; "which ones do I still have?" needs the completed/pending split.
+//
+// A removed step stays on the record for its history and is gone from here: offering EMMI a step
+// the patient deleted is offering it a control that is not on the screen.
 const goalActionOptions = (goal, locale) => (goal?.actions || [])
-  .filter(item => item?.id && item?.title)
+  .filter(item => item?.id && item?.title && item.status !== "REMOVED")
   .map(item => ({
     id: item.id,
     label: item.title,
@@ -108,8 +131,199 @@ const goalActionOptions = (goal, locale) => (goal?.actions || [])
     attributes: { verifiedBy: item.verificationMethod || "PATIENT", status: item.status || "" }
   }));
 
-export function describeGoalView({ screen = "", detailView = "", flowStep = "", goal = null, goals = [], locale = "en" } = {}) {
+// The controls that are really on screen for THIS step of the goal, and nothing else.
+//
+// Listing every control a goal can ever have was already slightly untrue — "yes, mark it achieved"
+// only exists on the confirmation screen — and adding the plan editors made it plainly false. The
+// contract EMMI works from says availableActions is everything the patient can do from here and
+// nothing else exists, so the list is built per view. It also keeps the list inside the size the
+// context allows, which a growing pile of every-control-forever had quietly outgrown.
+function goalDetailActions({ view, goal, personal, t }) {
+  const back = action("goal-detail-back", t("Back", "Atrás", "Retounen"), "NAVIGATE");
+  const stepInput = {
+    inputSelector: '#goal-action-form [name="actionTitle"]',
+    inputHint: "the step in the patient's own words"
+  };
+  if (view === "CHECK_IN") {
+    return [action("goal-checkin-response", t("Answer how the goal is going", "Responder cómo va la meta", "Reponn kijan objektif la ap mache"), "SELECT"), back];
+  }
+  if (view === "ACHIEVE_CONFIRM") {
+    return [action("confirm-goal-achieved", t("Yes, mark it achieved", "Sí, marcarla como lograda", "Wi, make l kòm reyalize"), "CONFIRM", { effect: t("Changes the patient's own goal only, never a clinical target", "Solo cambia la meta del paciente, nunca un objetivo clínico", "Chanje objektif pasyan an sèlman, pa yon sib klinik") }), back];
+  }
+  if (view === "WHY_EDIT") {
+    return [action("save-goal-why", t("Save why this matters", "Guardar por qué importa", "Sove poukisa sa enpòtan"), "CONFIRM", { inputSelector: '#goal-why-form [name="whyItMatters"]', inputHint: "why this goal matters, in the patient's own words" }), back];
+  }
+  if (view === "ADD_ACTION") {
+    return [action("save-goal-action", t("Add this step", "Agregar este paso", "Ajoute etap sa a"), "CONFIRM", { ...stepInput, effect: t("Adds a step to the plan. The goal does not change.", "Agrega un paso al plan. La meta no cambia.", "Ajoute yon etap nan plan an. Objektif la pa chanje.") }), back];
+  }
+  if (view === "EDIT_ACTION") {
+    return [
+      action("update-goal-action", t("Save this step", "Guardar este paso", "Sove etap sa a"), "CONFIRM", { ...stepInput, effect: t("Changes one step. The goal does not change.", "Cambia un paso. La meta no cambia.", "Chanje yon etap. Objektif la pa chanje.") }),
+      action("remove-goal-action", t("Remove this step", "Quitar este paso", "Retire etap sa a"), "DESTRUCTIVE", { effect: t("Removes that step from the plan. The goal stays.", "Quita ese paso del plan. La meta se mantiene.", "Retire etap sa a nan plan an. Objektif la rete.") }),
+      back
+    ];
+  }
+  if (view === "EDIT_TITLE") {
+    return [
+      action("save-goal-title", t("Save the goal wording", "Guardar la redacción de la meta", "Sove mo objektif la"), "CONFIRM", {
+        inputSelector: '#goal-title-form [name="goalTitle"]',
+        inputHint: "the goal as an outcome, in the patient's own words",
+        effect: t("Changes the goal wording only. The steps stay as they are.", "Cambia solo la redacción de la meta. Los pasos quedan igual.", "Chanje sèlman mo objektif la. Etap yo rete jan yo ye.")
+      }),
+      back
+    ];
+  }
+  if (view === "DELETE_CONFIRM") {
+    return [action("confirm-delete-goal", t("Yes, remove this goal", "Sí, eliminar esta meta", "Wi, retire objektif sa a"), "DESTRUCTIVE", { effect: t("Removes the patient's own goal and its steps", "Elimina la meta propia del paciente y sus pasos", "Retire pwòp objektif pasyan an ak etap li yo") }), back];
+  }
+  if (["BARRIERS", "BARRIER_DESCRIBE", "BARRIER_HELP", "BARRIER_FOLLOW_UP", "READINGS"].includes(view)) {
+    return [action("open-goal-barriers", t("Say what is making this hard", "Decir qué lo dificulta", "Di sa k ap fè sa difisil"), "NAVIGATE"), back];
+  }
+  return [
+    action("open-goal-checkin", t("Say how this goal is going", "Decir cómo va esta meta", "Di kijan objektif sa a ap mache"), "NAVIGATE"),
+    action("open-goal-barriers", t("Say what is making this hard", "Decir qué lo dificulta", "Di sa k ap fè sa difisil"), "NAVIGATE"),
+    action("complete-goal-action", t("Report a step as done", "Registrar un paso como hecho", "Rapòte yon etap kòm fèt"), "CONFIRM", { effect: t("Records that the patient did it today", "Registra que el paciente lo hizo hoy", "Anrejistre ke pasyan an fè l jodi a") }),
+    // The plan, edited as a plan: one step at a time, without reopening the whole flow. Changing a
+    // step and changing the goal are deliberately different controls, so "make the walk 20 minutes"
+    // cannot reach the sentence the patient is working toward.
+    action("open-add-goal-action", t("Add a step to the plan", "Agregar un paso al plan", "Ajoute yon etap nan plan an"), "NAVIGATE"),
+    action("edit-goal-action", t("Change one step", "Cambiar un paso", "Chanje yon etap"), "NAVIGATE"),
+    action("remove-goal-action", t("Remove a step", "Quitar un paso", "Retire yon etap"), "DESTRUCTIVE", { effect: t("Removes that step from the plan. The goal stays.", "Quita ese paso del plan. La meta se mantiene.", "Retire etap sa a nan plan an. Objektif la rete.") }),
+    // Everything under here changes the patient's own goal, so none of it is navigation.
+    goal.status === "PAUSED"
+      ? action("reactivate-goal", t("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a"), "CONFIRM")
+      : action("pause-goal", t("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz"), "DESTRUCTIVE", { effect: t("Stops this goal until you restart it", "Detiene esta meta hasta que la reanude", "Sispann objektif sa a jiskaske ou rekòmanse l") }),
+    action("change-goal-priority", t("Change which goal matters most", "Cambiar qué meta importa más", "Chanje ki objektif ki pi enpòtan"), "CONFIRM"),
+    action("goal-mark-achieved", t("Mark this goal achieved", "Marcar esta meta como lograda", "Make objektif sa a kòm reyalize"), "CONFIRM", { effect: t("Changes the patient's own goal only, never a clinical target", "Solo cambia la meta del paciente, nunca un objetivo clínico", "Chanje objektif pasyan an sèlman, pa yon sib klinik") }),
+    // Only what the patient wrote is theirs to reword or remove. On a care plan goal these controls
+    // are not hidden — they do not exist, and the screen has none either.
+    ...(personal
+      ? [
+        action("edit-goal-title", t("Change how the goal is written", "Cambiar cómo está escrita la meta", "Chanje kijan objektif la ekri"), "NAVIGATE"),
+        action("edit-goal-contribution", t("Say whether it helps with a plan goal", "Decir si ayuda con una meta del plan", "Di si li ede ak yon objektif plan"), "NAVIGATE"),
+        action("delete-goal", t("Remove this goal", "Eliminar esta meta", "Retire objektif sa a"), "NAVIGATE")
+      ]
+      : []),
+    action("goal-detail-to-list", t("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen"), "NAVIGATE")
+  ];
+}
+
+export function describeGoalView({ screen = "", detailView = "", flowStep = "", goal = null, goals = [], locale = "en", personalGoalDraft = null, recommendedGoals = [], starterGoals = [] } = {}) {
   const t = (en, es, ht) => L(T(en, es, ht), locale);
+
+  // Adding a goal: pick one the care plan suggests, or say one of your own.
+  if (screen === "GOALS" && flowStep === "ADD") {
+    return {
+      viewId: "GOAL_ADD",
+      screenId: screen,
+      title: t("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif"),
+      task: t(
+        "Choose a goal your care team suggests, or say one of your own. Nothing is added until you choose.",
+        "Elija una meta que sugiere su equipo, o diga una suya. No se agrega nada hasta que elija.",
+        "Chwazi yon objektif ekip ou sijere, oswa di youn pa ou. Anyen pa ajoute jiskaske ou chwazi."
+      ),
+      flow: { id: "GOALS", name: t("Adding a goal", "Agregar una meta", "Ajoute yon objektif"), step: "ADD" },
+      options: (recommendedGoals || []).filter(item => item?.id).map(item => ({
+        id: item.id,
+        label: item.label || "",
+        detail: t("Suggested by your care plan", "Sugerida por su plan de cuidado", "Plan swen ou sijere l"),
+        selected: false,
+        selector: `[data-action="add-recommended-goal"][data-goal-type="${item.id}"]`,
+        attributes: { goalKind: "CARE_PLAN" }
+      })),
+      actions: [
+        action("add-recommended-goal", t("Add a suggested goal", "Agregar una meta sugerida", "Ajoute yon objektif yo sijere"), "CONFIRM", { effect: t("Adds that goal to your list", "Agrega esa meta a su lista", "Ajoute objektif sa a nan lis ou") }),
+        action("create-my-own-goal", t("Set a goal of my own", "Definir una meta propia", "Mete yon objektif pa m"), "NAVIGATE"),
+        action("goals-flow-back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
+      ],
+      notes: [t(
+        "A goal is what the patient wants to reach. Anything they will do — a walk, a dose, a reading — is a step in their plan, never a goal.",
+        "Una meta es lo que el paciente quiere conseguir. Algo que hará — caminar, una dosis, una medición — es un paso, nunca una meta.",
+        "Yon objektif se sa pasyan an vle rive. Yon bagay l ap fè — yon mache, yon doz, yon lekti — se yon etap, pa yon objektif."
+      )]
+    };
+  }
+
+  // The one question. EMMI may type the patient's own words into the box, which is what makes this
+  // work by voice: the patient says it, and the same field a keyboard would fill gets filled.
+  if (screen === "GOALS" && flowStep === "PERSONAL_CAPTURE") {
+    return {
+      viewId: "GOAL_PERSONAL_CAPTURE",
+      screenId: screen,
+      title: t("Create my own goal", "Crear mi propia meta", "Kreye pwòp objektif mwen"),
+      task: personalGoalDraft?.clarify
+        || t(
+          "Say what you would like to improve in your health or your daily life. One sentence is enough.",
+          "Diga qué le gustaría mejorar en su salud o en su vida diaria. Con una frase basta.",
+          "Di sa ou ta renmen amelyore nan sante ou oswa nan lavi chak jou ou. Yon fraz sifi."
+        ),
+      flow: { id: "GOALS", name: t("Setting my own goal", "Definir mi propia meta", "Mete pwòp objektif mwen"), step: "PERSONAL_CAPTURE" },
+      facts: personalGoalDraft?.statement ? [{ label: t("What you said", "Lo que dijo", "Sa ou di"), value: personalGoalDraft.statement }] : [],
+      options: (starterGoals || []).filter(item => item?.id).map(item => ({
+        id: item.id,
+        label: item.label || "",
+        detail: "",
+        selected: false,
+        selector: `[data-action="personal-goal-starter"][data-template-id="${item.id}"]`,
+        attributes: { goalKind: "PERSONAL" }
+      })),
+      pending: [entry("NOT_SAVED", t("Nothing has been saved yet", "Todavía no se ha guardado nada", "Anyen poko sove"))],
+      actions: [
+        action("personal-goal-review", t("Use what the patient said", "Usar lo que dijo el paciente", "Sèvi ak sa pasyan an di"), "INPUT", {
+          inputSelector: '#personal-goal-form [name="goalStatement"]',
+          inputHint: "the patient's own words about what they want to improve",
+          effect: t("Shows what we understood. Saves nothing.", "Muestra lo que entendimos. No guarda nada.", "Montre sa nou konprann. Li pa sove anyen.")
+        }),
+        action("personal-goal-starter", t("Start from a suggested goal", "Empezar con una meta sugerida", "Kòmanse ak yon objektif yo sijere"), "SELECT"),
+        action("goals-flow-back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
+      ],
+      notes: [t(
+        "If they describe something they will do, that is a step. Offer the outcome it serves; let them accept it, change it, or reword it.",
+        "Si describe algo que hará, eso es un paso. Ofrezca el resultado al que sirve y deje que lo acepte, lo cambie o lo reformule.",
+        "Si li dekri yon bagay l ap fè, sa se yon etap. Ofri rezilta li sèvi a epi kite l aksepte l, chanje l, oswa di l yon lòt jan."
+      )]
+    };
+  }
+
+  // The proposal, before anything is written. Two boxes on purpose: the goal, and the step.
+  if (screen === "GOALS" && flowStep === "PERSONAL_CONFIRM") {
+    const draft = personalGoalDraft || {};
+    return {
+      viewId: "GOAL_PERSONAL_CONFIRM",
+      screenId: screen,
+      title: t("Does this sound right?", "¿Le parece bien así?", "Èske sa sanble kòrèk?"),
+      task: t(
+        "Check the goal and the first step before saving. Both can be changed, and neither exists until you save.",
+        "Revise la meta y el primer paso antes de guardar. Puede cambiar ambos, y ninguno existe hasta que guarde.",
+        "Gade objektif la ak premye etap la anvan ou sove. Ou ka chanje toude, epi ni youn pa egziste jiskaske ou sove."
+      ),
+      flow: { id: "GOALS", name: t("Setting my own goal", "Definir mi propia meta", "Mete pwòp objektif mwen"), step: "PERSONAL_CONFIRM" },
+      facts: [
+        { label: t("Goal — what I want to reach", "Meta — lo que quiero conseguir", "Objektif — sa mwen vle rive"), value: draft.title || draft.statement || "" },
+        draft.actionTitle ? { label: t("Step — what I will do", "Paso — lo que haré", "Etap — sa m ap fè"), value: draft.actionTitle } : null,
+        draft.careTeamTopic ? { label: t("To ask my care team", "Para preguntar a mi equipo", "Pou mande ekip swen mwen"), value: draft.careTeamTopic } : null
+      ].filter(Boolean),
+      pending: [entry("NOT_SAVED", t("Nothing has been saved yet", "Todavía no se ha guardado nada", "Anyen poko sove"))],
+      actions: [
+        action("personal-goal-save", t("Save this goal", "Guardar esta meta", "Sove objektif sa a"), "CONFIRM", { effect: t("Creates the goal and its first step", "Crea la meta y su primer paso", "Kreye objektif la ak premye etap li") }),
+        action("personal-goal-explain", t("Say it differently", "Decirlo de otra forma", "Di l yon lòt jan"), "NAVIGATE"),
+        action("personal-goal-cancel", t("Cancel", "Cancelar", "Anile"), "NAVIGATE")
+      ],
+      notes: [
+        draft.measure
+          ? t(
+            "Clinical numbers and medications belong to the care team. Saving this goal changes no target, no dose and no treatment.",
+            "Los números clínicos y los medicamentos son del equipo de atención. Guardar esta meta no cambia objetivos, dosis ni tratamiento.",
+            "Chif klinik ak medikaman se pou ekip swen an. Sove objektif sa a pa chanje okenn sib, okenn doz ni okenn tretman."
+          )
+          : t(
+            "A personal goal is the patient's own. The care team can see it, and it changes nothing clinical.",
+            "Una meta personal es del paciente. El equipo de atención puede verla, y no cambia nada clínico.",
+            "Yon objektif pèsonèl se pou pasyan an. Ekip swen an ka wè l, epi li pa chanje anyen klinik."
+          )
+      ]
+    };
+  }
 
   if (screen === "GOALS") {
     return {
@@ -141,21 +355,29 @@ export function describeGoalView({ screen = "", detailView = "", flowStep = "", 
         detail: item.priority && item.priority !== "NONE" ? item.priority : "",
         selected: false,
         selector: `[data-action="view-goal"]`,
-        attributes: { status: item.status || "", planStatus: item.planStatus || "" }
+        // "What are my goals?" has two answers on this screen, and they are not interchangeable:
+        // the plan asked for one set and the patient wrote the other.
+        attributes: { status: item.status || "", planStatus: item.planStatus || "", goalKind: item.goalKind || "CARE_PLAN" }
       })),
       actions: [
         action("view-goal", t("Open a goal", "Abrir una meta", "Louvri yon objektif"), "NAVIGATE"),
         action("add-another-goal", t("Add another goal", "Agregar otra meta", "Ajoute yon lòt objektif"), "NAVIGATE"),
         action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
-      ]
+      ],
+      notes: [t(
+        "Goals come from two places: the care plan and the patient. Say which is which, and never present a step from a plan as a goal.",
+        "Las metas vienen de dos lugares: el plan de cuidado y el paciente. Diga cuál es cuál, y nunca presente un paso como una meta.",
+        "Objektif soti nan de kote: plan swen an ak pasyan an. Di kilès ki kilès, epi pa janm prezante yon etap kòm yon objektif."
+      )]
     };
   }
 
   const view = detailView || "SUMMARY";
-  const steps = goal.actions || [];
+  const steps = (goal.actions || []).filter(item => item?.status !== "REMOVED");
   const done = steps.filter(item => item.status === "COMPLETED");
   const open = steps.filter(item => item.status !== "COMPLETED");
   const barriers = (goal.barriers || []).filter(item => item?.status && item.status !== "RESOLVED");
+  const personal = goal.goalKind === "PERSONAL";
 
   return {
     viewId: `GOAL_${view}`,
@@ -163,8 +385,20 @@ export function describeGoalView({ screen = "", detailView = "", flowStep = "", 
     title: goal.title || t("My goal", "Mi meta", "Objektif mwen"),
     task: L(GOAL_TASK[view] || GOAL_TASK.SUMMARY, locale),
     facts: [
-      { label: t("Goal", "Meta", "Objektif"), value: goal.title || "" },
+      { label: t("Goal — what I want to reach", "Meta — lo que quiero conseguir", "Objektif — sa mwen vle rive"), value: goal.title || "" },
+      // Which kind of goal this is decides what may be changed here, so it is a fact on the screen
+      // rather than something the model works out from the wording.
+      {
+        label: t("This goal comes from", "Esta meta viene de", "Objektif sa a soti nan"),
+        value: personal
+          ? t("The patient. They can reword it, change its steps, or remove it.", "El paciente. Puede reescribirla, cambiar sus pasos o eliminarla.", "Pasyan an. Li ka reekri l, chanje etap li yo, oswa retire l.")
+          : t("Their care plan. The wording, the baseline and the targets are the care team's; the steps are the patient's.", "Su plan de cuidado. La redacción, la línea base y los objetivos son del equipo; los pasos son del paciente.", "Plan swen li. Mo yo, pwen depa a ak sib yo se pou ekip la; etap yo se pou pasyan an.")
+      },
+      // Reported only when the patient said it. Absent means they did not, never that we could not
+      // work it out — EMMI must not fill that silence with a relationship of its own.
+      goal.contributesToTitle ? { label: t("The patient said this helps with", "El paciente dijo que esto le ayuda con", "Pasyan an di sa ede ak"), value: goal.contributesToTitle } : null,
       goal.priority && goal.priority !== "NONE" ? { label: t("Priority", "Prioridad", "Priyorite"), value: goal.priority } : null,
+      steps.length ? { label: t("Steps in the plan", "Pasos del plan", "Etap nan plan an"), value: String(steps.length) } : null,
       goal.latestReading ? { label: t("Latest reading", "Última lectura", "Dènye lekti"), value: String(goal.latestReading.display || goal.latestReading.value || "") } : null,
       goal.clinicalTarget ? { label: t("Care team target", "Objetivo del equipo", "Sib ekip swen"), value: String(goal.clinicalTarget.display || goal.clinicalTarget.value || "") } : null
     ].filter(Boolean),
@@ -177,27 +411,24 @@ export function describeGoalView({ screen = "", detailView = "", flowStep = "", 
       ...open.map(item => entry(`STEP_${item.id}`, item.title)),
       ...barriers.map(item => entry(`BARRIER_${item.id}`, t(`Something is making this hard: ${item.category}`, `Algo lo dificulta: ${item.category}`, `Yon bagay ap fè sa difisil: ${item.category}`)))
     ],
-    actions: [
-      action("open-goal-checkin", t("Say how this goal is going", "Decir cómo va esta meta", "Di kijan objektif sa a ap mache"), "NAVIGATE"),
-      action("open-goal-barriers", t("Say what is making this hard", "Decir qué lo dificulta", "Di sa k ap fè sa difisil"), "NAVIGATE"),
-      action("complete-goal-action", t("Report a step as done", "Registrar un paso como hecho", "Rapòte yon etap kòm fèt"), "CONFIRM", { effect: t("Records that the patient did it today", "Registra que el paciente lo hizo hoy", "Anrejistre ke pasyan an fè l jodi a") }),
-      action("goal-checkin-response", t("Answer how the goal is going", "Responder cómo va la meta", "Reponn kijan objektif la ap mache"), "SELECT"),
-      // Everything under here changes the patient's own plan, so none of it is navigation.
-      action("pause-goal", t("Pause this goal", "Pausar esta meta", "Mete objektif sa a an poz"), "DESTRUCTIVE", { effect: t("Stops this goal until you restart it", "Detiene esta meta hasta que la reanude", "Sispann objektif sa a jiskaske ou rekòmanse l") }),
-      action("reactivate-goal", t("Restart this goal", "Reanudar esta meta", "Rekòmanse objektif sa a"), "CONFIRM"),
-      action("change-goal-priority", t("Change which goal matters most", "Cambiar qué meta importa más", "Chanje ki objektif ki pi enpòtan"), "CONFIRM"),
-      action("goal-mark-achieved", t("Mark this goal achieved", "Marcar esta meta como lograda", "Make objektif sa a kòm reyalize"), "CONFIRM", { effect: t("Changes your personal goal only, never a clinical target", "Solo cambia su meta personal, nunca un objetivo clínico", "Chanje objektif pèsonèl ou sèlman, pa yon sib klinik") }),
-      action("confirm-goal-achieved", t("Yes, mark it achieved", "Sí, marcarla como lograda", "Wi, make l kòm reyalize"), "CONFIRM"),
-      action("goal-detail-back", t("Back", "Atrás", "Retounen"), "NAVIGATE"),
-      action("goal-detail-to-list", t("Back to My Goals", "Volver a Mis metas", "Retounen nan Objektif mwen"), "NAVIGATE"),
-      action("back", t("Back", "Atrás", "Retounen"), "NAVIGATE")
-    ],
+    actions: goalDetailActions({ view, goal, personal, t }),
     notes: [
       t(
-        "A personal goal is the patient's own. It never changes a clinical target, a medication or the care plan, and marking one achieved changes nothing clinical.",
-        "Una meta personal es del paciente. Nunca cambia un objetivo clínico, un medicamento ni el plan de cuidado, y marcarla como lograda no cambia nada clínico.",
-        "Yon objektif pèsonèl se pou pasyan an. Li pa janm chanje yon sib klinik, yon medikaman ni plan swen an, epi make l kòm reyalize pa chanje anyen klinik."
-      )
+        "A goal is what the patient wants to reach; a step is what they do about it. Changing one never changes the other.",
+        "Una meta es lo que el paciente quiere conseguir; un paso es lo que hará. Cambiar uno nunca cambia el otro.",
+        "Yon objektif se sa pasyan an vle rive; yon etap se sa l ap fè. Chanje youn pa janm chanje lòt la."
+      ),
+      personal
+        ? t(
+          "This goal is the patient's own. It never changes a clinical target, a medication or the care plan.",
+          "Esta meta es del paciente. Nunca cambia un objetivo clínico, un medicamento ni el plan de cuidado.",
+          "Objektif sa a se pou pasyan an. Li pa janm chanje yon sib klinik, yon medikaman ni plan swen an."
+        )
+        : t(
+          "This goal is from the care plan. Its wording, baseline and targets are the care team's. The steps are the patient's to choose.",
+          "Esta meta es del plan de cuidado. Su redacción, línea base y objetivos son del equipo. Los pasos los elige el paciente.",
+          "Objektif sa a soti nan plan swen an. Mo li, pwen depa ak sib se pou ekip la. Se pasyan an ki chwazi etap yo."
+        )
     ]
   };
 }

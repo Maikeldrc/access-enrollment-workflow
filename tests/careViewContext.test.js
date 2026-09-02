@@ -109,8 +109,70 @@ describe("goals", () => {
   });
 
   it("says out loud that a personal goal changes nothing clinical", () => {
-    const view = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal(), locale: "en" }));
+    const view = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal({ goalKind: "PERSONAL" }), locale: "en" }));
     expect(view.notes.join(" ")).toMatch(/never changes a clinical target/i);
+  });
+
+  // The other half of the same rule. A care plan goal is not "not personal": it is a goal whose
+  // wording, baseline and targets belong to somebody else, and EMMI has to be told which.
+  it("says who owns a care plan goal, and that its steps are still the patient's", () => {
+    const view = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal({ goalKind: "CARE_PLAN" }), locale: "en" }));
+    expect(view.notes.join(" ")).toMatch(/baseline and targets are the care team/i);
+    expect(view.notes.join(" ")).toMatch(/steps are the patient/i);
+    expect(view.actions.map(item => item.id)).not.toContain("edit-goal-title");
+    expect(view.actions.map(item => item.id)).not.toContain("confirm-delete-goal");
+  });
+
+  // The distinction the whole feature protects, stated on the screen where a step can be changed.
+  it("keeps changing a step separate from changing the goal", () => {
+    const summary = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal({ goalKind: "PERSONAL" }), locale: "en" }));
+    expect(summary.notes.join(" ")).toMatch(/Changing one never changes the other/i);
+    expect(summary.actions.find(item => item.id === "remove-goal-action").kind).toBe(VIEW_ACTION_KINDS.DESTRUCTIVE);
+    expect(summary.actions.find(item => item.id === "edit-goal-title").kind).toBe(VIEW_ACTION_KINDS.NAVIGATE);
+
+    // Editing a step offers the step controls and no way to reach the goal's own wording.
+    const step = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", detailView: "EDIT_ACTION", goal: goal({ goalKind: "PERSONAL" }), locale: "en" }));
+    expect(step.actions.find(item => item.id === "update-goal-action").kind).toBe(VIEW_ACTION_KINDS.CONFIRM);
+    expect(step.actions.find(item => item.id === "update-goal-action").effect).toMatch(/goal does not change/i);
+    expect(step.actions.map(item => item.id)).not.toContain("save-goal-title");
+
+    // And rewording the goal offers no way to reach a step.
+    const title = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", detailView: "EDIT_TITLE", goal: goal({ goalKind: "PERSONAL" }), locale: "en" }));
+    expect(title.actions.find(item => item.id === "save-goal-title").effect).toMatch(/steps stay as they are/i);
+    expect(title.actions.map(item => item.id)).not.toContain("update-goal-action");
+  });
+
+  // A screen only offers what is on it. Listing every control a goal can ever have was how EMMI
+  // ended up able to name a button the patient could not see.
+  it("offers only the controls that exist on the step it is describing", () => {
+    const confirm = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", detailView: "ACHIEVE_CONFIRM", goal: goal(), locale: "en" }));
+    expect(confirm.actions.map(item => item.id)).toEqual(["confirm-goal-achieved", "goal-detail-back"]);
+    const summary = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal(), locale: "en" }));
+    expect(summary.actions.map(item => item.id)).not.toContain("confirm-goal-achieved");
+    // Every action survives the context's size cap, which a growing list had quietly outgrown.
+    expect(summary.actions.map(item => item.id)).toContain("goal-detail-to-list");
+  });
+
+  // A paused goal cannot be paused again, and an active one cannot be restarted.
+  it("offers restarting only for a paused goal", () => {
+    const active = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal({ status: "ACTIVE" }), locale: "en" }));
+    expect(active.actions.map(item => item.id)).toContain("pause-goal");
+    expect(active.actions.map(item => item.id)).not.toContain("reactivate-goal");
+    const paused = normalizeEmmiView(describeGoalView({ screen: "MY_GOALS", goal: goal({ status: "PAUSED" }), locale: "en" }));
+    expect(paused.actions.map(item => item.id)).toContain("reactivate-goal");
+    expect(paused.actions.map(item => item.id)).not.toContain("pause-goal");
+  });
+
+  // A removed step keeps its history on the record and disappears from the screen. Offering EMMI a
+  // control that is not on the screen is exactly the class of bug the describer exists to prevent.
+  it("hides a removed step from the options it offers", () => {
+    const view = normalizeEmmiView(describeGoalView({
+      screen: "MY_GOALS",
+      goal: goal({ actions: [{ id: "a1", title: "Walk 15 minutes", status: "REMOVED", verificationMethod: "PATIENT_REPORT" }] }),
+      locale: "en"
+    }));
+    expect(view.options).toHaveLength(0);
+    expect(view.pending.map(item => item.id)).not.toContain("STEP_a1");
   });
 
   it("describes the list of goals when none is open, and the flow while choosing", () => {

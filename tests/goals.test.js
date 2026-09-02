@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GOAL_CATEGORIES, GOAL_CONFIG, GOAL_ICON_REGISTRY, createPatientGoal, goalActionIcon, goalCategoryOf, goalDisplayName, goalNextBestAction, localDateKey, resolveGoalIcon, suggestedActionsFor } from "../src/goals.js";
+import { GOAL_CATEGORIES, GOAL_CONFIG, GOAL_ICON_REGISTRY, activeGoalActions, addGoalAction, createGoalAction, createPatientGoal, goalActionCount, goalActionIcon, goalActionIsPatientEditable, goalCategoryOf, goalContributionTarget, goalDisplayName, goalMayDeclareContribution, goalNextBestAction, isCarePlanGoal, isPersonalGoal, localDateKey, patientMayDeleteGoal, patientMayEditClinicalTarget, patientMayEditGoalWording, removeGoalAction, resolveGoalIcon, suggestedActionsFor, suggestedActionsForGoal, updateGoalAction } from "../src/goals.js";
 
 describe("patient goal model", () => {
   it("keeps a patient goal separate from clinical targets", () => {
@@ -149,5 +149,144 @@ describe("next best action with an active difficulty", () => {
   it("leaves the plan in charge once the difficulty is being handled", () => {
     expect(goalNextBestAction(plannedGoal, { barriers: [{ id: "b1", status: "IN_PROGRESS" }, { id: "b2", status: "WAITING_FOR_CARE_TEAM" }] }))
       .toMatchObject({ key: "COMPLETE_ACTION" });
+  });
+});
+
+describe("personal goals and the steps that serve them", () => {
+  const personalGoal = (overrides = {}) => ({
+    ...createPatientGoal({ type: "CUSTOM", personalTemplateId: "WALKING_ENDURANCE", id: "goal-personal" }),
+    ...overrides
+  });
+
+  it("tells a goal the patient wrote from one the care plan assigned", () => {
+    expect(isPersonalGoal(personalGoal())).toBe(true);
+    expect(isCarePlanGoal(personalGoal())).toBe(false);
+    const assigned = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "goal-bp" });
+    expect(isPersonalGoal(assigned)).toBe(false);
+    expect(isCarePlanGoal(assigned)).toBe(true);
+  });
+
+  it("lets the patient reword and remove their own goal, and neither on a care plan goal", () => {
+    const own = personalGoal();
+    const assigned = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "goal-bp" });
+    expect(patientMayEditGoalWording(own)).toBe(true);
+    expect(patientMayDeleteGoal(own)).toBe(true);
+    expect(patientMayEditGoalWording(assigned)).toBe(false);
+    expect(patientMayDeleteGoal(assigned)).toBe(false);
+    // Not a permission the product grants to anyone, on any goal, ever.
+    expect(patientMayEditClinicalTarget()).toBe(false);
+    expect(own.patientCanEditClinicalTarget).toBe(false);
+    expect(assigned.patientCanEditClinicalTarget).toBe(false);
+  });
+
+  it("localizes an accepted template sentence and never translates the patient's own words", () => {
+    const accepted = personalGoal();
+    expect(goalDisplayName(accepted, "en")).toBe("Be able to walk without getting so tired");
+    expect(goalDisplayName(accepted, "es")).toBe("Mejorar mi capacidad para caminar sin cansarme tanto");
+    const rewritten = personalGoal({ customTitle: "Poder caminar con mi esposa" });
+    expect(goalDisplayName(rewritten, "en")).toBe("Poder caminar con mi esposa");
+    expect(goalDisplayName(rewritten, "es")).toBe("Poder caminar con mi esposa");
+  });
+
+  it("draws a template-backed personal goal with its own category icon, not the generic target", () => {
+    expect(goalCategoryOf(personalGoal())).toBe("ACTIVITY_MOBILITY");
+    expect(resolveGoalIcon(personalGoal())).toBe("footprints");
+    // A goal the patient wrote from scratch has not been classified by anyone, and says so.
+    expect(resolveGoalIcon(createPatientGoal({ type: "CUSTOM", customTitle: "Something new", id: "g" }))).toBe(GOAL_ICON_REGISTRY.GENERIC);
+  });
+
+  it("suggests steps from the template a personal goal came from", () => {
+    expect(suggestedActionsForGoal(personalGoal()).map(item => item.id)).toContain("walk-what-i-can");
+    // Nobody has anything to suggest about a goal nobody has seen before, and that is not a gap.
+    expect(suggestedActionsForGoal(createPatientGoal({ type: "CUSTOM", customTitle: "Something new", id: "g" }))).toEqual([]);
+    expect(suggestedActionsForGoal(createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "g" }))).toEqual(suggestedActionsFor("BLOOD_PRESSURE_CONTROL"));
+    expect(suggestedActionsForGoal(null)).toEqual([]);
+  });
+
+  it("builds a patient-written step as something only the patient can report", () => {
+    const step = createGoalAction({ goalId: "goal-1", title: "Walk 15 minutes", frequency: "few-days" });
+    expect(step).toMatchObject({ goalId: "goal-1", title: "Walk 15 minutes", frequency: "few-days", actionType: "RECURRING", source: "PATIENT", verificationMethod: "PATIENT_REPORT", status: "ACTIVE" });
+    expect(step.completionHistory).toEqual([]);
+    // A step is not a goal and carries none of a goal's clinical vocabulary.
+    expect(step).not.toHaveProperty("clinicalTarget");
+    expect(step).not.toHaveProperty("baseline");
+    expect(createGoalAction({ title: "Ask my doctor" }).actionType).toBe("ONE_TIME");
+  });
+
+  it("adds, changes and removes a step without touching the goal it belongs to", () => {
+    const goal = personalGoal();
+    const title = goalDisplayName(goal, "en");
+    const step = addGoalAction(goal, { title: "Walk 15 minutes", frequency: "few-days" });
+    expect(goalActionCount(goal)).toBe(1);
+
+    updateGoalAction(goal, step.id, { title: "Walk 20 minutes", frequency: "daily" });
+    expect(goal.actions[0].title).toBe("Walk 20 minutes");
+    expect(goal.actions[0].frequency).toBe("daily");
+    // The whole point: the step changed and the goal did not.
+    expect(goalDisplayName(goal, "en")).toBe(title);
+    expect(goal.customTitle).toBe("");
+
+    removeGoalAction(goal, step.id);
+    expect(goal.actions[0].status).toBe("REMOVED");
+    // Removed, not deleted: the completion history is evidence of what the patient actually did.
+    expect(goal.actions).toHaveLength(1);
+    expect(activeGoalActions(goal)).toHaveLength(0);
+    expect(goalActionCount(goal)).toBe(0);
+  });
+
+  // "The application may show that a personal goal contributes to the plan. But do not always
+  // assume a relationship." The only thing that creates one is the patient saying so.
+  it("links a personal goal to a plan goal only when the patient declared it", () => {
+    const plan = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "goal-bp" });
+    const own = personalGoal();
+    // Same nothing, before anyone says anything — and the two share a health topic, which is
+    // exactly the case where inferring a link would be tempting and wrong.
+    expect(own.contributesToGoalId).toBe("");
+    expect(goalContributionTarget(own, [plan, own])).toBeNull();
+
+    own.contributesToGoalId = plan.id;
+    expect(goalContributionTarget(own, [plan, own])).toBe(plan);
+  });
+
+  it("never lets a link claim more than the record supports", () => {
+    const plan = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "goal-bp" });
+    const other = personalGoal({ id: "goal-other" });
+    const own = personalGoal({ contributesToGoalId: plan.id });
+
+    // A plan goal the patient removed leaves no name behind.
+    expect(goalContributionTarget(own, [{ ...plan, status: "REMOVED" }, own])).toBeNull();
+    expect(goalContributionTarget(own, [own])).toBeNull();
+    // A personal goal is never a contribution target: the plan is what a goal contributes to.
+    expect(goalContributionTarget(personalGoal({ contributesToGoalId: other.id }), [other, own])).toBeNull();
+    // And a care plan goal never declares one of its own.
+    expect(goalMayDeclareContribution(plan)).toBe(false);
+    expect(goalMayDeclareContribution(own)).toBe(true);
+    expect(goalContributionTarget({ ...plan, contributesToGoalId: other.id }, [other, plan])).toBeNull();
+  });
+
+  it("refuses to add a step with no words in it", () => {
+    const goal = personalGoal();
+    expect(addGoalAction(goal, { title: "   " })).toBeNull();
+    expect(goal.actions).toEqual([]);
+    expect(addGoalAction(null, { title: "Walk" })).toBeNull();
+  });
+
+  it("will not let the patient reword or drop a step a monitor completes", () => {
+    const goal = createPatientGoal({ type: "BLOOD_PRESSURE_CONTROL", id: "goal-bp" });
+    const device = createGoalAction({ goalId: goal.id, templateId: "check-bp", title: "Check my blood pressure", source: "CARE_PLAN", verificationMethod: "DEVICE" });
+    goal.actions = [device];
+    expect(goalActionIsPatientEditable(device)).toBe(false);
+    expect(updateGoalAction(goal, device.id, { title: "Something else" })).toBeNull();
+    expect(removeGoalAction(goal, device.id)).toBeNull();
+    expect(goal.actions[0].title).toBe("Check my blood pressure");
+    expect(goal.actions[0].status).toBe("ACTIVE");
+  });
+
+  it("keeps a rewritten step as the patient's own rather than the template's", () => {
+    const goal = personalGoal();
+    const step = addGoalAction(goal, { templateId: "walk-what-i-can", title: "Take a walk I can manage", frequency: "few-days", source: "CARE_PLAN" });
+    updateGoalAction(goal, step.id, { title: "Walk to the mailbox and back" });
+    expect(goal.actions[0].templateId).toBe("");
+    expect(goal.actions[0].source).toBe("PATIENT");
   });
 });

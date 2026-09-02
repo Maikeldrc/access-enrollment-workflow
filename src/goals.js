@@ -1,3 +1,5 @@
+import { personalGoalTemplate } from "./personalGoals.js";
+
 const T = (en, es, ht) => Object.freeze({ en, es, ht });
 
 // Goal iconography is category-based, never per-goal and never inferred from the goal's text:
@@ -132,14 +134,20 @@ export const LEGACY_GOAL_TYPES = Object.freeze({
 
 export const localGoalText = (entry, locale = "en") => entry?.[locale] || entry?.en || "";
 
-export function createPatientGoal({ type, customTitle = "", patientId = "", now = new Date().toISOString(), id = "", goalSource = type === "CUSTOM" ? "PATIENT" : "PATHWAY" }) {
+export function createPatientGoal({ type, customTitle = "", patientId = "", now = new Date().toISOString(), id = "", goalSource = type === "CUSTOM" ? "PATIENT" : "PATHWAY", personalTemplateId = "" }) {
   const config = GOAL_CONFIG[type] || GOAL_CONFIG.CUSTOM;
+  // A personal goal proposed from a template borrows that template's category, so it draws the
+  // icon that matches what it is about instead of the generic target every personal goal used to
+  // get. A goal the patient wrote from scratch keeps the generic one, which is honest: nobody has
+  // classified it.
+  const template = type === "CUSTOM" ? personalGoalTemplate(personalTemplateId) : null;
   return {
     id: id || `goal_${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`,
     patientId,
     goalType: type,
-    goalCategory: normalizeGoalCategory(config.category),
+    goalCategory: normalizeGoalCategory(template?.category || config.category),
     iconKey: config.iconKey || null,
+    personalTemplateId: template ? personalTemplateId : "",
     title: config.displayName.en,
     customTitle: type === "CUSTOM" ? String(customTitle).trim() : "",
     status: "ACTIVE",
@@ -151,6 +159,10 @@ export function createPatientGoal({ type, customTitle = "", patientId = "", now 
     selectedBy: "PATIENT",
     clinicalTargetId: null,
     patientCanEditClinicalTarget: false,
+    // Which care plan goal the patient SAID this one helps with. Empty unless they said so: a link
+    // inferred from a shared category would be the app asserting a clinical relationship nobody
+    // confirmed, on a record the care team reads.
+    contributesToGoalId: "",
     careTeamReviewStatus: type === "CUSTOM" ? "PENDING" : "NOT_REQUIRED",
     actions: [],
     progress: [],
@@ -164,9 +176,16 @@ export function createPatientGoal({ type, customTitle = "", patientId = "", now 
   };
 }
 
+// A personal goal's name resolves in one order and only one: the patient's own words if they wrote
+// or edited any, then the template sentence they accepted — which is translated, so accepting the
+// offer in English still reads correctly after switching to Spanish — then the catalogue.
 export function goalDisplayName(goal, locale = "en") {
   if (!goal) return "";
-  if (goal.goalType === "CUSTOM" && goal.customTitle) return goal.customTitle;
+  if (goal.goalType === "CUSTOM") {
+    if (goal.customTitle) return goal.customTitle;
+    const template = personalGoalTemplate(goal.personalTemplateId);
+    if (template) return localGoalText(template.displayName, locale);
+  }
   return localGoalText((GOAL_CONFIG[goal.goalType] || GOAL_CONFIG.CUSTOM).displayName, locale);
 }
 
@@ -210,7 +229,37 @@ const ACTION_ICONS = Object.freeze({
   "weigh-in": "scale",
   "follow-nutrition-plan": "nutrition",
   "stay-active-as-able": "activity",
-  "nutrition-support": "people"
+  "nutrition-support": "people",
+  // Steps suggested for personal goals. Same rule as above: the icon comes from what the step is,
+  // never from words in its title, so it survives translation and rewording.
+  "walk-what-i-can": "activity",
+  "walk-a-bit-longer": "activity",
+  "note-how-i-felt": "heart",
+  "move-most-days": "activity",
+  "plan-active-time-personal": "clock",
+  "less-salt-personal": "nutrition",
+  "more-vegetables": "nutrition",
+  "nutrition-questions": "people",
+  "eat-in-a-way-that-helps": "nutrition",
+  "keep-moving": "activity",
+  "wind-down": "clock",
+  "note-how-i-slept": "heart",
+  "pace-my-day": "clock",
+  "note-energy": "heart",
+  "plan-family-time": "people",
+  "build-up-slowly": "activity",
+  "take-as-directed-personal": "pill",
+  "keep-them-where-i-see-them": "home",
+  "write-down-my-questions": "document",
+  "raise-it-with-my-doctor": "people",
+  "check-when-asked": "chart",
+  "learn-my-numbers": "book",
+  "follow-my-plan": "plan",
+  "gentle-movement-personal": "activity",
+  "do-one-thing-myself": "home",
+  "ask-for-support-personal": "people",
+  "learn-one-thing": "book",
+  "prepare-my-questions": "document"
 });
 
 export const goalActionIcon = actionId => ACTION_ICONS[actionId] || "goals";
@@ -307,3 +356,149 @@ const GOAL_SORT_RANK = goal => {
 
 export const sortGoalsForPatient = goals =>
   [...(goals || [])].sort((a, b) => GOAL_SORT_RANK(a) - GOAL_SORT_RANK(b));
+
+/* ===============================================================================================
+   PERSONAL GOALS vs CARE PLAN GOALS
+
+   One split, derived from the record rather than stored twice, because a goal that claimed to be
+   personal on the card and clinical in the tool result would be exactly the confusion this feature
+   exists to remove. Everything downstream reads these: which heading a card sits under, whether
+   the wording can be edited, whether the goal can be deleted, and what EMMI is allowed to change.
+   =============================================================================================== */
+
+export const isPersonalGoal = goal => goal?.goalSource === "PATIENT";
+export const isCarePlanGoal = goal => Boolean(goal) && !isPersonalGoal(goal);
+
+// The clinical elements of a goal, named once so a screen and a tool can both say "this is not
+// yours to change" about the same list instead of each remembering their own.
+export const PROTECTED_CLINICAL_FIELDS = Object.freeze([
+  "baseline",
+  "clinicalTarget",
+  "accessOutcomeDefinition",
+  "qualifyingCondition",
+  "clinicalMeasure",
+  "monitoringRule",
+  "medication"
+]);
+
+// A patient may rename and delete what they wrote. They may never rename a goal their care plan
+// assigned, and they may never edit a clinical target on anything — which is not a permission the
+// product grants at all, so it is a constant rather than a check.
+// A personal goal may say it helps with one of the care plan's goals. Three rules, all of them
+// about not overclaiming: only the patient declares it, only a care plan goal can be the target,
+// and a target that has since been removed resolves to nothing rather than to a stale name.
+export const goalContributionTarget = (goal, goals = []) => {
+  if (!goal?.contributesToGoalId || !isPersonalGoal(goal)) return null;
+  return goals.find(item => item.id === goal.contributesToGoalId && isCarePlanGoal(item) && item.status !== "REMOVED") || null;
+};
+
+export const goalMayDeclareContribution = goal => isPersonalGoal(goal);
+
+export const patientMayEditGoalWording = goal => isPersonalGoal(goal);
+export const patientMayDeleteGoal = goal => isPersonalGoal(goal);
+export const patientMayEditClinicalTarget = () => false;
+
+// Suggested steps for a goal, wherever it came from. A pathway goal reads its catalogue entry; a
+// personal goal reads the template it was proposed from; a personal goal the patient wrote from
+// scratch has no suggestions at all, which is correct rather than a gap — nobody has anything to
+// suggest about an outcome nobody has seen before.
+export function suggestedActionsForGoal(goal) {
+  if (!goal) return [];
+  if (goal.goalType === "CUSTOM") return personalGoalTemplate(goal.personalTemplateId)?.suggestedActions || [];
+  return suggestedActionsFor(goal.goalType);
+}
+
+/* ===============================================================================================
+   ACTIONS
+
+   One factory and three mutators, so the plan builder, Goal Detail and EMMI all write the same
+   record. Before this existed the shape was assembled inline in one place and EMMI had nowhere to
+   write it at all — which is how a second, slightly different action record gets born.
+   =============================================================================================== */
+
+// A patient-written step is always PATIENT_REPORT. A step that claimed DEVICE verification would
+// sit on the plan forever waiting for a reading nobody is going to send, so the verification method
+// is decided by where the step came from and is never taken from the caller's words.
+export function createGoalAction({
+  goalId = "",
+  templateId = "",
+  title = "",
+  frequency = "",
+  targetCount = null,
+  actionType = "",
+  source = "PATIENT",
+  verificationMethod = "PATIENT_REPORT",
+  remindersEnabled = false,
+  now = new Date().toISOString(),
+  id = ""
+} = {}) {
+  const text = String(title ?? "").trim().slice(0, 160);
+  return {
+    id: id || `goal_action_${globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)}`,
+    goalId,
+    templateId: templateId || "",
+    title: text,
+    actionType: actionType || (frequency ? "RECURRING" : "ONE_TIME"),
+    source,
+    verificationMethod,
+    frequency: frequency || "",
+    targetCount,
+    schedule: null,
+    remindersEnabled: Boolean(remindersEnabled),
+    status: "ACTIVE",
+    completionHistory: [],
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+// Steps recorded by a monitor or by a lesson are not the patient's to reword or remove: the plan
+// would still expect them and the completion would still arrive. Only what the patient reports
+// themselves can be edited by them.
+export const goalActionIsPatientEditable = action =>
+  Boolean(action) && (action.verificationMethod || "PATIENT_REPORT") === "PATIENT_REPORT";
+
+// A removed step stays on the record as REMOVED rather than disappearing: its completion history is
+// evidence of what the patient actually did, and deleting the row would delete that too.
+export const activeGoalActions = goal => (goal?.actions || []).filter(action => action.status !== "REMOVED");
+export const goalActionCount = goal => activeGoalActions(goal).filter(action => action.status === "ACTIVE").length;
+
+export function addGoalAction(goal, options = {}) {
+  if (!goal) return null;
+  const action = createGoalAction({ ...options, goalId: goal.id });
+  if (!action.title) return null;
+  goal.actions = [...(goal.actions || []), action];
+  goal.updatedAt = action.createdAt;
+  return action;
+}
+
+export function updateGoalAction(goal, actionId, { title, frequency, targetCount, now = new Date().toISOString() } = {}) {
+  const action = (goal?.actions || []).find(item => item.id === actionId);
+  if (!action || !goalActionIsPatientEditable(action)) return null;
+  if (typeof title === "string") {
+    const text = title.trim().slice(0, 160);
+    if (!text) return null;
+    action.title = text;
+    // The patient's own wording replaces the template's, so the step stops being described by a
+    // catalogue entry that no longer says what it says.
+    action.templateId = "";
+    action.source = "PATIENT";
+  }
+  if (typeof frequency === "string") {
+    action.frequency = frequency;
+    action.actionType = frequency ? "RECURRING" : "ONE_TIME";
+  }
+  if (targetCount !== undefined) action.targetCount = targetCount;
+  action.updatedAt = now;
+  goal.updatedAt = now;
+  return action;
+}
+
+export function removeGoalAction(goal, actionId, { now = new Date().toISOString() } = {}) {
+  const action = (goal?.actions || []).find(item => item.id === actionId);
+  if (!action || !goalActionIsPatientEditable(action)) return null;
+  action.status = "REMOVED";
+  action.updatedAt = now;
+  goal.updatedAt = now;
+  return action;
+}

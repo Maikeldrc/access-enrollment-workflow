@@ -123,9 +123,9 @@ test("the header X returns the patient exactly where they were", async ({ page }
 
 test("the suggestions belong to the screen the patient is looking at", async ({ page }) => {
   const expected = {
-    INVITATION: ["What is ACCESS?", "How can this help me?", "Will Dr. Fresner still be involved?"],
+    INVITATION: ["What is ACCESS?", "How can this help me?", "Will Dr. Fresner Lee still be involved?"],
     IDENTITY_VERIFICATION: ["Why do you need this information?", "Is my information secure?", "Who invited me?"],
-    CARE_RECOMMENDATION: ["How will the blood pressure monitor help me?", "What is my care plan?", "Will Dr. Fresner still be involved?"],
+    CARE_RECOMMENDATION: ["How will the blood pressure monitor help me?", "What is my care plan?", "Will Dr. Fresner Lee still be involved?"],
     ACCESS_PRE_ELIGIBILITY_NOTICE: ["Why does Medicare need to verify me?", "Will this change my Medicare?", "What is the comparison group?"],
     ACCESS_ELIGIBILITY_RESULT: ["What happens next?", "Am I enrolled yet?", "What will I review next?"],
     CONSENT_REVIEW: ["Do I have to enroll?", "Will this change my Medicare?", "Why is my expected payment $0?", "Can I change my mind later?"],
@@ -153,7 +153,7 @@ test("the suggestions belong to the screen the patient is looking at", async ({ 
 
 test("the referring physician is named in a suggestion only when the invitation named one", async ({ page }) => {
   const dialog = await openEmmiOnHome(page);
-  await expect(dialog.locator(".assistant-quick")).toContainText("Will Dr. Fresner still be involved?");
+  await expect(dialog.locator(".assistant-quick")).toContainText("Will Dr. Fresner Lee still be involved?");
   await dialog.locator(".assistant-close").click();
 
   // Direct outreach has no physician, so the slot drops rather than inventing a stand-in.

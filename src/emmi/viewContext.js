@@ -64,7 +64,11 @@ export const CONFIRMATION_REQUIRED_KINDS = Object.freeze([VIEW_ACTION_KINDS.CONF
 // The descriptor is sent to a model on every change, so it is capped rather than complete. These
 // are generous for every real screen in the product and small enough that a step change costs a
 // sentence rather than a page.
-const LIMITS = Object.freeze({ options: 10, facts: 12, actions: 12, completed: 8, pending: 8, label: 120, task: 320, detail: 160 });
+// A ceiling, not a budget. It exists so a runaway describer cannot flood the context, and it has to
+// stay above the busiest screen the product actually has: a personal goal's detail carries thirteen
+// controls, and a cap that silently dropped the thirteenth would make "availableActions is
+// everything the patient can do from here" false — which is the one claim EMMI acts on.
+const LIMITS = Object.freeze({ options: 10, facts: 12, actions: 16, completed: 8, pending: 8, label: 120, task: 320, detail: 160 });
 
 const text = (value, max = LIMITS.label) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const list = (value, max) => (Array.isArray(value) ? value : []).filter(Boolean).slice(0, max);

@@ -123,7 +123,10 @@ test.describe("the app publishes what the patient is looking at", () => {
     await press(page, '[data-need="NONE"]');
     await press(page, '[data-action="barrier-needs-continue"]');
     await press(page, '[data-action="barrier-time-accept"]');
-    await expect(page.locator(".barrier-option")).not.toHaveCount(0, { timeout: 20000 });
+    // Through the recovery this file already documents: the demo dispatcher returns nothing for
+    // roughly one trip in eight, keyed on a pickup time that moves with today’s date, so asserting
+    // the options directly made these four fail on some days and pass on others.
+    expect(await reachRideOptions(page), "the demo dispatcher returned no rides for any pickup time").toBe(true);
 
     // The options on screen and the options EMMI can see are the same list, in the same order,
     // with the prices the patient is reading.
@@ -146,7 +149,10 @@ test.describe("the app publishes what the patient is looking at", () => {
     await press(page, '[data-need="NONE"]');
     await press(page, '[data-action="barrier-needs-continue"]');
     await press(page, '[data-action="barrier-time-accept"]');
-    await expect(page.locator(".barrier-option")).not.toHaveCount(0, { timeout: 20000 });
+    // Through the recovery this file already documents: the demo dispatcher returns nothing for
+    // roughly one trip in eight, keyed on a pickup time that moves with today’s date, so asserting
+    // the options directly made these four fail on some days and pass on others.
+    expect(await reachRideOptions(page), "the demo dispatcher returned no rides for any pickup time").toBe(true);
     await press(page, '[data-action="barrier-option-select"]');
 
     const chosen = await page.evaluate(() => window.__emmiViewProbe?.());
@@ -171,7 +177,10 @@ test.describe("the app publishes what the patient is looking at", () => {
     await press(page, '[data-need="NONE"]');
     await press(page, '[data-action="barrier-needs-continue"]');
     await press(page, '[data-action="barrier-time-accept"]');
-    await expect(page.locator(".barrier-option")).not.toHaveCount(0, { timeout: 20000 });
+    // Through the recovery this file already documents: the demo dispatcher returns nothing for
+    // roughly one trip in eight, keyed on a pickup time that moves with today’s date, so asserting
+    // the options directly made these four fail on some days and pass on others.
+    expect(await reachRideOptions(page), "the demo dispatcher returned no rides for any pickup time").toBe(true);
 
     // A ride that is not on this screen is refused, with the real ones handed back.
     const unknown = await page.evaluate(() => window.__emmiActionProbe?.({ optionRef: "NOT_A_RIDE" }));
@@ -205,7 +214,10 @@ test.describe("the app publishes what the patient is looking at", () => {
     await press(page, '[data-need="NONE"]');
     await press(page, '[data-action="barrier-needs-continue"]');
     await press(page, '[data-action="barrier-time-accept"]');
-    await expect(page.locator(".barrier-option")).not.toHaveCount(0, { timeout: 20000 });
+    // Through the recovery this file already documents: the demo dispatcher returns nothing for
+    // roughly one trip in eight, keyed on a pickup time that moves with today’s date, so asserting
+    // the options directly made these four fail on some days and pass on others.
+    expect(await reachRideOptions(page), "the demo dispatcher returned no rides for any pickup time").toBe(true);
     await press(page, '[data-action="barrier-option-select"]');
 
     const refused = await page.evaluate(() => window.__emmiActionProbe?.({ actionId: "barrier-reserve-confirm" }));
@@ -321,7 +333,10 @@ test.describe("EMMI Voice keeps up with the screen", () => {
     await press(page, '[data-need="NONE"]');
     await press(page, '[data-action="barrier-needs-continue"]');
     await press(page, '[data-action="barrier-time-accept"]');
-    await expect(page.locator(".barrier-option")).not.toHaveCount(0, { timeout: 20000 });
+    // Through the recovery this file already documents: the demo dispatcher returns nothing for
+    // roughly one trip in eight, keyed on a pickup time that moves with today’s date, so asserting
+    // the options directly made these four fail on some days and pass on others.
+    expect(await reachRideOptions(page), "the demo dispatcher returned no rides for any pickup time").toBe(true);
 
     await expect.poll(() => contextPushes(page).then(list => list.length), { timeout: 20000 }, )
       .toBeGreaterThan(before);
