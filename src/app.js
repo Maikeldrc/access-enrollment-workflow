@@ -8027,10 +8027,15 @@ function handlePatientLanguage(text) {
       return { handled: true, replayQuestion };
     }
     if (isLanguageOfferDeclined(text)) {
+      // The question they were actually asking is still owed. Saying no to a language is not
+      // withdrawing it: this used to drop it and answer nothing at all, so a patient who asked
+      // about ACCESS in Spanish, was asked whether to switch, and said no, got silence — and their
+      // question was gone. Answering it in the language they chose to stay in IS the acknowledgement.
+      const replayQuestion = state.emmiPendingLanguageQuestion;
       state.emmiDeclinedLocales = [...new Set([...state.emmiDeclinedLocales, offered])];
       state.emmiOfferedLocale = "";
       state.emmiPendingLanguageQuestion = "";
-      return { handled: true, replayQuestion: "" };
+      return { handled: true, replayQuestion };
     }
   }
 
