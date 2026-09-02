@@ -7,7 +7,7 @@ import { EmmiTextOrchestrator } from "../src/emmi/textOrchestrator.js";
 
 const passage = (id, heading, text) => ({ sourceId: id, sourcePath: `${id}.md`, heading, text });
 
-function harness({ locale = "EN", conversation = {}, escalation = "CONTINUE" } = {}) {
+function harness({ locale = "EN", conversation = {}, escalation = "CONTINUE", appointmentPrep = null } = {}) {
   const calls = [];
   const executeTool = vi.fn(async (name, args) => {
     calls.push({ name, args });
@@ -21,7 +21,7 @@ function harness({ locale = "EN", conversation = {}, escalation = "CONTINUE" } =
     return {};
   });
   const orchestrator = new EmmiTextOrchestrator({
-    getContext: () => ({ locale, program: "ACCESS", currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", activeGoal: { id: "goal-bp" }, appointmentPrep: null }),
+    getContext: () => ({ locale, program: "ACCESS", currentScreen: "CARE_RECOMMENDATION", patientId: "DEMO-P001", activeGoal: { id: "goal-bp" }, appointmentPrep }),
     getConversation: () => ({ conversationSessionId: "conv-1", conversationSummary: conversation.summary || "", recentTurns: conversation.turns || [] }),
     executeTool,
     screenExplanation: () => "This screen explains the available care.",
@@ -153,5 +153,25 @@ describe("follow-up questions", () => {
     const { orchestrator, queries } = harness();
     await orchestrator.answer("What is Medigap and is it private?");
     expect(queries().some(query => /medigap/i.test(query) && /private/i.test(query))).toBe(true);
+  });
+});
+
+// The appointment coordination route answers a combined ride-and-companion request better than two
+// split answers do, so decomposition yields to it - but it answers one thing. Given a turn whose
+// other half is a reschedule, yielding made the reschedule disappear.
+describe("yielding to the appointment coordination route", () => {
+  const prep = { appointmentId: "APPT-1", emmiPreparation: { status: "NOT_STARTED" } };
+
+  it("does not let a companion request swallow a reschedule", async () => {
+    const { orchestrator } = harness({ appointmentPrep: prep });
+    const result = await orchestrator.answer("My daughter wants to come with me but I also need to change the time.");
+    expect(result.trace.intent).toBe("COMPOUND_QUESTION");
+    expect(result.trace.compoundParts).toHaveLength(2);
+  });
+
+  it("still yields when the whole turn is coordination", async () => {
+    const { orchestrator } = harness({ appointmentPrep: prep });
+    const result = await orchestrator.answer("Can a family member come with me and how do we arrange it?");
+    expect(result.trace.intent).not.toBe("COMPOUND_QUESTION");
   });
 });

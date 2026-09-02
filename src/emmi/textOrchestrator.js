@@ -1061,8 +1061,17 @@ export class EmmiTextOrchestrator {
     if (!subQuestion) {
       const claimedBySafety = Boolean(openEpisode) || SAFETY.test(asked) || BP_READING.test(asked)
         || MEDICATION_SAFETY.test(asked) || Boolean(conversationPolicyResponse(question, locale));
+      // Only when coordination is the whole turn. Their route answers a combined ride-and-companion
+      // request better than two split answers, but it answers one thing: given "my daughter wants
+      // to come with me but I also need to change the time" it opens the companion flow and the
+      // reschedule disappears. So it takes the turn only when every part of it is coordination.
+      // A trailing "¿cómo lo coordinamos?" is the same request continuing, not a second subject, so
+      // it counts as coordination too. "I also need to change the time" names something else and
+      // does not.
+      const coordinationPart = part => APPOINTMENT_TRANSPORTATION.test(part) || APPOINTMENT_COMPANION.test(part) || isFollowUpQuestion(part);
       const coordinatingAppointment = Boolean(context.appointmentPrep?.appointmentId)
-        && (APPOINTMENT_TRANSPORTATION.test(question) || APPOINTMENT_COMPANION.test(question));
+        && coordinationPart(question)
+        && decomposeCompoundQuestion(question).every(coordinationPart);
       const resolvingCompanionPrivacy = context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question);
       // "How much does it cost and do I keep my doctor?" has a handler of its own. Both routes say
       // the same two things; that one says them in the better order, leading with the reassurance
