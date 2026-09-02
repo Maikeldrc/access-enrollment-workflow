@@ -30,7 +30,8 @@ export function resolveEmmiVisibleState({
   voiceEnabled = true,
   voiceSupported = true,
   paused = false,
-  hasError = false
+  hasError = false,
+  passiveListening = false
 } = {}) {
   if (!voiceEnabled) return EMMI_VISIBLE_STATE.OFF;
   if (!voiceSupported) return EMMI_VISIBLE_STATE.UNSUPPORTED;
@@ -38,6 +39,10 @@ export function resolveEmmiVisibleState({
   if (paused) return EMMI_VISIBLE_STATE.PAUSED;
   if (transitionStatus === "UPDATING" || THINKING_STATES.has(internalState)) return EMMI_VISIBLE_STATE.THINKING;
   if (internalState === "EMMI_SPEAKING") return EMMI_VISIBLE_STATE.SPEAKING;
+  // A connected voice session returns to LISTENING after every completed narration. On compact
+  // guidance surfaces that is passive readiness, not an active patient turn; presenting it as
+  // "Listening…" forever makes a healthy idle session look stuck. USER_SPEAKING remains visible.
+  if (internalState === "LISTENING" && passiveListening) return EMMI_VISIBLE_STATE.ACTIVE_IDLE;
   if (LISTENING_STATES.has(internalState)) return EMMI_VISIBLE_STATE.LISTENING;
   return EMMI_VISIBLE_STATE.ACTIVE_IDLE;
 }

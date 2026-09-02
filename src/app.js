@@ -1792,7 +1792,8 @@ function emmiGuideState() {
     voiceEnabled: state.emmiVoiceGuidance,
     voiceSupported: emmiVoiceIsSupported(languageCode()),
     paused: state.emmiVoiceGuidancePaused,
-    hasError: state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && Boolean(state.assistantVoiceError))
+    hasError: state.assistantVoiceState === "ERROR" || (state.assistantVoiceState === "DISCONNECTED" && Boolean(state.assistantVoiceError)),
+    passiveListening: !state.assistantOpen
   });
 }
 

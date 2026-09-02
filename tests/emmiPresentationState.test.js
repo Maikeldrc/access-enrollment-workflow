@@ -12,6 +12,12 @@ describe("EMMI patient-facing presentation state", () => {
     expect(resolveEmmiVisibleState({ internalState: "EMMI_SPEAKING" })).toBe(EMMI_VISIBLE_STATE.SPEAKING);
   });
 
+  it("presents passive compact listening as ready instead of permanently listening", () => {
+    expect(resolveEmmiVisibleState({ internalState: "LISTENING", passiveListening: true })).toBe(EMMI_VISIBLE_STATE.ACTIVE_IDLE);
+    expect(resolveEmmiVisibleState({ internalState: "LISTENING", passiveListening: false })).toBe(EMMI_VISIBLE_STATE.LISTENING);
+    expect(resolveEmmiVisibleState({ internalState: "USER_SPEAKING", passiveListening: true })).toBe(EMMI_VISIBLE_STATE.LISTENING);
+  });
+
   it("prioritizes unavailable, paused, and error presentation states", () => {
     expect(resolveEmmiVisibleState({ voiceEnabled: false, internalState: "CONNECTING" })).toBe(EMMI_VISIBLE_STATE.OFF);
     expect(resolveEmmiVisibleState({ voiceSupported: false, internalState: "CONNECTING" })).toBe(EMMI_VISIBLE_STATE.UNSUPPORTED);
