@@ -222,7 +222,24 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalFlowOrigin: state.goalFlowOrigin,
       patientGoals: (state.patientGoals || []).map(goal => ({
         id: goal.id, patientId: goal.patientId, goalType: goal.goalType, title: goal.title, goalSource: goal.goalSource || "", selectedBy: goal.selectedBy || "", customTitle: goal.customTitle || "", status: goal.status, priority: goal.priority, whyItMatters: goal.whyItMatters || "", planStatus: goal.planStatus,
-        actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), reminderSlot: action.reminderSlot || "", reminderTime: action.reminderTime || "", status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
+        // A personal goal is only itself if these survive the reload: the category draws its icon,
+        // the template supplies its translated wording and its suggested steps, and the review
+        // status is what the care team is waiting on. Without them a saved goal came back as a
+        // generic, untranslated, unreviewed one.
+        goalCategory: goal.goalCategory || "", iconKey: goal.iconKey ?? null, personalTemplateId: goal.personalTemplateId || "",
+        careTeamReviewStatus: goal.careTeamReviewStatus || "", planPersonalizationStatus: goal.planPersonalizationStatus || "",
+        // Written down rather than assumed. A stored goal that carried no clinical target and no
+        // statement about who may edit one would leave both facts to be re-derived by whoever read
+        // the record next, and "not present" is not the same as "not the patient's to change".
+        clinicalTargetId: goal.clinicalTargetId ?? null, patientCanEditClinicalTarget: false,
+        // The patient's own statement that this goal helps with one from their plan. Stored as the
+        // id alone: resolving it against the goals that still exist is what keeps a removed plan
+        // goal from leaving a name behind that nothing backs.
+        contributesToGoalId: goal.contributesToGoalId || "",
+        educationHistory: (goal.educationHistory || []).map(item => ({ id: item.id, topicId: item.topicId, status: item.status, completedAt: item.completedAt, source: item.source, version: item.version || "" })),
+        // verificationMethod travels with the action rather than being re-derived: a step the
+        // patient wrote has no template to derive it from, and defaulting it would be a guess.
+        actions: (goal.actions || []).map(action => ({ id: action.id, goalId: action.goalId, templateId: action.templateId || "", title: action.title, actionType: action.actionType, source: action.source, verificationMethod: action.verificationMethod || "", frequency: action.frequency || "", targetCount: action.targetCount ?? null, schedule: action.schedule ?? null, remindersEnabled: Boolean(action.remindersEnabled), reminderSlot: action.reminderSlot || "", reminderTime: action.reminderTime || "", status: action.status, completionHistory: (action.completionHistory || []).map(entry => ({ id: entry.id, date: entry.date, completedAt: entry.completedAt, source: entry.source })), createdAt: action.createdAt, updatedAt: action.updatedAt })),
         progress: (goal.progress || []).map(item => ({ id: item.id, goalId: item.goalId, actionId: item.actionId || null, progressType: item.progressType, value: item.value ?? null, patientReportedStatus: item.patientReportedStatus || "", timestamp: item.timestamp })),
         // A barrier persists as the care signal it is: what was tried, how it went, who owns it
         // now, and when EMMI should ask again. Dropping the intervention history would leave a
@@ -252,6 +269,11 @@ const safe = { scenarioId: state.scenarioId, screen: state.screen, role: state.r
       goalPlanStatus: state.goalPlanStatus,
       goalPlanDraft: state.goalPlanDraft ? { actionIds: [...(state.goalPlanDraft.actionIds || [])], customAction: state.goalPlanDraft.customAction || "", frequency: state.goalPlanDraft.frequency || "few-days", remindersEnabled: Boolean(state.goalPlanDraft.remindersEnabled), whyItMatters: state.goalPlanDraft.whyItMatters || "" } : null,
       activeGoalId: state.activeGoalId,
+      activeActionId: state.activeActionId || "",
+      // The proposal the patient is looking at mid-conversation. Nothing here is a goal yet, and
+      // keeping it means a reload lands them back on the sentence they were about to accept rather
+      // than on an empty box asking the question again.
+      personalGoalDraft: state.personalGoalDraft ? { ...state.personalGoalDraft } : null,
       goalDetailView: state.goalDetailView,
       goalBarrierDraft: state.goalBarrierDraft,
       goalSupportDraft: state.goalSupportDraft,

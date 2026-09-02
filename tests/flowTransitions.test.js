@@ -63,6 +63,28 @@ describe("Getting Started entry route", () => {
   });
 });
 
+describe("where continue-setting-up goes", () => {
+  const sections = { medicationsReviewStatus: "NOT_STARTED", carePreferencesStatus: "NOT_STARTED", goalsStatus: "NOT_STARTED" };
+
+  // The button says "Continue setting up your care" before they have started and "Continue where
+  // you left off" once they have. The destination follows the label rather than contradicting it.
+  it("sends a patient who never started to the checklist, and one mid-way back to work", () => {
+    expect(resolveCareSetupResumeRoute({ ...sections, flowStatus: FLOW_STATUS.DEFERRED, hasSetupHub: true })).toBe("ONBOARDING");
+    expect(resolveCareSetupResumeRoute({ ...sections, flowStatus: FLOW_STATUS.NOT_STARTED, hasSetupHub: true })).toBe("ONBOARDING");
+    expect(resolveCareSetupResumeRoute({ ...sections, flowStatus: FLOW_STATUS.IN_PROGRESS, hasSetupHub: true })).toBe("MEDICATIONS_REVIEW");
+  });
+
+  // ACCESS has no ONBOARDING screen, so there is no checklist to send anyone back to.
+  it("resumes at the next section on a journey with no checklist", () => {
+    expect(resolveCareSetupResumeRoute({ ...sections, flowStatus: FLOW_STATUS.DEFERRED, hasSetupHub: false })).toBe("MEDICATIONS_REVIEW");
+  });
+
+  it("never sends a finished setup back to a list of ticks", () => {
+    const done = { medicationsReviewStatus: "COMPLETED", carePreferencesStatus: "COMPLETED", goalsStatus: "COMPLETED" };
+    expect(resolveCareSetupResumeRoute({ ...done, flowStatus: FLOW_STATUS.DEFERRED, hasSetupHub: true })).toBe("ONBOARDING_COMPLETE");
+  });
+});
+
 describe("care setup resume route", () => {
   it("resumes at the first section whose required information was not saved", () => {
     expect(resolveCareSetupResumeRoute({

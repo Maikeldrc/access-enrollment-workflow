@@ -63,7 +63,7 @@ test("prototype setup shows defaults and conditional fields", async ({ page }) =
     await expect(page.getByRole("combobox", { name: /Enrollment source/ }).locator("option")).toHaveText(["ITERA Direct Outreach", "Physician Referral", "Practice Outreach"]);
   }
   await page.getByRole("combobox", { name: /Enrollment source/ }).selectOption({ label: "Physician Referral" });
-  await expect(page.getByPlaceholder("Enter physician name")).toHaveValue("Dr. Fresner");
+  await expect(page.getByPlaceholder("Enter physician name")).toHaveValue("Dr. Fresner Lee");
   await expect(page.getByAltText("Physician photo preview")).toBeVisible();
 });
 
@@ -322,7 +322,7 @@ test("ACCESS enrollment confirmation closes enrollment and transitions into care
   await expect(page.locator(".progress-meta span")).toHaveText("Enrollment complete");
   await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
   await expect(page.getByRole("heading", { name: "Welcome to your ACCESS care" })).toBeVisible();
-  await expect(page.getByText("ITERA works with Dr. Fresner and your care team to help keep your care connected.", { exact: true })).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Fresner Lee and your care team to help keep your care connected.", { exact: true })).toBeVisible();
   await expect(page.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
   // Care activation, in the order the patient will do it — not a promise that somebody will call.
   await expect(page.getByText("Your blood pressure monitor", { exact: true })).toBeVisible();
@@ -508,7 +508,7 @@ test("shared enrollment welcome adapts to every program and enrollment source", 
       await expect(welcome.getByRole("button", { name: ctaLabel })).toBeVisible();
       await expect(page.locator(".progress-meta span").first()).toHaveText("Enrollment complete");
       await expect(page.getByRole("progressbar", { name: "Journey progress" })).toHaveAttribute("aria-valuenow", "100");
-      if (referral) await expect(welcome.getByText(/works with Dr\. Fresner and your care team to help keep your care connected\./)).toBeVisible();
+      if (referral) await expect(welcome.getByText(/works with Dr\. Fresner Lee and your care team to help keep your care connected\./)).toBeVisible();
       else {
         await expect(welcome).not.toContainText("Dr. Fresner");
         if (["ACCESS", "CCM"].includes(program)) await expect(welcome.getByText("ITERA HEALTH helps keep your care coordinated with the doctors you already see.", { exact: true })).toBeVisible();
@@ -548,7 +548,7 @@ test("CCM enrollment welcome uses one primary message and two compact support hi
   // The physician highlight is shared by every program on this screen, so CCM names the referring
   // doctor in the same words ACCESS does.
   await expect(highlights.nth(1)).toContainText("Connected with Dr. Fresner");
-  await expect(highlights.nth(1)).toContainText("ITERA works with Dr. Fresner and your care team");
+  await expect(highlights.nth(1)).toContainText("ITERA works with Dr. Fresner Lee and your care team");
   await expect(welcome.locator(".enrollment-welcome-reassurance, .enrollment-welcome-context")).toHaveCount(0);
   await expect(welcome.getByText("Enrollment confirmed", { exact: true })).toBeVisible();
 });
@@ -1058,7 +1058,7 @@ test("ACCESS final review consolidates disclosure and consent without losing ess
   await expect(fullDisclosure.getByRole("heading", { name: "Your expected cost" })).toBeVisible();
   await expect(page.getByText(/Your supplemental coverage was verified for this estimate/)).toBeVisible();
   await expect(fullDisclosure.getByText("ITERA may share information with CMS as needed to operate and evaluate ACCESS, subject to applicable privacy and security requirements.", { exact: true })).toBeVisible();
-  await expect(fullDisclosure.getByText("ACCESS adds support to your existing care. ITERA works with Dr. Fresner, and you can continue seeing your regular doctors.", { exact: true })).toBeVisible();
+  await expect(fullDisclosure.getByText("ACCESS adds support to your existing care. ITERA works with Dr. Fresner Lee, and you can continue seeing your regular doctors.", { exact: true })).toBeVisible();
   await expect(fullDisclosure.getByRole("heading", { name: "Questions before you enroll" })).toBeVisible();
   await expect(fullDisclosure.locator('a[href="tel:+13053948070"]')).toHaveText(/\(305\) 394-8070/);
   await expect(fullDisclosure).not.toContainText("Additional information includes beneficiary cost-sharing");
@@ -1454,7 +1454,7 @@ test("ACCESS care inclusions are patient-friendly, contextual, and assistant-acc
   await expect(page.getByText("A care plan built around you")).toBeVisible();
   await expect(page.getByText("Your goals, health information, and next steps come together in one personalized care plan.")).toBeVisible();
   await expect(page.getByText("Stay connected with Dr. Fresner")).toBeVisible();
-  await expect(page.getByText("ITERA works with Dr. Fresner and your care team to help keep your care connected and coordinated.")).toBeVisible();
+  await expect(page.getByText("ITERA works with Dr. Fresner Lee and your care team to help keep your care connected and coordinated.")).toBeVisible();
   await expect(page.getByText("Your care doesn’t stop when you leave the doctor’s office. Your care team stays connected with you along the way.")).toBeVisible();
   await expect(page.locator(".recommendation-screen")).not.toContainText("recommended care");
   await expect(page.locator(".recommendation-screen")).not.toContainText(/\b(?:CCM|RPM|PCM|CPT)\b/);
@@ -1579,7 +1579,7 @@ test("ACCESS provider or practice referral uses doctor recommendation with dynam
   await expect(page.locator(".trust-hero-supporting-copy span")).toHaveText(["Care through Medicare’s", "ACCESS Model"]);
   await expect(page.locator(".trust-hero-physician-photo")).toHaveCount(0);
   await expect(page.locator(".trust-hero-badge-layer")).toHaveCount(0);
-  await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner");
+  await expect(page.locator(".physician-attribution")).toHaveText("Recommended by Dr. Fresner Lee");
   await expect(page.locator(".invitation-copy .lead")).toHaveText("Stay connected with your care team, keep track of your health, and get support when you need it.");
   // The hero already attributes the invitation to Dr. Fresner; the lead does not repeat it.
   await expect(page.locator(".invitation-copy")).not.toContainText("care team invited you");
@@ -1673,8 +1673,8 @@ test("traditional physician pathway uses supervising care card", async ({ page }
   await expect(image).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator(".trust-hero-headline span")).toHaveText(["Your care,", "connected with", "your doctor"]);
   await expect(page.locator(".trust-hero-supporting-copy")).toHaveAttribute("aria-label", "Ongoing support from ITERA HEALTH between doctor visits.");
-  await expect(page.locator(".physician-attribution")).toHaveText("Coordinated with Dr. Fresner");
-  await expect(page.locator(".invitation-copy .lead")).toContainText("Dr. Fresner’s care team invited you");
+  await expect(page.locator(".physician-attribution")).toHaveText("Coordinated with Dr. Fresner Lee");
+  await expect(page.locator(".invitation-copy .lead")).toContainText("Dr. Fresner Lee’s care team invited you");
   await expect(page.locator(".contextual-assurance")).toHaveCount(0);
   const languageRight = await page.locator(".trust-hero-card").evaluate(card => {
     const hero = card.getBoundingClientRect();
@@ -2265,7 +2265,10 @@ test("Emmi opens as a contextual conversation layer without changing enrollment 
   const input = dialog.getByPlaceholder("Ask a question…");
   await input.fill("I don’t understand this screen.");
   await dialog.getByRole("button", { name: "Send question" }).click();
-  await expect(dialog.getByText("This screen explains what Medicare needs you to know before checking whether ACCESS is available to you.")).toBeVisible();
+  // The sentence EMMI speaks for this screen, from the narrative objectives the describer reads.
+  // It used to be a second copy written into the route table in app.js; the describer now answers
+  // "what do I do here?" so there is one sentence per screen instead of two that drift.
+  await expect(dialog.getByText("Review the notice and confirm when you are ready for us to check.")).toBeVisible();
 
   // A callback is a normal request, and it is answered normally while nothing urgent is open.
   await dialog.getByRole("button", { name: "Have someone call me" }).click();
@@ -2779,9 +2782,9 @@ const TRUST_HERO_CARDS = [
 // The stage language button cycles English, Spanish, Creole. The app remembers the choice across
 // loads, so a card never reliably opens in English and the language is dialled in rather than assumed.
 const TRUST_HERO_LANGUAGES = [
-  { code: "EN", attribution: "Recommended by Dr. Fresner" },
-  { code: "ES", attribution: "Recomendado por Dr. Fresner" },
-  { code: "KR", attribution: "Rekòmande pa Dr. Fresner" }
+  { code: "EN", attribution: "Recommended by Dr. Fresner Lee" },
+  { code: "ES", attribution: "Recomendado por Dr. Fresner Lee" },
+  { code: "KR", attribution: "Rekòmande pa Dr. Fresner Lee" }
 ];
 
 const trustHeroLanguage = async (page, code) => {

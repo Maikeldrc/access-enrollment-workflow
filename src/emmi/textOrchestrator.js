@@ -1,4 +1,5 @@
 import { classifyBarrierText } from "../goalBarriers.js";
+import { GOAL_STATEMENT_KINDS, classifyGoalStatement } from "../personalGoals.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
 import { createSafetyEpisode, detectEmergencyLanguage, detectSafetyResolution, safetyEpisodeIsActive, safetyResolutionCopy, safetyResponseFor } from "./safetyPolicy.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
@@ -40,7 +41,16 @@ const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
 const DEVICE_FULFILLMENT = /ship|sent|arrive|deliver|env[ií]o|enviar|llegar|recibir|entregar|voye|rive|resevwa/i;
-const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
+const GOAL_STATUS = /what is my goal|what are my goals|my current goal|my goals|cu[aá]l es mi meta|cu[aá]les son mis metas|mis metas|ki objektif mwen/i;
+// "What am I doing about it" is a different question from "what is it", and answering the first
+// with the second is exactly the confusion this feature exists to remove. It asks about the plan:
+// the steps, not the outcome.
+const GOAL_PLAN_QUESTION = /what (am i|do i have to|should i) do(ing)?\b[^?]{0,40}\b(goal|plan)|my (steps|plan) for|steps? (in|of) my (plan|goal)|what.{0,20}\b(steps|actions)\b.{0,20}\bgoal|qu[eé] (tengo que|debo|estoy) hac(er|iendo)|mis pasos|los pasos de mi (plan|meta)|plan de mi meta|kisa (pou )?m ap fè|etap mwen/i;
+// The patient describing something they want. Deliberately broad on the wanting and narrow on the
+// asking: it must not swallow "I want to know what this costs", which is a question, not a goal.
+const GOAL_SETTING = /\b(set|add|create|make)\b[^.?!]{0,20}\b(a )?(new )?goal\b|\bmy goal (is|would be)\b|\bnueva meta\b|\b(crear|poner|agregar|a[ñn]adir|definir)\b[^.?!]{0,20}\bmeta\b|\bmi meta (es|ser[ií]a)\b|\bnouvo objektif\b|^(i (want|would like|'d like) to|quiero|me gustar[ií]a|quisiera|mwen vle)\b(?!.{0,30}\b(know|understand|ask|see|check|talk|speak|call|cancel|leave|saber|entender|preguntar|ver|revisar|hablar|llamar|cancelar|salir|konnen|konprann|mande|wè|pale|rele)\b)/i;
+// Changing what the patient does, which is a step and never the goal's name.
+const GOAL_STEP_CHANGE = /\b(change|make|switch|update)\b[^.?!]{0,30}\b(walk|walking|step|reminder|routine)\b[^.?!]{0,30}\b(to|into)\b|\b(cambia|cambiar|cambie|actualiza|pon|poner)\b[^.?!]{0,30}\b(caminata|paso|rutina|recordatorio)\b|\bchanje\b[^.?!]{0,30}\b(mache|etap)\b/i;
 // A saved appointment-prep topic is often submitted verbatim (for example "BP Readings") after
 // EMMI asks which topic to discuss. Treat that short label as a request for the patient's actual
 // reading. Otherwise it falls through to knowledge retrieval, where an older conversation topic
@@ -48,6 +58,8 @@ const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l 
 const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|^(my )?(blood pressure|bp) readings?$|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|^(mis? )?lecturas? de (la )?presi[oó]n( arterial)?$|d[eè]nye lekti|tansyon mwen.*jodi|^(mezi|lekti) tansyon( mwen)?( yo)?$/i;
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
+// A request for the number to be different, as opposed to a question about what it is.
+const WANTS_A_DIFFERENT_NUMBER = /\b(i want|i'?d like|i would like|can you (change|set|lower|raise)|change|set|make|lower|raise)\b|\b(quiero|me gustar[ií]a|quisiera|cambi(a|ar|e)|pon(er|ga)?|baj(a|ar|e)|sub(a|ir|e))\b|\bmwen vle\b|\bchanje\b/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
 // Where this patient started, and what ACCESS will recognise as improvement for them.
 //
@@ -862,6 +874,96 @@ const accessMilestoneAnswer = (locale, entry) => {
   });
 };
 
+// A patient who asked for a different clinical number was told whose the number is. That answer is
+// correct and it is not the whole of what they wanted: they were describing something they want to
+// get better at, and there is a goal in that which is entirely theirs to set.
+//
+// It comes second, always, and it never softens the first half. "Your care team owns this target"
+// followed by "and here is what I can help you with" is the honest shape; leading with the offer
+// would read as talking them out of the question they actually asked.
+const clinicalGoalOffer = (question, locale) => {
+  // Only when they asked for the number to be different. "What is my blood pressure target?" is a
+  // question about their care, and answering it with an offer would be selling them something they
+  // did not ask for — the classifier alone cannot tell the two apart, because both name a target.
+  if (!WANTS_A_DIFFERENT_NUMBER.test(clean(question))) return "";
+  const verdict = classifyGoalStatement(question);
+  if (verdict.kind !== GOAL_STATEMENT_KINDS.CLINICAL_TARGET || !verdict.goal) return "";
+  const goal = typeof verdict.goal.title === "string" ? verdict.goal.title : pick(locale, { EN: verdict.goal.title.en, ES: verdict.goal.title.es, KR: verdict.goal.title.ht });
+  const topic = verdict.careTeamTopic ? pick(locale, { EN: verdict.careTeamTopic.en, ES: verdict.careTeamTopic.es, KR: verdict.careTeamTopic.ht }) : "";
+  return pick(locale, {
+    EN: `What I can help with is a goal of your own — something like “${goal}”.${topic ? ` I can also write down “${topic}” to ask them.` : ""} Would you like to set that up?`,
+    ES: `Con lo que sí puedo ayudarle es con una meta suya, algo como «${goal}».${topic ? ` También puedo anotar «${topic}» para preguntarles.` : ""} ¿Quiere que la definamos?`,
+    KR: `Sa mwen ka ede w avè l se yon objektif pa ou — yon bagay tankou « ${goal} ».${topic ? ` Mwen ka ekri « ${topic} » tou pou mande yo.` : ""} Èske ou vle nou mete l?`
+  });
+};
+
+// "What am I doing to reach it?" — the plan, named goal by goal. A goal with no steps says so
+// rather than being left out, because "you have no plan yet" is the answer that leads somewhere.
+const goalPlanAnswer = (result, locale) => {
+  const goals = (result?.goals || []).filter(item => item?.title);
+  if (!goals.length) return pick(locale, { EN: "You don’t have any goals saved yet, so there are no steps to show.", ES: "Todavía no tiene metas guardadas, así que no hay pasos que mostrar.", KR: "Ou poko gen objektif ki sove, kidonk pa gen etap pou montre." });
+  const lines = goals.map(goal => {
+    const steps = (goal.actions || []).filter(item => item?.title).map(item => item.title);
+    return steps.length
+      ? pick(locale, {
+        EN: `For “${goal.title}”, your plan is: ${steps.join("; ")}.`,
+        ES: `Para «${goal.title}», su plan es: ${steps.join("; ")}.`,
+        KR: `Pou « ${goal.title} », plan ou se: ${steps.join("; ")}.`
+      })
+      : pick(locale, {
+        EN: `“${goal.title}” has no steps in its plan yet.`,
+        ES: `«${goal.title}» todavía no tiene pasos en su plan.`,
+        KR: `« ${goal.title} » poko gen etap nan plan li.`
+      });
+  });
+  const closing = pick(locale, {
+    EN: "Those steps are what you do; the goal is what you are working toward. You can change a step without changing the goal.",
+    ES: "Esos pasos son lo que usted hace; la meta es lo que quiere conseguir. Puede cambiar un paso sin cambiar la meta.",
+    KR: "Etap sa yo se sa ou fè; objektif la se sa w ap chèche rive. Ou ka chanje yon etap san ou pa chanje objektif la."
+  });
+  return `${lines.join(" ")} ${closing}`;
+};
+
+// What we would write down, offered back. Nothing has been saved at this point and the wording
+// says so, because a patient told "I saved that" about a proposal they never accepted has been
+// lied to about their own record.
+const goalProposalAnswer = (opened, locale) => {
+  if (opened.clarify) return opened.clarify;
+  const goal = opened.suggestedGoal?.title || "";
+  const step = opened.suggestedAction?.title || "";
+  const clinical = opened.clinicalMeasure === "MEDICATION"
+    ? pick(locale, { EN: " Your treatment stays with your care team — I can’t change a medication or a dose.", ES: " Su tratamiento sigue a cargo de su equipo de atención: no puedo cambiar un medicamento ni una dosis.", KR: " Tretman ou rete ak ekip swen ou — mwen pa ka chanje yon medikaman ni yon doz." })
+    : opened.clinicalMeasure
+      ? pick(locale, { EN: " The target numbers stay with your care team.", ES: " Los números objetivo siguen a cargo de su equipo de atención.", KR: " Chif sib yo rete ak ekip swen ou." })
+      : "";
+  const topic = opened.careTeamTopic
+    ? pick(locale, { EN: ` I’ve also put “${opened.careTeamTopic}” there as a question for them.`, ES: ` También puse «${opened.careTeamTopic}» ahí como pregunta para ellos.`, KR: ` Mwen mete « ${opened.careTeamTopic} » la tou kòm yon kesyon pou yo.` })
+    : "";
+  const body = goal && step
+    ? pick(locale, {
+      EN: `That sounds like something you’ll do, so I’d put “${step}” in your plan and set your goal as “${goal}”.`,
+      ES: `Eso suena a algo que usted hará, así que pondría «${step}» en su plan y su meta sería «${goal}».`,
+      KR: `Sa sanble ak yon bagay w ap fè, kidonk mwen ta mete « ${step} » nan plan ou epi objektif ou ta « ${goal} ».`
+    })
+    : goal
+      ? pick(locale, {
+        EN: `I’d write your goal as “${goal}”.`,
+        ES: `Escribiría su meta como «${goal}».`,
+        KR: `Mwen ta ekri objektif ou konsa: « ${goal} ».`
+      })
+      : pick(locale, {
+        EN: "Let’s put that into words together.",
+        ES: "Pongámoslo en palabras juntos.",
+        KR: "Ann mete sa an mo ansanm."
+      });
+  const closing = pick(locale, {
+    EN: " It’s on screen now — change any of it, and save it when it sounds right. Nothing is saved until you do.",
+    ES: " Está en pantalla ahora: cambie lo que quiera y guárdelo cuando le parezca bien. No se guarda nada hasta que lo haga.",
+    KR: " Li sou ekran an kounye a — chanje sa ou vle, epi sove l lè li sanble kòrèk. Anyen pa sove jiskaske ou fè sa."
+  });
+  return `${body}${clinical}${topic}${closing}`;
+};
+
 const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
   if (tool === "getExpectedAccessCost") {
     const cost = accessCostAnswer(result, locale);
@@ -923,9 +1025,22 @@ const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
     const names = (result.medications || []).filter(item => item.active).map(item => item.details ? `${item.name} (${item.details})` : item.name);
     return names.length ? pick(locale, { EN: `The medications currently on file are ${names.join(" and ")}. Please review them on the medication screen; this does not change a prescription.`, ES: `Los medicamentos registrados actualmente son ${names.join(" y ")}. Revíselos en la pantalla de medicamentos; esta revisión no cambia una receta.`, KR: `Medikaman ki nan dosye a kounye a se ${names.join(" ak ")}. Tanpri revize yo sou ekran medikaman an; sa pa chanje yon preskripsyon.` }) : pick(locale, { EN: "I don’t see any medications on file in this prototype.", ES: "No veo medicamentos registrados en este prototipo.", KR: "Mwen pa wè okenn medikaman nan dosye pwototip sa a." });
   }
+  // Two kinds of goal, kept apart in the answer because they are kept apart everywhere else. A
+  // patient who cannot tell which goals their care plan set from the ones they set themselves
+  // cannot tell which ones are theirs to change.
   if (tool === "getPatientGoals") {
-    const goals = result.goals || [];
-    return goals.length ? pick(locale, { EN: `Your current goal${goals.length > 1 ? "s are" : " is"}: ${goals.map(item => item.title).join("; ")}. You can change personal goals later.`, ES: `Su${goals.length > 1 ? "s metas actuales son" : " meta actual es"}: ${goals.map(item => item.title).join("; ")}. Puede cambiar sus metas personales después.`, KR: `Objektif ou${goals.length > 1 ? " yo se" : " se"}: ${goals.map(item => item.title).join("; ")}. Ou ka chanje objektif pèsonèl yo pita.` }) : pick(locale, { EN: "You have not saved a personal goal yet.", ES: "Todavía no ha guardado una meta personal.", KR: "Ou poko sove yon objektif pèsonèl." });
+    const goals = (result.goals || []).filter(item => item?.title);
+    if (!goals.length) return pick(locale, { EN: "You don’t have any goals saved yet. You can add one from My Goals.", ES: "Todavía no tiene metas guardadas. Puede agregar una desde Mis metas.", KR: "Ou poko gen okenn objektif ki sove. Ou ka ajoute youn nan Objektif mwen." });
+    const fromPlan = goals.filter(item => item.goalKind !== "PERSONAL").map(item => item.title);
+    const own = goals.filter(item => item.goalKind === "PERSONAL").map(item => item.title);
+    const parts = [
+      fromPlan.length ? pick(locale, { EN: `From your care plan: ${fromPlan.join("; ")}.`, ES: `De su plan de cuidado: ${fromPlan.join("; ")}.`, KR: `Nan plan swen ou: ${fromPlan.join("; ")}.` }) : "",
+      own.length ? pick(locale, { EN: `Goals you set yourself: ${own.join("; ")}.`, ES: `Metas que usted definió: ${own.join("; ")}.`, KR: `Objektif ou menm mete: ${own.join("; ")}.` }) : ""
+    ].filter(Boolean);
+    const closing = own.length
+      ? pick(locale, { EN: "You can reword or remove your own goals whenever you like; your care team keeps the targets on the plan ones.", ES: "Puede reescribir o eliminar sus propias metas cuando quiera; su equipo mantiene los objetivos de las del plan.", KR: "Ou ka reekri oswa retire pwòp objektif ou lè ou vle; ekip ou kenbe sib yo sou sa ki nan plan an." })
+      : pick(locale, { EN: "You can also set a goal of your own from My Goals.", ES: "También puede definir una meta propia desde Mis metas.", KR: "Ou ka mete yon objektif pa ou tou nan Objektif mwen." });
+    return `${parts.join(" ")} ${closing}`;
   }
   if (tool === "getLatestReading") {
     const reading = result.reading;
@@ -1379,6 +1494,84 @@ export class EmmiTextOrchestrator {
       }
     }
 
+    // --- Goals and the steps that serve them ----------------------------------------------------
+    //
+    // These run before the tool table below and before retrieval, because retrieval has no idea
+    // what a goal is: "I want to swim three times a week" used to come back as a paragraph about
+    // the ninety-day notice, and "change my walk to 30 minutes" as a paragraph about QMB. A patient
+    // asking to change their care plan was being answered with whichever page happened to score.
+
+    // Changing a step. Never the goal's name, whatever the patient called it.
+    if (GOAL_STEP_CHANGE.test(asked)) {
+      trace.intent = "GOAL_STEP_CHANGE"; trace.responseMode = "GOAL_ENGINE"; trace.toolCalls.push("startGoalStepEdit");
+      try {
+        // The patient's whole sentence is what identifies the step, never what replaces it: filling
+        // the box with "Change my walk to 30 minutes. Yes, please do it." would put that in their
+        // plan. They set the new wording on the screen, which is also where they can see the goal
+        // above it is untouched.
+        const opened = await this.executeTool("startGoalStepEdit", { patientId: context.patientId, phrase: clean(question) });
+        emit("EMMI_ANSWER_ROUTED");
+        if (opened?.success && opened.opened) {
+          return { text: pick(locale, {
+            EN: `That changes a step in your plan, not your goal — “${opened.goalTitle}” stays exactly as it is. I’ve opened “${opened.currentTitle}”: set the new wording there and save it.`,
+            ES: `Eso cambia un paso de su plan, no su meta: «${opened.goalTitle}» queda exactamente igual. Abrí «${opened.currentTitle}»: escriba ahí el nuevo texto y guárdelo.`,
+            KR: `Sa chanje yon etap nan plan ou, pa objektif ou — « ${opened.goalTitle} » rete menm jan. Mwen louvri « ${opened.currentTitle} »: ekri nouvo mo yo la epi sove l.`
+          }), trace };
+        }
+        if (opened?.needsChoice) {
+          return { text: pick(locale, {
+            EN: (opened.steps || []).length
+              ? `That would change a step in your plan, not your goal. Which one do you mean: ${(opened.steps || []).map(item => `“${item.title}”`).join(" or ")}?`
+              : "There are no steps in your plan to change yet. You can add one from the goal itself, under My Goals.",
+            ES: (opened.steps || []).length
+              ? `Eso cambiaría un paso de su plan, no su meta. ¿Cuál de ellos: ${(opened.steps || []).map(item => `«${item.title}»`).join(" o ")}?`
+              : "Todavía no hay pasos en su plan que cambiar. Puede agregar uno desde la meta misma, en Mis metas.",
+            KR: (opened.steps || []).length
+              ? `Sa ta chanje yon etap nan plan ou, pa objektif ou. Kilès ou vle di: ${(opened.steps || []).map(item => `« ${item.title} »`).join(" oswa ")}?`
+              : "Poko gen etap nan plan ou pou chanje. Ou ka ajoute youn sou objektif la, nan Objektif mwen."
+          }), trace };
+        }
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "startGoalStepEdit", error: error?.message || "unknown" });
+      }
+      return { text: pick(locale, {
+        EN: "I couldn’t open that step just now, so nothing changed. You can change it on the goal itself, under My Goals.",
+        ES: "No pude abrir ese paso ahora, así que no cambió nada. Puede cambiarlo en la meta misma, en Mis metas.",
+        KR: "Mwen pa t ka louvri etap sa a kounye a, kidonk anyen pa chanje. Ou ka chanje l sou objektif la, nan Objektif mwen."
+      }), trace };
+    }
+
+    // What the patient is doing about a goal: the plan, not the outcome.
+    if (GOAL_PLAN_QUESTION.test(asked)) {
+      trace.intent = "GOAL_PLAN"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getPatientGoals");
+      try {
+        const result = await this.executeTool("getPatientGoals", { patientId: context.patientId });
+        trace.runtimeFactsUsed.push("getPatientGoals"); emit("EMMI_ANSWER_ROUTED");
+        return { text: goalPlanAnswer(result, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getPatientGoals", error: error?.message || "unknown" });
+        return { text: unavailable(locale), trace };
+      }
+    }
+
+    // Setting one. The classifier decides goal-or-action; the screen shows the proposal; the
+    // patient saves it. Chat never writes a goal on its own, and never says one was saved.
+    if (GOAL_SETTING.test(asked)) {
+      trace.intent = "GOAL_SETTING"; trace.responseMode = "GOAL_ENGINE"; trace.toolCalls.push("startPersonalGoal");
+      try {
+        const opened = await this.executeTool("startPersonalGoal", { patientId: context.patientId, statement: clean(question) });
+        emit("EMMI_ANSWER_ROUTED", { statementKind: opened?.kind || "" });
+        if (opened?.success) return { text: goalProposalAnswer(opened, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "startPersonalGoal", error: error?.message || "unknown" });
+      }
+      return { text: pick(locale, {
+        EN: "I couldn’t open that just now, so nothing was saved. You can add a goal from My Goals whenever you like.",
+        ES: "No pude abrirlo ahora, así que no se guardó nada. Puede agregar una meta desde Mis metas cuando quiera.",
+        KR: "Mwen pa t ka louvri sa kounye a, kidonk anyen pa sove. Ou ka ajoute yon objektif nan Objektif mwen lè ou vle."
+      }), trace };
+    }
+
     // "Who pays for the Uber?" is a cost question, but not a question about the ACCESS cost. Sent to
     // the financial engine it came back "your expected payment for ACCESS is $0" — which a patient
     // asking about a ride reads as a promise that the ride is free. What transportation costs, and
@@ -1425,6 +1618,12 @@ export class EmmiTextOrchestrator {
               })}`;
             }
           } catch { /* the care-team target still stands on its own */ }
+          // Asking what the target IS gets the target. Asking to CHANGE it gets the target, the
+          // program's control target above, and then the goal that is theirs to set. The classifier
+          // tells the two questions apart, so "what is my blood pressure target?" is never answered
+          // with an offer nobody asked for.
+          const offer = clinicalGoalOffer(question, locale);
+          if (offer) return { text: `${text} ${offer}`, trace };
         }
         if (context.appointmentPrep && ["getLatestReading", "getReadingTrend"].includes(tool) && appointmentPrepTopic) {
           const preparation = context.appointmentPrep.emmiPreparation || {};
