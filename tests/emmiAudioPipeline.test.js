@@ -359,11 +359,16 @@ describe("EMMI audio pipeline", () => {
     client.touchTurnWatchdog(client.activeTurn.generationId);
     vi.advanceTimersByTime(25);
 
+    expect(completed).toHaveLength(0);
+    expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
+    expect(client.activeTurn.guidanceRetryCount).toBe(1);
+    vi.advanceTimersByTime(75);
+
     expect(errors).toEqual([]);
     expect(completed).toHaveLength(1);
     expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_TIMEOUT_RECOVERED");
     expect(client.activeTurn).toBeNull();
-    expect(states.at(-1)).toBe("DISCONNECTED");
+    expect(states.at(-1)).toBe("LISTENING");
     vi.useRealTimers();
   });
 

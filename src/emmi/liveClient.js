@@ -150,11 +150,31 @@ export class EmmiLiveClient {
       this.stopPlayback({ fadeMs: 80 });
       if (["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(timedOut.priority)) {
         // Partial transcript activity must not keep a silent guidance turn in Thinking forever.
-        // End only this voice socket without surfacing an error; Repeat reconnects on demand.
+        // Retry the same screen once; transient provider gaps otherwise make the second screen
+        // silent while the next navigation happens to work.
         this.interruptedGenerationIds.add(generationId);
+        if (!timedOut.guidanceRetryCount && timedOut.retryText) {
+          this.activeTurn = null;
+          this.activeAudioGenerationId = 0;
+          this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_RETRY", { turnId: timedOut.id, generationId, waitMs: this.guidanceStartTimeoutMs });
+          this.sendText(timedOut.retryText, {
+            id: `${timedOut.id}:retry`,
+            narrationId: timedOut.narrationId,
+            screenId: timedOut.screenId,
+            contextVersion: timedOut.contextVersion,
+            semanticSegmentId: timedOut.semanticSegmentId,
+            semanticText: timedOut.semanticText,
+            priority: timedOut.priority,
+            contextIndependent: timedOut.contextIndependent,
+            guidanceRetryCount: 1
+          });
+          return;
+        }
+        this.activeTurn = null;
+        this.activeAudioGenerationId = 0;
+        this.setState("LISTENING", "guidance_timeout_recovered");
         this.onTurnComplete?.(timedOut);
         this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_TIMEOUT_RECOVERED", { turnId: timedOut.id, generationId, waitMs: this.guidanceStartTimeoutMs });
-        this.disconnect("guidance_timeout");
         return;
       }
       this.activeTurn = null;
@@ -783,7 +803,7 @@ ${body}`,
       this.handlePatientSpeechStart({ source: "text_input", detectedAt: performance.now() }, { providerConfirmed: true });
     }
     const generationId = ++this.generationSequence;
-    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false };
+    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false, retryText: text };
     if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;
     this.activeTurn = turn;
     this.lastEmmiUtterance = "";
