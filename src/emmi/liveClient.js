@@ -34,6 +34,7 @@ export const EMMI_END_OF_SPEECH_SILENCE_MS = 1200;
 export const EMMI_MIC_FRAME_SIZE = 2048;
 export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v3";
 export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
+export const EMMI_GUIDANCE_START_TIMEOUT_MS = 12000;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=3";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
@@ -59,7 +60,7 @@ export const normalizeEmmiVoiceError = code => ({
 })[code] || code;
 
 export class EmmiLiveClient {
-  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity, onBargeIn, onVoiceTelemetry, onSessionResumption, onReconnectNeeded, turnStallTimeoutMs = EMMI_TURN_STALL_TIMEOUT_MS, transcriptWaitTimeoutMs = EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS }) {
+  constructor({ getContext, executeTool, onState, onTranscript, onTurnComplete, onError, onVoiceIdentity, onBargeIn, onVoiceTelemetry, onSessionResumption, onReconnectNeeded, turnStallTimeoutMs = EMMI_TURN_STALL_TIMEOUT_MS, guidanceStartTimeoutMs = EMMI_GUIDANCE_START_TIMEOUT_MS, transcriptWaitTimeoutMs = EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS }) {
     this.getContext = getContext;
     this.executeTool = executeTool;
     this.onState = onState;
@@ -107,6 +108,7 @@ export class EmmiLiveClient {
     this.turnWatchdogTimer = null;
     this.patientTranscriptTimer = null;
     this.turnStallTimeoutMs = turnStallTimeoutMs;
+    this.guidanceStartTimeoutMs = guidanceStartTimeoutMs;
     this.transcriptWaitTimeoutMs = transcriptWaitTimeoutMs;
     this.connectionSequence = 0;
     this.sessionResumptionHandle = this.getContext()?.emmiConversation?.sessionResumptionHandle || "";
@@ -135,18 +137,33 @@ export class EmmiLiveClient {
   touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
     this.clearTurnWatchdog();
     if (!generationId || !Number.isFinite(this.turnStallTimeoutMs) || this.turnStallTimeoutMs <= 0) return;
+    const turn = this.activeTurn;
+    const guidanceWaitingForAudio = ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn?.priority) && this.state !== "EMMI_SPEAKING";
+    const elapsed = guidanceWaitingForAudio ? performance.now() - Number(turn?.clientTurnSentAt ?? performance.now()) : 0;
+    const timeoutMs = guidanceWaitingForAudio && Number.isFinite(this.guidanceStartTimeoutMs)
+      ? Math.max(0, this.guidanceStartTimeoutMs - elapsed)
+      : this.turnStallTimeoutMs;
     this.turnWatchdogTimer = setTimeout(() => {
       if (this.activeTurn?.generationId !== generationId) return;
       const timedOut = this.activeTurn;
       this.emitVoiceTelemetry("EMMI_VOICE_TURN_TIMEOUT", { turnId: timedOut.id, generationId, state: this.state });
       this.stopPlayback({ fadeMs: 80 });
+      if (["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(timedOut.priority)) {
+        // Partial transcript activity must not keep a silent guidance turn in Thinking forever.
+        // End only this voice socket without surfacing an error; Repeat reconnects on demand.
+        this.interruptedGenerationIds.add(generationId);
+        this.onTurnComplete?.(timedOut);
+        this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_TIMEOUT_RECOVERED", { turnId: timedOut.id, generationId, waitMs: this.guidanceStartTimeoutMs });
+        this.disconnect("guidance_timeout");
+        return;
+      }
       this.activeTurn = null;
       this.activeAudioGenerationId = 0;
       this.awaitingPatientResponse = false;
       this.patientResponseReady = false;
       this.onError?.("VOICE_RESPONSE_TIMEOUT");
       this.disconnect("VOICE_RESPONSE_TIMEOUT");
-    }, this.turnStallTimeoutMs);
+    }, timeoutMs);
   }
   clearPatientTranscriptWatchdog() { clearTimeout(this.patientTranscriptTimer); this.patientTranscriptTimer = null; }
   waitForPatientTranscript() {

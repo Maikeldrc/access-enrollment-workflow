@@ -336,6 +336,37 @@ describe("EMMI audio pipeline", () => {
     vi.useRealTimers();
   });
 
+  it("ends silent screen guidance at an absolute start deadline without showing an error", () => {
+    vi.useFakeTimers();
+    const errors = [];
+    const states = [];
+    const telemetry = [];
+    const completed = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onError: code => errors.push(code),
+      onState: state => states.push(state),
+      onTurnComplete: turn => completed.push(turn),
+      onVoiceTelemetry: type => telemetry.push(type),
+      turnStallTimeoutMs: 1000,
+      guidanceStartTimeoutMs: 75
+    });
+    client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+
+    expect(client.sendText("Explain this screen", { id: "screen-two", priority: "SCREEN_GUIDANCE" })).toBe(true);
+    // Transcript activity before audio used to renew the full stall timeout indefinitely.
+    vi.advanceTimersByTime(50);
+    client.touchTurnWatchdog(client.activeTurn.generationId);
+    vi.advanceTimersByTime(25);
+
+    expect(errors).toEqual([]);
+    expect(completed).toHaveLength(1);
+    expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_TIMEOUT_RECOVERED");
+    expect(client.activeTurn).toBeNull();
+    expect(states.at(-1)).toBe("DISCONNECTED");
+    vi.useRealTimers();
+  });
+
   it("gives a typed patient question a clean generation while voice guidance is speaking", () => {
     const bargeIns = [];
     const client = new EmmiLiveClient({
