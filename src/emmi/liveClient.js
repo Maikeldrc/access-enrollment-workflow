@@ -34,7 +34,10 @@ export const EMMI_END_OF_SPEECH_SILENCE_MS = 1200;
 export const EMMI_MIC_FRAME_SIZE = 2048;
 export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v3";
 export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
-export const EMMI_GUIDANCE_START_TIMEOUT_MS = 12000;
+// Normal live guidance begins well under two seconds. A longer wait made the first form screen
+// look broken whenever Gemini left a turn open without PCM; retry while the patient's attention
+// is still on the screen, while retaining the single-retry guard against duplicate narration.
+export const EMMI_GUIDANCE_START_TIMEOUT_MS = 3500;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=3";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off

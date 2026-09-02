@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
+import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_GUIDANCE_START_TIMEOUT_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
 
 // The worklet runs on the audio thread and cannot be imported here, so its accumulator is
 // reproduced exactly: this is the part of the migration that decides the packet cadence.
@@ -29,6 +29,7 @@ describe("EMMI audio pipeline", () => {
     expect(EMMI_MIC_FRAME_SIZE).toBe(2048);
     expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v3");
     expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
+    expect(EMMI_GUIDANCE_START_TIMEOUT_MS).toBe(3500);
   });
 
   it("aggregates render quanta into one provider-sized frame instead of sending each one", () => {
