@@ -5,12 +5,13 @@ export function readEmmiPreferences(storage = globalThis.localStorage) {
   catch { return {}; }
 }
 
-// Voice guidance is a browser preference. Having already met EMMI is a fact about one patient's
-// conversation, so /new must not carry it to the next patient and make a fresh chat look resumed.
+// /new represents a completely fresh enrollment. Neither having already met EMMI nor having
+// enabled voice in the previous enrollment may carry over; the new patient must opt in themselves.
+// Other EMMI preferences can remain if they are added later.
 export function clearEmmiEnrollmentContinuity(storage = globalThis.localStorage) {
   const preferences = readEmmiPreferences(storage);
-  if (!("emmiWelcomeAcknowledged" in preferences)) return;
   delete preferences.emmiWelcomeAcknowledged;
+  delete preferences.emmiVoiceGuidance;
   try {
     if (Object.keys(preferences).length) storage?.setItem(EMMI_PREFERENCES_KEY, JSON.stringify(preferences));
     else storage?.removeItem(EMMI_PREFERENCES_KEY);

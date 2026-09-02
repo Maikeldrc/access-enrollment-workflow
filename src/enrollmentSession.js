@@ -13,11 +13,9 @@
 // into patient B. Each store clears itself; this only says who gets asked.
 //
 // What survives is what belongs to the browser rather than to the enrollment: the chosen language,
-// EMMI's voice-guidance setting and where the assistant sits on screen, the growth prompt
-// cooldowns, and the QA console's own configuration. Wiping those would punish somebody for
-// starting a second enrollment by making them pick their language again, and none of them can
-// carry a fact about the previous patient. Conversation continuity is different: whether EMMI has
-// already been introduced belongs to the enrollment and is cleared with the transcript.
+// where the assistant sits on screen, growth prompt cooldowns, and the QA console's own
+// configuration. Voice is deliberately different: /new is a fresh opt-in boundary, so EMMI starts
+// silent even when the previous enrollment enabled guidance.
 
 // The two demo enrollments are the same fictional patient, so nothing here can be scoped by
 // patient id: A and B share one. The enrollment boundary is the session itself, which is why each

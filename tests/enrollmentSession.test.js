@@ -68,15 +68,17 @@ describe("starting a new enrollment", () => {
     expect(result.cleared).toEqual(["draft", "careCircleAndShares", "emmiConversation", "emmiAuditLog", "emmiAssistantContinuity"]);
   });
 
-  // Language, voice guidance and where EMMI sits belong to the browser. Having already met EMMI
-  // belongs to the prior patient's conversation and must not make the new chat look resumed.
-  it("keeps browser preferences but clears EMMI conversation continuity", () => {
+  // Language and placement belong to the browser. EMMI voice is a fresh opt-in for every /new
+  // enrollment, and prior conversation continuity must not make the new chat look resumed.
+  it("keeps non-voice browser preferences and resets EMMI to opt-in", () => {
     reset();
-    const expected = { ...PREFERENCE_KEYS, "itera.emmi.preferences.v1": JSON.stringify({ emmiVoiceGuidance: true }) };
+    const expected = { ...PREFERENCE_KEYS };
+    delete expected["itera.emmi.preferences.v1"];
     for (const [key, value] of Object.entries(expected)) {
       expect(storage.getItem(key), `${key} is a preference and should survive`).toBe(value);
     }
-    expect(storage.keys()).toEqual(Object.keys(PREFERENCE_KEYS).sort());
+    expect(storage.getItem("itera.emmi.preferences.v1")).toBeNull();
+    expect(storage.keys()).toEqual(Object.keys(expected).sort());
   });
 
   // Both demo enrollments are the same fictional patient on the same scenario, so EMMI's scope
