@@ -157,6 +157,23 @@ export class EmmiLiveClient {
       guidanceRetryCount: 1
     });
   }
+  restartSilentGuidance(turn, reason = "start_timeout") {
+    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || turn.guidanceRetryCount || !turn.retryText) return false;
+    const generationId = turn.generationId;
+    const metadata = {
+      id: `${turn.id}:retry`, narrationId: turn.narrationId, screenId: turn.screenId,
+      contextVersion: turn.contextVersion, semanticSegmentId: turn.semanticSegmentId,
+      semanticText: turn.semanticText, priority: turn.priority,
+      contextIndependent: turn.contextIndependent, guidanceRetryCount: 1
+    };
+    this.interruptedGenerationIds.add(generationId);
+    this.sessionResumptionHandle = "";
+    this.onSessionResumption?.({ handle: "", resumable: false, reason });
+    this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_RETRY", { turnId: turn.id, generationId, reason, reconnect: true });
+    this.disconnect("guidance_start_timeout", { preserveOutput: true });
+    this.connect(turn.retryText, metadata).catch(() => { /* connect() publishes the patient-safe error. */ });
+    return true;
+  }
   touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
     this.clearTurnWatchdog();
     if (!generationId || !Number.isFinite(this.turnStallTimeoutMs) || this.turnStallTimeoutMs <= 0) return;
@@ -175,7 +192,7 @@ export class EmmiLiveClient {
         // Partial transcript activity must not keep a silent guidance turn in Thinking forever.
         // Retry the same screen once; transient provider gaps otherwise make the second screen
         // silent while the next navigation happens to work.
-        if (this.retrySilentGuidance(timedOut, "start_timeout")) return;
+        if (this.restartSilentGuidance(timedOut, "start_timeout")) return;
         this.interruptedGenerationIds.add(generationId);
         this.activeTurn = null;
         this.activeAudioGenerationId = 0;
@@ -243,10 +260,12 @@ export class EmmiLiveClient {
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("VOICE_PERMISSION_DENIED");
     this.setState("CONNECTING");
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch { throw this.fail("VOICE_PERMISSION_DENIED"); }
-    navigator.mediaDevices.addEventListener?.("devicechange", this.audioDeviceChangeHandler);
+    if (!this.muted) {
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      } catch { throw this.fail("VOICE_PERMISSION_DENIED"); }
+      navigator.mediaDevices.addEventListener?.("devicechange", this.audioDeviceChangeHandler);
+    }
     if (simulated === "429") throw this.fail("rate_limited");
     if (simulated === "connection") throw this.fail("VOICE_SESSION_FAILED");
     let response;
@@ -289,6 +308,11 @@ export class EmmiLiveClient {
           onopen: () => {
             this.intentionalClose = false;
             clearTimeout(this.stabilityTimer); this.stabilityTimer = setTimeout(() => { this.reconnectAttempts = 0; }, 10000);
+            if (this.muted) {
+              this.setState("LISTENING", "muted");
+              this.startTimers();
+              return;
+            }
             this.startAudioCapture().then(() => {
               this.setState("LISTENING");
               this.startTimers();

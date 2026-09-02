@@ -446,6 +446,12 @@ describe("EMMI audio pipeline", () => {
       guidanceStartTimeoutMs: 75
     });
     client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+    client.connect = vi.fn((text, metadata) => {
+      client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+      client.state = "CONNECTING";
+      client.sendText(text, metadata);
+      return Promise.resolve(true);
+    });
 
     expect(client.sendText("Explain this screen", { id: "screen-two", priority: "SCREEN_GUIDANCE" })).toBe(true);
     // Transcript activity before audio used to renew the full stall timeout indefinitely.
@@ -456,6 +462,7 @@ describe("EMMI audio pipeline", () => {
     expect(completed).toHaveLength(0);
     expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
     expect(client.activeTurn.guidanceRetryCount).toBe(1);
+    expect(client.connect).toHaveBeenCalledOnce();
     vi.advanceTimersByTime(75);
 
     expect(errors).toEqual([]);
