@@ -138,6 +138,26 @@ test("a refresh reopens the invitation, never the configuration screen", async (
   expect(await sawConfigurationScreen(page)).toBe(false);
 });
 
+test("the public link recovers from a malformed draft left by an older build", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("itera.enrollment.safe-draft.v2", JSON.stringify({
+      scenarioId: "access-invitation",
+      screen: "MEDICATIONS_REVIEW",
+      identityVerified: true,
+      completionRole: "patient",
+      // This reproduces the kind of partially migrated record that used to throw during boot.
+      patientGoals: [null]
+    }));
+  });
+
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: "A smarter way to manage your health" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "We can’t open this secure link" })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("itera.enrollment.safe-draft.v2"))).toBeNull();
+});
+
 test("a scenario left behind by QA never leaks into a patient's invitation", async ({ page }) => {
   // A different program, a different condition, a different language and a half-finished flow, all
   // saved by the console in this browser. None of it belongs to this patient.

@@ -9982,13 +9982,14 @@ async function boot() {
   Object.assign(state, growthStore.readPromptPreferences());
   if (location.pathname === "/access/learn") { renderPublicAccessLanding(); return; }
   if (location.pathname === "/support/accept" || location.pathname.startsWith("/care-circle/invite/")) { renderSupportAcceptance(); return; }
+  let saved = null;
   try {
     state.offer = await service.getOffer();
     // The invitation has no Launch step, so the device context the console used to write on Launch
     // is written here instead — before the first render, and before a saved draft is layered over
     // it, so a patient who already answered for their monitor keeps that answer.
     if (canonicalInvitation) applyScenarioDeviceContext();
-    const saved = patientShareSource ? null : draftStore.load();
+    saved = patientShareSource ? null : draftStore.load();
     if (saved?.scenarioId === scenarioId && (saved.identityVerified || saved.completionRole === "personalRepresentative")) {
       state = { ...state, ...saved, offer: state.offer, audit: saved.audit || [] };
       if (typeof savedEmmiPreferences.emmiVoiceGuidance === "boolean") state.emmiVoiceGuidance = savedEmmiPreferences.emmiVoiceGuidance;
@@ -10127,7 +10128,26 @@ async function boot() {
     scheduleSimulatedAppointmentResponses();
     if (state.screen === "ACCESS_ELIGIBILITY_PROCESSING" && !state.eligibilityError) runEligibility();
     startAssignedDeviceLookupIfPending();
-  } catch (error) { state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID"; render(); }
+  } catch (error) {
+    // A malformed draft from an older build is browser-specific: a private window works while the
+    // patient's usual browser falls into the secure-link error. The public root is a canonical
+    // invitation, so a failure while restoring its existing draft is not evidence that the link is
+    // invalid. Clear only that stale enrollment boundary and reopen the same canonical invitation.
+    // If a clean boot still fails, `saved` is null and the real link error remains visible.
+    if (canonicalInvitation && saved) {
+      resetEnrollmentSession({
+        draftStore,
+        growthStore,
+        clearConversation: clearEmmiConversation,
+        clearAuditLog: clearEmmiAuditLog,
+        clearAssistantContinuity: clearEmmiEnrollmentContinuity
+      });
+      location.replace("/");
+      return;
+    }
+    state.screen = error.message === "expired" ? "OFFER_EXPIRED" : "OFFER_INVALID";
+    render();
+  }
 }
 
 if (["/access/learn", "/support/accept"].includes(location.pathname) || location.pathname.startsWith("/care-circle/invite/")) boot();
