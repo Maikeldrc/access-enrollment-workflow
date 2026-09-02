@@ -305,6 +305,28 @@ test.describe("EMMI Voice keeps up with the screen", () => {
       .toMatchObject({ active: true });
   };
 
+  test("narrates the first and second form screens even when Start is pressed while voice is connecting", async ({ page }) => {
+    test.setTimeout(180000);
+    await page.goto("/new");
+
+    // This deliberately does not wait for startVoice(): it reproduces the production race where
+    // the patient accepts voice and immediately continues before the live socket exists.
+    await page.getByRole("button", { name: /Guide by voice|Guía por voz/ }).first().click();
+    await page.getByRole("button", { name: /Start your care journey|Comenzar/ }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Who is completing|Quién está completando/);
+    await expect.poll(() => page.evaluate(() => window.__emmiVoiceProbe?.()), { timeout: 45000 })
+      .toMatchObject({ state: "EMMI_SPEAKING", active: true, socket: true });
+    await expect.poll(() => page.evaluate(() => window.__emmiVoiceProbe?.()), { timeout: 45000 })
+      .toMatchObject({ state: "LISTENING", active: true, socket: true });
+
+    await page.getByRole("button", { name: /Continue|Continuar/ }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/securely confirm|confirmar.*identidad/i);
+    await expect.poll(() => page.evaluate(() => window.__emmiVoiceProbe?.()), { timeout: 45000 })
+      .toMatchObject({ state: "EMMI_SPEAKING", active: true, socket: true });
+    await expect.poll(() => page.evaluate(() => window.__emmiVoiceProbe?.()), { timeout: 45000 })
+      .toMatchObject({ state: "LISTENING", active: true, socket: true });
+  });
+
   test("a session opened on one step is told about every step after it", async ({ page }) => {
     test.setTimeout(180000);
     await openVisit(page);

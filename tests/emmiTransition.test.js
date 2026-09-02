@@ -213,6 +213,33 @@ describe("EMMI live context guards", () => {
     expect(session.sendClientContent.mock.calls[0][0].turns).toContain("TRUSTED LIVE CONTEXT UPDATE");
   });
 
+  it("queues the latest screen narration while the live connection is opening", () => {
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.state = "CONNECTING";
+
+    expect(client.sendText("Welcome", { screenId: "INVITATION", contextVersion: 1, priority: "SCREEN_GUIDANCE" })).toBe(true);
+    expect(client.sendText("Who is completing this?", { screenId: "DECISION_MAKER", contextVersion: 2, priority: "TRANSITION_GUIDANCE" })).toBe(true);
+
+    expect(client.pendingConnectionTurn).toEqual({
+      text: "Who is completing this?",
+      metadata: expect.objectContaining({ screenId: "DECISION_MAKER", contextVersion: 2 })
+    });
+    expect(telemetry).toEqual([
+      "EMMI_VOICE_TURN_QUEUED_DURING_CONNECT",
+      "EMMI_VOICE_TURN_QUEUED_DURING_CONNECT"
+    ]);
+  });
+
+  it("does not queue narration while voice is disconnected", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);
+    expect(client.pendingConnectionTurn).toBeNull();
+  });
+
   it("retains the latest resumable Gemini Live handle", async () => {
     const onSessionResumption = vi.fn();
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onSessionResumption });
@@ -241,11 +268,31 @@ describe("EMMI live context guards", () => {
   it("uses a short forced handoff when no natural boundary arrives", async () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     client.session = { close: vi.fn() };
+    client.outputContext = { close: vi.fn(), currentTime: 0 };
+    client.outputGain = { gain: { setValueAtTime: vi.fn() } };
     client.state = "EMMI_SPEAKING";
     client.activeTurn = { id: "long-turn", contextVersion: 1, priority: "SCREEN_GUIDANCE" };
+    client.sessionResumptionHandle = "stalled-session";
     client.setActiveContextVersion(1);
     await expect(client.beginGracefulHandoff({ nextContextVersion: 2, allowedTurnId: "long-turn", maxGracefulHandoffMs: 5 }))
       .resolves.toMatchObject({ reason: "max_grace", forcedReconnect: true });
+    expect(client.outputContext.close).not.toHaveBeenCalled();
+    expect(client.outputContext).not.toBeNull();
+    expect(client.outputGain).not.toBeNull();
+    expect(client.sessionResumptionHandle).toBe("");
+  });
+
+  it("closes the output context when voice is intentionally ended", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    const outputContext = { close: vi.fn(), currentTime: 0 };
+    client.outputContext = outputContext;
+    client.outputGain = { gain: { setValueAtTime: vi.fn() } };
+
+    client.disconnect("voice_off");
+
+    expect(outputContext.close).toHaveBeenCalledOnce();
+    expect(client.outputContext).toBeNull();
+    expect(client.outputGain).toBeNull();
   });
 
   it("does not let the normal grace timeout cancel a critical 911 instruction", async () => {

@@ -147,6 +147,99 @@ describe("EMMI audio pipeline", () => {
     expect(client.session.sendRealtimeInput).toHaveBeenCalledOnce();
   });
 
+  it("releases microphone capture before passive screen guidance can hear its own speaker", () => {
+    const track = { stop: vi.fn() };
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }) });
+    client.session = { sendClientContent: vi.fn() };
+    client.stream = { getTracks: () => [track] };
+    client.stopAudioCapture = vi.fn();
+    client.state = "LISTENING";
+    client.setActiveContextVersion(2);
+
+    expect(client.sendText("Explain this screen", { contextVersion: 2, priority: "SCREEN_GUIDANCE" })).toBe(true);
+
+    expect(client.muted).toBe(true);
+    expect(client.stopAudioCapture).toHaveBeenCalledOnce();
+    expect(track.stop).toHaveBeenCalledOnce();
+    expect(client.session.sendClientContent).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the microphone available for a patient-initiated response", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }) });
+    client.session = { sendClientContent: vi.fn() };
+    client.state = "LISTENING";
+    client.setActiveContextVersion(2);
+
+    expect(client.sendText("Answer the patient", { contextVersion: 2, priority: "PATIENT_RESPONSE" })).toBe(true);
+
+    expect(client.muted).toBe(false);
+  });
+
+  it("ignores buffered provider speech events after passive guidance muted the microphone", async () => {
+    const telemetry = [];
+    const transcripts = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onTranscript: (...args) => transcripts.push(args),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.state = "EMMI_SPEAKING";
+    client.muted = true;
+    client.activeAudioGenerationId = 4;
+    client.activeTurn = { id: "guide", generationId: 4, contextVersion: 2, priority: "SCREEN_GUIDANCE" };
+
+    await client.handleMessage({
+      serverContent: {
+        interrupted: true,
+        inputTranscription: { text: "buffered speaker echo" }
+      }
+    });
+
+    expect(client.activeTurn?.id).toBe("guide");
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(transcripts).toEqual([]);
+    expect(telemetry).toContain("EMMI_MUTED_PROVIDER_INTERRUPTION_IGNORED");
+    expect(telemetry).toContain("EMMI_MUTED_INPUT_TRANSCRIPT_IGNORED");
+  });
+
+  it("retries once when the provider completes screen guidance without sending audio", async () => {
+    const completed = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onTurnComplete: turn => completed.push(turn),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.state = "LISTENING";
+    client.setActiveContextVersion(2);
+    client.sendText("Explain the first form screen", {
+      id: "decision-guide",
+      narrationId: "decision-narration",
+      screenId: "DECISION_MAKER",
+      contextVersion: 2,
+      semanticSegmentId: "decision-segment",
+      priority: "TRANSITION_GUIDANCE"
+    });
+
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+
+    expect(client.session.sendClientContent).toHaveBeenCalledTimes(2);
+    expect(client.activeTurn).toMatchObject({
+      id: "decision-guide:retry",
+      screenId: "DECISION_MAKER",
+      guidanceRetryCount: 1
+    });
+    expect(completed).toHaveLength(0);
+    expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
+
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+
+    expect(client.session.sendClientContent).toHaveBeenCalledTimes(2);
+    expect(client.activeTurn).toBeNull();
+    expect(completed).toHaveLength(1);
+  });
+
   it("discards provider transcript fragments from an interrupted generation", async () => {
     const transcripts = [];
     const telemetry = [];

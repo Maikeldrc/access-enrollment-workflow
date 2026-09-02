@@ -91,6 +91,7 @@ export class EmmiLiveClient {
     // on the socket in that window except the tool response itself.
     this.toolRoundTripInFlight = false;
     this.activeTurn = null;
+    this.pendingConnectionTurn = null;
     this.generationSequence = 0;
     this.activeAudioGenerationId = 0;
     this.interruptedGenerationIds = new Set();
@@ -134,6 +135,25 @@ export class EmmiLiveClient {
     this.onState?.(value, detail);
   }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
+  retrySilentGuidance(turn, reason = "silent") {
+    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || turn.guidanceRetryCount || !turn.retryText) return false;
+    const generationId = turn.generationId;
+    this.interruptedGenerationIds.add(generationId);
+    this.activeTurn = null;
+    this.activeAudioGenerationId = 0;
+    this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_RETRY", { turnId: turn.id, generationId, reason });
+    return this.sendText(turn.retryText, {
+      id: `${turn.id}:retry`,
+      narrationId: turn.narrationId,
+      screenId: turn.screenId,
+      contextVersion: turn.contextVersion,
+      semanticSegmentId: turn.semanticSegmentId,
+      semanticText: turn.semanticText,
+      priority: turn.priority,
+      contextIndependent: turn.contextIndependent,
+      guidanceRetryCount: 1
+    });
+  }
   touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
     this.clearTurnWatchdog();
     if (!generationId || !Number.isFinite(this.turnStallTimeoutMs) || this.turnStallTimeoutMs <= 0) return;
@@ -152,24 +172,8 @@ export class EmmiLiveClient {
         // Partial transcript activity must not keep a silent guidance turn in Thinking forever.
         // Retry the same screen once; transient provider gaps otherwise make the second screen
         // silent while the next navigation happens to work.
+        if (this.retrySilentGuidance(timedOut, "start_timeout")) return;
         this.interruptedGenerationIds.add(generationId);
-        if (!timedOut.guidanceRetryCount && timedOut.retryText) {
-          this.activeTurn = null;
-          this.activeAudioGenerationId = 0;
-          this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_RETRY", { turnId: timedOut.id, generationId, waitMs: this.guidanceStartTimeoutMs });
-          this.sendText(timedOut.retryText, {
-            id: `${timedOut.id}:retry`,
-            narrationId: timedOut.narrationId,
-            screenId: timedOut.screenId,
-            contextVersion: timedOut.contextVersion,
-            semanticSegmentId: timedOut.semanticSegmentId,
-            semanticText: timedOut.semanticText,
-            priority: timedOut.priority,
-            contextIndependent: timedOut.contextIndependent,
-            guidanceRetryCount: 1
-          });
-          return;
-        }
         this.activeTurn = null;
         this.activeAudioGenerationId = 0;
         this.setState("LISTENING", "guidance_timeout_recovered");
@@ -303,7 +307,12 @@ export class EmmiLiveClient {
       // connect() resolves once the server has acknowledged setup. Sending the welcome from
       // onopen instead sends it before the handshake finishes and the turn is dropped, which is
       // why the first tap connected but stayed silent.
-      if (initialText) this.sendText(initialText, metadata);
+      // Navigation may happen while the socket is still opening. In that case the destination
+      // screen replaces the stale welcome and is sent as soon as setup is acknowledged.
+      const pending = this.pendingConnectionTurn;
+      this.pendingConnectionTurn = null;
+      if (pending) this.sendText(pending.text, pending.metadata);
+      else if (initialText) this.sendText(initialText, metadata);
       return true;
     } catch (error) { throw this.fail(error?.message?.includes("429") ? "rate_limited" : normalizeEmmiVoiceError(error?.code || "connection_failed")); }
   }
@@ -420,7 +429,9 @@ export class EmmiLiveClient {
     const interruptionAlreadyApplied = Boolean(
       this.currentInterruption && this.patientResponseReady && this.activeTurn?.priority === "PATIENT_RESPONSE"
     );
-    if (server?.interrupted && !interruptionAlreadyApplied) {
+    if (server?.interrupted && this.muted) {
+      this.emitVoiceTelemetry("EMMI_MUTED_PROVIDER_INTERRUPTION_IGNORED", { activeGenerationId: this.activeTurn?.generationId || 0 });
+    } else if (server?.interrupted && !interruptionAlreadyApplied) {
       const details = this.bargeIn.confirmProviderInterruption();
       this.handlePatientSpeechStart(details, { providerConfirmed: true });
     } else if (server?.interrupted) {
@@ -428,7 +439,9 @@ export class EmmiLiveClient {
         activeGenerationId: this.activeTurn?.generationId || 0
       });
     }
-    if (server?.inputTranscription?.text) {
+    if (server?.inputTranscription?.text && this.muted) {
+      this.emitVoiceTelemetry("EMMI_MUTED_INPUT_TRANSCRIPT_IGNORED", { activeGenerationId: this.activeTurn?.generationId || 0 });
+    } else if (server?.inputTranscription?.text) {
       // Some provider sequences deliver the transcript one message before the explicit
       // interruption event. A first patient transcript while an assistant turn is still active is
       // itself authoritative evidence that the patient has the floor. Apply the interruption now;
@@ -526,6 +539,10 @@ export class EmmiLiveClient {
       if (completed) {
         completed.providerTurnComplete = true;
         completed.providerTurnCompleteAt = performance.now();
+        // Gemini Live occasionally acknowledges an automatic guidance request with no PCM at
+        // all. Treat that as a silent turn and retry immediately; waiting for a watchdog cannot
+        // help because, from the provider's perspective, this turn already finished.
+        if (!completed.firstAudioReceivedAt && this.retrySilentGuidance(completed, "empty_provider_turn")) return;
         this.finishTurnIfDrained(completed.generationId);
       } else if (!this.awaitingPatientResponse) {
         this.setState("LISTENING");
@@ -727,7 +744,16 @@ export class EmmiLiveClient {
           // exceptional turn so late PCM chunks cannot be mistaken for the new screen.
           setTimeout(() => {
             if (this.gracefulHandoff !== handoff) return;
-            this.disconnect("context_handoff_timeout");
+            // A context handoff must not resume the provider generation that just stalled. Start
+            // the destination screen on a clean live session while retaining the click-enabled
+            // browser output context.
+            this.sessionResumptionHandle = "";
+            this.onSessionResumption?.({ handle: "", resumable: false, reason: "context_handoff_timeout" });
+            // Keep the click-activated output context alive. Closing it here means reconnect()
+            // has to create a new AudioContext after the user's navigation gesture has expired;
+            // browsers may suspend that new context, making this screen silent until the next
+            // click even though PCM is arriving.
+            this.disconnect("context_handoff_timeout", { preserveOutput: true });
             this.gracefulHandoff = null;
             this.allowedGracefulTurnId = "";
             resolve({ reason: "max_grace", durationMs: Date.now() - startedAt, forcedReconnect: true });
@@ -794,7 +820,24 @@ ${body}`,
   // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
   // text turn sent that way is accepted silently and never produces a spoken reply.
   sendText(text, metadata = {}) {
-    if (!this.session) return false;
+    if (!this.session) {
+      if (this.state === "CONNECTING") {
+        // Keep only the latest destination. A rapid A → B → C sequence must narrate C, never
+        // replay the welcome or an intermediate screen after the connection finally opens.
+        this.pendingConnectionTurn = { text, metadata: { ...metadata } };
+        this.emitVoiceTelemetry("EMMI_VOICE_TURN_QUEUED_DURING_CONNECT", { screenId: metadata.screenId || "", priority: metadata.priority || "" });
+        return true;
+      }
+      return false;
+    }
+    const passiveGuidance = ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
+    if (passiveGuidance && !this.muted) {
+      // Compact guidance is one-way playback. Leaving capture open lets the provider hear EMMI
+      // through the patient's speakers and classify it as patient speech, which interrupts the
+      // second screen and leaves the following UI oscillating between Listening and Thinking.
+      // Ask EMMI explicitly unmutes from a fresh patient gesture when conversation is desired.
+      void this.setMuted(true);
+    }
     const patientInitiated = ["PATIENT_RESPONSE", "CRITICAL_SAFETY"].includes(metadata.priority);
     if (patientInitiated && this.activeTurn) {
       // A typed question is allowed while voice guidance is playing. Treat it as the same floor
@@ -835,14 +878,20 @@ ${body}`,
   async setMuted(value) { this.muted=Boolean(value); if(this.muted){this.stopAudioCapture();this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED",{reason:"paused"});} else if(this.session&&!this.stream){try{this.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});await this.startAudioCapture();}catch{this.muted=true;this.onError?.("VOICE_PERMISSION_DENIED");}} this.onState?.(this.state,this.muted?"muted":"unmuted");return !this.muted; }
   handleProviderError(error) { const code=normalizeEmmiVoiceError(error?.message?.includes("429")?"rate_limited":"VOICE_PROVIDER_ERROR");this.onError?.(code);this.disconnect(code);return false; }
   scheduleReconnect(reason,{proactive=false}={}){if(!this.sessionResumptionHandle||this.reconnectAttempts>=this.maxReconnectAttempts)return false;clearTimeout(this.reconnectTimer);const attempt=++this.reconnectAttempts,delay=proactive?100:Math.min(2000,250*(2**(attempt-1))),handle=this.sessionResumptionHandle,recovery=this.onReconnectNeeded?.({reason,handle,attempt})||"";this.setState("CONNECTING","VOICE_RECONNECTING");this.reconnectTimer=setTimeout(()=>{if(proactive&&this.isActive())this.disconnect("go_away_handoff");this.goAwayReconnectScheduled=false;this.connect(recovery,{priority:"TRANSITION_GUIDANCE"}).catch(()=>{});},delay);return true;}
-  disconnect(reason = "ended") {
+  disconnect(reason = "ended", { preserveOutput = false } = {}) {
     this.intentionalClose = true;
     clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.stabilityTimer); this.clearTurnWatchdog(); this.clearPatientTranscriptWatchdog(); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
     this.session = null; this.stopAudioCapture();
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;
     globalThis.navigator?.mediaDevices?.removeEventListener?.("devicechange", this.audioDeviceChangeHandler);
-    this.inputContext?.close(); this.outputContext?.close(); this.inputContext = null; this.outputContext = null; this.outputGain = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
+    this.inputContext?.close();
+    if (!preserveOutput) {
+      this.outputContext?.close();
+      this.outputContext = null;
+      this.outputGain = null;
+    }
+    this.inputContext = null; this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
     this.setState("DISCONNECTED", reason);
   }
   fail(code) {
