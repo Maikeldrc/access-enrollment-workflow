@@ -8121,6 +8121,10 @@ let bindActions = () => {};
 function bind() {
   bindActions = root => root.querySelectorAll("[data-action]").forEach(el => el.addEventListener("click", async event => {
     event.preventDefault(); const action = el.dataset.action;
+    // Mobile browsers may suspend the output AudioContext after the welcome finishes and the
+    // microphone is released. Re-arm playback synchronously from every patient gesture while
+    // guidance is enabled, before navigation asks EMMI to narrate the destination screen.
+    if (state.emmiVoiceGuidance && emmiLive?.isActive()) emmiLive.prepareAudioPlayback();
     const selectedChoice = document.querySelector('form input[name="choice"]:checked')?.value || el.dataset.section || el.dataset.support || "";
     emmiNavigationIntent = {
       selectedAction: selectedChoice || action,
