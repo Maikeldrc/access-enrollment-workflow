@@ -1303,7 +1303,10 @@ export class EmmiTextOrchestrator {
     // block at all, because clinical safety above already took the turn (§3, §4, §5, §139).
     // §41: a pronoun only refers to an appointment when one is genuinely the subject of this
     // conversation. Recent turns decide that; a bare "cancel it" out of nowhere still means nothing.
-    const appointmentInContext = APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
+    // A patient with an appointment open in front of them has an appointment in context, whether or
+    // not anyone has said the word in the last few turns.
+    const appointmentInContext = Boolean(context.appointmentPrep?.appointmentId)
+      || APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
       || (conversation.recentTurns || []).some(turn => APPOINTMENT_MENTION.test(String(turn?.text || "")));
     if (context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question)) {
       trace.intent = "APPOINTMENT_COMPANION_PRIVACY";

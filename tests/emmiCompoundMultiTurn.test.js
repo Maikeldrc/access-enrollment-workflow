@@ -175,3 +175,25 @@ describe("yielding to the appointment coordination route", () => {
     expect(result.trace.intent).not.toBe("COMPOUND_QUESTION");
   });
 });
+
+// The half that says "I also need to change the time" decomposed correctly and then found nothing
+// to answer it: the reschedule patterns want "change … appointment" and the patient said "time".
+// It reads as a reschedule only while an appointment is in context, and a patient with one open in
+// front of them has one.
+describe("a reschedule that never names the appointment", () => {
+  const prep = { appointmentId: "APPT-1", emmiPreparation: { status: "NOT_STARTED" } };
+
+  it("answers both halves of a companion-plus-reschedule turn", async () => {
+    const { orchestrator } = harness({ appointmentPrep: prep });
+    const result = await orchestrator.answer("My daughter wants to come with me but I also need to change the time.");
+    expect(result.trace.intent).toBe("COMPOUND_QUESTION");
+    expect(result.trace.partIntents).toContain("APPOINTMENT_COMPANION");
+    expect(result.trace.partIntents.some(intent => /APPOINTMENT_CHANGE|RESCHEDULE/.test(intent))).toBe(true);
+  });
+
+  it("leaves the phrase ambiguous when no appointment is in context", async () => {
+    const { orchestrator } = harness();
+    const result = await orchestrator.answer("I need to change the time.");
+    expect(result.trace.intent).not.toMatch(/APPOINTMENT_CHANGE|RESCHEDULE/);
+  });
+});

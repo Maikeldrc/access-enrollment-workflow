@@ -245,8 +245,11 @@ test("My Care Team shows the PCP, cardiologist and Care Manager without ITERA or
   const careManagerPhoto = page.locator(".care-team-member-card", { hasText: "Alicia Ramírez, RN" }).locator("img");
   await expect(pedroPhoto).toHaveAttribute("src", "/images/Care%20Team/Martinez-Clark-Pedro.jpg");
   await expect(careManagerPhoto).toHaveAttribute("src", "/images/Care%20Team/care-manager-alicia-v2.png");
-  expect(await pedroPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
-  expect(await careManagerPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  // Polled rather than read once. The assertion is the same — the file has to actually decode — but
+  // read on the first tick it depends on the image having finished loading by then, which under a
+  // full parallel run it sometimes has not. That is what made this test flaky.
+  await expect.poll(() => pedroPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect.poll(() => careManagerPhoto.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.getByText("CVS Pharmacy", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/information from your care record/i)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
