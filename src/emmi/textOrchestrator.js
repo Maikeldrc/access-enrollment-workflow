@@ -282,6 +282,32 @@ const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|praz
 // — the two commonest dosing questions there are — fell past this gate into the knowledge base and
 // came back as programme education. Missing a dose is not a question EMMI may answer; it is a
 // question it must hand to a clinician.
+// Asking what a drug is for, what it does, or what it might do to you is drug education, and ITERA
+// has decided it is out of scope: it belongs to a pharmacist or the care team, and if it is ever
+// brought in-house it comes from a licensed monograph feed, not from this knowledge base and not
+// from the model.
+//
+// This has to be a route rather than a knowledge page. Left to retrieval, the model answered "what
+// is lisinopril for?" with a fluent, unsourced pharmacology lesson it wrote from its own weights -
+// which is exactly the class of answer the audit exists to prevent, on exactly the subject where
+// being confidently wrong does the most harm.
+const DRUG_NAMES = `(?:${DRUG_SUFFIX}|aspirin|ibuprofen|tylenol|acetaminophen|insulin|warfarin|aspirina|ibuprofeno|insulina|ibipwofen)`;
+// String.raw, because a plain "\b" in a JS string literal is a backspace character and not a word
+// boundary - written the other way this pattern silently matched nothing at all.
+const DRUG_EDUCATION = new RegExp([
+  String.raw`\b(?:what (?:is|are|does|do)|what'?s|why (?:do|am) i|how does|tell me about|side ?effects?|used for)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:for|side ?effects?|do to me|make me|safe|interact)\b`,
+  String.raw`\b(?:para qu[eé] (?:es|sirve)|qu[eé] hace|efectos? secundarios?)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:para qu[eé]|efectos? secundarios?|me hace)\b`,
+  String.raw`\b(?:pou ki sa|efè segond[eè])\b[^?.!]{0,40}\b` + DRUG_NAMES
+].join("|"), "i");
+
+const drugEducationAnswer = locale => pick(locale, {
+  EN: "I can’t tell you what a specific medicine does, what it is for, or what side effects it may have — that needs someone who can see your full medication list and your health history. Your pharmacist can answer it, and so can your care team. Would you like me to ask your care team to call you about it?",
+  ES: "No puedo decirle qué hace un medicamento concreto, para qué sirve ni qué efectos secundarios puede tener: eso necesita a alguien que vea toda su lista de medicamentos y su historial. Su farmacéutico puede responderlo, y su equipo de atención también. ¿Desea que le pida a su equipo que le llame por esto?",
+  KR: "Mwen pa ka di w kisa yon medikaman patikilye fè, pou ki sa li ye, ni ki efè segondè li ka genyen — sa mande yon moun ki ka wè tout lis medikaman ou ak istwa sante ou. Famasyen ou ka reponn sa, epi ekip swen ou tou. Èske ou vle m mande ekip swen ou pou yo rele w sou sa?"
+});
+
 const MEDICATION_SAFETY = new RegExp(
   "(stop|quit|skip|skipped|miss|missed|missing|forgot|forget|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|medicines|pill|pills|dose|doses|tablet|" + DRUG_SUFFIX + ")"
   + "|(took|take|taken|taking)[^?.]{0,20}(two|three|2|3|double|an extra|extra|another|a second)[^?.]{0,10}(dose|pill|tablet)"
@@ -1126,6 +1152,16 @@ export class EmmiTextOrchestrator {
       trace.intent = guardrail.intent; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
       return { text: guardrail.text, ...(guardrail.quickAction ? { quickAction: guardrail.quickAction } : {}), trace };
     }
+
+    // After the guardrail on purpose. The product already carries approved, reviewed education for
+    // the medications it puts on file, and that stays: a patient asking about their own lisinopril
+    // gets the approved sentence. What this catches is everything the allowlist does not cover,
+    // where the model was answering "what is X for?" with a fluent unsourced pharmacology lesson
+    // written from its own weights - on the one subject where being confidently wrong hurts most.
+    if (DRUG_EDUCATION.test(asked)) {
+      trace.intent = "MEDICATION_EDUCATION_OUT_OF_SCOPE"; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
+      return { text: drugEducationAnswer(locale), pendingAction: "callback", trace };
+    }
     if (REPEAT_FOLLOW_UP.test(asked) || SIMPLIFY_FOLLOW_UP.test(asked)) {
       const prior = clean(conversation.lastEmmiTurn || [...(conversation.recentTurns || [])].reverse().find(turn => turn?.role === "assistant")?.text || "");
       if (prior) {
@@ -1191,7 +1227,11 @@ export class EmmiTextOrchestrator {
     }
     if (HUMAN_SUPPORT.test(asked)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
-      return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+      return { text: pick(locale, {
+        EN: "Would you like me to ask the ITERA care team to call you? They are there Monday to Friday, 9:00 to 17:00 Eastern, and usually reach people within one business day. If something feels urgent before then, call your doctor’s office — and if it is an emergency, call 911.",
+        ES: "¿Desea que solicite al equipo de atención de ITERA que le llame? Están disponibles de lunes a viernes, de 9:00 a 17:00 del Este, y por lo general se comunican en un día hábil. Si algo le urge antes, llame al consultorio de su médico; y si es una emergencia, llame al 911.",
+        KR: "Èske ou vle m mande ekip swen ITERA a rele ou? Yo la lendi jiska vandredi, 9:00 a 17:00 lè Lès, epi anjeneral yo rive jwenn moun nan yon jou ouvrab. Si yon bagay sanble ijan anvan sa, rele biwo doktè ou — epi si se yon ijans, rele 911."
+      }), pendingAction: "callback", trace };
     }
     // Whether to measure again is a question about the baseline counters, so it is answered only
     // when those counters actually say no; anything else falls through to normal routing.
@@ -1314,7 +1354,11 @@ export class EmmiTextOrchestrator {
       emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentSupport.appointmentId || "", companionStep: context.appointmentSupport.step || "" });
       return { text: companionPrivacyAnswer(locale, context.appointmentSupport.contactName), appointmentId: context.appointmentSupport.appointmentId || "", trace };
     }
-    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId) {
+    // "Who pays for the Uber?" is not a status question, and answering it with "I do not see
+    // confirmed transportation on file" implies there is transportation to confirm. ITERA has
+    // decided there is no transportation benefit, so a question about who pays goes to the page
+    // that says so rather than to a lookup that sounds like a maybe.
+    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId && !COST.test(asked)) {
       trace.intent = "APPOINTMENT_TRANSPORTATION_STATUS";
       trace.responseMode = "RUNTIME_GROUNDED";
       trace.toolCalls.push("getAppointment", "getAppointmentTransportation");

@@ -197,3 +197,41 @@ describe("a reschedule that never names the appointment", () => {
     expect(result.trace.intent).not.toMatch(/APPOINTMENT_CHANGE|RESCHEDULE/);
   });
 });
+
+// The twelve internal policies were decided on 2026-09-02. Three of them are answered by routes
+// rather than knowledge pages, because a deterministic route runs before retrieval and would
+// otherwise answer with the old hedge - or, in the drug case, with whatever the model knows.
+describe("decided ITERA policy that a route has to carry", () => {
+  it("states the care team hours and the one business day expectation", async () => {
+    const { orchestrator } = harness();
+    const result = await orchestrator.answer("How long will it take for someone to call me?");
+    expect(result.text).toMatch(/Monday to Friday/i);
+    expect(result.text).toMatch(/one business day/i);
+    expect(result.text).toMatch(/911/);
+  });
+
+  // Asked "what is lisinopril for?", the model wrote a fluent unsourced pharmacology lesson from its
+  // own weights. Drug education is out of scope, so it cannot be left to retrieval.
+  it("refuses drug education and offers a pharmacist", async () => {
+    const { orchestrator } = harness();
+    for (const question of ["What is lisinopril for?", "What side effects does atorvastatin have?", "¿Para qué sirve el metoprolol?"]) {
+      const result = await orchestrator.answer(question);
+      expect(result.trace.intent, question).toBe("MEDICATION_EDUCATION_OUT_OF_SCOPE");
+      expect(result.text, question).toMatch(/pharmacist|farmac|famasyen/i);
+    }
+  });
+
+  it("still treats a dose question as safety, not education", async () => {
+    const { orchestrator } = harness();
+    const result = await orchestrator.answer("Should I take another dose of my lisinopril?");
+    expect(result.trace.intent).toBe("MEDICATION_SAFETY");
+  });
+
+  // Answering "who pays for the Uber?" with "I do not see confirmed transportation on file" implies
+  // there is transportation to confirm. There is no transportation benefit.
+  it("does not answer who-pays with a transportation status lookup", async () => {
+    const { orchestrator } = harness({ appointmentPrep: { appointmentId: "APPT-1", emmiPreparation: { status: "NOT_STARTED" } } });
+    const result = await orchestrator.answer("Who pays for the Uber?");
+    expect(result.trace.intent).not.toBe("APPOINTMENT_TRANSPORTATION_STATUS");
+  });
+});

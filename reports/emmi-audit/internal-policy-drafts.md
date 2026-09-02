@@ -1,5 +1,26 @@
 # Internal policy drafts — proposals for review
 
+> ## ✅ NINE OF TWELVE NOW DECIDED — 2026-09-02
+>
+> Maikel David settled nine of these. The decisions are recorded below and are **in the knowledge
+> base**; this file is no longer purely a draft. Three remain open and are marked as such.
+>
+> | # | Decision |
+> |---|---|
+> | 1 | **No transportation benefit.** EMMI says so plainly and points to the plan and local services. |
+> | 2 | **Mon–Fri 09:00–17:00 Eastern, callback within one business day.** |
+> | 3 | **Conversations are kept in the ITERA record and the care team can read them.** Copy/deletion via the care team. No retention period stated. |
+> | 4 | **The monitor is loaned**, collected when care ends, never charged for. |
+> | 5 | **Measurement cadence always comes from the care plan** — runtime, not knowledge. |
+> | 6 | **Add arrival/what-to-bring fields to the appointment record** (product work; KB unchanged until they exist). |
+> | 7 | **Complaints go to the care team, no formal grievance process.** EMMI does **not** offer 1-800-MEDICARE for complaints — an explicit decision, taken after the alternative was put, not an omission. |
+> | 11 | **Clinicians are licensed in Florida only.** |
+> | 12 | **Drug-specific education stays out of scope**; keep routing to the pharmacist or care team. |
+>
+> **Still open: 8, 9, 10.** Researched on 2026-09-02 against Medicare.gov and CMS.gov; see the notes
+> on each below. Item 10 is now answered and shipped; 8 and 9 could not be confirmed from primary
+> sources and remain deliberately unanswered by EMMI.
+
 > ## ⚠ UNAPPROVED DRAFT — NOT ITERA POLICY
 >
 > Nothing in this file is a decision ITERA has made. Every proposal below was written by the audit
