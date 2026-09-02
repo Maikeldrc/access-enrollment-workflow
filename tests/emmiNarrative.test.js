@@ -198,9 +198,12 @@ describe("EMMI on the ACCESS care activation screens", () => {
     expect(narration).not.toMatch(/tracking number|carrier|arrives on|will arrive|estimated delivery/i);
   });
 
-  it("closes on active care rather than on a plan the patient just built", () => {
+  it("closes on the two tasks actually completed", () => {
     const narration = access("ONBOARDING_COMPLETE").narrationText;
-    expect(narration).toMatch(/already active/i);
+    expect(narration).toMatch(/monitor information.*medication reconciliation/i);
+    expect(narration).not.toMatch(/goals|care plan|preferences/i);
+    expect(narration).toMatch(/nothing else to do.*close this window/i);
+    expect(narration).not.toMatch(/My Care/i);
   });
 
   // The health check screens are gone; a narration for them would be describing nothing.
@@ -220,8 +223,7 @@ describe("every screen of ACCESS care activation is narrated", () => {
     "ACCESS_BP_DEVICE_INFO",
     "ACCESS_BP_SHIPPING_ADDRESS",
     "ACCESS_BP_FULFILLMENT_CONFIRMED",
-    "GOALS",
-    "ACCESS_SUPPORT_NEEDS",
+    "MEDICATIONS_REVIEW",
     "ONBOARDING_COMPLETE"
   ];
 

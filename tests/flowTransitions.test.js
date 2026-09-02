@@ -88,6 +88,21 @@ describe("care setup resume route", () => {
     })).toBe("ONBOARDING_COMPLETE");
   });
 
+  it("requires only medication reconciliation for ACCESS", () => {
+    expect(resolveCareSetupResumeRoute({
+      pathway: "ACCESS",
+      medicationsReviewStatus: "NOT_STARTED",
+      carePreferencesStatus: "COMPLETED",
+      goalsStatus: "COMPLETED"
+    })).toBe("MEDICATIONS_REVIEW");
+    expect(resolveCareSetupResumeRoute({
+      pathway: "ACCESS",
+      medicationsReviewStatus: "COMPLETED",
+      carePreferencesStatus: "NOT_STARTED",
+      goalsStatus: "NOT_STARTED"
+    })).toBe("ONBOARDING_COMPLETE");
+  });
+
   it("ignores the retired health-information status in legacy drafts", () => {
     expect(resolveCareSetupResumeRoute({
       healthInformationStepStatus: "NOT_STARTED",

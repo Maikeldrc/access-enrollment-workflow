@@ -513,11 +513,12 @@ const emmiAssistant = () => {
 function header() {
   if (state.screen === "OFFER_LOADING") return "";
   if (state.screen === "INVITATION") return "";
+  const terminalAccessScreen = state.offer?.pathway === "ACCESS" && state.screen === "ONBOARDING_COMPLETE";
   const progress = progressFor(state);
   const stageLabel = progressStageLabel(progress.stage);
   const progressLabel = L("Journey progress", "Progreso del proceso", "Pwogrè nan pwosesis la");
   return `<header class="app-header">
-    <div class="brand-row"><button type="button" class="icon-button back-button" data-action="back" aria-label="${t().back}" ${["INVITATION", "MY_CARE"].includes(state.screen) ? "hidden" : ""}>${icon("arrowLeft")}</button><a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a><button type="button" class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
+    <div class="brand-row"><button type="button" class="icon-button back-button" data-action="back" aria-label="${t().back}" ${["INVITATION", "MY_CARE"].includes(state.screen) || terminalAccessScreen ? "hidden" : ""}>${icon("arrowLeft")}</button>${terminalAccessScreen ? `<span class="brand terminal-brand"><b>ITERA.</b>HEALTH</span>` : `<a class="brand" href="#" data-action="restart" aria-label="${L("ITERA HEALTH home", "Inicio de ITERA HEALTH", "Akèy ITERA HEALTH")}"><b>ITERA.</b>HEALTH</a>`}<button type="button" class="language" data-action="language" aria-label="${languageActionLabel()}">${icon("language")} ${languageCode()}</button></div>
     <div class="progress-meta"><span title="${stageLabel}">${stageLabel}</span></div>
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.percent)}" aria-valuetext="${stageLabel}" aria-label="${progressLabel}"><span style="width:${Math.min(100, progress.percent)}%"></span></div>
   </header>`;
@@ -3074,7 +3075,7 @@ function onboarding() {
     { section: "medications", itemIcon: "pill", title: L("Confirm your medications", "Confirme sus medicamentos", "Konfime medikaman ou yo"), description: L("Tell us if anything changed", "Indique si algo cambió", "Di nou si anyen chanje"), status: state.medicationsReviewStatus },
     { section: "preferences", itemIcon: "phone", title: L("Care preferences", "Preferencias de cuidado", "Preferans swen"), description: L("Choose how we should contact you", "Elija cómo debemos contactarle", "Chwazi kijan nou dwe kontakte ou"), status: state.carePreferencesStatus },
     { section: "goals", itemIcon: "goals", title: L("Your goals", "Sus objetivos", "Objektif ou"), description: L("Tell us what matters most", "Díganos qué es importante", "Di nou sa ki pi enpòtan"), status: state.goalsStatus }
-  ];
+  ].filter(card => state.offer?.pathway !== "ACCESS" || card.section === "medications");
   const careCircleSupport = state.careCircleStatus === "ACTIVE"
     ? `<aside class="growth-card care-circle-status">${icon("people")}<div><strong>${L(`${state.supportPersonName} is in your Care Circle`, `${state.supportPersonName} forma parte de su Círculo de cuidado`, `${state.supportPersonName} nan Sèk swen ou`)}</strong><p>${L("They can help with the care tasks you authorized.", "Puede ayudar con las tareas de cuidado que usted autorizó.", "Moun nan ka ede ak travay swen ou te otorize yo.")}</p></div></aside>`
     : state.careCircleStatus === "NONE" && growthPromptAvailable(state.careCirclePromptDismissedAt) ? careCircleEarlyPrompt(true) : "";
@@ -4127,6 +4128,7 @@ function gettingStartedResumeRoute() {
   const reachedCareSetup = state.baselineResumeScreen === "ONBOARDING" || Boolean(state.onboarding?.savedAt);
   if (reachedCareSetup) {
     return resolveCareSetupResumeRoute({
+      pathway: state.offer?.pathway,
       medicationsReviewStatus: state.medicationsReviewStatus,
       carePreferencesStatus: state.carePreferencesStatus,
       goalsStatus: state.goalsStatus
@@ -6028,7 +6030,7 @@ function accessBpShippingAddress() {
 
 function accessBpFulfillmentConfirmed() {
   const cuffPending = state.cuffSelectionStatus === "NEEDS_ASSISTANCE";
-  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can keep setting up your care while you wait for the monitor.", "Puede seguir configurando su cuidado mientras espera el monitor.", "Ou ka kontinye mete swen ou anplas pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("See my health goals", "Ver mis objetivos de salud", "Wè objektif sante mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div><p class="form-error" role="alert">${state.error || ""}</p>`;
+  return `${art("check", true)}${titleBlock(L("Your monitor is being prepared", "Su monitor está siendo preparado", "Y ap prepare aparèy ou a"), L("ITERA will prepare your monitor and send it to the address you confirmed.", "ITERA preparará su monitor y lo enviará a la dirección que confirmó.", "ITERA ap prepare aparèy ou a epi voye li nan adrès ou konfime a."))}${rows([["check", L("Request received", "Solicitud recibida", "Nou resevwa demann lan"), ""], [cuffPending ? "clock" : "check", cuffPending ? L("We’ll confirm the cuff size with you", "Confirmaremos el tamaño del brazalete con usted", "N ap konfime gwosè manchèt la avèk ou") : L("Cuff information recorded", "Información del brazalete registrada", "Enfòmasyon manchèt la anrejistre"), ""], ["check", L("Address confirmed", "Dirección confirmada", "Adrès konfime"), ""]])}<aside class="note">${icon("check")}<p>${L("You can review your medications while you wait for the monitor.", "Puede conciliar sus medicamentos mientras espera el monitor.", "Ou ka verifye medikaman ou yo pandan w ap tann aparèy la.")}</p></aside><div class="actions stacked-actions">${cta(L("Review my medications", "Conciliar mis medicamentos", "Verifye medikaman mwen yo"))}${cta(L("I’ll do this later", "Lo haré más tarde", "M ap fè sa pita"), "bp-defer-health-check", true)}</div><p class="form-error" role="alert">${state.error || ""}</p>`;
 }
 
 function accessBpDeviceResult() {
@@ -6214,9 +6216,12 @@ function accessSupportNeeds() {
 }
 
 function onboardingComplete() {
-  // ACCESS ends on a care plan; every other program still ends on this screen, which is right for
-  // them because they did not just build one.
-  if (state.offer?.pathway === "ACCESS") return accessCarePlanReady();
+  if (state.offer?.pathway === "ACCESS") {
+    const deviceStatus = state.deviceFulfillmentStatus === "REQUESTED"
+      ? L("Monitor request received", "Solicitud del monitor recibida", "Nou resevwa demann aparèy la")
+      : L("Monitor information saved", "Información del monitor guardada", "Enfòmasyon aparèy la anrejistre");
+    return `<div class="access-terminal-screen">${art("check", true)}<p class="status-pill">${icon("check")} ${L("Process completed", "Proceso completado", "Pwosesis la fini")}</p>${titleBlock(L("You’ve completed your ACCESS setup", "Ha completado la configuración de ACCESS", "Ou fini konfigirasyon ACCESS ou"), L("The device request and medication reconciliation are complete. There are no more steps in this process.", "La solicitud del dispositivo y la conciliación de medicamentos están completas. No hay más pasos en este proceso.", "Demann aparèy la ak verifikasyon medikaman yo fini. Pa gen lòt etap nan pwosesis sa a."))}<section class="access-terminal-summary" aria-labelledby="access-terminal-summary-title"><h2 id="access-terminal-summary-title">${L("Completed today", "Completado hoy", "Sa ki fini jodi a")}</h2>${rows([["device", deviceStatus, L("We’ll keep you updated as it is prepared and sent.", "Le mantendremos informado mientras se prepara y se envía.", "N ap ba w nouvèl pandan y ap prepare epi voye li.")], ["pill", L("Medication reconciliation complete", "Conciliación de medicamentos completada", "Verifikasyon medikaman fini"), L("Your care team can review any changes you reported.", "Su equipo de cuidado puede revisar cualquier cambio que haya informado.", "Ekip swen ou ka revize nenpòt chanjman ou rapòte.")]])}</section><aside class="access-terminal-note">${icon("check")}<div><strong>${L("You’re all set", "Todo está listo", "Tout bagay pare")}</strong><p>${L("You can safely close this window.", "Puede cerrar esta ventana de forma segura.", "Ou ka fèmen fenèt sa a san pwoblèm.")}</p></div></aside></div>`;
+  }
   const doctorCopy = state.offer?.physician?.displayName ? L(`You continue working with ${state.offer.physician.displayName}`, `Continúa trabajando con ${state.offer.physician.displayName}`, `Ou kontinye travay avèk ${state.offer.physician.displayName}`) : L("You continue working with your doctors", "Continúa trabajando con sus médicos", "Ou kontinye travay avèk doktè ou yo");
   return `${art("check", true)}${titleBlock(L("You’re off to a great start", "Ha comenzado muy bien", "Ou ap ale nan yon gwo kòmanse"), L("We saved your information and will use it to personalize your care.", "Guardamos su información y la usaremos para personalizar su cuidado.", "Nou sove enfòmasyon ou yo epi nou pral itilize li pou pèsonalize swen ou yo."))}<section class="next-card"><h2>${L("What happens next?", "¿Qué sigue?", "Kisa ki rive apre sa?")}</h2>${rows([["people", L("Your ITERA care team reviews your information", "Su equipo ITERA revisa su información", "Ekip swen ITERA w la revize enfòmasyon w yo"), ""], ["phone", L("We contact you with any follow-up questions", "Le contactaremos si hay preguntas", "Nou kontakte ou ak nenpòt kesyon swivi"), ""], ["doctor", doctorCopy, ""]])}</section>${cta(L("Go to my dashboard", "Ir a mi panel", "Ale nan tablodbò mwen an"), "finish")}<button class="text-button" data-action="help">${L("Talk with my care team", "Hablar con mi equipo", "Pale ak ekip swen mwen an")}</button>${shareAccessPrompt(GROWTH_MOMENTS.GETTING_STARTED_COMPLETED)}`;
 }
@@ -7225,10 +7230,16 @@ async function advance() {
     const additionalReviewed = ["NONE", "ADDED", "UNSURE"].includes(state.additionalMedicationsStatus);
     if (reviewedCount !== state.careMedications.length || !additionalReviewed) { state.error = L("Review each medication and tell us whether anything is missing.", "Revise cada medicamento e indique si falta alguno.", "Revize chak medikaman epi di nou si gen youn ki manke."); render(); return; }
     state.medicationsReviewStatus = "COMPLETED";
-    state.baselineResumeScreen = "ONBOARDING";
+    state.baselineResumeScreen = state.offer?.pathway === "ACCESS" ? "ONBOARDING_COMPLETE" : "ONBOARDING";
     const changesReported = Object.values(state.medicationReviews || {}).filter(review => review.reviewStatus !== "CONFIRMED_CURRENT").length;
     audit(state, "medications_review_completed", "success", { medicationsShown: state.careMedications.length, medicationsReviewed: reviewedCount, changesReported, additionalMedicationsStatus: state.additionalMedicationsStatus, additionalMedicationCount: state.additionalMedications.length });
-    state.screen = "ONBOARDING";
+    if (state.offer?.pathway === "ACCESS") {
+      const completedAt = new Date().toISOString();
+      state.onboarding = { ...state.onboarding, medicationsReviewStatus: "COMPLETED", savedAt: completedAt };
+      setGettingStartedProgress(FLOW_STATUS.COMPLETED, { completedAt, resumeRoute: "" });
+      audit(state, "care_setup_saved", "success", { completedSections: 2, scope: "DEVICE_AND_MEDICATIONS" });
+      state.screen = "ONBOARDING_COMPLETE";
+    } else state.screen = "ONBOARDING";
     draftStore.save(state); render(); return;
   }
   if (state.screen === "CARE_PREFERENCES") {
@@ -9370,7 +9381,7 @@ function bind() {
         state.screen = "MY_CARE_CIRCLE"; render();
       } else if (["MEDICATIONS_REVIEW", "CARE_PREFERENCES", "GOALS", "ACCESS_SUPPORT_NEEDS"].includes(state.screen) && state.returnScreen === "ONBOARDING") {
         state.screen = "ONBOARDING";
-        state.baselineResumeScreen = "ONBOARDING";
+        state.baselineResumeScreen = "MEDICATIONS_REVIEW";
         draftStore.save(state); render();
       } else if (state.screen === "MY_MEDICATIONS" && state.refillFlow?.step) {
         // The refill status is a view inside the medication list, not a screen of its own. Back
@@ -9647,8 +9658,8 @@ function bind() {
         state.baselineResumeScreen = "ONBOARDING";
         state.baselineReminderStatus = "PENDING_DEVICE";
         state.onboarding.savedAt ||= now;
-        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: "ONBOARDING" });
-        audit(state, "care_setup_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId, resumeRoute: "ONBOARDING" });
+        setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: "MEDICATIONS_REVIEW" });
+        audit(state, "care_setup_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId, resumeRoute: "MEDICATIONS_REVIEW" });
         state.screen = "MY_CARE";
         draftStore.save(state);
         render();

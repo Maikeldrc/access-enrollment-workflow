@@ -527,24 +527,28 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   }),
 
   ACCESS_ONBOARDING_COMPLETE: objective({
-    summary: T("Your ACCESS care is active.", "Su cuidado ACCESS está activo.", "Swen ACCESS ou aktif."),
+    summary: T("Your ACCESS setup is complete.", "Su configuración de ACCESS está completa.", "Konfigirasyon ACCESS ou fini."),
     tone: "encouraging",
     purpose: T(
-      "Everything is in place: your goals, your care plan, the monitor being arranged, and any support we added.",
-      "Todo está listo: sus metas, su plan de cuidado, el monitor que se está gestionando y el apoyo que agregamos.",
-      "Tout bagay anplas: objektif ou yo, plan swen ou, aparèy k ap prepare a, ak sipò nou ajoute."
+      "Your monitor information and medication reconciliation were saved.",
+      "Guardamos la información de su monitor y la conciliación de sus medicamentos.",
+      "Nou anrejistre enfòmasyon aparèy ou ak verifikasyon medikaman ou yo."
     ),
     benefit: T(
-      "My Care is where you manage all of it from now on, and I stay available there whenever you have a question.",
-      "Mi cuidado es donde gestiona todo a partir de ahora, y yo sigo disponible allí cuando tenga una pregunta.",
-      "Swen mwen se kote ou jere tout bagay depi kounye a, epi mwen rete disponib la lè ou gen yon kesyon."
+      "Your care team can review any medication changes you reported and keep you updated about the monitor.",
+      "Su equipo de cuidado puede revisar los cambios de medicamentos que informó y mantenerle al tanto del monitor.",
+      "Ekip swen ou ka revize chanjman medikaman ou rapòte yo epi ba w nouvèl sou aparèy la."
     ),
     reassurance: T(
-      "Your care plan was already active before this step. Nothing you did here created it.",
-      "Su plan de cuidado ya estaba activo antes de este paso. Nada de lo que hizo aquí lo creó.",
-      "Plan swen ou te deja aktif anvan etap sa a. Anyen ou fè isit la pa t kreye l."
+      "Reporting a medication change does not change a prescription automatically.",
+      "Informar un cambio de medicamento no modifica automáticamente una receta.",
+      "Rapòte yon chanjman medikaman pa chanje yon preskripsyon otomatikman."
     ),
-    action: T("Go to My Care when you are ready.", "Vaya a Mi cuidado cuando esté listo.", "Ale nan Swen mwen lè ou pare.")
+    action: T(
+      "There is nothing else to do in this process. You can close this window.",
+      "No hay nada más que hacer en este proceso. Puede cerrar esta ventana.",
+      "Pa gen anyen ankò pou fè nan pwosesis sa a. Ou ka fèmen fenèt sa a."
+    )
   }),
 
   RPM_DEVICE_PATH: objective({

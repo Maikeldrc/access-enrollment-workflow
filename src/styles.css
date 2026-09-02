@@ -504,6 +504,19 @@ p { margin:0; }
 .enrollment-welcome-screen .actions { margin-top:18px; }
 .enrollment-welcome-screen .contextual-assurance { margin-bottom:0; }
 
+.access-terminal-screen { display:flex; flex-direction:column; min-height:calc(100vh - 180px); justify-content:center; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+.access-terminal-screen .status-pill { align-self:center; margin-top:0; }
+.access-terminal-screen h1,.access-terminal-screen>.lead { max-width:34rem; margin-left:auto; margin-right:auto; text-align:center; }
+.access-terminal-summary { margin-top:8px; padding:18px; border:1px solid var(--border-default); border-radius:16px; background:var(--surface-secondary); box-shadow:var(--card-shadow); }
+.access-terminal-summary>h2 { margin:0 0 8px; font-size:1.2rem; }
+.access-terminal-summary .info-row { padding:12px 0; border-bottom:1px solid var(--border-default); }
+.access-terminal-summary .info-row:last-child { border-bottom:0; }
+.access-terminal-note { display:flex; gap:12px; align-items:flex-start; margin-top:16px; padding:16px; border:1px solid var(--success); border-radius:14px; background:var(--success-bg); color:var(--text-primary); }
+.access-terminal-note>.icon { flex:0 0 auto; color:var(--success); background:var(--surface-primary); }
+.access-terminal-note strong { display:block; }
+.access-terminal-note p { margin:3px 0 0; color:var(--text-secondary); }
+.terminal-brand { cursor:default; }
+
 /* Shared COMPLETE -> EXPLAIN -> INVITE -> ESTIMATE -> CHOOSE transition. */
 .flow-completion-transition { width:100%;min-width:0;margin:16px 0 0;padding:18px;border:1px solid var(--border-default);border-radius:18px;background:var(--surface-secondary);box-shadow:0 8px 22px rgba(0,78,137,.05);text-align:left; }
 .flow-transition-label { margin:0 0 7px;color:var(--primary-600);font-size:15px;font-weight:800;letter-spacing:.05em;text-transform:uppercase; }

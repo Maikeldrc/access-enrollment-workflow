@@ -73,21 +73,19 @@ describe("enrollment state machine", () => {
     expect(progressFor(stateFor("access-happy", { screen: "IDENTITY_VERIFICATION" })).label).toBe("Confirm identity");
   });
 
-  // Care activation is counted in stages the patient recognizes — the monitor, the goals, the
-  // personalizing, the plan — so three taps arranging a monitor stay one step of four rather than
-  // three of eleven. The whole point is that the number means something to the person reading it.
+  // ACCESS setup is counted as device, medication reconciliation, and completion.
   it("counts ACCESS care activation in stages rather than in screens", () => {
     const device = progressFor(stateFor("access-happy", { screen: "ACCESS_BP_DEVICE_INFO" }));
     const address = progressFor(stateFor("access-happy", { screen: "ACCESS_BP_SHIPPING_ADDRESS" }));
-    const goals = progressFor(stateFor("access-happy", { screen: "GOALS" }));
-    const carePlan = progressFor(stateFor("access-happy", { screen: "ONBOARDING_COMPLETE" }));
+    const medications = progressFor(stateFor("access-happy", { screen: "MEDICATIONS_REVIEW" }));
+    const complete = progressFor(stateFor("access-happy", { screen: "ONBOARDING_COMPLETE" }));
 
-    expect(device).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 4 });
+    expect(device).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 3 });
     // Still inside the device stage: the counter does not move for every screen.
-    expect(address).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 4 });
-    expect(goals).toMatchObject({ careActivationStage: "GOALS", current: 2, total: 4 });
-    expect(carePlan).toMatchObject({ careActivationStage: "CARE_PLAN", current: 4, total: 4 });
-    expect(goals.percent).toBeGreaterThan(device.percent);
+    expect(address).toMatchObject({ careActivationStage: "DEVICE", current: 1, total: 3 });
+    expect(medications).toMatchObject({ careActivationStage: "MEDICATIONS", current: 2, total: 3 });
+    expect(complete).toMatchObject({ careActivationStage: "COMPLETE", current: 3, total: 3 });
+    expect(medications.percent).toBeGreaterThan(device.percent);
   });
 
   it("marks ACCESS enrollment confirmation as a completed transition before care activation", () => {
@@ -104,14 +102,14 @@ describe("enrollment state machine", () => {
     expect(journey).not.toContain("ONBOARDING");
   });
 
-  // Device, then goals, then personalization: the patient sees the care they already have before
-  // being asked for anything, and the goals screen explains what the later questions are for.
-  it("puts the monitor and the assigned goals ahead of the personalization screens", () => {
+  it("limits ACCESS after enrollment to the device task and medication reconciliation", () => {
     const journey = journeyFor(stateFor("access-happy", {}));
     expect(journey.indexOf("ACCESS_BP_DEVICE_INFO")).toBeGreaterThan(journey.indexOf("ENROLLMENT_CONFIRMED"));
-    expect(journey.indexOf("GOALS")).toBeGreaterThan(journey.indexOf("ACCESS_BP_FULFILLMENT_CONFIRMED"));
     expect(journey).not.toContain("CLINICAL_VERIFICATION");
-    expect(journey.indexOf("MEDICATIONS_REVIEW")).toBeGreaterThan(journey.indexOf("GOALS"));
+    expect(journey.indexOf("MEDICATIONS_REVIEW")).toBeGreaterThan(journey.indexOf("ACCESS_BP_FULFILLMENT_CONFIRMED"));
+    expect(journey).not.toContain("GOALS");
+    expect(journey).not.toContain("ACCESS_SUPPORT_NEEDS");
+    expect(journey).not.toContain("CARE_PREFERENCES");
     expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
   });
 
@@ -130,14 +128,16 @@ describe("enrollment state machine", () => {
     const owned = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "owned", deviceVerificationStatus: "PATIENT_CONFIRMED", bpDeviceVerificationStatus: "PATIENT_CONFIRMED" }));
     const help = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "help" }));
     const needed = journeyFor(stateFor("access-happy", { screen: "ACCESS_MEASURE", bpDevicePath: "needed" }));
-    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "MEDICATIONS_REVIEW", "GOALS"]));
+    expect(owned).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_VERIFICATION", "ACCESS_BP_DEVICE_RESULT", "ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", "MEDICATIONS_REVIEW"]));
+    expect(owned).not.toContain("GOALS");
     expect(owned).not.toContain("ACCESS_BP_BASELINE_RESULT");
     const completed = journeyFor(stateFor("access-happy", { bpDevicePath: "owned", deviceVerificationStatus: "SOURCE_VERIFIED", bpBaselineStatus: "COMPLETED" }));
     expect(completed).toContain("ACCESS_BP_BASELINE_RESULT");
     expect(help).not.toContain("ACCESS_BP_DEVICE_VERIFICATION");
     expect(help).toEqual(expect.arrayContaining(["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT"]));
     expect(needed).not.toContain("ACCESS_BP_MEASUREMENT");
-    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW", "GOALS"]));
+    expect(needed).toEqual(expect.arrayContaining(["ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW"]));
+    expect(needed).not.toContain("GOALS");
     expect(needed).toContain("ONBOARDING_COMPLETE");
   });
 
@@ -335,8 +335,8 @@ describe("enrollment state machine", () => {
 // Anyone whose monitor failed, needed review, or was simply not finished went from the device
 // screen straight to "your ACCESS care is ready" with none of it. The path that arranges a new
 // monitor always carried them, which is what made the asymmetry easy to miss.
-describe("the care setup survives whatever the monitor does", () => {
-  const CARE_SETUP = ["GOALS", "ACCESS_SUPPORT_NEEDS", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+describe("medication reconciliation survives whatever the monitor does", () => {
+  const CARE_SETUP = ["MEDICATIONS_REVIEW"];
   const withDevice = deviceVerificationStatus => ({
     offer: { pathway: "ACCESS", payer: { mbiAvailable: true }, fixture: { bpDeviceScenario: "itera-tenovi", bpDeviceAssignment: "itera-tenovi" } },
     accessOutcome: "eligible",
@@ -347,8 +347,8 @@ describe("the care setup survives whatever the monitor does", () => {
     it(`keeps every care setup screen when verification is ${status}`, () => {
       const journey = journeyFor(withDevice(status));
       for (const screen of CARE_SETUP) expect(journey, `${status} lost ${screen}`).toContain(screen);
-      // And they come after the device, not before it.
-      expect(journey.indexOf("GOALS")).toBeGreaterThan(journey.indexOf("ACCESS_BP_DEVICE_VERIFICATION"));
+      expect(journey.indexOf("MEDICATIONS_REVIEW")).toBeGreaterThan(journey.indexOf("ACCESS_BP_DEVICE_VERIFICATION"));
+      expect(journey).not.toEqual(expect.arrayContaining(["GOALS", "ACCESS_SUPPORT_NEEDS", "CARE_PREFERENCES"]));
       expect(journey.at(-1)).toBe("ONBOARDING_COMPLETE");
     });
   }

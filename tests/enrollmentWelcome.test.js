@@ -12,7 +12,7 @@ describe("shared enrollment welcome configuration", () => {
     for (const program of programs) {
       const config = enrollmentWelcomeFor(program);
       expect(config).toBe(enrollmentWelcomeConfig[program]);
-      expect(config.nextSteps).toHaveLength(3);
+      expect(config.nextSteps).toHaveLength(program === "ACCESS" ? 2 : 3);
       expect(config.supportHighlights).toHaveLength(2);
       for (const highlight of config.supportHighlights) {
         expect(highlight.icon).toBeTruthy();
@@ -41,9 +41,8 @@ describe("shared enrollment welcome configuration", () => {
     // can continue on their own now, so neither the promise nor the window it templated remain.
     expect(enrollmentWelcomeConfig.ACCESS.careTeamContactWindow).toBeUndefined();
     expect(enrollmentWelcomeConfig.ACCESS.nextSteps.map(step => step.title.en)).toEqual([
-      "Your blood pressure monitor",
-      "Your health goals",
-      "Your personalized care plan"
+      "Request your blood pressure monitor",
+      "Reconcile your medications"
     ]);
     for (const program of programs) {
       for (const step of enrollmentWelcomeFor(program).nextSteps) {

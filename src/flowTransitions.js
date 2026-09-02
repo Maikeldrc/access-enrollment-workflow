@@ -31,8 +31,8 @@ const PROGRAM_COPY = Object.freeze({
   ACCESS: {
     title: T("Let’s set up your care", "Configuremos su cuidado", "Ann mete swen ou an plas"),
     nextStepTitle: T("Start your ACCESS care setup", "Comience la configuración de su cuidado ACCESS", "Kòmanse konfigirasyon swen ACCESS ou"),
-    description: T("Next, we’ll confirm a few health details, arrange your blood pressure monitor, and personalize your ACCESS goals and care plan.", "A continuación, confirmaremos algunos datos de salud, prepararemos su monitor de presión arterial y personalizaremos sus metas y su plan de cuidado ACCESS.", "Apre sa, n ap konfime kèk detay sante, prepare aparèy tansyon ou, epi pèsonalize objektif ak plan swen ACCESS ou."),
-    estimatedDuration: T("About 10 minutes", "Aproximadamente 10 minutos", "Apeprè 10 minit")
+    description: T("Next, we’ll arrange your blood pressure monitor and reconcile the medications on your record.", "A continuación, solicitaremos su monitor de presión arterial y conciliaremos los medicamentos de su expediente.", "Apre sa, n ap fè aranjman pou aparèy tansyon ou epi verifye medikaman ki nan dosye ou."),
+    estimatedDuration: T("About 5 minutes", "Aproximadamente 5 minutos", "Apeprè 5 minit")
   },
   CCM: {
     title: T("Ready to set up your care?", "¿Listo para configurar su cuidado?", "Ou pare pou mete swen ou an plas?"),
@@ -124,10 +124,12 @@ export function resolveGettingStartedEntryRoute({ pathway, journey = [], savedRe
 // saved rather than from the last screen the patient happened to visit. This also keeps the My Care
 // CTA from reopening an earlier activation step after the patient has already reached the checklist.
 export function resolveCareSetupResumeRoute({
+  pathway = "",
   medicationsReviewStatus = "NOT_STARTED",
   carePreferencesStatus = "NOT_STARTED",
   goalsStatus = "NOT_STARTED"
 } = {}) {
+  if (pathway === "ACCESS") return medicationsReviewStatus === "COMPLETED" ? "ONBOARDING_COMPLETE" : "MEDICATIONS_REVIEW";
   return [
     [medicationsReviewStatus, "MEDICATIONS_REVIEW"],
     [carePreferencesStatus, "CARE_PREFERENCES"],

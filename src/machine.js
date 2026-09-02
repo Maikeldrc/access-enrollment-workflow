@@ -77,17 +77,16 @@ const PROGRESS_STAGE_BY_SCREEN = {
   OFFER_INVALID: "IMPORTANT_INFORMATION",
   OFFER_EXPIRED: "IMPORTANT_INFORMATION"
 };
-// The patient experiences care activation as four things, not as fourteen screens: the monitor
-// being arranged, the goals they were assigned, the personalizing, and the plan that results.
-// Every activation screen belongs to exactly one of them, in this order.
+// ACCESS post-enrollment is intentionally narrow: arrange/verify the monitor, reconcile
+// medications, and confirm that those two tasks were saved.
 const CARE_ACTIVATION_STAGE_BY_SCREEN = {
   ACCESS_BP_DEVICE_INFO: "DEVICE", ACCESS_BP_SHIPPING_ADDRESS: "DEVICE", ACCESS_BP_FULFILLMENT_CONFIRMED: "DEVICE",
   ACCESS_BP_DEVICE_VERIFICATION: "DEVICE", ACCESS_BP_DEVICE_RESULT: "DEVICE", ACCESS_BP_GUIDED_SETUP: "DEVICE",
   ACCESS_BP_MEASUREMENT: "DEVICE", ACCESS_BP_BASELINE_RESULT: "DEVICE", ACCESS_BP_ESCALATION: "DEVICE",
   GOALS: "GOALS",
   ACCESS_SUPPORT_NEEDS: "PERSONALIZE",
-  MEDICATIONS_REVIEW: "PERSONALIZE", CARE_PREFERENCES: "PERSONALIZE",
-  ONBOARDING_COMPLETE: "CARE_PLAN"
+  MEDICATIONS_REVIEW: "MEDICATIONS", CARE_PREFERENCES: "PERSONALIZE",
+  ONBOARDING_COMPLETE: "COMPLETE"
 };
 
 export function journeyFor(s) {
@@ -99,11 +98,9 @@ export function journeyFor(s) {
     if (s.accessOutcome === "notEligible") return eligibility;
     const completedBpDestination = s.bpEscalationState?.status === "ACTIVE" ? ["ACCESS_BP_ESCALATION"] : s.bpBaselineStatus === "COMPLETED" ? ["ACCESS_BP_BASELINE_RESULT"] : [];
     const deviceResultAvailable = ["ASSIGNED", "PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED", "FAILED", "DEVICE_MISMATCH", "SOURCE_MISMATCH", "NEEDS_REVIEW", "INACTIVE", "UNSUPPORTED"].includes(s.deviceVerificationStatus);
-    // Care activation, not a health check. The patient is first shown the care they already have —
-    // the monitor being arranged, then the goals the track assigned them — and only afterwards asked
-    // for what is still missing to personalize it. Goals moved ahead of the personalization screens
-    // for that reason: a patient who has seen their goals understands what the questions are for.
-    const remainingCareSetup = ["GOALS", "ACCESS_SUPPORT_NEEDS", "MEDICATIONS_REVIEW", "CARE_PREFERENCES"];
+    // Goals, barriers and communication preferences remain available elsewhere in the product,
+    // but are not part of this post-enrollment journey.
+    const remainingCareSetup = ["MEDICATIONS_REVIEW"];
     // The patient is never asked whether they own a monitor: their record already says. A patient
     // with a connected device goes down the path that verifies it, and one with none goes to the
     // path that arranges one. Hardcoding "needed" here sent a patient who already had a monitor to
@@ -113,11 +110,7 @@ export function journeyFor(s) {
     const deviceOnRecord = !noDeviceOnRecord && Boolean(fixture.deviceSource || fixture.bpDeviceScenario || fixture.bpDeviceAssignment);
     const devicePath = s.bpDevicePath || (deviceOnRecord ? "owned" : "needed");
     // The device steps grow as verification progresses, but the care setup after them does not
-    // depend on how the monitor turned out. It used to: a patient whose verification failed, needed
-    // review, or simply had not finished yet went from the device screen straight to "your ACCESS
-    // care is ready", losing their goals, the barriers question, the clinical check, medications
-    // and preferences without anything saying so. The path that arranges a monitor never had that
-    // problem, which is what made the asymmetry easy to miss.
+    // depend on how the monitor turned out, so every device branch still reaches reconciliation.
     const ownedDeviceSteps = ["ACCESS_BP_DEVICE_VERIFICATION",
       ...(deviceResultAvailable ? ["ACCESS_BP_DEVICE_RESULT"] : []),
       ...(["PATIENT_CONFIRMED", "WAITING_FOR_READING", "SOURCE_VERIFIED"].includes(s.deviceVerificationStatus) ? ["ACCESS_BP_GUIDED_SETUP", "ACCESS_BP_MEASUREMENT", ...completedBpDestination] : [])];

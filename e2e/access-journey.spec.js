@@ -718,7 +718,7 @@ const openEnrollmentComplete = async page => {
 test("enrollment complete hands the patient into care activation, not into a waiting room", async ({ page }) => {
   await openEnrollmentComplete(page);
   await expect(page.locator(".success-eyebrow")).toHaveText("Welcome");
-  await expect(page.locator(".lead")).toHaveText("You’re now enrolled in ACCESS. Let’s get your care set up around your health and goals.");
+  await expect(page.locator(".lead")).toHaveText("You’re now enrolled in ACCESS. Let’s request your monitor and confirm your medications.");
   await expect(page.locator(".status-pill")).toContainText("Enrollment confirmed");
 
   // EMMI is the guide from here, and the doctor who referred them is named.
@@ -726,12 +726,11 @@ test("enrollment complete hands the patient into care activation, not into a wai
   await expect(highlights.locator("strong")).toHaveText(["EMMI is here along the way", "Connected with Dr. Fresner"]);
   await expect(highlights.nth(1).locator("p")).toHaveText("ITERA works with Dr. Fresner and your care team to help keep your care connected.");
 
-  // The three next steps are what the patient is about to do, in order.
+  // The two next steps are the complete post-enrollment scope, in order.
   await expect(page.getByRole("heading", { name: "What happens next?" })).toBeVisible();
   await expect(page.locator(".next-card .info-row strong")).toHaveText([
-    "Your blood pressure monitor",
-    "Your health goals",
-    "Your personalized care plan"
+    "Request your blood pressure monitor",
+    "Reconcile your medications"
   ]);
 });
 
@@ -749,7 +748,7 @@ test("the primary action starts care setup and the deferral stays available", as
   const transition = page.locator(".flow-transition-card, .next-step-card").first().or(page.locator("#screen-content"));
   await expect(transition).toContainText("Let’s set up your care");
   await expect(transition).toContainText("Start your ACCESS care setup");
-  await expect(transition).toContainText("Next, we’ll confirm a few health details, arrange your blood pressure monitor, and personalize your ACCESS goals and care plan.");
+  await expect(transition).toContainText("Next, we’ll arrange your blood pressure monitor and reconcile the medications on your record.");
   await expect(transition).toContainText("You can stop anytime. Your progress will be saved.");
 
   const primary = page.getByRole("button", { name: "Set up my care" });
@@ -773,8 +772,8 @@ test("EMMI knows the enrollment is done and what comes after it", async ({ page 
   await expect(dialog.locator(".assistant-quick button")).toHaveText([
     "What happens next?",
     "How do I get my blood pressure monitor?",
-    "What will my care plan include?",
-    "What goals will I work on?"
+    "Why am I reviewing my medications?",
+    "What if something changed?"
   ]);
 
   await dialog.getByPlaceholder("Ask a question…").fill("Am I enrolled?");
