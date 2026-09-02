@@ -2143,7 +2143,11 @@ function refreshVoiceGuidanceControls() {
   }
   // The expanded panel shows the same voice state through the same controls, so it is refreshed
   // from here too rather than by every caller remembering to.
-  if (state.assistantOpen) refreshAssistantLayer();
+  // Do not replace the live composer while the patient is typing. Voice-state updates can arrive
+  // several times per second; rebuilding the form between pointer-down and click made Send appear
+  // to ignore the first attempt even though the draft itself was preserved.
+  const patientIsComposing = document.activeElement?.matches?.(".assistant-layer input, .assistant-layer textarea, .assistant-layer [contenteditable='true']");
+  if (state.assistantOpen && !patientIsComposing) refreshAssistantLayer();
 }
 
 function deliverEmmiGuidance(message, screen = state.screen, { connect = false } = {}) {
