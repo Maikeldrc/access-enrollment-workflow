@@ -513,7 +513,7 @@ const emmiAssistant = () => {
 function header() {
   if (state.screen === "OFFER_LOADING") return "";
   if (state.screen === "INVITATION") return "";
-  const terminalAccessScreen = state.offer?.pathway === "ACCESS" && state.screen === "ONBOARDING_COMPLETE";
+  const terminalAccessScreen = state.offer?.pathway === "ACCESS" && ["FLOW_DEFERRED", "ONBOARDING_COMPLETE"].includes(state.screen);
   const progress = progressFor(state);
   const stageLabel = progressStageLabel(progress.stage);
   const progressLabel = L("Journey progress", "Progreso del proceso", "Pwogrè nan pwosesis la");
@@ -2662,6 +2662,28 @@ function EnrollmentWelcomeScreen() {
 const success = EnrollmentWelcomeScreen;
 
 function deferredFlowConfirmation() {
+  if (state.offer?.pathway === "ACCESS") {
+    const progress = gettingStartedProgress();
+    const resumeRoute = progress.resumeRoute || state.baselineResumeScreen || gettingStartedResumeRoute();
+    const medicationComplete = state.medicationsReviewStatus === "COMPLETED";
+    const deviceComplete = ["MEDICATIONS_REVIEW", "ONBOARDING_COMPLETE"].includes(resumeRoute)
+      || state.deviceFulfillmentStatus === "REQUESTED"
+      || state.bpDeviceFulfillmentStatus === "REQUESTED";
+    const pending = [];
+    if (!deviceComplete) pending.push(["device", L("Request your blood pressure monitor", "Solicite su monitor de presión arterial", "Mande monitè tansyon ou"), L("We still need the information required to prepare and send it.", "Aún necesitamos la información requerida para prepararlo y enviarlo.", "Nou toujou bezwen enfòmasyon pou prepare li epi voye li.")]);
+    if (!medicationComplete) pending.push(["pill", L("Reconcile your medications", "Concilie sus medicamentos", "Verifye medikaman ou yo"), L("Confirm what you take and tell us if anything changed or is missing.", "Confirme lo que toma e indique si algo cambió o falta.", "Konfime sa ou pran epi di nou si gen yon chanjman oswa yon bagay ki manke.")]);
+    const summary = !deviceComplete && !medicationComplete
+      ? L("Your ACCESS enrollment is complete. Your monitor request and medication reconciliation are still pending.", "Su inscripción en ACCESS está completa. La solicitud del monitor y la conciliación de medicamentos aún están pendientes.", "Enskripsyon ACCESS ou fini. Demann monitè a ak verifikasyon medikaman yo toujou annatant.")
+      : !deviceComplete
+        ? L("Your ACCESS enrollment and medication reconciliation are complete. Your monitor request is still pending.", "Su inscripción en ACCESS y la conciliación de medicamentos están completas. La solicitud del monitor aún está pendiente.", "Enskripsyon ACCESS ou ak verifikasyon medikaman yo fini. Demann monitè a toujou annatant.")
+        : !medicationComplete
+          ? L("Your ACCESS enrollment and monitor request are complete. Your medication reconciliation is still pending.", "Su inscripción en ACCESS y la solicitud del monitor están completas. La conciliación de medicamentos aún está pendiente.", "Enskripsyon ACCESS ou ak demann monitè a fini. Verifikasyon medikaman yo toujou annatant.")
+          : L("Your ACCESS enrollment is complete. There are no remaining setup tasks.", "Su inscripción en ACCESS está completa. No quedan tareas de configuración.", "Enskripsyon ACCESS ou fini. Pa gen lòt travay konfigirasyon ki rete.");
+    const pendingSection = pending.length
+      ? `<section class="access-terminal-summary access-deferred-summary" aria-labelledby="access-deferred-summary-title"><h2 id="access-deferred-summary-title">${L("Still to complete", "Aún pendiente", "Sa ki rete pou fini")}</h2>${rows(pending)}</section>`
+      : "";
+    return `<div class="flow-deferred-screen access-terminal-screen access-deferred-screen">${art("check", true)}<p class="status-pill">${icon("check")} ${L("Enrollment complete", "Inscripción completada", "Enskripsyon fini")}</p>${titleBlock(L("You’re enrolled in ACCESS", "Está inscrito en ACCESS", "Ou enskri nan ACCESS"), summary)}${pendingSection}<aside class="access-terminal-note access-deferred-note">${icon("clock")}<div><strong>${L("Your progress is saved", "Su progreso está guardado", "Pwogrè ou anrejistre")}</strong><p>${L("You can close this window and return to this secure link when you’re ready.", "Puede cerrar esta ventana y volver a este enlace seguro cuando esté listo.", "Ou ka fèmen fenèt sa a epi retounen nan lyen sekirize sa a lè ou pare.")}</p></div></aside>${pending.length ? `<div class="access-deferred-actions">${cta(L("Continue setup", "Continuar configuración", "Kontinye konfigirasyon an"), "resume-next-flow")}</div>` : ""}</div>`;
+  }
   return `<div class="flow-deferred-screen">${art("check", true)}${titleBlock(L("No problem — you can continue later.", "No hay problema: puede continuar más tarde.", "Pa gen pwoblèm — ou ka kontinye pita."), L("Your enrollment is complete. Your care setup will be here when you’re ready.", "Su inscripción está completa. La configuración de su cuidado estará aquí cuando esté listo.", "Enskripsyon ou fini. Konfigirasyon swen ou ap la lè ou pare."))}${cta(L("Go to My Care", "Ir a Mi cuidado", "Ale nan Swen mwen"), "go-to-my-care")}</div>`;
 }
 
@@ -9655,12 +9677,12 @@ function bind() {
         state.baselineStatus = "IN_PROGRESS";
         state.bpBaselineStatus = "PENDING_DEVICE";
         state.baselineDeferredAt = now;
-        state.baselineResumeScreen = "ONBOARDING";
+        state.baselineResumeScreen = "MEDICATIONS_REVIEW";
         state.baselineReminderStatus = "PENDING_DEVICE";
         state.onboarding.savedAt ||= now;
         setGettingStartedProgress(FLOW_STATUS.DEFERRED, { deferredAt: now, resumeRoute: "MEDICATIONS_REVIEW" });
         audit(state, "care_setup_deferred", "success", { reason: "PENDING_DEVICE", fulfillmentId: state.deviceFulfillmentId, resumeRoute: "MEDICATIONS_REVIEW" });
-        state.screen = "MY_CARE";
+        state.screen = "FLOW_DEFERRED";
         draftStore.save(state);
         render();
       } catch {

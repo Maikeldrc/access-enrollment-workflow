@@ -633,7 +633,7 @@ test("ACCESS device-needed branch keeps enrollment complete and BP pending witho
 });
 
 for (const width of [320, 375, 384, 390, 430]) {
-  test(`deferring optional care setup navigates to My Care on the first tap at ${width}px`, async ({ page }) => {
+  test(`deferring optional ACCESS setup shows the saved pending work on the first tap at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await reachRequestedMonitorConfirmation(page);
     if (width === 384) {
@@ -647,29 +647,34 @@ for (const width of [320, 375, 384, 390, 430]) {
     await expect(later).toBeVisible();
     await later.click();
 
-    await expect(page.getByRole("heading", { name: width === 384 ? "Mi cuidado" : "My Care" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: width === 384 ? "Está inscrito en ACCESS" : "You’re enrolled in ACCESS" })).toBeVisible();
+    await expect(page.locator(".access-deferred-screen .status-pill")).toHaveText(width === 384 ? "Inscripción completada" : "Enrollment complete");
     await expect(page.locator('[data-action="help"]').first()).toBeVisible();
-    await expect(page.getByRole("button", { name: width === 384 ? "Continuar configurando su cuidado" : "Continue setting up your care" })).toBeVisible();
+    await expect(page.locator(".access-deferred-summary .info-row strong")).toHaveText([
+      width === 384 ? "Concilie sus medicamentos" : "Reconcile your medications"
+    ]);
+    await expect(page.getByRole("button", { name: width === 384 ? "Continuar configuración" : "Continue setup" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: width === 384 ? "Mi cuidado" : "My Care" })).toHaveCount(0);
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
     expect(saved).toMatchObject({
-      screen: "MY_CARE",
+      screen: "FLOW_DEFERRED",
       enrollmentStatus: "COMPLETED",
       baselineStatus: "IN_PROGRESS",
       bpBaselineStatus: "PENDING_DEVICE",
-      baselineResumeScreen: "ONBOARDING",
-      flowProgress: { GETTING_STARTED: { status: "DEFERRED", resumeRoute: "ONBOARDING" } }
+      baselineResumeScreen: "MEDICATIONS_REVIEW",
+      flowProgress: { GETTING_STARTED: { status: "DEFERRED", resumeRoute: "MEDICATIONS_REVIEW" } }
     });
     expect(saved.baselineDeferredAt).toBeTruthy();
     expect(saved.flowProgress.GETTING_STARTED.completedAt).toBeFalsy();
 
     if (width === 384) {
       await page.reload();
-      await expect(page.getByRole("heading", { name: "Mi cuidado" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Está inscrito en ACCESS" })).toBeVisible();
       await page.goBack();
       // Back may legitimately leave the single-page app when there is no earlier in-app route.
-      // Returning to the application must still restore the completed enrollment and My Care.
+      // Returning to the application must still restore the completed enrollment and pending work.
       await page.goto("/?scenario=access-happy");
-      await expect(page.getByRole("heading", { name: "Mi cuidado" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Está inscrito en ACCESS" })).toBeVisible();
     }
   });
 }
@@ -679,7 +684,7 @@ test("deferring optional care setup is idempotent under a rapid double tap", asy
   await reachRequestedMonitorConfirmation(page);
   const later = page.getByRole("button", { name: "I’ll do this later" });
   await later.evaluate(button => { button.click(); button.click(); });
-  await expect(page.getByRole("heading", { name: "My Care" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "You’re enrolled in ACCESS" })).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("itera.enrollment.safe-draft.v2")));
   expect(saved.audit.filter(event => event.eventType === "care_setup_deferred")).toHaveLength(1);
 });

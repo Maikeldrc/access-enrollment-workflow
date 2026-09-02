@@ -515,6 +515,12 @@ p { margin:0; }
 .access-terminal-note>.icon { flex:0 0 auto; color:var(--success); background:var(--surface-primary); }
 .access-terminal-note strong { display:block; }
 .access-terminal-note p { margin:3px 0 0; color:var(--text-secondary); }
+.access-deferred-screen { justify-content:flex-start; }
+.access-deferred-summary .info-row>.icon { color:var(--primary-600); background:var(--primary-50); }
+.access-deferred-note { border-color:var(--border-default); background:var(--primary-50); }
+.access-deferred-note>.icon { color:var(--primary-600); }
+.access-deferred-actions { margin-top:16px; }
+.access-deferred-actions .button { margin-top:0; }
 .terminal-brand { cursor:default; }
 
 /* Shared COMPLETE -> EXPLAIN -> INVITE -> ESTIMATE -> CHOOSE transition. */

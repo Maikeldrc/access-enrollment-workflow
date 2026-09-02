@@ -15,7 +15,7 @@ describe("shared flow completion transitions", () => {
       const action = resolveNextBestAction({ pathway });
       const transition = resolveEnrollmentTransition({ pathway, nextBestAction: action });
       expect(transition.nextRoute).toBe(action.route);
-      expect(transition.laterRoute).toBe("MY_CARE");
+      expect(transition.laterRoute).toBe(pathway === "ACCESS" ? "FLOW_DEFERRED" : "MY_CARE");
       expect(transition.supportsResume).toBe(true);
       for (const entry of [transition.title, transition.nextStepTitle, transition.description, transition.primaryCta, transition.laterLabel, transition.reassurance]) {
         expect(entry.en).toBeTruthy();

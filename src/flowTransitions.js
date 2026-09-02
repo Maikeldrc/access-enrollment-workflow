@@ -85,7 +85,7 @@ export function resolveEnrollmentTransition({ pathway, nextBestAction } = {}) {
     ...copy,
     primaryCta: nextBestAction?.label,
     nextRoute: nextBestAction?.route,
-    laterRoute: "MY_CARE",
+    laterRoute: pathway === "ACCESS" ? "FLOW_DEFERRED" : "MY_CARE",
     reassurance: SHARED.reassurance,
     laterLabel: SHARED.laterLabel,
     supportsResume: true
