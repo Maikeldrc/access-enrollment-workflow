@@ -85,11 +85,13 @@ test("/new opens the first screen of a new enrollment and carries nothing over f
   expect(conversation, "EMMI must not resume the previous enrollment's conversation").not.toContain("conv_enrollment-A");
   expect(conversation, "nor carry over what the previous patient asked").not.toContain("What was my starting blood pressure?");
 
-  // Preferences belong to the person, not to the enrollment they were in.
+  // Language belongs to the person, but /new must begin with EMMI voice as a fresh opt-in.
+  // Keeping the prior voice preference here would make a new patient session start speaking
+  // before the patient has activated it.
   expect(stores.language).toBe("es");
-  expect(stores.emmiPreferences).toContain("emmiVoiceGuidance");
-  expect(stores.emmiPreferences).not.toContain("emmiWelcomeAcknowledged");
+  expect(stores.emmiPreferences).toBeNull();
   await expect(page.getByRole("heading", { name: "Hola, soy EMMI." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Guía por voz/i })).toBeVisible();
 
   // Continue to the surface where the leaked fixture was visible. Clearing localStorage alone is
   // not enough: boot used to re-create "Angela Demo" from EMMI's Spanish demo-patient fixture.
