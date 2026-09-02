@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiTextOrchestrator, patientFacingProse } from "../src/emmi/textOrchestrator.js";
-import { detectEmergencyLanguage } from "../src/emmi/safetyPolicy.js";
+import { detectEmergencyLanguage, emergencyLanguageForEvaluation } from "../src/emmi/safetyPolicy.js";
 import { EMERGENCY_SYMPTOM_PATTERN } from "../src/clinicalMonitoring.js";
 import { classifyAppointmentIntent, APPOINTMENT_INTENT_ACTIONS } from "../src/emmi/appointmentIntents.js";
 import { retrieveKnowledge, resetKnowledgeIndex } from "../server/emmiKnowledge.js";
@@ -94,6 +94,12 @@ describe("the safety gate recognises how patients describe an emergency", () => 
   for (const phrase of notHealthTurns) {
     it(`leaves alone: ${phrase}`, () => expect(detectEmergencyLanguage(phrase)).toBe(false));
   }
+
+  it("understands an explicit emergency negation without hiding a real symptom", () => {
+    expect(detectEmergencyLanguage("Yes, please let my care team know. I am not having an emergency.")).toBe(false);
+    expect(emergencyLanguageForEvaluation("This is not an emergency, but I have chest pain.")).not.toMatch(/not an emergency/i);
+    expect(detectEmergencyLanguage("This is not an emergency, but I have chest pain.")).toBe(true);
+  });
 });
 
 describe("a patient who cannot attend is asking about the appointment", () => {

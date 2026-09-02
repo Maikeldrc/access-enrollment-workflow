@@ -1,4 +1,10 @@
 const fold = value => String(value || "").replace(/[‘’ʼ]/g, "'").replace(/\s+/g, " ").trim();
+// Patients commonly clarify that a reported issue is *not* an emergency. Remove only that
+// negated label before applying the symptom rules; real symptoms elsewhere in the same sentence
+// (for example, "not an emergency, but I have chest pain") still trigger the safety route.
+const NEGATED_EMERGENCY = /\b(?:this|it)\s+(?:is\s+not|'s\s+not|isn't)\s+(?:an?\s+)?(?:medical\s+)?emergency\b|\bnot\s+(?:having|experiencing|in)\s+(?:an?\s+)?(?:medical\s+)?emergency\b|\bno\s+(?:medical\s+)?emergency\b|\bno\s+es\s+una\s+emergencia\b|\bno\s+(?:tengo|estoy teniendo)\s+una\s+emergencia\b|\bse\s+pa\s+yon\s+ijans\b|\bmwen\s+pa\s+gen\s+yon\s+ijans\b/gi;
+
+export const emergencyLanguageForEvaluation = value => fold(value).replace(NEGATED_EMERGENCY, " ").replace(/\s+/g, " ").trim();
 // The gate that decides whether a turn is a health turn at all. It is deliberately wider than the
 // severity engine it feeds: matching here only means the escalation engine is asked and the care
 // team is offered, so a false match costs a careful sentence, while a miss costs the whole route.
@@ -66,7 +72,7 @@ const COPY = {
   }
 };
 
-export const detectEmergencyLanguage = value => EMERGENCY.test(fold(value));
+export const detectEmergencyLanguage = value => EMERGENCY.test(emergencyLanguageForEvaluation(value));
 
 // Which kind of resolution the patient just reported, or null if they reported neither. Help
 // reaching them wins over feeling better: "the paramedics are here and I feel fine now" is a

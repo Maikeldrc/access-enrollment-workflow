@@ -129,10 +129,12 @@ export class EmmiTransitionManager {
     // Completion is a natural stopping point and its transition already contains the complete
     // welcome. Keeping it in one provider turn prevents the model from reopening the celebration
     // (and repeating "You did it") when a second screen-guidance segment is queued.
-    const transitionCompletesDestination = this.context.screenId === "ENROLLMENT_CONFIRMED";
-    const segments = transitionSegments.length
-      ? [...transitionSegments, ...((transitionMeta.shortReorientation || transitionCompletesDestination) ? [] : screenSegments.slice(1))]
-      : screenSegments;
+    const selectedSegments = transitionSegments.length ? transitionSegments : screenSegments;
+    // A screen transition is one coherent provider turn. Queuing every sentence as a separate
+    // generative turn made EMMI repeat openings, revive stale screen content and remain "Speaking"
+    // after the patient had already moved on.
+    const combinedNarration = selectedSegments.join(" ").trim();
+    const segments = combinedNarration ? [combinedNarration] : [];
     const trace = {
       previousScreen: previous.screenId,
       currentScreen: this.context.screenId,

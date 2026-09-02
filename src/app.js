@@ -1458,11 +1458,16 @@ function ensureEmmiRuntime() {
     onTranscript: (role, text, _final, metadata = {}) => {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
+      // Screen narration already has a dedicated transcript in Voice options. Do not also append
+      // provider-generated narration to chat: that was the source of repeated, stale bubbles from
+      // earlier device and medication screens.
+      if (guidance) {
+        emmiConversationManager?.markGreeted();
+        emmiAuditLog.transcript(role, cleaned);
+        return;
+      }
       const last = state.assistantMessages.at(-1);
-      // Screen narration is intentionally split into short provider turns so navigation can yield
-      // at a safe boundary. It is still one logical message to the patient, so keep all segments
-      // with the same narration id in one transcript bubble even after an individual segment has
-      // drained. Patient answers continue to group strictly by generation.
+      // Patient answers continue to group strictly by generation.
       const sameNarration = guidance && metadata.narrationId && last?.guidance && !last.interrupted
         && last.narrationId === metadata.narrationId;
       const sameVoiceTurn = sameNarration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
@@ -1477,7 +1482,10 @@ function ensureEmmiRuntime() {
     },
     onTurnComplete: metadata => {
       const lastMessage = state.assistantMessages.at(-1);
-      if (lastMessage?.role === "assistant" && lastMessage.voice) lastMessage.voiceComplete = true;
+      const completesVisibleVoiceTurn = lastMessage?.role === "assistant" && lastMessage.voice
+        && (!metadata.generationId || !lastMessage.generationId || metadata.generationId === lastMessage.generationId)
+        && (!metadata.narrationId || metadata.narrationId === lastMessage.narrationId);
+      if (completesVisibleVoiceTurn) lastMessage.voiceComplete = true;
       emmiTransitionManager?.onTurnComplete(metadata);
     },
     onBargeIn: details => {
@@ -1678,8 +1686,12 @@ async function assistantConfirmationAnswer(context) {
   return { text: result.success ? L("Done. I created a high-priority care-team task.", "Listo. Creé una tarea de alta prioridad para el equipo de atención.", "Fini. Mwen kreye yon travay priyorite wo pou ekip swen an.") : L("I couldn’t create the task right now. Please call the care team.", "No pude crear la tarea. Llame al equipo de atención.", "Mwen pa t kapab kreye travay la. Tanpri rele ekip swen an.") };
 }
 
+function isAffirmativePatientResponse(question) {
+  return /^(?:yes(?:,?\s+please)?|please do|s[ií](?:,?\s+por favor)?|wi|dak[oò])\b/i.test(String(question || "").trim());
+}
+
 async function assistantAnswer(question, context, { questionId = "" } = {}) {
-  const affirmative = /^(yes|yes please|please do|sí|si|wi|dakò)$/i.test(question.trim());
+  const affirmative = isAffirmativePatientResponse(question);
   if (affirmative && state.assistantPendingAction) return assistantConfirmationAnswer(context);
   // The quick question's catalog id travels with the question so a guardrail is reached the same
   // way in every language, rather than through a regex written for the translated label.
@@ -2143,11 +2155,9 @@ function deliverEmmiGuidance(message, screen = state.screen, { connect = false }
   manager.setPaused(false);
   if (!manager.snapshot().context) manager.updateContext(emmiScreenContext());
   if (!connect && ["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState)) return;
-  // Welcomes and enrollment celebrations are each one provider turn. Splitting either into
-  // separate generative prompts invites the model to reopen the greeting after every clause.
-  const cohesiveGuidance = ["INVITATION", "ENROLLMENT_CONFIRMED"].includes(screen);
-  const segments = cohesiveGuidance ? [message] : semanticSpeechSegments(message);
-  manager.speak({ narrationText: message, segments }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
+  // Every screen is one provider turn. Multiple generative turns for one paragraph caused stale
+  // medication/device guidance to accumulate after navigation.
+  manager.speak({ narrationText: message, segments: [message] }, { connect, kind: "SCREEN_GUIDANCE", screenId: screen, contextVersion: manager.contextVersion });
   state.emmiLastGuidanceScreen = screen;
   audit(state, "emmi_voice_guidance", screen, { locale: state.language });
 }
@@ -7546,6 +7556,35 @@ function applyEmmiLanguage(locale) {
   refreshAssistantLayer();
 }
 
+const ACCESS_STATUS_QUESTION = /\b(?:what (?:exactly )?(?:do i still need|is left|remains|comes next)|what(?:'s| is) (?:left|pending|next)|am i (?:completely )?done|anything (?:left|pending)|qu[eé] (?:me )?falta|qu[eé] (?:queda|sigue|est[aá] pendiente)|ya (?:termin[eé]|acab[eé])|kisa (?:ki )?rete|mwen fini)\b/i;
+
+function accessSetupStatusAnswer() {
+  const deviceComplete = state.deviceFulfillmentStatus === "REQUESTED" || state.bpDeviceFulfillmentStatus === "REQUESTED";
+  const medicationsComplete = state.onboarding?.medicationsReviewStatus === "COMPLETED"
+    || state.medicationsReviewStatus === "COMPLETED"
+    || state.screen === "ONBOARDING_COMPLETE";
+  if (deviceComplete && medicationsComplete) return L(
+    "Your ACCESS enrollment, monitor request, and medication reconciliation are complete. There are no more steps in this ACCESS setup.",
+    "Su inscripción en ACCESS, la solicitud del monitor y la conciliación de medicamentos están completas. No quedan más pasos en esta configuración de ACCESS.",
+    "Enskripsyon ACCESS ou, demann monitè a ak verifikasyon medikaman yo fini. Pa gen lòt etap nan konfigirasyon ACCESS sa a."
+  );
+  if (deviceComplete) return L(
+    "Your ACCESS enrollment and monitor request are complete. You still need to reconcile your medications.",
+    "Su inscripción en ACCESS y la solicitud del monitor están completas. Aún necesita conciliar sus medicamentos.",
+    "Enskripsyon ACCESS ou ak demann monitè a fini. Ou toujou bezwen verifye medikaman ou yo."
+  );
+  if (medicationsComplete) return L(
+    "Your ACCESS enrollment and medication reconciliation are complete. You still need to request your blood pressure monitor.",
+    "Su inscripción en ACCESS y la conciliación de medicamentos están completas. Aún necesita solicitar su monitor de presión arterial.",
+    "Enskripsyon ACCESS ou ak verifikasyon medikaman yo fini. Ou toujou bezwen mande monitè tansyon ou."
+  );
+  return L(
+    "Your ACCESS enrollment is complete. You still need to request your blood pressure monitor and reconcile your medications.",
+    "Su inscripción en ACCESS está completa. Aún necesita solicitar su monitor de presión arterial y conciliar sus medicamentos.",
+    "Enskripsyon ACCESS ou fini. Ou toujou bezwen mande monitè tansyon ou epi verifye medikaman ou yo."
+  );
+}
+
 async function askEmmi(question, { questionId = "", source = "input", replay = false } = {}) {
   const cleaned = question.trim();
   if (!cleaned || state.assistantBusy) return;
@@ -7606,13 +7645,25 @@ async function askEmmi(question, { questionId = "", source = "input", replay = f
   runtime.audit.transcript("user", cleaned);
   // Analytics record that a question was asked and where it came from, never what was asked.
   audit(state, source === "quick-question" ? "emmi_quick_question_selected" : "emmi_question_submitted", "success", { screen: state.screen, source, questionId });
-  const criticalSafety = /(call 911|emergency|chest pain|can'?t breathe|cannot breathe|dolor.*pecho|no puedo respirar|rele 911|ijans|pa ka respire)/i.test(cleaned);
+  if (state.offer?.pathway === "ACCESS" && state.enrollmentStatus === "COMPLETED" && ACCESS_STATUS_QUESTION.test(cleaned)) {
+    const response = accessSetupStatusAnswer();
+    state.assistantMessages.push({ role: "assistant", text: response, intent: "ACCESS_SETUP_STATUS" });
+    emmiConversationManager?.recordTurn("assistant", response, { screen: state.screen });
+    emmiConversationManager?.markGreeted();
+    runtime.audit.transcript("assistant", response);
+    refreshAssistantLayer({ focusInput: true });
+    return;
+  }
+  const clinicalSafetyTurn = detectEmergencyLanguage(cleaned);
+  const confirmedPendingAction = Boolean(state.assistantPendingAction) && isAffirmativePatientResponse(cleaned);
   const contextIndependent = !/(this|that|button|screen|here|esto|eso|botón|pantalla|aquí|sa a|bouton|ekran|isit)/i.test(cleaned);
-  if (!["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) && runtime.live.sendText(cleaned, {
+  // Health turns and confirmations always use deterministic product rules, even while voice is
+  // connected. General conversation can still use the live model.
+  if (!clinicalSafetyTurn && !confirmedPendingAction && !["DISCONNECTED", "ERROR"].includes(state.assistantVoiceState) && runtime.live.sendText(cleaned, {
     id: `patient_${Date.now().toString(36)}`,
     contextVersion: emmiTransitionManager?.contextVersion || 0,
     screenId: state.screen,
-    priority: criticalSafety ? "CRITICAL_SAFETY" : "PATIENT_RESPONSE",
+    priority: "PATIENT_RESPONSE",
     contextIndependent
   })) { refreshAssistantLayer(); return; }
   state.assistantBusy = true; refreshAssistantLayer();
@@ -7705,10 +7756,17 @@ function bindAssistantLayer() {
   // and need the shared handlers bound onto this freshly rendered subtree.
   bindActions(layer);
   trapFocusWithin(layer);
+  const questionInput = layer.querySelector("#assistant-question");
+  questionInput?.addEventListener("focus", () => {
+    // Typing is an intentional barge-in. Stop screen narration before it can refresh the panel
+    // and replace the form while the patient is composing or pressing Send.
+    if (emmiGuidanceIsBusy()) ensureEmmiTransitionManager().cancel("typed_question", { immediate: true });
+  }, { once: true });
   layer.querySelector(".assistant-question-form")?.addEventListener("submit", event => {
     event.preventDefault();
     const question = new FormData(event.currentTarget).get("question")?.toString() || "";
     if (!question.trim() || state.assistantBusy) return;
+    ensureEmmiTransitionManager().cancel("typed_question_submitted", { immediate: true });
     // refreshAssistantLayer intentionally preserves an in-progress draft across unrelated panel
     // updates. Once the patient submits, however, that text is no longer a draft: clear the live
     // form before askEmmi re-renders the layer so it cannot restore the sent message into the input.

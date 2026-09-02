@@ -68,6 +68,8 @@ describe("EMMI prototype tools", () => {
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 181, diastolic: 121, symptoms: "none" })).severity).toBe("EMERGENCY");
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "chest pain" })).instruction).toBe("CALL_911");
     expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "I passed out after taking it" })).instruction).toBe("CALL_911");
+    expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "I am not having an emergency" })).instruction).toBe("CONTINUE");
+    expect((await tools.execute("evaluateClinicalEscalation", { systolic: 0, diastolic: 0, symptoms: "This is not an emergency, but I have chest pain" })).instruction).toBe("CALL_911");
   });
 
   // The tool hands over the resolved shapes untouched. If it ever started deriving a milestone of

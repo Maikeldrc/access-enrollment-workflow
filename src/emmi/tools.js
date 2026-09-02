@@ -6,6 +6,7 @@ import { DEMO_BP_MONITORING_RULES } from "../goalHealth.js";
 import { BP_CLINICAL_STATE, EMERGENCY_SYMPTOM_PATTERN, classifyObservation } from "../clinicalMonitoring.js";
 import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
+import { emergencyLanguageForEvaluation } from "./safetyPolicy.js";
 
 const LOG_KEY = "itera.emmi.prototype.audit.v1";
 const id = prefix => `${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -344,7 +345,7 @@ export class EmmiToolOrchestrator {
       // Thresholds are read from the monitoring rules rather than written here. They used to be
       // inline copies that happened to match; changing the configuration would have left this
       // tool quietly enforcing the old numbers.
-      const symptoms = String(args.symptoms || "").toLowerCase();
+      const symptoms = emergencyLanguageForEvaluation(args.symptoms).toLowerCase();
       const emergencySymptoms = EMERGENCY_SYMPTOM_PATTERN.test(symptoms);
       const reading = { systolic: Number(args.systolic), diastolic: Number(args.diastolic), timestamp: new Date().toISOString(), unit: "mmHg" };
       const classification = classifyObservation(reading, {
