@@ -41,7 +41,7 @@ import { EmmiTransitionManager, semanticSpeechSegments } from "./emmi/transition
 import { EmmiConversationManager, clearEmmiConversation } from "./emmi/conversationManager.js";
 import { EMMI_PREFERENCES_KEY, clearEmmiEnrollmentContinuity, readEmmiPreferences } from "./emmi/preferences.js";
 import { EmmiTextOrchestrator } from "./emmi/textOrchestrator.js";
-import { detectEmergencyLanguage } from "./emmi/safetyPolicy.js";
+import { detectEmergencyLanguage, safetyResolutionCopy } from "./emmi/safetyPolicy.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
@@ -2447,7 +2447,7 @@ function assistantLayer() {
   const quickQuestions = assistantQuickQuestions(context);
   const labels = emmiLabels();
   const guideState = emmiGuideState();
-  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-companion" ? L("Coordinate a companion", "Coordinar acompañante", "Kowòdone yon moun pou akonpaye m") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
+  const messages = state.assistantMessages.map((message, index) => assistantMessageRow(message.role, `<p>${escapeHtml(message.text)}</p>${assistantPrepMedicationChoices(message)}${message.emergency ? `<a class="assistant-emergency-action" href="tel:911">${icon("phone")}<span>${L("Call 911", "Llamar al 911", "Rele 911")}</span></a>` : ""}${message.quickAction ? `<button type="button" class="assistant-message-action" data-assistant-growth="${message.quickAction}" data-barrier-id="${message.barrierId || ""}" data-medication-id="${message.medicationId || ""}" data-appointment-id="${message.appointmentId || ""}" data-need-id="${message.needId || ""}">${message.quickAction === "care-circle" ? L("Invite someone to help", "Invitar a alguien para ayudar", "Envite yon moun pou ede") : message.quickAction === "medication-refill" ? L("Open my medications", "Abrir mis medicamentos", "Louvri medikaman mwen yo") : message.quickAction === "goal-barrier" ? L("Get help with this", "Obtener ayuda con esto", "Jwenn èd ak sa") : message.quickAction === "appointment-view" ? L("Open my appointments", "Abrir mis citas", "Louvri randevou mwen yo") : message.quickAction === "appointment-companion" ? L("Coordinate a companion", "Coordinar acompañante", "Kowòdone yon moun pou akonpaye m") : message.quickAction === "appointment-reschedule" ? L("Change this appointment", "Cambiar esta cita", "Chanje randevou sa a") : message.quickAction === "appointment-request" ? L("Continue with this appointment", "Continuar con esta cita", "Kontinye ak randevou sa a") : message.quickAction === "safety-resolved" ? L("I’ve called for help", "Ya llamé para pedir ayuda", "Mwen rele pou èd") : L("Share ACCESS", "Compartir ACCESS", "Pataje ACCESS")}</button>` : ""}`, { startsGroup: state.assistantMessages[index - 1]?.role !== message.role })).join("")
     + (state.assistantBusy ? assistantMessageRow("assistant", `<p>${L("EMMI is thinking…", "EMMI está pensando…", "EMMI ap reflechi…")}</p>`, { startsGroup: state.assistantMessages.at(-1)?.role !== "assistant", extraClass: "assistant-thinking", attrs: ' role="status"' }) : "");
   const commonQuestions = context.currentScreen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible"
     ? [L("Why can’t I continue?", "¿Por qué no puedo continuar?", "Poukisa mwen pa ka kontinye?"), L("Does this affect my Medicare?", "¿Esto afecta mi Medicare?", "Èske sa afekte Medicare mwen an?"), L("Can I still see my doctors?", "¿Puedo seguir viendo a mis médicos?", "Èske mwen ka toujou wè doktè mwen yo?"), L("Are there other care options?", "¿Hay otras opciones de cuidado?", "Èske gen lòt opsyon swen?")]
@@ -8297,6 +8297,19 @@ function bindAssistantLayer() {
   }));
   layer.querySelectorAll("[data-assistant-growth]").forEach(button => button.addEventListener("click", () => {
     const growthAction = button.dataset.assistantGrowth;
+    // Ending the safety episode keeps the patient in the conversation. Every other quick action
+    // navigates somewhere, and closing the panel on this one would answer "help is with me" by
+    // taking the assistant away.
+    if (growthAction === "safety-resolved") {
+      emmiConversationManager?.resolveSafetyEpisode("HUMAN_HELP_CONFIRMED");
+      const resolutionText = safetyResolutionCopy("HUMAN_HELP_CONFIRMED", languageCode());
+      state.assistantMessages.push({ role: "assistant", text: resolutionText, intent: "CLINICAL_SAFETY_RESOLVED", emergency: false, quickAction: "" });
+      emmiConversationManager?.recordTurn("assistant", resolutionText, { screen: state.screen });
+      audit(state, "emmi_safety_episode_resolved", "success", { resolution: "HUMAN_HELP_CONFIRMED", screen: state.screen });
+      draftStore.save(state);
+      refreshAssistantLayer({ focusInput: true });
+      return;
+    }
     const originScreen = state.assistantOriginScreen || state.screen;
     closeAssistant();
     state.growthReturnScreen = originScreen;

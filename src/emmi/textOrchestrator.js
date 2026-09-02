@@ -6,6 +6,7 @@ import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
+import { decomposeCompoundQuestion, hasBareReferent, isFollowUpQuestion, mergeCompoundAnswers, resolveConversationSubject, resolveTurnSubject, subjectOf } from "./conversationSubject.js";
 import { appointmentTopicListText, parseAppointmentTopicCommands } from "./appointmentTopics.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
@@ -36,7 +37,7 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
 // $0" is the most likely thing a patient asks on the consent screen.
 // What a patient is talking about when the cost question is not about ACCESS at all.
 const TRANSPORT_SUBJECT = /\b(uber|lyft|taxi|cab|ride|rides|rideshare|transportation|transport|bus fare|mileage)\b|transporte|taxi|viaje|pasaje|transp[o\u00f2]|woulib/i;
-const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
+const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|charged|bill|billed|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
@@ -293,6 +294,32 @@ const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|praz
 // — the two commonest dosing questions there are — fell past this gate into the knowledge base and
 // came back as programme education. Missing a dose is not a question EMMI may answer; it is a
 // question it must hand to a clinician.
+// Asking what a drug is for, what it does, or what it might do to you is drug education, and ITERA
+// has decided it is out of scope: it belongs to a pharmacist or the care team, and if it is ever
+// brought in-house it comes from a licensed monograph feed, not from this knowledge base and not
+// from the model.
+//
+// This has to be a route rather than a knowledge page. Left to retrieval, the model answered "what
+// is lisinopril for?" with a fluent, unsourced pharmacology lesson it wrote from its own weights -
+// which is exactly the class of answer the audit exists to prevent, on exactly the subject where
+// being confidently wrong does the most harm.
+const DRUG_NAMES = `(?:${DRUG_SUFFIX}|aspirin|ibuprofen|tylenol|acetaminophen|insulin|warfarin|aspirina|ibuprofeno|insulina|ibipwofen)`;
+// String.raw, because a plain "\b" in a JS string literal is a backspace character and not a word
+// boundary - written the other way this pattern silently matched nothing at all.
+const DRUG_EDUCATION = new RegExp([
+  String.raw`\b(?:what (?:is|are|does|do)|what'?s|why (?:do|am) i|how does|tell me about|side ?effects?|used for)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:for|side ?effects?|do to me|make me|safe|interact)\b`,
+  String.raw`\b(?:para qu[eé] (?:es|sirve)|qu[eé] hace|efectos? secundarios?)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:para qu[eé]|efectos? secundarios?|me hace)\b`,
+  String.raw`\b(?:pou ki sa|efè segond[eè])\b[^?.!]{0,40}\b` + DRUG_NAMES
+].join("|"), "i");
+
+const drugEducationAnswer = locale => pick(locale, {
+  EN: "I can’t tell you what a specific medicine does, what it is for, or what side effects it may have — that needs someone who can see your full medication list and your health history. Your pharmacist can answer it, and so can your care team. Would you like me to ask your care team to call you about it?",
+  ES: "No puedo decirle qué hace un medicamento concreto, para qué sirve ni qué efectos secundarios puede tener: eso necesita a alguien que vea toda su lista de medicamentos y su historial. Su farmacéutico puede responderlo, y su equipo de atención también. ¿Desea que le pida a su equipo que le llame por esto?",
+  KR: "Mwen pa ka di w kisa yon medikaman patikilye fè, pou ki sa li ye, ni ki efè segondè li ka genyen — sa mande yon moun ki ka wè tout lis medikaman ou ak istwa sante ou. Famasyen ou ka reponn sa, epi ekip swen ou tou. Èske ou vle m mande ekip swen ou pou yo rele w sou sa?"
+});
+
 const MEDICATION_SAFETY = new RegExp(
   "(stop|quit|skip|skipped|miss|missed|missing|forgot|forget|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|medicines|pill|pills|dose|doses|tablet|" + DRUG_SUFFIX + ")"
   + "|(took|take|taken|taking)[^?.]{0,20}(two|three|2|3|double|an extra|extra|another|a second)[^?.]{0,10}(dose|pill|tablet)"
@@ -574,13 +601,23 @@ const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
   return `${prefix} ${base}`;
 };
 
-export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null } = {}) => {
+export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null, carriedSubject = "" } = {}) => {
   const raw = clean(question);
   const prepTopic = resolveAppointmentPrepTopic({ question: raw, conversation, appointmentPrep });
   if (prepTopic && topicKey(raw) !== topicKey(prepTopic)) return `${raw} Appointment preparation topic: ${prepTopic}`;
   const context = `${conversation.conversationSummary || ""} ${(conversation.recentTurns || []).map(turn => turn.text).join(" ")}`;
   const mentioned = ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"].filter(item => new RegExp(`\\b${item}\\b`, "i").test(context));
   if (/(difference|different|compare|diferencia|diferente|comparar|diferans)/i.test(raw) && mentioned.length >= 2) return `${raw} ${mentioned.slice(-2).join(" ")}`;
+  // The half of a compound question that named the subject hands it to the half that did not:
+  // "am I eligible and how much does it cost?" asks the second half about eligibility's subject.
+  if (carriedSubject) return `${raw} ${carriedSubject}`;
+  // "And does that cost anything?" carries no subject of its own. Retrieval had only those words
+  // to rank on and returned whatever page mentioned cost, so a question about the monitor came
+  // back as the programme's cost page. Put the subject the patient stopped repeating back in.
+  if (isFollowUpQuestion(raw)) {
+    const subject = resolveConversationSubject(conversation);
+    if (subject) return `${raw} ${subject}`;
+  }
   if (/^(and|what about|y|e)\b/i.test(raw) && mentioned.length) return `${raw} Previous topic: ${mentioned.at(-1)}`;
   if (/\b(this|that|it|esto|eso|este programa|sa a)\b/i.test(raw) && program) return `${raw} Current program: ${program}`;
   return raw;
@@ -666,7 +703,10 @@ const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|t
 // internal vocabulary (runtime, tool, guardrail, chunk, PHI), and editorial scaffolding (source
 // registries, "Answer from this page"). They belong in the model's grounding, where they steer the
 // answer, and never in the answer itself — which is exactly where they were being printed.
-const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep |use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
+// "keep" on its own was too broad: it stripped "Keep your feet flat on the floor" out of the
+// monitor instructions, which is the patient's own guidance and not a note to whoever wrote the
+// page. Only the authoring objects belong here.
+const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep (?:the (?:answer|response|tone|wording|list|language)|answers|responses|it short|language|wording)|use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
 const INTERNAL_VOCABULARY = /\b(runtime|tool|guardrail|chunk|retrieval|markdown|PHI|credential|configuration|config\b|this page|the model|prompt|G-?code|_sources?:|\(READ\)|\bUso:|\bNota:)/i;
 // A directive can also be phrased about the patient rather than to the reader.
 const THIRD_PERSON_DIRECTIVE = /\b(must (not|never|remain|be)|should (not|be given|use)|is not answered by|it must appear|rather than assumed)\b/i;
@@ -1105,17 +1145,85 @@ export class EmmiTextOrchestrator {
     this.onSafetyResolved = onSafetyResolved;
   }
 
-  async answer(question, { questionId = "" } = {}) {
+  // Each half of a compound turn is routed on its own and the answers are merged. The half that
+  // names the subject hands it to the half that does not, so "am I eligible and how much does it
+  // cost?" asks the second question about the same thing as the first.
+  async #answerCompound({ parts, locale, questionId, trace, emit }) {
+    const results = [];
+    let carried = "";
+    for (const part of parts) {
+      const own = subjectOf(part);
+      const inherits = !own || own.weak || hasBareReferent(part);
+      results.push(await this.answer(part, { questionId, subQuestion: true, carriedSubject: inherits ? carried : "" }));
+      if (own && !own.weak) carried = own.label;
+    }
+    const text = mergeCompoundAnswers(results.map(item => item?.text), { unavailableText: unavailable(locale) });
+    Object.assign(trace, {
+      intent: "COMPOUND_QUESTION",
+      responseMode: "COMPOUND",
+      compoundParts: parts,
+      toolCalls: results.flatMap(item => item?.trace?.toolCalls || []),
+      knowledgeChunkIds: results.flatMap(item => item?.trace?.knowledgeChunkIds || []),
+      runtimeFactsUsed: results.flatMap(item => item?.trace?.runtimeFactsUsed || []),
+      partIntents: results.map(item => item?.trace?.intent || "UNKNOWN")
+    });
+    emit("EMMI_ANSWER_ROUTED");
+    const carriedField = field => results.find(item => item?.[field])?.[field];
+    return {
+      text: text || results[0]?.text || unavailable(locale),
+      ...(carriedField("pendingAction") ? { pendingAction: carriedField("pendingAction") } : {}),
+      ...(carriedField("quickAction") ? { quickAction: carriedField("quickAction") } : {}),
+      ...(carriedField("appointmentPrepUpdate") ? { appointmentPrepUpdate: carriedField("appointmentPrepUpdate"), appointmentId: carriedField("appointmentId") || "" } : {}),
+      trace
+    };
+  }
+
+  async answer(question, { questionId = "", subQuestion = false, carriedSubject = "" } = {}) {
     const context = this.getContext();
     const locale = context.locale || "EN";
     const conversation = this.getConversation?.() || {};
     const appointmentPrepTopic = resolveAppointmentPrepTopic({ question, conversation, appointmentPrep: context.appointmentPrep });
-    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep });
+    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep, carriedSubject });
     const trace = { turnId: `emmi_turn_${Date.now().toString(36)}`, conversationSessionId: conversation.conversationSessionId || "", screenId: context.currentScreen, retrievalQuery, intent: "UNKNOWN", knowledgeChunkIds: [], toolCalls: [], runtimeFactsUsed: [], responseMode: "UNKNOWN" };
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
     const openEpisode = safetyEpisodeIsActive(conversation.activeSafetyEpisode) ? conversation.activeSafetyEpisode : null;
+
+    // A patient who asks two things in one breath used to get one answer and silence for the rest,
+    // because everything below is a chain of routes that returns on the first match.
+    //
+    // Two kinds of turn are answered whole instead. Safety, because half of "my chest hurts and
+    // when is my appointment" is not a question about an appointment. And the routes that are
+    // already deliberately multi-intent: appointment coordination answers a combined
+    // ride-and-companion request as one action with the appointment attached, which is a better
+    // answer than two smaller ones, so splitting it would be a downgrade. Appointment preparation
+    // is left alone too — it owns its own turn-taking.
+    if (!subQuestion) {
+      const claimedBySafety = Boolean(openEpisode) || SAFETY.test(asked) || BP_READING.test(asked)
+        || MEDICATION_SAFETY.test(asked) || Boolean(conversationPolicyResponse(question, locale));
+      // Only when coordination is the whole turn. Their route answers a combined ride-and-companion
+      // request better than two split answers, but it answers one thing: given "my daughter wants
+      // to come with me but I also need to change the time" it opens the companion flow and the
+      // reschedule disappears. So it takes the turn only when every part of it is coordination.
+      // A trailing "¿cómo lo coordinamos?" is the same request continuing, not a second subject, so
+      // it counts as coordination too. "I also need to change the time" names something else and
+      // does not.
+      const coordinationPart = part => APPOINTMENT_TRANSPORTATION.test(part) || APPOINTMENT_COMPANION.test(part) || isFollowUpQuestion(part);
+      const coordinatingAppointment = Boolean(context.appointmentPrep?.appointmentId)
+        && coordinationPart(question)
+        && decomposeCompoundQuestion(question).every(coordinationPart);
+      const resolvingCompanionPrivacy = context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question);
+      // "How much does it cost and do I keep my doctor?" has a handler of its own. Both routes say
+      // the same two things; that one says them in the better order, leading with the reassurance
+      // and then the money, in a single paragraph. Decomposition covers the rest of the class.
+      const askingCostAndDoctor = COST.test(asked) && DOCTOR_STATUS.test(asked) && !TRANSPORT_SUBJECT.test(asked);
+      const preparing = context.appointmentPrep?.emmiPreparation?.status === "IN_PROGRESS";
+      const claimed = claimedBySafety || coordinatingAppointment || resolvingCompanionPrivacy || askingCostAndDoctor || preparing;
+      const parts = claimed ? [] : decomposeCompoundQuestion(question);
+      if (parts.length > 1) return await this.#answerCompound({ parts, locale, questionId, trace, emit });
+    }
+
     if (openEpisode) {
       // Resolution is read before the emergency gate. A patient saying "I called 911" or "the
       // emergency team is with me now" uses the words that raise an emergency, so the gate treated
@@ -1158,6 +1266,16 @@ export class EmmiTextOrchestrator {
     if (guardrail) {
       trace.intent = guardrail.intent; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
       return { text: guardrail.text, ...(guardrail.quickAction ? { quickAction: guardrail.quickAction } : {}), trace };
+    }
+
+    // After the guardrail on purpose. The product already carries approved, reviewed education for
+    // the medications it puts on file, and that stays: a patient asking about their own lisinopril
+    // gets the approved sentence. What this catches is everything the allowlist does not cover,
+    // where the model was answering "what is X for?" with a fluent unsourced pharmacology lesson
+    // written from its own weights - on the one subject where being confidently wrong hurts most.
+    if (DRUG_EDUCATION.test(asked)) {
+      trace.intent = "MEDICATION_EDUCATION_OUT_OF_SCOPE"; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
+      return { text: drugEducationAnswer(locale), pendingAction: "callback", trace };
     }
     if (REPEAT_FOLLOW_UP.test(asked) || SIMPLIFY_FOLLOW_UP.test(asked)) {
       const prior = clean(conversation.lastEmmiTurn || [...(conversation.recentTurns || [])].reverse().find(turn => turn?.role === "assistant")?.text || "");
@@ -1224,7 +1342,11 @@ export class EmmiTextOrchestrator {
     }
     if (HUMAN_SUPPORT.test(asked)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
-      return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+      return { text: pick(locale, {
+        EN: "Would you like me to ask the ITERA care team to call you? They are there Monday to Friday, 9:00 to 17:00 Eastern, and usually reach people within one business day. If something feels urgent before then, call your doctor’s office — and if it is an emergency, call 911.",
+        ES: "¿Desea que solicite al equipo de atención de ITERA que le llame? Están disponibles de lunes a viernes, de 9:00 a 17:00 del Este, y por lo general se comunican en un día hábil. Si algo le urge antes, llame al consultorio de su médico; y si es una emergencia, llame al 911.",
+        KR: "Èske ou vle m mande ekip swen ITERA a rele ou? Yo la lendi jiska vandredi, 9:00 a 17:00 lè Lès, epi anjeneral yo rive jwenn moun nan yon jou ouvrab. Si yon bagay sanble ijan anvan sa, rele biwo doktè ou — epi si se yon ijans, rele 911."
+      }), pendingAction: "callback", trace };
     }
     // Whether to measure again is a question about the baseline counters, so it is answered only
     // when those counters actually say no; anything else falls through to normal routing.
@@ -1336,7 +1458,10 @@ export class EmmiTextOrchestrator {
     // block at all, because clinical safety above already took the turn (§3, §4, §5, §139).
     // §41: a pronoun only refers to an appointment when one is genuinely the subject of this
     // conversation. Recent turns decide that; a bare "cancel it" out of nowhere still means nothing.
-    const appointmentInContext = APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
+    // A patient with an appointment open in front of them has an appointment in context, whether or
+    // not anyone has said the word in the last few turns.
+    const appointmentInContext = Boolean(context.appointmentPrep?.appointmentId)
+      || APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
       || (conversation.recentTurns || []).some(turn => APPOINTMENT_MENTION.test(String(turn?.text || "")));
     if (context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question)) {
       trace.intent = "APPOINTMENT_COMPANION_PRIVACY";
@@ -1344,7 +1469,11 @@ export class EmmiTextOrchestrator {
       emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentSupport.appointmentId || "", companionStep: context.appointmentSupport.step || "" });
       return { text: companionPrivacyAnswer(locale, context.appointmentSupport.contactName), appointmentId: context.appointmentSupport.appointmentId || "", trace };
     }
-    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId) {
+    // "Who pays for the Uber?" is not a status question, and answering it with "I do not see
+    // confirmed transportation on file" implies there is transportation to confirm. ITERA has
+    // decided there is no transportation benefit, so a question about who pays goes to the page
+    // that says so rather than to a lookup that sounds like a maybe.
+    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId && !COST.test(asked)) {
       trace.intent = "APPOINTMENT_TRANSPORTATION_STATUS";
       trace.responseMode = "RUNTIME_GROUNDED";
       trace.toolCalls.push("getAppointment", "getAppointmentTransportation");
@@ -1577,9 +1706,16 @@ export class EmmiTextOrchestrator {
     // asking about a ride reads as a promise that the ride is free. What transportation costs, and
     // who pays it, is not something this product knows; that belongs to the transportation route,
     // which says so plainly.
-    const asksAboutTransportCost = COST.test(asked) && TRANSPORT_SUBJECT.test(asked);
+    // The same words carry three different answers depending on what they are asked about. The
+    // programme's $0 is true of the programme only: said about a ride it reads as a promise the
+    // ride is free, said about a prescription it reads as a promise the copay is nothing. The
+    // monitor, the ride and the medication each have their own answer, so a cost question about
+    // one of them is left to the route that knows it. The subject can come from an earlier turn:
+    // "and does that cost anything?" is about whatever the patient was just asking about.
+    const costSubject = resolveTurnSubject({ question: asked, conversation, carriedSubject, fromConversation: false })?.key || "";
+    const asksAboutTransportCost = COST.test(asked) && (TRANSPORT_SUBJECT.test(asked) || costSubject === "TRANSPORT");
     let tool = "";
-    if (COST.test(asked) && !asksAboutTransportCost) tool = "getExpectedAccessCost";
+    if (COST.test(asked) && !asksAboutTransportCost && !["DEVICE", "MEDICATION"].includes(costSubject)) tool = "getExpectedAccessCost";
     else if (ELIGIBILITY.test(asked)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(asked)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(asked)) tool = "getAssignedDevice";
