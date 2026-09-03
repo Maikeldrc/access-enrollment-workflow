@@ -153,7 +153,6 @@ export class EmmiLiveClient {
     this.state = value;
     // An update that arrived before the socket was open goes out as soon as there is one to send
     // it on, so a session that opens onto a screen the app already described starts up to date.
-    if (value === "LISTENING" && this.session && !this.toolRoundTripInFlight && this.pendingContextUpdate) this.flushContextUpdate();
     this.onState?.(value, detail);
   }
   completeAudioCaptureStartup(detail = "") {
@@ -733,7 +732,7 @@ export class EmmiLiveClient {
           this.emitVoiceTelemetry("EMMI_ASR_CLARIFICATION_REQUIRED", { reason: assessment.reason, expectedLanguage: assessment.expectedLanguage, detectedLanguage: assessment.detectedLanguage });
           // Append the guard to the audio turn already in flight. Marking this as another complete
           // client turn can produce a duplicate assistant response on some Live API versions.
-          this.session?.sendClientContent?.({ turns: emmiAsrClarificationInstruction(assessment), turnComplete: false });
+          this.sendRealtimeText(emmiAsrClarificationInstruction(assessment), { turnComplete: false });
         }
         this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId, transcriptReliability: assessment.reliable ? "RELIABLE" : "CLARIFICATION_REQUIRED", transcriptReliabilityReason: assessment.reason });
         if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
@@ -1073,31 +1072,33 @@ export class EmmiLiveClient {
   // what goes out when one opens, rather than a backlog of stale ones.
   sendContextUpdate(payload, { label = "APP CONTEXT" } = {}) {
     if (!payload) return false;
-    // Held back for exactly two reasons, both of them "there is nowhere to put it right now":
-    // no socket yet, and a tool round trip the provider is waiting to complete. In both cases the
-    // newest state goes out the moment there is somewhere to put it.
-    if (!this.session || this.toolRoundTripInFlight) { this.pendingContextUpdate = { payload, label }; return false; }
-    return this.flushContextUpdate({ payload, label });
+    // Gemini 3.1 accepts sendClientContent only for initial-history seeding. Stage the newest app
+    // state and bind it to the next realtime text turn instead of sending an unsupported silent
+    // turn that can delay, empty, or reorder the following narration.
+    this.pendingContextUpdate = { payload, label };
+    return Boolean(this.session && !this.toolRoundTripInFlight);
   }
 
   flushContextUpdate(update) {
     const next = update || this.pendingContextUpdate;
-    if (!next || !this.session) return false;
-    this.pendingContextUpdate = null;
-    const body = typeof next.payload === "string" ? next.payload : JSON.stringify(next.payload);
-    try {
-      this.session.sendClientContent({
-        turns: `[${next.label} — this is the app telling you what the patient is looking at right now. Do not read it aloud and do not answer it. Use it for every following answer, and prefer it over anything earlier in this conversation.]
-${body}`,
-        turnComplete: false
-      });
-    } catch { return false; }
-    this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: next.label, bytes: body.length, contextVersion: this.activeContextVersion });
-    return true;
+    if (!next) return false;
+    this.pendingContextUpdate = next;
+    return Boolean(this.session && !this.toolRoundTripInFlight);
   }
 
-  // Text has to go through sendClientContent: sendRealtimeInput only carries audio blobs, so a
-  // text turn sent that way is accepted silently and never produces a spoken reply.
+  sendRealtimeText(text, { turnComplete = true } = {}) {
+    if (!this.session || !text) return false;
+    try {
+      if (typeof this.session.sendRealtimeInput === "function") this.session.sendRealtimeInput({ text });
+      // Compatibility for older SDK test doubles; production Gemini 3.1 always takes the branch
+      // above because conversational client content is no longer supported by that model.
+      else this.session.sendClientContent?.({ turns: text, turnComplete });
+      return true;
+    } catch { return false; }
+  }
+
+  // Gemini 3.1 Live accepts conversational text through realtime input. Binding the newest screen
+  // context and the narration into this single input preserves ordering and minimizes latency.
   sendText(text, metadata = {}) {
     if (!this.session) {
       if (["CONNECTING", "LISTENING"].includes(this.state)) {
@@ -1157,8 +1158,11 @@ ${body}`,
       // because a turn the app initiates is the one moment we can be certain the model reads.
       view: runtime.view || null
     };
+    const staged = this.pendingContextUpdate;
+    this.pendingContextUpdate = null;
     const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
-    this.session.sendClientContent({ turns: contextualTurn, turnComplete: true });
+    if (!this.sendRealtimeText(contextualTurn)) return false;
+    if (staged) this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: staged.label, contextVersion: this.activeContextVersion, boundToTurn: true });
     this.touchTurnWatchdog(generationId);
     this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "" });
     return true;

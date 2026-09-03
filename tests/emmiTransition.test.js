@@ -266,6 +266,21 @@ describe("EMMI live context guards", () => {
     expect(session.sendClientContent.mock.calls[0][0].turns).toContain("TRUSTED LIVE CONTEXT UPDATE");
   });
 
+  it("uses Gemini 3.1 realtime text for a context-bound conversational turn", () => {
+    const session = { sendRealtimeInput: vi.fn(), sendClientContent: vi.fn() };
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }) });
+    client.session = session;
+    client.state = "LISTENING";
+    client.setActiveContextVersion(2);
+    client.sendContextUpdate({ screen: "DECISION_MAKER" }, { label: "APP SCREEN UPDATE" });
+
+    expect(client.sendText("Who is completing this?", { contextVersion: 2 })).toBe(true);
+    expect(session.sendRealtimeInput).toHaveBeenCalledWith({ text: expect.stringContaining("Who is completing this?") });
+    expect(session.sendRealtimeInput.mock.calls[0][0].text).toContain("TRUSTED LIVE CONTEXT UPDATE");
+    expect(session.sendClientContent).not.toHaveBeenCalled();
+    expect(client.pendingContextUpdate).toBeNull();
+  });
+
   it("queues the latest screen narration while the live connection is opening", () => {
     const telemetry = [];
     const client = new EmmiLiveClient({
