@@ -1473,6 +1473,11 @@ function ensureEmmiRuntime() {
     },
     onTranscript: (role, text, _final, metadata = {}) => {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
+      // A low-confidence ASR fragment is evidence that EMMI must ask again, not a patient turn.
+      // Keeping it out of both the visible thread and conversation memory prevents ambient speech
+      // or clipped barge-ins from becoming medical intent. The live client records only the
+      // reliability reason in voice telemetry and delivers the safe clarification separately.
+      if (role === "user" && metadata.transcriptReliability === "CLARIFICATION_REQUIRED") return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       // Screen narration already has a dedicated transcript in Voice options. Do not also append
       // provider-generated narration to chat: that was the source of repeated, stale bubbles from

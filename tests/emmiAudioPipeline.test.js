@@ -582,7 +582,7 @@ describe("EMMI audio pipeline", () => {
     }));
   });
 
-  it("does not treat a low-information interruption fragment as the patient's request", async () => {
+  it("marks a low-information interruption fragment so the UI cannot treat it as patient intent", async () => {
     const transcripts = [];
     const telemetry = [];
     const client = new EmmiLiveClient({
