@@ -431,7 +431,7 @@ export class EmmiLiveClient {
     if (audibleOutputActive) {
       this.micPreroll.push(samples.slice());
       if (this.micPreroll.length > this.maxMicPrerollFrames) this.micPreroll.shift();
-      // AEC is strong on phones but not perfect on every speaker/browser combination. Two strong
+      // AEC is strong on phones but not perfect on every speaker/browser combination. Sustained
       // frames begin a short echo probe: duck EMMI locally, then require speech to continue while
       // her output is inaudible. Echo disappears; a real patient keeps talking.
       if (!this.echoProbeActive) {
@@ -451,7 +451,9 @@ export class EmmiLiveClient {
         this.clearEchoProbeState();
         return;
       }
-      if (this.echoProbeFrames >= 2) {
+      // Three post-duck frames span roughly 64 ms at 48 kHz, long enough for room echo to decay
+      // while adding only one frame of latency to a genuine spoken interruption.
+      if (this.echoProbeFrames >= 3) {
         this.restoreOutputAfterEchoProbe();
         this.bargeIn.reset();
       }

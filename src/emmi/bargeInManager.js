@@ -10,7 +10,7 @@ export class EmmiBargeInManager {
     onSpeechEnd = () => {},
     onTelemetry = () => {},
     minimumStartRms = 0.025,
-    startFrames = 2,
+    startFrames = 3,
     minimumOutputStartRms = 0.045,
     outputStartFrames = 3,
     silenceDurationMs = 750

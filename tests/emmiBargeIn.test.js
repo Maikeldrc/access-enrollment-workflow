@@ -20,9 +20,10 @@ describe("EMMI local barge-in detector", () => {
     const detector = new EmmiBargeInManager({ onSpeechEnd: ends, silenceDurationMs: 800 });
     detector.observeFrame({ rms: 0.05, peak: 0.12, now: 0 });
     detector.observeFrame({ rms: 0.05, peak: 0.12, now: 100 });
+    detector.observeFrame({ rms: 0.05, peak: 0.12, now: 150 });
     expect(detector.observeFrame({ rms: 0.004, peak: 0.01, now: 850 })).toBe("SPEECH");
     expect(ends).not.toHaveBeenCalled();
-    expect(detector.observeFrame({ rms: 0.004, peak: 0.01, now: 901 })).toBe("SPEECH_ENDED");
+    expect(detector.observeFrame({ rms: 0.004, peak: 0.01, now: 951 })).toBe("SPEECH_ENDED");
     expect(ends).toHaveBeenCalledOnce();
   });
 
