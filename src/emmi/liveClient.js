@@ -338,6 +338,20 @@ export class EmmiLiveClient {
     this.muted = true;
     return this.connect();
   }
+  isConnectionReady() {
+    return Boolean(this.session);
+  }
+  discardPendingConnectionTurn(screenId = "") {
+    if (!this.pendingConnectionTurn) return false;
+    if (screenId && this.pendingConnectionTurn.metadata?.screenId !== screenId) return false;
+    this.pendingConnectionTurn = null;
+    return true;
+  }
+  async waitForConnection() {
+    if (this.session) return true;
+    if (this.connectionPromise) await this.connectionPromise.catch(() => false);
+    return Boolean(this.session);
+  }
   connect(initialText = "", metadata = {}) {
     if (this.session) {
       if (initialText) this.sendText(initialText, metadata);

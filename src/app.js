@@ -6613,7 +6613,7 @@ function render() {
     // Establish only the authenticated Live channel while the invitation loads. It is muted:
     // there is no microphone request, no capture and no speech until the patient explicitly
     // chooses Guide by voice. This removes the variable socket handshake from that later tap.
-    if (!emmiPreconnectStarted && emmiVoiceIsSupported(languageCode())) {
+    if (canonicalInvitation && !emmiPreconnectStarted && emmiVoiceIsSupported(languageCode())) {
       emmiPreconnectStarted = true;
       setTimeout(() => ensureEmmiRuntime().live.preconnect().catch(() => {}), 0);
     }
@@ -6629,7 +6629,7 @@ function render() {
   // Loading the SDK and one short-lived, single-use token does not activate voice or request the
   // microphone. It removes those network waits from the patient's tap, so an immediate move to
   // the next screen can start its narration as soon as the live socket opens.
-  if (state.screen === "INVITATION" && !state.emmiVoiceGuidance && emmiVoiceIsSupported(languageCode()) && emmiPrewarmLocale !== languageCode()) {
+  if (canonicalInvitation && state.screen === "INVITATION" && !state.emmiVoiceGuidance && emmiVoiceIsSupported(languageCode()) && emmiPrewarmLocale !== languageCode()) {
     emmiPrewarmLocale = languageCode();
     setTimeout(() => ensureEmmiRuntime().live.prewarm(languageCode()), 0);
   }
@@ -6957,6 +6957,20 @@ async function finalizeAccessBpBaseline({ navigate = true } = {}) {
 
 async function advance() {
   state.error = "";
+  // If the patient enables voice and immediately presses Start, keep the connection wait on the
+  // invitation instead of landing on a silent second screen. Once the channel is ready, discard
+  // the superseded welcome so the destination guidance is the very first provider turn.
+  if (state.screen === "INVITATION" && state.emmiVoiceGuidance && emmiLive && !emmiLive.isConnectionReady()) {
+    emmiLive.discardPendingConnectionTurn("INVITATION");
+    const startButton = document.querySelector('[data-action="next"]');
+    if (startButton) {
+      startButton.disabled = true;
+      startButton.setAttribute("aria-busy", "true");
+      startButton.textContent = L("Preparing EMMI…", "Preparando a EMMI…", "EMMI ap prepare…");
+    }
+    await emmiLive.waitForConnection();
+    if (state.screen !== "INVITATION") return;
+  }
   // "Start your care journey" is an invitation to join. A patient who has already joined and lands
   // back here — by reload, by a shared link, by Back — was being walked into "Who is completing
   // this?", asked to enrol a second time in a programme they are already in. They resume instead:

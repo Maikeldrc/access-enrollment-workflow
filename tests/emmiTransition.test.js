@@ -359,6 +359,23 @@ describe("EMMI live context guards", () => {
     await expect(Promise.all([warm, activation])).resolves.toEqual([true, true]);
   });
 
+  it("waits for an opening connection and discards only the superseded screen turn", async () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    const opening = deferred();
+    client.connectionPromise = opening.promise;
+    client.pendingConnectionTurn = { text: "Welcome", metadata: { screenId: "INVITATION" } };
+
+    expect(client.discardPendingConnectionTurn("DECISION_MAKER")).toBe(false);
+    expect(client.discardPendingConnectionTurn("INVITATION")).toBe(true);
+    expect(client.pendingConnectionTurn).toBeNull();
+
+    const ready = client.waitForConnection();
+    client.session = { sendClientContent: vi.fn() };
+    opening.resolve(true);
+    await expect(ready).resolves.toBe(true);
+    expect(client.isConnectionReady()).toBe(true);
+  });
+
   it("does not queue narration while voice is disconnected", () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);
