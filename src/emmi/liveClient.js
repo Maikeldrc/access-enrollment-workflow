@@ -814,9 +814,10 @@ export class EmmiLiveClient {
           return;
         }
         // Gemini Live occasionally acknowledges an automatic guidance request with no PCM at
-        // all. Treat that as a silent turn and retry immediately; waiting for a watchdog cannot
-        // help because, from the provider's perspective, this turn already finished.
-        if (!completed.firstAudioReceivedAt && this.retrySilentGuidance(completed, "empty_provider_turn")) return;
+        // all. A second prompt on that same socket can be acknowledged empty as well, especially
+        // just after a context handoff. Restart once on a clean session and make the destination
+        // its first turn; waiting for a watchdog cannot help because this turn already finished.
+        if (!completed.firstAudioReceivedAt && this.restartSilentGuidance(completed, "empty_provider_turn")) return;
         this.finishTurnIfDrained(completed.generationId);
       } else if (!this.awaitingPatientResponse && this.state !== "CONNECTING" && !this.pendingConnectionTurn) {
         // Setup acknowledgements can include turnComplete before the SDK has exposed the live

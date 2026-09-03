@@ -284,7 +284,7 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_MUTED_INPUT_TRANSCRIPT_IGNORED");
   });
 
-  it("retries once when the provider completes screen guidance without sending audio", async () => {
+  it("restarts once when the provider completes screen guidance without sending audio", async () => {
     const completed = [];
     const telemetry = [];
     const client = new EmmiLiveClient({
@@ -292,9 +292,16 @@ describe("EMMI audio pipeline", () => {
       onTurnComplete: turn => completed.push(turn),
       onVoiceTelemetry: type => telemetry.push(type)
     });
-    client.session = { sendClientContent: vi.fn() };
+    const firstSession = { sendClientContent: vi.fn(), close: vi.fn() };
+    client.session = firstSession;
     client.state = "LISTENING";
     client.setActiveContextVersion(2);
+    client.connect = vi.fn((text, metadata) => {
+      client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+      client.state = "CONNECTING";
+      client.sendText(text, metadata);
+      return Promise.resolve(true);
+    });
     client.sendText("Explain the first form screen", {
       id: "decision-guide",
       narrationId: "decision-narration",
@@ -306,7 +313,9 @@ describe("EMMI audio pipeline", () => {
 
     await client.handleMessage({ serverContent: { turnComplete: true } });
 
-    expect(client.session.sendClientContent).toHaveBeenCalledTimes(2);
+    expect(firstSession.close).toHaveBeenCalledOnce();
+    expect(client.connect).toHaveBeenCalledOnce();
+    expect(client.session.sendClientContent).toHaveBeenCalledTimes(1);
     expect(client.activeTurn).toMatchObject({
       id: "decision-guide:retry",
       screenId: "DECISION_MAKER",
@@ -317,7 +326,7 @@ describe("EMMI audio pipeline", () => {
 
     await client.handleMessage({ serverContent: { turnComplete: true } });
 
-    expect(client.session.sendClientContent).toHaveBeenCalledTimes(2);
+    expect(client.session.sendClientContent).toHaveBeenCalledTimes(1);
     expect(client.activeTurn).toBeNull();
     expect(completed).toHaveLength(1);
   });
