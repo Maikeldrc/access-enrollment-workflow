@@ -156,6 +156,7 @@ describe("EMMI live context guards", () => {
       onState: state => states.push(state)
     });
     client.state = "EMMI_THINKING";
+    client.session = {};
 
     expect(client.completeAudioCaptureStartup()).toBe(true);
     expect(client.state).toBe("EMMI_THINKING");
@@ -169,12 +170,22 @@ describe("EMMI live context guards", () => {
     vi.useFakeTimers();
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     client.state = "CONNECTING";
+    client.session = {};
 
     expect(client.completeAudioCaptureStartup()).toBe(true);
     expect(client.state).toBe("LISTENING");
 
     client.disconnect("test_complete");
     vi.useRealTimers();
+  });
+
+  it("keeps showing Connecting when audio is ready before the SDK assigns the session", () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    client.state = "CONNECTING";
+    client.session = null;
+
+    expect(client.completeAudioCaptureStartup()).toBe(false);
+    expect(client.state).toBe("CONNECTING");
   });
 
   it("normalizes provider and permission failures into stable patient-safe states", () => {

@@ -80,6 +80,7 @@ export class EmmiLiveClient {
     this.session = null;
     this.stream = null;
     this.inputContext = null;
+    this.audioCaptureReady = false;
     this.outputContext = null;
     this.micNode = null;
     this.inputSource = null;
@@ -153,7 +154,7 @@ export class EmmiLiveClient {
     // THINKING (or audio may already be SPEAKING). Never overwrite that active provider turn with
     // LISTENING: doing so made rapid Home -> first-form navigation look and behave as if EMMI were
     // waiting for the patient instead of delivering the new screen guidance.
-    if (["DISCONNECTED", "ERROR"].includes(this.state)) return false;
+    if (["DISCONNECTED", "ERROR"].includes(this.state) || !this.session) return false;
     if (this.state === "CONNECTING") this.setState("LISTENING", detail);
     this.startTimers();
     return true;
@@ -288,6 +289,7 @@ export class EmmiLiveClient {
     const canonicalVoice = this.voiceIdentity.resolve(context.locale, null, { screenId: context.currentScreen, connectionId });
     if (!canonicalVoice.supported) throw this.fail("VOICE_UNAVAILABLE_FOR_LOCALE");
     this.prepareAudioPlayback();
+    this.audioCaptureReady = false;
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("VOICE_PERMISSION_DENIED");
     this.setState("CONNECTING");
@@ -340,10 +342,12 @@ export class EmmiLiveClient {
             this.intentionalClose = false;
             clearTimeout(this.stabilityTimer); this.stabilityTimer = setTimeout(() => { this.reconnectAttempts = 0; }, 10000);
             if (this.muted) {
+              this.audioCaptureReady = true;
               this.completeAudioCaptureStartup("muted");
               return;
             }
             this.startAudioCapture().then(() => {
+              this.audioCaptureReady = true;
               this.completeAudioCaptureStartup();
             }).catch(() => {
               this.emitVoiceTelemetry("EMMI_AUDIO_PIPELINE_ERROR", { pipelineVersion: EMMI_AUDIO_PIPELINE_VERSION, reason: "worklet_unavailable" });
@@ -360,6 +364,7 @@ export class EmmiLiveClient {
           }
         }
       });
+      if (this.audioCaptureReady) this.completeAudioCaptureStartup(this.muted ? "muted" : "");
       // connect() resolves once the server has acknowledged setup. Sending the welcome from
       // onopen instead sends it before the handshake finishes and the turn is dropped, which is
       // why the first tap connected but stayed silent.
@@ -1056,7 +1061,7 @@ ${body}`,
       this.outputContext = null;
       this.outputGain = null;
     }
-    this.inputContext = null; this.micPreroll.length = 0; this.clearEchoProbeState(); this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
+    this.inputContext = null; this.audioCaptureReady = false; this.micPreroll.length = 0; this.clearEchoProbeState(); this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
     this.setState("DISCONNECTED", reason);
   }
   fail(code) {
