@@ -57,10 +57,10 @@ describe("deterministic guardrails are reachable again", () => {
     ["What if I stopped taking one of these medicines?", "MEDICATIONS_REVIEW", /Something changed.*no longer taking it/i],
     ["What if a medication I take is missing?", "MEDICATIONS_REVIEW", /Add another medication/i],
     ["What should I do if I am not sure?", "MEDICATIONS_REVIEW", /I’m not sure if anything is missing/i],
-    ["Are there any steps left for me?", "ACCESS_ONBOARDING_COMPLETE", /There are no more steps.*safely close/i],
-    ["What happens with my monitor now?", "ACCESS_ONBOARDING_COMPLETE", /being prepared for shipment.*no confirmed shipping or delivery date/i]
+    ["Are there any steps left for me?", "ONBOARDING_COMPLETE", /There are no more steps.*safely close/i],
+    ["What happens with my monitor now?", "ONBOARDING_COMPLETE", /being prepared for shipment.*no confirmed shipping or delivery date/i]
   ])("answers screen-grounded patient question %s", async (question, currentScreen, expected) => {
-    const { orchestrator, executeTool } = harness({ currentScreen, contextExtras: { deviceFulfillmentStatus: currentScreen === "ACCESS_BP_SHIPPING_ADDRESS" ? "NOT_REQUESTED" : "REQUESTED", enrollmentComplete: ["ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW", "ACCESS_ONBOARDING_COMPLETE"].includes(currentScreen) } });
+    const { orchestrator, executeTool } = harness({ currentScreen, contextExtras: { deviceFulfillmentStatus: currentScreen === "ACCESS_BP_SHIPPING_ADDRESS" ? "NOT_REQUESTED" : "REQUESTED", enrollmentComplete: ["ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW", "ACCESS_ONBOARDING_COMPLETE", "ONBOARDING_COMPLETE"].includes(currentScreen) } });
     const answer = await orchestrator.answer(question);
     expect(answer.text).toMatch(expected);
     expect(answer.trace.responseMode).toBe("DETERMINISTIC_GUARDRAIL");

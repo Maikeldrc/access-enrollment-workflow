@@ -130,7 +130,7 @@ const RULES = [
   },
   {
     intent: "SHIPPING_STATUS_LIMIT",
-    screens: ["ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_ONBOARDING_COMPLETE"],
+    screens: ["ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_ONBOARDING_COMPLETE", "ONBOARDING_COMPLETE"],
     match: /(how long|when).*(ship|shipping|arrive|deliver)|tracking number|cu[aá]nto.*(env[ií]o|llegar|entrega)|n[uú]mero de seguimiento|kil[eè].*(voye|rive|livre)|nimewo swivi/i,
     answer: (locale, context) => context.deviceFulfillmentStatus === "REQUESTED"
       ? pick(locale, {
@@ -192,7 +192,7 @@ const RULES = [
   },
   {
     intent: "SETUP_COMPLETE",
-    screens: ["ACCESS_ONBOARDING_COMPLETE"],
+    screens: ["ACCESS_ONBOARDING_COMPLETE", "ONBOARDING_COMPLETE"],
     match: /(any.*steps left|what.*left|what happens.*monitor|monitor.*now|setup complete|safely close)|queda.*paso|qu[eé].*monitor.*ahora|configuraci[oó]n.*completa|cerrar.*ventana|etap.*rete|kisa.*monit[eè].*kounye a|f[eè]men fen[eè]t/i,
     answer: (locale, context, text) => /(monitor|monit[eè])/i.test(text)
       ? pick(locale, {

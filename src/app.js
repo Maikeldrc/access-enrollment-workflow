@@ -7569,7 +7569,7 @@ function applyEmmiLanguage(locale) {
   refreshAssistantLayer();
 }
 
-const ACCESS_STATUS_QUESTION = /\b(?:what (?:exactly )?(?:do i still need|is left|remains|comes next)|what(?:'s| is) (?:left|pending|next)|am i (?:completely )?done|anything (?:left|pending)|qu[eé] (?:me )?falta|qu[eé] (?:queda|sigue|est[aá] pendiente)|ya (?:termin[eé]|acab[eé])|kisa (?:ki )?rete|mwen fini)\b/i;
+const ACCESS_STATUS_QUESTION = /\b(?:what (?:exactly )?(?:do i still need|is left|remains|comes next)|what(?:'s| is) (?:left|pending|next)|am i (?:completely )?done|(?:any|anything|any steps?) (?:left|pending)|are there any steps left|qu[eé] (?:me )?falta|qu[eé] (?:queda|sigue|est[aá] pendiente)|ya (?:termin[eé]|acab[eé])|kisa (?:ki )?rete|mwen fini)\b/i;
 
 function accessSetupStatusAnswer() {
   const deviceComplete = state.deviceFulfillmentStatus === "REQUESTED" || state.bpDeviceFulfillmentStatus === "REQUESTED";
