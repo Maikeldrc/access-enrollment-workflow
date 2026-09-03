@@ -234,13 +234,18 @@ export class EmmiLiveClient {
     });
   }
   restartSilentGuidance(turn, reason = "start_timeout") {
-    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || turn.guidanceRetryCount || !turn.retryText) return false;
+    const retryCount = Number(turn?.guidanceRetryCount || 0);
+    // Two clean-session recoveries cover the rare case where Gemini acknowledges consecutive
+    // automatic guidance turns without PCM. Keep the bound strict so a provider outage can never
+    // create an endless reconnect loop.
+    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || retryCount >= 2 || !turn.retryText) return false;
     const generationId = turn.generationId;
+    const nextRetryCount = retryCount + 1;
     const metadata = {
-      id: `${turn.id}:retry`, narrationId: turn.narrationId, screenId: turn.screenId,
+      id: retryCount ? `${turn.id}:retry-${nextRetryCount}` : `${turn.id}:retry`, narrationId: turn.narrationId, screenId: turn.screenId,
       contextVersion: turn.contextVersion, semanticSegmentId: turn.semanticSegmentId,
       semanticText: turn.semanticText, priority: turn.priority,
-      contextIndependent: turn.contextIndependent, guidanceRetryCount: 1
+      contextIndependent: turn.contextIndependent, guidanceRetryCount: nextRetryCount
     };
     this.interruptedGenerationIds.add(generationId);
     this.sessionResumptionHandle = "";

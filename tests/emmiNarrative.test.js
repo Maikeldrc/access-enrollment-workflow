@@ -214,6 +214,13 @@ describe("EMMI on the ACCESS care activation screens", () => {
     expect(confirmed).toMatch(/Set up my care.*I’ll do this later/i);
   });
 
+  it("ends identity and an eligible ACCESS result with the next visible action", () => {
+    expect(buildNarration({ screen: "IDENTITY_VERIFICATION", locale: "EN" }).narrationText)
+      .toMatch(/date of birth and ZIP code.*choose Continue/i);
+    expect(buildNarration({ screen: "ACCESS_ELIGIBILITY_RESULT", locale: "EN", runtime: { program: "ACCESS" } }).narrationText)
+      .toMatch(/If this screen says you can continue, choose Continue/i);
+  });
+
   // The health check screens are gone; a narration for them would be describing nothing.
   it("has no objective left for the removed health check screens", () => {
     expect(buildNarration({ screen: "ACCESS_BASELINE", locale: "EN", runtime: {} })).toBeNull();

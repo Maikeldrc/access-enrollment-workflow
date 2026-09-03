@@ -111,9 +111,9 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Verifikasyon sa a pa chanje benefis Medicare ou epi li pa enskri w nan anyen poukont li."
     ),
     action: T(
-      "Enter your date of birth and ZIP code.",
-      "Ingrese su fecha de nacimiento y su código postal.",
-      "Antre dat nesans ou ak kòd postal ou."
+      "Enter your date of birth and ZIP code, then choose Continue.",
+      "Ingrese su fecha de nacimiento y su código postal, y luego elija Continuar.",
+      "Antre dat nesans ou ak kòd postal ou, epi chwazi Kontinye."
     )
   }),
 
@@ -197,9 +197,9 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Enskripsyon ou poko fini, epi benefis Medicare ou pa chanje nan tou de ka yo."
     ),
     action: T(
-      "I will guide you through the steps that come next.",
-      "Le guiaré por los pasos que siguen.",
-      "M ap gide w nan etap ki vin apre yo."
+      "Review the result. If this screen says you can continue, choose Continue to review the information you need before deciding whether to enroll.",
+      "Revise el resultado. Si esta pantalla indica que puede continuar, elija Continuar para revisar la información que necesita antes de decidir si desea inscribirse.",
+      "Revize rezilta a. Si ekran sa a di ou ka kontinye, chwazi Kontinye pou revize enfòmasyon ou bezwen anvan ou deside si w ap enskri."
     )
   }),
 
