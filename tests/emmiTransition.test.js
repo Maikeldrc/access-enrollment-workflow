@@ -66,6 +66,20 @@ describe("EMMI semantic handoff", () => {
     expect(sent.map(item => item.text)).toEqual(["About A.", "FORWARD to C."]);
   });
 
+  it("queues the destination immediately when navigation beats the opening voice turn", async () => {
+    const { manager, sent, handoffs, setActiveTurn } = harness();
+    await manager.updateContext({ screenId: "INVITATION", stageId: "INVITATION", locale: "EN" });
+    manager.speak({ narrationText: "Welcome.", segments: ["Welcome."] }, { connect: true });
+    // The transport is connecting, but no provider turn exists yet.
+    setActiveTurn(null);
+
+    const move = manager.updateContext({ screenId: "DECISION_MAKER", stageId: "WHO", locale: "EN" });
+
+    expect(handoffs).toHaveLength(0);
+    expect(sent.map(item => item.text)).toEqual(["Welcome.", "FORWARD to DECISION_MAKER."]);
+    await move;
+  });
+
   it("preserves a context-independent patient answer and all critical safety speech", async () => {
     const { manager, handoffs, setActiveTurn } = harness();
     await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });
@@ -104,11 +118,10 @@ describe("EMMI semantic handoff", () => {
   });
 
   it("keeps the enrollment-complete welcome in one cohesive transition turn", async () => {
-    const { manager, sent, handoffs } = harness();
+    const { manager, sent } = harness();
     manager.getTransitionNarration = () => ({ narrationText: "Congratulations. You did it.", segments: ["Congratulations. You did it."] });
     await manager.updateContext({ screenId: "ENROLLMENT_PROCESSING", stageId: "ENROLLMENT", locale: "ES" });
     const transition = manager.updateContext({ screenId: "ENROLLMENT_CONFIRMED", stageId: "COMPLETE", locale: "ES" });
-    handoffs[0].resolve({ reason: "idle", durationMs: 0 });
     await transition;
 
     expect(sent.map(item => item.text)).toEqual(["Congratulations. You did it."]);

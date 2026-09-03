@@ -107,14 +107,20 @@ export class EmmiTransitionManager {
     const active = this.transport.currentTurnMeta?.() || null;
     const preserve = active?.priority === "CRITICAL_SAFETY" || (active?.priority === "PATIENT_RESPONSE" && active.contextIndependent);
     const handoffStartedAt = Date.now();
-    const boundary = this.transport.beginGracefulHandoff?.({
-      nextContextVersion: version,
-      allowedTurnId: active?.id || "",
-      preserve,
-      maxGracefulHandoffMs: preserve ? null : this.maxGracefulHandoffMs
-    }) || Promise.resolve({ reason: "idle", durationMs: 0 });
-
-    const [handoff] = await Promise.all([boundary, delay(this.setTimer, this.settleMs)]);
+    // When the patient advances before the opening turn exists, there is nothing audible to hand
+    // off. Waiting the normal settle window here lets the socket finish and send the stale welcome
+    // first; the destination turn then collides with it and the UI can remain in LISTENING. Queue
+    // the destination synchronously so it replaces the welcome before connection setup completes.
+    let handoff = { reason: "idle", durationMs: 0 };
+    if (active) {
+      const boundary = this.transport.beginGracefulHandoff?.({
+        nextContextVersion: version,
+        allowedTurnId: active.id || "",
+        preserve,
+        maxGracefulHandoffMs: preserve ? null : this.maxGracefulHandoffMs
+      }) || Promise.resolve({ reason: "idle", durationMs: 0 });
+      [handoff] = await Promise.all([boundary, delay(this.setTimer, this.settleMs)]);
+    }
     if (token !== this.pendingTransitionToken || version !== this.contextVersion || !this.enabled || this.paused) return true;
     if (handoff?.forcedReconnect) this.connectNext = true;
     if (transitionMeta.localeChanged) {
