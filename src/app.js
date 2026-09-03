@@ -247,6 +247,7 @@ let emmiGuidanceTimer = null;
 let emmiWelcomeTimer = null;
 let emmiVoiceActivationPromise = null;
 let emmiDestinationRevealPending = false;
+let emmiDestinationRevealTimer = null;
 let emmiPrewarmLocale = "";
 let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
@@ -1487,13 +1488,13 @@ function ensureEmmiRuntime() {
       // patient speech. Keep the UI state synchronized immediately: otherwise opening Ask EMMI
       // while narration is still playing sees a stale `false` and never reacquires the mic.
       state.assistantVoiceMuted = Boolean(emmiLive?.muted);
-      if (emmiDestinationRevealPending && ["EMMI_SPEAKING", "ERROR", "DISCONNECTED"].includes(voiceState)) {
-        emmiDestinationRevealPending = false;
-        const content = document.querySelector("#screen-content");
-        content?.removeAttribute("inert");
-        content?.removeAttribute("aria-hidden");
-        document.querySelector(".emmi-destination-wait")?.remove();
-        requestAnimationFrame(() => content?.querySelector("h1")?.focus({ preventScroll: true }));
+      if (emmiDestinationRevealPending && voiceState === "EMMI_SPEAKING" && !emmiDestinationRevealTimer) {
+        // The first PCM packet can be followed by a short provider buffer gap. Reveal after audio
+        // has begun and had a moment to establish, so the second UI never appears into what feels
+        // like silence even if the visible state briefly returns to Thinking.
+        emmiDestinationRevealTimer = setTimeout(revealEmmiDestination, 1000);
+      } else if (emmiDestinationRevealPending && ["ERROR", "DISCONNECTED"].includes(voiceState)) {
+        revealEmmiDestination();
       }
       refreshVoiceGuidanceControls();
     },
@@ -6661,6 +6662,18 @@ function render() {
   finishRender(scrollSnapshot, errorAppeared);
 }
 
+function revealEmmiDestination() {
+  clearTimeout(emmiDestinationRevealTimer);
+  emmiDestinationRevealTimer = null;
+  if (!emmiDestinationRevealPending) return;
+  emmiDestinationRevealPending = false;
+  const content = document.querySelector("#screen-content");
+  content?.removeAttribute("inert");
+  content?.removeAttribute("aria-hidden");
+  document.querySelector(".emmi-destination-wait")?.remove();
+  requestAnimationFrame(() => content?.querySelector("h1")?.focus({ preventScroll: true }));
+}
+
 function bindPrototypeSetup() {
   const form = document.querySelector("#prototype-form");
   document.querySelector(".condition-multiselect")?.addEventListener("toggle", event => { conditionMenuOpen = event.target.open; });
@@ -7449,6 +7462,8 @@ async function advance() {
   const previousScreen = state.screen;
   state.screen = nextScreen(state);
   if (previousScreen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused && emmiLive?.isConnectionReady()) {
+    clearTimeout(emmiDestinationRevealTimer);
+    emmiDestinationRevealTimer = null;
     emmiDestinationRevealPending = true;
   }
   // A patient who pressed "Send invitation" and was taken through identity first has not seen it
