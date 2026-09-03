@@ -33,12 +33,29 @@ export function sanitizeEmmiTranscript(value) {
 
 const TOOL_SYNTAX_PREFIX = /^[A-Za-z][A-Za-z0-9_]*\s*\(\s*\{/;
 const PATIENT_FACING_RECOVERY = /\b(?:I apologize|I['’]m sorry|Sorry|Please|Yes|No|ACCESS)\b/i;
+const INLINE_TOOL_CALL = /\bcall:[A-Za-z][A-Za-z0-9_]*\s*\{\s*(?:[A-Za-z][A-Za-z0-9_]*\s*:\s*[^,\s}]+\s*,?\s*)+\}?/gi;
+
+function removeRepeatedSentenceBlock(value) {
+  const sentences = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(part => part.trim()).filter(Boolean) || [];
+  for (let size = 1; size <= Math.floor(sentences.length / 2); size += 1) {
+    const first = sentences.slice(0, size).join(" ");
+    const second = sentences.slice(size, size * 2).join(" ");
+    if (first === second) return sentences.slice(0, size).join(" ");
+  }
+  return value;
+}
 
 export function sanitizeEmmiAssistantTranscript(value) {
-  const text = sanitizeEmmiTranscript(value);
-  if (!TOOL_SYNTAX_PREFIX.test(text)) return text;
-  const recovery = text.match(PATIENT_FACING_RECOVERY);
-  return recovery ? text.slice(recovery.index).trim() : "";
+  let text = sanitizeEmmiTranscript(value);
+  if (TOOL_SYNTAX_PREFIX.test(text)) {
+    const recovery = text.match(PATIENT_FACING_RECOVERY);
+    text = recovery ? text.slice(recovery.index).trim() : "";
+  }
+  // Live output transcription can occasionally verbalize an inline function-call envelope even
+  // though the actual tool call travels on its own channel. Remove both complete and provider-
+  // truncated `call:name{key:value,...` forms before they can reach the patient-visible history.
+  text = text.replace(INLINE_TOOL_CALL, " ").replace(/\s+/g, " ").trim();
+  return removeRepeatedSentenceBlock(text);
 }
 
 const normalizedLocale = locale => {

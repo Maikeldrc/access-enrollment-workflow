@@ -73,5 +73,12 @@ describe("EMMI transcript boundary", () => {
       .toBe("I apologize, I couldn't hear you.");
     expect(sanitizeEmmiAssistantTranscript("startRefillReview({'medicationId':'x'})")).toBe("");
     expect(sanitizeEmmiAssistantTranscript("ACCESS gives you support between visits.")).toBe("ACCESS gives you support between visits.");
+    expect(sanitizeEmmiAssistantTranscript(
+      "Based on your verified coverage, your expected payment for ACCESS is $0 per month. " +
+      "Would you like to call:saveEnrollmentProgress{currentScreen:ACCESS_PRE_ELIGIBILITY_NOTICE,patientId:DEMO-P0 continue the enrollment process? " +
+      "Based on your verified coverage, your expected payment for ACCESS is $0 per month. Would you like to continue the enrollment process?"
+    )).toBe(
+      "Based on your verified coverage, your expected payment for ACCESS is $0 per month. Would you like to continue the enrollment process?"
+    );
   });
 });
