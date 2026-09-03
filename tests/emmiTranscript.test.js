@@ -38,6 +38,14 @@ describe("EMMI transcript boundary", () => {
     expect(assessEmmiTranscriptReliability("Please explain ACCESS in one short sentence.", { locale: "en" }).reliable).toBe(true);
   });
 
+  it("rejects short phonetically corrupted fragments without rejecting structured doses", () => {
+    for (const phrase of ["Chinese small lantern", "13 game and access service"]) {
+      expect(assessEmmiTranscriptReliability(phrase, { locale: "en" }), phrase)
+        .toMatchObject({ reliable: false, reason: "low_locale_evidence" });
+    }
+    expect(assessEmmiTranscriptReliability("Lisinopril twenty milligrams daily", { locale: "en" }).reliable).toBe(true);
+  });
+
   it("rejects tiny nonsensical barge-in fragments but preserves short valid turns", () => {
     expect(assessEmmiTranscriptReliability("ball", { locale: "en", afterInterruption: true }))
       .toMatchObject({ reliable: false, reason: "low_information_interruption" });

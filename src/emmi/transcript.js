@@ -69,12 +69,14 @@ export function assessEmmiTranscriptReliability(value, { locale = "en", afterInt
   // not appear in the conversation even when no explicit interruption event arrived first.
   const unsupportedScript = /[\u0370-\u052f\u0590-\u08ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/u.test(text);
   const unexpectedLanguage = Boolean(detectedLanguage && detectedLanguage !== expectedLanguage);
-  // A long transcript normally carries enough function words for the conservative detector to
-  // identify its language. No language signal at all in ten or more words is characteristic of
-  // the multilingual ASR corruption reproduced in the live audit. Short names, drug names,
-  // readings and yes/no replies deliberately remain exempt.
+  // Three or more ordinary words normally carry enough structure for the conservative detector
+  // to identify one of EMMI's supported languages. No signal at all is characteristic of the
+  // phonetic fragments reproduced in live audio ("Chinese small lantern", "13 game and access
+  // service"). Structured medication doses remain valid even when drug names are unfamiliar.
   const wordCount = text.split(/\s+/).filter(Boolean).length;
-  const lowLocaleEvidence = wordCount >= 10 && !detectedLanguage;
+  const structuredClinicalPhrase = /\b(?:\d+(?:\.\d+)?\s*(?:mg|mcg|ml|units?|mmhg)|milligrams?|micrograms?|once|twice|daily|weekly)\b/i.test(text);
+  const clearRequestStructure = /\b(?:what|how|when|where|why|who|can|could|would|will|do|does|is|are|please\s+(?:explain|tell|help|show|repeat|stop|wait|call)|i\s+(?:need|want|have|am|would))\b/i.test(text);
+  const lowLocaleEvidence = wordCount >= 3 && !detectedLanguage && !structuredClinicalPhrase && !clearRequestStructure;
   // During speaker overlap, an ASR engine can collapse a full interruption to one tiny phonetic
   // fragment (for example, "Will my doctor…" becoming "ball"). Never let that fragment authorize
   // an answer. Common conversational and urgent one-word turns remain valid.

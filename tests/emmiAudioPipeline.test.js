@@ -611,4 +611,34 @@ describe("EMMI audio pipeline", () => {
       turnComplete: false
     }));
   });
+
+  it("suppresses answers and tool execution for an unreliable ordinary voice fragment", async () => {
+    const transcripts = [];
+    const executeTool = vi.fn();
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      executeTool,
+      onTranscript: (role, text) => transcripts.push({ role, text })
+    });
+    client.session = { sendClientContent: vi.fn(), sendToolResponse: vi.fn() };
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "Chinese small lantern" } } });
+    await client.handleMessage({ serverContent: { outputTranscription: { text: "Participation is voluntary." } } });
+    await client.handleMessage({ toolCall: { functionCalls: [{ id: "unsafe", name: "startRefillReview", args: { medicationId: "this program" } }] } });
+
+    expect(client.activeTurn.unreliableInput).toBe(true);
+    expect(transcripts).toEqual([expect.objectContaining({ role: "user", text: "Chinese small lantern" })]);
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(client.session.sendToolResponse).toHaveBeenCalledWith({
+      functionResponses: [expect.objectContaining({ response: { error: "unreliable_voice_input" } })]
+    });
+
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("Please say it again"),
+      turnComplete: true
+    }));
+    expect(client.activeTurn.priority).toBe("CRITICAL_SAFETY");
+  });
 });

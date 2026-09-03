@@ -597,6 +597,8 @@ export class EmmiLiveClient {
         }
         this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
         if (!assessment.reliable) {
+          this.activeTurn.unreliableInput = true;
+          this.activeTurn.clarificationInstruction = emmiAsrClarificationInstruction(assessment);
           this.emitVoiceTelemetry("EMMI_ASR_CLARIFICATION_REQUIRED", { reason: assessment.reason, expectedLanguage: assessment.expectedLanguage, detectedLanguage: assessment.detectedLanguage });
           // Append the guard to the audio turn already in flight. Marking this as another complete
           // client turn can produce a duplicate assistant response on some Live API versions.
@@ -611,7 +613,7 @@ export class EmmiLiveClient {
     }
     const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady);
     if (server?.outputTranscription?.text && acceptsOutputTranscript) {
-      const outputText = sanitizeEmmiAssistantTranscript(server.outputTranscription.text);
+      const outputText = this.activeTurn?.unreliableInput ? "" : sanitizeEmmiAssistantTranscript(server.outputTranscription.text);
       if (!outputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "assistant", generationId: this.activeAudioGenerationId });
       } else {
@@ -661,6 +663,23 @@ export class EmmiLiveClient {
       if (completed) {
         completed.providerTurnComplete = true;
         completed.providerTurnCompleteAt = performance.now();
+        if (completed.unreliableInput) {
+          this.interruptedGenerationIds.add(completed.generationId);
+          this.stopPlayback();
+          this.activeTurn = null;
+          this.activeAudioGenerationId = 0;
+          this.clearTurnWatchdog();
+          this.emitVoiceTelemetry("EMMI_UNRELIABLE_RESPONSE_SUPPRESSED", { generationId: completed.generationId });
+          this.sendText(completed.clarificationInstruction || emmiAsrClarificationInstruction({ expectedLanguage: this.getContext?.()?.locale }), {
+            id: `clarify_${Date.now().toString(36)}`,
+            screenId: this.getContext?.()?.currentScreen || "",
+            contextVersion: this.activeContextVersion,
+            priority: "CRITICAL_SAFETY",
+            contextIndependent: true,
+            semanticText: "Ask the patient to repeat an unreliable voice turn."
+          });
+          return;
+        }
         // Gemini Live occasionally acknowledges an automatic guidance request with no PCM at
         // all. Treat that as a silent turn and retry immediately; waiting for a watchdog cannot
         // help because, from the provider's perspective, this turn already finished.
@@ -677,7 +696,10 @@ export class EmmiLiveClient {
       this.setState("TOOL_RUNNING", calls[0].name);
       const responses = [];
       for (const call of calls) {
-        try { responses.push({ id: call.id, name: call.name, response: { result: await this.executeTool(call.name, call.args || {}) } }); }
+        try {
+          if (this.activeTurn?.unreliableInput) responses.push({ id: call.id, name: call.name, response: { error: "unreliable_voice_input" } });
+          else responses.push({ id: call.id, name: call.name, response: { result: await this.executeTool(call.name, call.args || {}) } });
+        }
         catch { responses.push({ id: call.id, name: call.name, response: { error: "tool_unavailable" } }); }
       }
       this.session?.sendToolResponse({ functionResponses: responses });
@@ -695,7 +717,7 @@ export class EmmiLiveClient {
     }
   }
   playAudio(encoded, metadata = this.activeTurn) {
-    if (!metadata || this.awaitingPatientResponse || this.interruptedGenerationIds.has(metadata.generationId) || metadata.generationId !== this.activeAudioGenerationId) {
+    if (!metadata || metadata.unreliableInput || this.awaitingPatientResponse || this.interruptedGenerationIds.has(metadata.generationId) || metadata.generationId !== this.activeAudioGenerationId) {
       this.discardedLateChunks += 1;
       this.emitVoiceTelemetry("EMMI_STALE_AUDIO_CHUNK_DISCARDED", { discardedChunkCount: this.discardedLateChunks });
       return false;
