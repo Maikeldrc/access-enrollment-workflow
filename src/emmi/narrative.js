@@ -292,6 +292,36 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     )
   }),
 
+  ACCESS_ENROLLMENT_CONFIRMED: objective({
+    summary: T(
+      "Congratulations — you’re enrolled in ACCESS.",
+      "Felicidades: ya está inscrito en ACCESS.",
+      "Felisitasyon — ou enskri nan ACCESS."
+    ),
+    tone: "celebratory",
+    length: "TRANSITION",
+    purpose: T(
+      "Congratulations, and welcome to your ACCESS care with ITERA. Your enrollment is complete.",
+      "¡Felicidades y bienvenido a su cuidado ACCESS con ITERA! Su inscripción está completa.",
+      "Felisitasyon, epi byenveni nan swen ACCESS ou avèk ITERA. Enskripsyon ou fini."
+    ),
+    benefit: T(
+      "The next setup will request your connected blood pressure monitor and confirm the medicines you take, so your care team has what it needs to support you.",
+      "La próxima configuración solicitará su monitor de presión arterial conectado y confirmará los medicamentos que toma, para que su equipo tenga lo necesario para apoyarle.",
+      "Pwochen konfigirasyon an ap mande monitè tansyon konekte ou epi konfime medikaman ou pran yo, pou ekip swen ou gen sa li bezwen pou sipòte w."
+    ),
+    reassurance: T(
+      "Your enrollment is already complete. You can do this setup now or return later, and your progress will be saved.",
+      "Su inscripción ya está completa. Puede hacer esta configuración ahora o volver después; su progreso quedará guardado.",
+      "Enskripsyon ou deja fini. Ou ka fè konfigirasyon sa a kounye a oswa retounen pita; pwogrè ou ap anrejistre."
+    ),
+    action: T(
+      "Choose ‘Set up my care’ to continue now, or choose ‘I’ll do this later’ if you want to stop here.",
+      "Elija ‘Configurar mi cuidado’ para continuar ahora, o ‘Lo haré más tarde’ si desea detenerse aquí.",
+      "Chwazi ‘Konfigire swen mwen’ pou kontinye kounye a, oswa ‘M ap fè sa pita’ si ou vle kanpe la."
+    )
+  }),
+
   CLINICAL_VERIFICATION: objective({
     summary: T(
       "Check the health information we have on file.",
@@ -891,19 +921,19 @@ const TRANSITIONS = Object.freeze({
     "Nou konprann. Paske w ap ranpli sa kòm reprezantan pèsonèl, nou bezwen kèk detay sou ou anvan nou konfime idantite pasyan an."
   ),
   "DECISION_MAKER>IDENTITY_VERIFICATION": T(
-    "Perfect. Now we will confirm the patient's identity. This only takes a moment and helps protect their information.",
-    "Perfecto. Ahora vamos a confirmar la identidad del paciente. Esto solo toma un momento y ayuda a proteger su información.",
-    "Trè byen. Kounye a nou pral konfime idantite pasyan an. Sa pran yon ti moman epi li ede pwoteje enfòmasyon li."
+    "Perfect. Now we will confirm the patient's identity. Enter the date of birth and ZIP code shown on the invitation, then choose Continue.",
+    "Perfecto. Ahora confirmaremos la identidad del paciente. Ingrese la fecha de nacimiento y el código postal de la invitación, y luego elija Continuar.",
+    "Trè byen. Kounye a nou pral konfime idantite pasyan an. Antre dat nesans ak kòd postal ki sou envitasyon an, epi chwazi Kontinye."
   ),
   "IDENTITY_VERIFICATION>CARE_RECOMMENDATION": T(
-    "All set. Now we will show you the support available between doctor visits and how it may help.",
-    "Listo. Ahora vamos a mostrarle el apoyo disponible entre visitas médicas y cómo puede ayudarle.",
-    "Nou fini. Kounye a nou pral montre w sipò ki disponib ant vizit kay doktè ak kijan li ka ede w."
+    "All set. This screen explains the support available between doctor visits. Review what your ACCESS care includes, then choose Continue.",
+    "Listo. Esta pantalla explica el apoyo disponible entre visitas médicas. Revise lo que incluye su cuidado ACCESS y luego elija Continuar.",
+    "Nou fini. Ekran sa a eksplike sipò ki disponib ant vizit kay doktè. Revize sa swen ACCESS ou gen ladan, epi chwazi Kontinye."
   ),
   "ACCESS_ELIGIBILITY_PROCESSING>ACCESS_ELIGIBILITY_RESULT": T(
-    "The eligibility check is complete. Let us review the confirmed result together.",
-    "La verificación de elegibilidad terminó. Revisemos juntos el resultado confirmado.",
-    "Verifikasyon kalifikasyon an fini. Ann revize rezilta ki konfime a ansanm."
+    "The eligibility check is complete. Review the confirmed result, then choose Continue to see the information you need before deciding whether to enroll.",
+    "La verificación de elegibilidad terminó. Revise el resultado confirmado y luego elija Continuar para ver la información que necesita antes de decidir si desea inscribirse.",
+    "Verifikasyon kalifikasyon an fini. Revize rezilta ki konfime a, epi chwazi Kontinye pou wè enfòmasyon ou bezwen anvan ou deside si w ap enskri."
   ),
   "DISCLOSURE>CONSENT_REVIEW": T(
     "You have reviewed the main points. Now you can see everything together, including any expected cost, before deciding whether to enroll.",
@@ -963,9 +993,9 @@ export function buildTransitionNarration({ previousScreen, currentScreen, locale
   let entry = navigationDirection === "BACK" ? BACK_BRIDGE : TRANSITIONS[`${previousScreen}>${currentScreen}`];
   if (previousScreen === "DECISION_MAKER" && currentScreen === "IDENTITY_VERIFICATION" && runtime.completionRole === "patient") {
     entry = T(
-      "Perfect. Now we will confirm your identity. This only takes a moment and helps protect your information.",
-      "Perfecto. Ahora vamos a confirmar su identidad. Esto solo toma un momento y nos ayuda a proteger su información.",
-      "Trè byen. Kounye a nou pral konfime idantite ou. Sa pran yon ti moman epi li ede pwoteje enfòmasyon ou."
+      "Perfect. Now we will confirm your identity. Enter your date of birth and ZIP code, then choose Continue. This helps protect your information.",
+      "Perfecto. Ahora confirmaremos su identidad. Ingrese su fecha de nacimiento y código postal, y luego elija Continuar. Esto ayuda a proteger su información.",
+      "Trè byen. Kounye a nou pral konfime idantite ou. Antre dat nesans ou ak kòd postal ou, epi chwazi Kontinye. Sa ede pwoteje enfòmasyon ou."
     );
   }
   if (previousScreen === "ENROLLMENT_PROCESSING" && currentScreen === "ENROLLMENT_CONFIRMED" && runtime.enrollmentStatus !== "COMPLETED") entry = null;
@@ -977,10 +1007,9 @@ export function buildTransitionNarration({ previousScreen, currentScreen, locale
       "Bon nouvèl, ou ka kontinye. Sa poko fini enskripsyon ou. Kounye a ou pral revize enfòmasyon enpòtan yo anvan ou deside si w vle patisipe."
     );
   }
-  if (!entry) {
-    const destination = NARRATIVE_OBJECTIVES[currentScreen];
-    entry = destination?.purpose || null;
-  }
+  // No bespoke bridge is better than a purpose-only bridge. Returning null tells the transition
+  // manager to narrate the destination's complete ORIENT → BENEFIT → REASSURE → ACTION objective,
+  // so a patient never arrives at a new screen hearing what it is but not what to do.
   if (!entry) return null;
   const narrationText = pick(entry, locale);
   return { narrationText, segments: spokenSegments([narrationText]), narrationPurpose: "TRANSITION" };

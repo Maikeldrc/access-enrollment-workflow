@@ -206,6 +206,14 @@ describe("EMMI on the ACCESS care activation screens", () => {
     expect(narration).not.toMatch(/My Care/i);
   });
 
+  it("tells an ACCESS patient exactly what follows enrollment and how to proceed or stop", () => {
+    const confirmed = buildNarration({ screen: "ENROLLMENT_CONFIRMED", locale: "EN", runtime: { program: "ACCESS" } }).narrationText;
+    expect(confirmed).toMatch(/enrollment is complete/i);
+    expect(confirmed).toMatch(/blood pressure monitor.*medicines/i);
+    expect(confirmed).toMatch(/progress will be saved/i);
+    expect(confirmed).toMatch(/Set up my care.*I’ll do this later/i);
+  });
+
   // The health check screens are gone; a narration for them would be describing nothing.
   it("has no objective left for the removed health check screens", () => {
     expect(buildNarration({ screen: "ACCESS_BASELINE", locale: "EN", runtime: {} })).toBeNull();

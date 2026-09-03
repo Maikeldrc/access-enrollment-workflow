@@ -160,6 +160,8 @@ describe("EMMI semantic handoff", () => {
       .toMatch(/monitor request is recorded.*review the medicines/i);
     expect(buildTransitionNarration({ previousScreen: "MEDICATIONS_REVIEW", currentScreen: "ONBOARDING_COMPLETE", locale: "EN" }).narrationText)
       .toMatch(/ACCESS setup is now complete.*safely close/i);
+    expect(buildTransitionNarration({ previousScreen: "ACCESS_ALIGNMENT_PROCESSING", currentScreen: "ENROLLMENT_CONFIRMED", locale: "EN" }))
+      .toBeNull();
   });
 });
 
