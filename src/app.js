@@ -351,7 +351,20 @@ function syncEmmiLanguage() {
     if (state.assistantOpen) refreshAssistantLayer();
     return;
   }
-  if (!emmiLive?.isActive()) { state.assistantVoiceError = ""; refreshVoiceGuidanceControls(); return; }
+  if (!emmiLive?.isActive()) {
+    state.assistantVoiceError = "";
+    // Voice guidance is a patient preference, not a claim that a socket happens to be alive.
+    // A session may have ended just before the language button is pressed. Reconnect from that
+    // same user gesture in the new supported language instead of leaving the compact card saying
+    // voice is on while the expanded panel silently falls back to "Ask by voice".
+    if (state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused) {
+      ensureEmmiTransitionManager().requestConnection();
+      syncEmmiNavigationContext({ localeChanged: true, navigationDirection: "LOCALE" });
+    } else {
+      refreshVoiceGuidanceControls();
+    }
+    return;
+  }
   if (!state.emmiVoiceGuidance || !emmiTransitionManager) {
     emmiLive.restartForLocale("").catch(() => { /* The live client publishes a localized safe fallback. */ });
     audit(state, "emmi_language_changed", "success", { locale: languageCode() });

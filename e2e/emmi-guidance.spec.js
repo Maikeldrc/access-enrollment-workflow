@@ -69,6 +69,11 @@ test("Home presents connection setup as Thinking instead of technical copy", asy
 });
 
 test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", async ({ page }) => {
+  let localeReconnects = 0;
+  await page.route("**/api/emmi/live-token", route => {
+    localeReconnects += 1;
+    return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "connection_failed" }) });
+  });
   await page.evaluate(() => localStorage.setItem("itera.emmi.preferences.v1", JSON.stringify({ emmiVoiceGuidance: true, emmiWelcomeAcknowledged: true })));
   await page.reload();
   await page.getByRole("button", { name: /Start your care journey/i }).click();
@@ -78,8 +83,11 @@ test("EMMI follows the patient's language for guidance, welcome, and Ask EMMI", 
 
   // Switching language must move the whole EMMI experience, not just the surrounding UI.
   await page.locator('[data-action="language"]').first().click();
-  await expect(page.locator(".emmi-guide")).toContainText("La guía por voz está activa");
-  await expect(status).toHaveText("La guía por voz está activa");
+  await expect.poll(() => localeReconnects).toBe(1);
+  // A persisted opt-in with no live socket must actively reconnect in the new locale. This
+  // mocked provider rejects the request, so the failure must also be reported in that locale.
+  await expect(page.locator(".emmi-guide")).toContainText("La guía por voz no está disponible");
+  await expect(status).toHaveText("La guía por voz no está disponible");
 
   // KR is Haitian Creole in this product, never Korean.
   await page.locator('[data-action="language"]').first().click();
