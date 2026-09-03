@@ -337,6 +337,28 @@ describe("EMMI live context guards", () => {
     expect(client.prewarmedToken).toBeNull();
   });
 
+  it("reuses one muted preconnection and replaces it with the destination turn", async () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    const opening = deferred();
+    client.openConnection = vi.fn(() => opening.promise);
+
+    const warm = client.preconnect();
+    const activation = client.connect("Who is completing this?", {
+      screenId: "DECISION_MAKER",
+      contextVersion: 2,
+      priority: "TRANSITION_GUIDANCE"
+    });
+
+    expect(client.muted).toBe(true);
+    expect(client.openConnection).toHaveBeenCalledOnce();
+    expect(client.pendingConnectionTurn).toMatchObject({
+      text: "Who is completing this?",
+      metadata: { screenId: "DECISION_MAKER", contextVersion: 2 }
+    });
+    opening.resolve(true);
+    await expect(Promise.all([warm, activation])).resolves.toEqual([true, true]);
+  });
+
   it("does not queue narration while voice is disconnected", () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);

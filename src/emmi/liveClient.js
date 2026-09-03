@@ -86,6 +86,7 @@ export class EmmiLiveClient {
     this.prewarmTokenPromise = null;
     this.prewarmedToken = null;
     this.prewarmLocale = "";
+    this.connectionPromise = null;
     this.outputContext = null;
     this.micNode = null;
     this.inputSource = null;
@@ -332,7 +333,27 @@ export class EmmiLiveClient {
     await this.connect(initialText);
     return true;
   }
-  async connect(initialText = "", metadata = {}) {
+  preconnect() {
+    if (this.session || this.connectionPromise) return this.connectionPromise || Promise.resolve(true);
+    this.muted = true;
+    return this.connect();
+  }
+  connect(initialText = "", metadata = {}) {
+    if (this.session) {
+      if (initialText) this.sendText(initialText, metadata);
+      return Promise.resolve(true);
+    }
+    if (this.connectionPromise) {
+      if (initialText) this.pendingConnectionTurn = { text: initialText, metadata: { ...metadata } };
+      return this.connectionPromise;
+    }
+    const opening = this.openConnection(initialText, metadata);
+    this.connectionPromise = opening;
+    return opening.finally(() => {
+      if (this.connectionPromise === opening) this.connectionPromise = null;
+    });
+  }
+  async openConnection(initialText = "", metadata = {}) {
     if (!EMMI_CONFIG.enableVoice) throw this.fail("voice_disabled");
     // Kreyòl has no supported live voice, so it stays a text experience rather than a silent
     // switch to English. Never treat KR as Korean.
@@ -1101,7 +1122,28 @@ ${body}`,
     this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "" });
     return true;
   }
-  async setMuted(value) { this.muted=Boolean(value); if(this.muted){this.stopAudioCapture();this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED",{reason:"paused"});} else if(this.session&&!this.stream){try{this.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});await this.startAudioCapture();}catch{this.muted=true;this.onError?.("VOICE_PERMISSION_DENIED");}} this.onState?.(this.state,this.muted?"muted":"unmuted");return !this.muted; }
+  async setMuted(value) {
+    this.muted = Boolean(value);
+    if (this.muted) {
+      this.stopAudioCapture();
+      this.stream?.getTracks().forEach(track => track.stop());
+      this.stream = null;
+      this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED", { reason: "paused" });
+    } else {
+      if (!this.session && this.connectionPromise) await this.connectionPromise.catch(() => false);
+      if (this.session && !this.stream) {
+        try {
+          this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+          await this.startAudioCapture();
+        } catch {
+          this.muted = true;
+          this.onError?.("VOICE_PERMISSION_DENIED");
+        }
+      }
+    }
+    this.onState?.(this.state, this.muted ? "muted" : "unmuted");
+    return !this.muted;
+  }
   handleProviderError(error) { const code=normalizeEmmiVoiceError(error?.message?.includes("429")?"rate_limited":"VOICE_PROVIDER_ERROR");this.onError?.(code);this.disconnect(code);return false; }
   scheduleReconnect(reason,{proactive=false}={}){if(!this.sessionResumptionHandle||this.reconnectAttempts>=this.maxReconnectAttempts)return false;clearTimeout(this.reconnectTimer);const attempt=++this.reconnectAttempts,delay=proactive?100:Math.min(2000,250*(2**(attempt-1))),handle=this.sessionResumptionHandle,recovery=this.onReconnectNeeded?.({reason,handle,attempt})||"";this.setState("CONNECTING","VOICE_RECONNECTING");this.reconnectTimer=setTimeout(()=>{if(proactive&&this.isActive())this.disconnect("go_away_handoff");this.goAwayReconnectScheduled=false;this.connect(recovery,{priority:"TRANSITION_GUIDANCE"}).catch(()=>{});},delay);return true;}
   disconnect(reason = "ended", { preserveOutput = false } = {}) {

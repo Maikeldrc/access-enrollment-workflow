@@ -245,6 +245,7 @@ let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiPrewarmLocale = "";
+let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
 // Which control opened the expanded panel: focus goes back to it on close, and analytics record
 // the surface without ever needing a second event model per surface.
@@ -6607,7 +6608,18 @@ function render() {
   state.assistantOpen = false;
   document.body.classList.remove("assistant-open");
   if (state.screen === "PROTOTYPE_SETUP") { app.innerHTML = prototypeSetup(); bindPrototypeSetup(); finishRender(scrollSnapshot, errorAppeared); return; }
-  if (state.screen === "OFFER_LOADING") { app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`; finishRender(scrollSnapshot, errorAppeared); return; }
+  if (state.screen === "OFFER_LOADING") {
+    app.innerHTML = `<main class="shell patient-app-shell loading-screen" aria-live="polite">${art("shield")}<h1>${L("Opening your secure invitation…", "Abriendo su invitación segura…", "Ouvèti envitasyon sekirite w la...")}</h1></main>`;
+    // Establish only the authenticated Live channel while the invitation loads. It is muted:
+    // there is no microphone request, no capture and no speech until the patient explicitly
+    // chooses Guide by voice. This removes the variable socket handshake from that later tap.
+    if (!emmiPreconnectStarted && emmiVoiceIsSupported(languageCode())) {
+      emmiPreconnectStarted = true;
+      setTimeout(() => ensureEmmiRuntime().live.preconnect().catch(() => {}), 0);
+    }
+    finishRender(scrollSnapshot, errorAppeared);
+    return;
+  }
   if (["OFFER_INVALID", "OFFER_EXPIRED"].includes(state.screen)) { app.innerHTML = `<main class="shell patient-app-shell"><section class="screen centered-error">${offerError()}</section></main>`; finishRender(scrollSnapshot, errorAppeared); return; }
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
   const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
@@ -9406,7 +9418,11 @@ function bind() {
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
       // Open the playback AudioContext while the click still counts as a user gesture. Created
       // later it starts suspended, and the welcome plays silently until some other tap resumes it.
-      ensureEmmiRuntime().live.prepareAudioPlayback();
+      const live = ensureEmmiRuntime().live;
+      live.prepareAudioPlayback();
+      // A preconnected session is deliberately muted. This call is made inside the patient's
+      // click so browser microphone permission remains explicit and correctly user-activated.
+      live.setMuted(false).catch(() => {});
       render();
       // Connect inside the click's task too: deferring it (rAF/timeout) drops user activation and
       // Chrome then refuses the microphone prompt, so the welcome never played on the first click.
