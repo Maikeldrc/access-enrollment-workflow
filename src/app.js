@@ -244,6 +244,7 @@ let emmiConversationManager = null;
 let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
+let emmiWelcomeTimer = null;
 let emmiPrewarmLocale = "";
 let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
@@ -6957,6 +6958,8 @@ async function finalizeAccessBpBaseline({ navigate = true } = {}) {
 
 async function advance() {
   state.error = "";
+  clearTimeout(emmiWelcomeTimer);
+  emmiWelcomeTimer = null;
   // If the patient enables voice and immediately presses Start, keep the connection wait on the
   // invitation instead of landing on a silent second screen. Once the channel is ready, discard
   // the superseded welcome so the destination guidance is the very first provider turn.
@@ -9438,12 +9441,26 @@ function bind() {
       // click so browser microphone permission remains explicit and correctly user-activated.
       live.setMuted(false).catch(() => {});
       render();
-      // Connect inside the click's task too: deferring it (rAF/timeout) drops user activation and
-      // Chrome then refuses the microphone prompt, so the welcome never played on the first click.
-      deliverEmmiGuidance(message, state.screen, { connect: true });
+      if (state.screen === "INVITATION") {
+        // Give an immediate Start tap a short arbitration window. Without it, the welcome and the
+        // destination prompt can reach Gemini in adjacent turns; its late welcome completion then
+        // leaves the destination screen in Listening. The channel and microphone still start in
+        // this user gesture, while the welcome is sent only if the patient remains on Home.
+        clearTimeout(emmiWelcomeTimer);
+        emmiWelcomeTimer = setTimeout(() => {
+          emmiWelcomeTimer = null;
+          if (state.screen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused) {
+            deliverEmmiGuidance(message, state.screen, { connect: true });
+          }
+        }, 700);
+      } else {
+        deliverEmmiGuidance(message, state.screen, { connect: true });
+      }
       return;
     }
     if (action === "disable-emmi-guidance") {
+      clearTimeout(emmiWelcomeTimer);
+      emmiWelcomeTimer = null;
       state.emmiVoiceGuidance = false;
       state.emmiVoiceGuidancePaused = false;
       state.emmiVoiceOptionsOpen = false;
