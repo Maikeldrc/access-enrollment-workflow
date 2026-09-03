@@ -549,7 +549,9 @@ export class EmmiLiveClient {
     // canceled assistant generation, and the subsequent interruption clears it before a response
     // can start — the exact "EMMI stopped but ignored my question" failure seen in production.
     const interruptionAlreadyApplied = Boolean(
-      this.currentInterruption && this.patientResponseReady && this.activeTurn?.priority === "PATIENT_RESPONSE"
+      this.currentInterruption &&
+      this.activeTurn?.responseToInterruption &&
+      ["PATIENT_RESPONSE", "CRITICAL_SAFETY"].includes(this.activeTurn.priority)
     );
     if (server?.interrupted && this.muted) {
       this.emitVoiceTelemetry("EMMI_MUTED_PROVIDER_INTERRUPTION_IGNORED", { activeGenerationId: this.activeTurn?.generationId || 0 });
@@ -983,7 +985,20 @@ ${body}`,
       this.handlePatientSpeechStart({ source: "text_input", detectedAt: performance.now() }, { providerConfirmed: true });
     }
     const generationId = ++this.generationSequence;
-    const turn = { id: metadata.id || `turn_${Date.now().toString(36)}`, contextVersion: metadata.contextVersion ?? this.activeContextVersion, ...metadata, generationId, clientTurnSentAt: performance.now(), providerTurnComplete: false, retryText: text };
+    const turn = {
+      id: metadata.id || `turn_${Date.now().toString(36)}`,
+      contextVersion: metadata.contextVersion ?? this.activeContextVersion,
+      ...metadata,
+      generationId,
+      clientTurnSentAt: performance.now(),
+      providerTurnComplete: false,
+      retryText: text,
+      // A typed question can take the floor while guidance is still speaking. Gemini may emit
+      // the provider-side `interrupted` acknowledgement after this new client turn has already
+      // been sent. Keep the relationship explicit so that late acknowledgement cannot cancel
+      // the replacement turn and leave the UI waiting until its watchdog fires.
+      responseToInterruption: metadata.responseToInterruption ?? Boolean(patientInitiated && this.currentInterruption)
+    };
     if (turn.contextVersion !== this.activeContextVersion && turn.id !== this.allowedGracefulTurnId) return false;
     this.activeTurn = turn;
     this.lastEmmiUtterance = "";

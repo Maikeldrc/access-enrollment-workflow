@@ -561,10 +561,43 @@ describe("EMMI audio pipeline", () => {
     expect(bargeIns[0]).toEqual(expect.objectContaining({ source: "text_input", previousGenerationId: 15 }));
     expect(client.activeTurn).toEqual(expect.objectContaining({
       id: "patient-question",
-      priority: "PATIENT_RESPONSE"
+      priority: "PATIENT_RESPONSE",
+      responseToInterruption: true
     }));
     expect(client.activeTurn.generationId).not.toBe(15);
     expect(client.awaitingPatientResponse).toBe(false);
+  });
+
+  it("does not let a late provider interruption cancel the typed replacement turn", async () => {
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.activeContextVersion = 6;
+    client.activeAudioGenerationId = 21;
+    client.activeTurn = { id: "long-guidance", generationId: 21, contextVersion: 6, priority: "SCREEN_GUIDANCE" };
+    client.state = "EMMI_SPEAKING";
+    client.stopPlayback = vi.fn();
+
+    expect(client.sendText("Before you continue, is participation voluntary?", {
+      id: "typed-interruption",
+      contextVersion: 6,
+      priority: "PATIENT_RESPONSE"
+    })).toBe(true);
+    const replacementGenerationId = client.activeTurn.generationId;
+
+    await client.handleMessage({ serverContent: { interrupted: true } });
+
+    expect(client.activeTurn).toEqual(expect.objectContaining({
+      id: "typed-interruption",
+      generationId: replacementGenerationId,
+      priority: "PATIENT_RESPONSE",
+      responseToInterruption: true
+    }));
+    expect(client.awaitingPatientResponse).toBe(false);
+    expect(telemetry).toContain("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED");
   });
 
   it("asks for clarification when ASR reports an unexpected language", async () => {
