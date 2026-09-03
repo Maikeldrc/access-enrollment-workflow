@@ -123,13 +123,13 @@ test("the header X returns the patient exactly where they were", async ({ page }
 
 test("the suggestions belong to the screen the patient is looking at", async ({ page }) => {
   const expected = {
-    INVITATION: ["What is ACCESS?", "How can this help me?", "Will Dr. Fresner still be involved?"],
+    INVITATION: ["What is ACCESS?", "How can this help me?", "Will Dr. Fresner Lee still be involved?"],
     IDENTITY_VERIFICATION: ["Why do you need this information?", "Is my information secure?", "Who invited me?"],
-    CARE_RECOMMENDATION: ["How will the blood pressure monitor help me?", "What is my care plan?", "Will Dr. Fresner still be involved?"],
+    CARE_RECOMMENDATION: ["How will the blood pressure monitor help me?", "What is my care plan?", "Will Dr. Fresner Lee still be involved?"],
     ACCESS_PRE_ELIGIBILITY_NOTICE: ["Why does Medicare need to verify me?", "Will this change my Medicare?", "What is the comparison group?"],
     ACCESS_ELIGIBILITY_RESULT: ["What happens next?", "Am I enrolled yet?", "What will I review next?"],
     CONSENT_REVIEW: ["Do I have to enroll?", "Will this change my Medicare?", "Why is my expected payment $0?", "Can I change my mind later?"],
-    ENROLLMENT_CONFIRMED: ["What happens next?", "How do I get my blood pressure monitor?", "What will my care plan include?", "What goals will I work on?"],
+    ENROLLMENT_CONFIRMED: ["What happens next?", "How do I get my blood pressure monitor?", "Why am I reviewing my medications?", "What if something changed?"],
     MY_CARE: ["How is my blood pressure doing?", "What should I do next?", "I need an appointment", "How can I contact my care team?"]
   };
   const { MY_CARE, ...onTheJourney } = expected;
@@ -153,7 +153,7 @@ test("the suggestions belong to the screen the patient is looking at", async ({ 
 
 test("the referring physician is named in a suggestion only when the invitation named one", async ({ page }) => {
   const dialog = await openEmmiOnHome(page);
-  await expect(dialog.locator(".assistant-quick")).toContainText("Will Dr. Fresner still be involved?");
+  await expect(dialog.locator(".assistant-quick")).toContainText("Will Dr. Fresner Lee still be involved?");
   await dialog.locator(".assistant-close").click();
 
   // Direct outreach has no physician, so the slot drops rather than inventing a stand-in.
@@ -479,6 +479,7 @@ test("the offer is made once, not on every turn", async ({ page }) => {
   await dialog.getByPlaceholder("Ask a question…").fill("no");
   await dialog.getByRole("button", { name: "Send question" }).click();
   await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)")).toHaveCount(2);
+  await expect(dialog.locator(".assistant-message.assistant:not(.assistant-thinking)").last()).toContainText("I’ll continue in English");
 
   // Declining is remembered: another Spanish message is answered, not re-interrogated.
   await dialog.getByPlaceholder("Ask a question…").fill("Necesito ayuda con mi presión arterial");

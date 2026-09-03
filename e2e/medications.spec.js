@@ -29,8 +29,9 @@ test("happy path requires explicit review and additional-medication answer", asy
   await page.getByRole("button", { name: "No, that’s all" }).click();
   await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Set up your care" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Confirm your medications.*Completed/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "You’ve completed your ACCESS setup" })).toBeVisible();
+  await expect(page.getByText("Medication reconciliation complete", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My Care" })).toHaveCount(0);
 });
 
 test("patient-reported medication changes never overwrite the clinical record", async ({ page }) => {
@@ -78,6 +79,15 @@ test("adding, editing, and removing a missing medication provides clear feedback
   await expect(page.getByText(/1000 mg/)).toBeVisible();
   await page.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByText("Metformin")).toHaveCount(0);
+});
+
+test("an added medication without optional details uses clear patient-facing copy", async ({ page }) => {
+  await page.getByRole("button", { name: "Add another medication" }).click();
+  await page.getByLabel("Medication name").fill("Metformin");
+  await page.getByRole("button", { name: "Add medication" }).click();
+  const added = page.locator(".medication-added-card", { hasText: "Metformin" });
+  await expect(added).toContainText("Details not provided");
+  await expect(added).not.toContainText("Optional");
 });
 
 test("EMMI gives safe medication education without treatment advice", async ({ page }) => {

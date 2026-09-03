@@ -735,6 +735,26 @@ test("ACCESS monitor fulfillment validates and persists a different shipping add
   expect(lifecycle).toMatchObject({ shippingAddressMode: "other", shippingAddressConfirmed: true, shippingAddress: { line1: "500 Palm Street", unit: "Unit 7", city: "Miami", state: "FL", zip: "33130" }, deviceFulfillmentStatus: "REQUESTED" });
 });
 
+test("ACCESS monitor fulfillment rejects an incomplete different shipping address and preserves it for correction", async ({ page }) => {
+  await openNeededMonitorDetails(page);
+  await page.locator('.choice-card:has(input[value="TENOVI_XL"])').click();
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+  await page.locator('.choice-card:has(input[value="other"])').click();
+  await page.getByLabel("Street address").fill("");
+  await page.getByLabel("City").fill("Miami");
+  await page.getByLabel("State").fill("fl");
+  await page.getByLabel("ZIP code").fill("33130");
+  await page.getByRole("button", { name: "Request my monitor" }).click();
+
+  await expect(page.getByRole("heading", { name: "Where would you like your monitor delivered?" })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Enter a complete delivery address with a 2-letter state and 5-digit ZIP code.");
+  await expect(page.getByLabel("Street address")).toHaveValue("");
+  await expect(page.getByLabel("City")).toHaveValue("Miami");
+  await expect(page.getByLabel("State")).toHaveValue("FL");
+  await expect(page.getByLabel("ZIP code")).toHaveValue("33130");
+  await expect(page.getByRole("heading", { name: "Your monitor is being prepared" })).toHaveCount(0);
+});
+
 test("ACCESS monitor fulfillment is localized in Spanish and Kreyòl", async ({ page }) => {
   await openNeededMonitorDetails(page);
   await page.getByRole("button", { name: "Change language to Spanish" }).click();
@@ -2479,6 +2499,15 @@ test("identity rejects impossible calendar dates instead of accepting format alo
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("alert")).toHaveText("Enter a valid date as MM / DD / YYYY and a 5-digit ZIP code.");
   await expect(page.getByRole("heading", { name: "Let’s securely confirm it’s you" })).toBeVisible();
+});
+
+test("identity keeps an invalid ZIP visible so the patient can correct it", async ({ page }) => {
+  await page.goto("/?scenario=access-happy");
+  await page.locator("#screen-select").selectOption("IDENTITY_VERIFICATION", { force: true });
+  await page.getByLabel("ZIP code", { exact: true }).fill("123");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("alert")).toHaveText("Enter a valid date as MM / DD / YYYY and a 5-digit ZIP code.");
+  await expect(page.getByLabel("ZIP code", { exact: true })).toHaveValue("123");
 });
 
 test("traditional consent keeps a personal representative separate from the patient", async ({ page }) => {
