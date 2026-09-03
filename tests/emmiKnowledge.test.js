@@ -159,6 +159,7 @@ describe("source hierarchy and wiring", () => {
     expect(EMMI_SYSTEM_PROMPT).toMatch(/KR is never Korean/i);
     expect(EMMI_SYSTEM_PROMPT).toMatch(/Tool names, arguments, JSON, function syntax.*never patient-facing/i);
     expect(EMMI_SYSTEM_PROMPT).toMatch(/never use raw transcript words as medicationId/i);
+    expect(EMMI_SYSTEM_PROMPT).toMatch(/Never shorten this to “leave at any time”/i);
   });
 
   it("injects an explicit Haitian Creole instruction for internal locale KR", () => {
