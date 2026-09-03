@@ -46,6 +46,13 @@ describe("EMMI transcript boundary", () => {
     }
   });
 
+  it("rejects unsupported-script ASR hallucinations in every voice state", () => {
+    for (const phrase of ["喂，艾米。", "Привет", "مرحبا", "Γεια"]) {
+      expect(assessEmmiTranscriptReliability(phrase, { locale: "en" }), phrase)
+        .toMatchObject({ reliable: false, reason: "unsupported_script" });
+    }
+  });
+
   it("builds a trusted clarification override without presenting it as patient speech", () => {
     const instruction = emmiAsrClarificationInstruction({ expectedLanguage: "en", detectedLanguage: "es" });
     expect(instruction).toContain("TRUSTED ASR SAFETY OVERRIDE");

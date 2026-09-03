@@ -63,6 +63,11 @@ export function assessEmmiTranscriptReliability(value, { locale = "en", afterInt
   const text = sanitizeEmmiTranscript(value);
   const expectedLanguage = normalizedLocale(locale);
   const detectedLanguage = detectPatientLanguage(text);
+  // EMMI supports English, Spanish and Haitian Creole, which all use Latin script. During
+  // speaker overlap the provider can occasionally hallucinate a short CJK, Cyrillic, Arabic,
+  // Greek or Hebrew fragment from an English phrase. It is never useful patient intent and must
+  // not appear in the conversation even when no explicit interruption event arrived first.
+  const unsupportedScript = /[\u0370-\u052f\u0590-\u08ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/u.test(text);
   const unexpectedLanguage = Boolean(detectedLanguage && detectedLanguage !== expectedLanguage);
   // A long transcript normally carries enough function words for the conservative detector to
   // identify its language. No language signal at all in ten or more words is characteristic of
@@ -79,8 +84,8 @@ export function assessEmmiTranscriptReliability(value, { locale = "en", afterInt
     text,
     expectedLanguage,
     detectedLanguage,
-    reliable: !unexpectedLanguage && !lowLocaleEvidence && !lowInformationInterruption,
-    reason: unexpectedLanguage ? "unexpected_language" : lowLocaleEvidence ? "low_locale_evidence" : lowInformationInterruption ? "low_information_interruption" : ""
+    reliable: !unsupportedScript && !unexpectedLanguage && !lowLocaleEvidence && !lowInformationInterruption,
+    reason: unsupportedScript ? "unsupported_script" : unexpectedLanguage ? "unexpected_language" : lowLocaleEvidence ? "low_locale_evidence" : lowInformationInterruption ? "low_information_interruption" : ""
   };
 }
 
