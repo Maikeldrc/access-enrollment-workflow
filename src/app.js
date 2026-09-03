@@ -45,7 +45,7 @@ import { detectEmergencyLanguage } from "./emmi/safetyPolicy.js";
 import { emmiVoiceMetadata } from "./emmi/voiceIdentity.js";
 import { getEmmiFollowUps, getEmmiQuickQuestions } from "./emmi/quickQuestions.js";
 import { isLanguageOfferAccepted, isLanguageOfferDeclined, resolveLanguageIntent } from "./emmi/languageDetection.js";
-import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState } from "./emmi/presentationState.js";
+import { EMMI_VISIBLE_STATE, emmiVisibleStateLabel, resolveEmmiVisibleState, shouldResumeEmmiCapture } from "./emmi/presentationState.js";
 import { sanitizeEmmiTranscript } from "./emmi/transcript.js";
 import { EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "./mock/emmiFixtures.js";
 import { IMPORTANT_INFORMATION_COPY, programDisclosureConfig } from "./programDisclosures.js";
@@ -1454,7 +1454,15 @@ function ensureEmmiRuntime() {
   emmiLive ||= new EmmiLiveClient({
     getContext: assistantContext,
     executeTool: async (name, args) => { state.assistantVoiceState = "TOOL_RUNNING"; state.assistantVoiceDetail = emmiToolStatusLabel(name); refreshAssistantLayer(); return emmiTools.execute(name, args); },
-    onState: (voiceState, detail) => { state.assistantVoiceState = voiceState; state.assistantVoiceDetail = detail || ""; refreshVoiceGuidanceControls(); },
+    onState: (voiceState, detail) => {
+      state.assistantVoiceState = voiceState;
+      state.assistantVoiceDetail = detail || "";
+      // Passive screen narration temporarily releases capture to avoid treating speaker echo as
+      // patient speech. Keep the UI state synchronized immediately: otherwise opening Ask EMMI
+      // while narration is still playing sees a stale `false` and never reacquires the mic.
+      state.assistantVoiceMuted = Boolean(emmiLive?.muted);
+      refreshVoiceGuidanceControls();
+    },
     onTranscript: (role, text, _final, metadata = {}) => {
       const cleaned = sanitizeEmmiTranscript(text); if (!cleaned) return;
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
@@ -8003,9 +8011,16 @@ function showHelp(trigger = null) {
   state.assistantVoiceOptionsOpen = false;
   state.emmiVoiceOptionsOpen = false;
   ensureEmmiRuntime();
-  if (state.emmiVoiceGuidance && emmiLive?.isActive() && state.assistantVoiceMuted) {
+  if (shouldResumeEmmiCapture({
+    voiceGuidance: state.emmiVoiceGuidance,
+    sessionActive: emmiLive?.isActive(),
+    uiMuted: state.assistantVoiceMuted,
+    clientMuted: emmiLive?.muted
+  })) {
     state.assistantVoiceMuted = false;
-    emmiLive.setMuted(false);
+    // Ask EMMI is an explicit patient gesture. Reopen capture even when the compact UI has not yet
+    // painted the live client's internal mute, so the patient can interrupt the current sentence.
+    void emmiLive.setMuted(false);
   }
   if (import.meta.env.DEV) {
     const previewState = new URLSearchParams(location.search).get("emmiState");

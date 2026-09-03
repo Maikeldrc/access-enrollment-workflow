@@ -47,6 +47,13 @@ export function resolveEmmiVisibleState({
   return EMMI_VISIBLE_STATE.ACTIVE_IDLE;
 }
 
+// The compact guide may have released capture internally before the app has painted the muted
+// control. Either source is sufficient: opening Ask EMMI is the patient's explicit request to
+// converse and must restore the microphone even in that short synchronization window.
+export function shouldResumeEmmiCapture({ voiceGuidance = false, sessionActive = false, uiMuted = false, clientMuted = false } = {}) {
+  return Boolean(voiceGuidance && sessionActive && (uiMuted || clientMuted));
+}
+
 const LABELS = Object.freeze({
   en: Object.freeze({
     OFF: "Need help?", UNSUPPORTED: "Voice guidance is unavailable in this language",
