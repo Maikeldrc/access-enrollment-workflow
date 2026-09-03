@@ -49,6 +49,163 @@ const medicationEducation = (text, locale) => {
 // limits are listed before the broader ones. The orchestrator runs its own prescription check
 // before this layer, so the only medication rule here is the phrasing that check does not catch.
 const RULES = [
+  // These answers describe the control that is visible on the patient's current screen. They are
+  // deterministic because a general knowledge answer is less useful here than naming the exact
+  // next action, and because the model must not invent fulfillment details that are not recorded.
+  {
+    intent: "LEAVE_ACCESS",
+    screens: ["INVITATION"],
+    match: /can i stop participating|can i leave access|stop participating later|puedo dejar de participar|puedo salir de access|mwen ka sispann patisipe|mwen ka kite access/i,
+    answer: locale => pick(locale, {
+      EN: "Yes. Participation is voluntary. Beginning 90 days after enrollment, you may leave ACCESS or switch to another participating provider. Leaving does not change your Medicare benefits, coverage, or rights.",
+      ES: "Sí. La participación es voluntaria. A partir de 90 días después de la inscripción, puede dejar ACCESS o cambiar a otro proveedor participante. Salir no cambia sus beneficios, cobertura ni derechos de Medicare.",
+      KR: "Wi. Patisipasyon an volontè. Apati 90 jou apre enskripsyon, ou ka kite ACCESS oswa chanje pou yon lòt founisè patisipan. Lè ou kite sa pa chanje benefis, kouvèti oswa dwa Medicare ou."
+    })
+  },
+  {
+    intent: "IDENTITY_VERIFICATION_PURPOSE",
+    screens: ["IDENTITY_VERIFICATION"],
+    match: /(why|what for).*(date of birth|birth date|zip)|por qu[eé].*(fecha de nacimiento|c[oó]digo postal)|poukisa.*(dat nesans|k[oò]d postal)/i,
+    answer: locale => pick(locale, {
+      EN: "Your date of birth and ZIP code are used to match you to the correct care invitation and help protect your health information. This check does not change your Medicare benefits and does not enroll you by itself.",
+      ES: "Su fecha de nacimiento y código postal se usan para asociarle con la invitación de cuidado correcta y ayudar a proteger su información de salud. Esta verificación no cambia sus beneficios de Medicare ni le inscribe por sí sola.",
+      KR: "Yo sèvi ak dat nesans ou ak kòd postal ou pou jwenn bon envitasyon swen an epi ede pwoteje enfòmasyon sante ou. Verifikasyon sa a pa chanje benefis Medicare ou epi li pa enskri ou poukont li."
+    })
+  },
+  {
+    intent: "CARE_INCLUDED",
+    screens: ["CARE_RECOMMENDATION"],
+    match: /(what|which).*(care|support).*(receive|included|get)|what does.*care include|qu[eé].*(cuidado|apoyo).*(recibir|incluye)|kisa.*(swen|sip[oò]).*(gen ladan|resevwa)/i,
+    answer: locale => pick(locale, {
+      EN: "Your ACCESS care includes ongoing support between visits, a connected blood pressure monitor for home readings, a personalized care plan, and coordination with Dr. Fresner Lee and your care team.",
+      ES: "Su cuidado ACCESS incluye apoyo continuo entre visitas, un monitor conectado para medir la presión en casa, un plan de cuidado personalizado y coordinación con Dr. Fresner Lee y su equipo de atención.",
+      KR: "Swen ACCESS ou gen ladan sipò ant vizit yo, yon monitè tansyon konekte pou mezi lakay, yon plan swen pèsonalize, ak kowòdinasyon avèk Dr. Fresner Lee ak ekip swen ou."
+    })
+  },
+  {
+    intent: "ONE_ACCESS_PROVIDER",
+    screens: ["CONSENT_REVIEW"],
+    match: /(two|more than one|multiple).*(access provider|access organization)|access provider.*same time|dos.*proveedores.*access|m[aá]s de un.*proveedor.*access|de.*founis[eè].*access/i,
+    answer: locale => pick(locale, {
+      EN: "No. You can receive this type of ACCESS care from only one participating provider at a time. You can still see your regular doctors and other Medicare providers.",
+      ES: "No. Solo puede recibir este tipo de cuidado ACCESS de un proveedor participante a la vez. Puede seguir viendo a sus médicos habituales y a otros proveedores de Medicare.",
+      KR: "Non. Ou ka resevwa kalite swen ACCESS sa a nan men yon sèl founisè patisipan alafwa. Ou ka toujou wè doktè nòmal ou yo ak lòt founisè Medicare."
+    })
+  },
+  {
+    intent: "ENROLLED_NEXT_STEP",
+    screens: ["ENROLLMENT_CONFIRMED"],
+    match: /(what.*(next|need to do)|what happens if.*later|i('ll| will) do this later)|qu[eé].*(sigue|hacer ahora)|hacerlo m[aá]s tarde|kisa.*(apre|pou m f[eè])|f[eè] sa pita/i,
+    answer: (locale, context, text) => /later|m[aá]s tarde|pita/i.test(text)
+      ? pick(locale, {
+          EN: "Your ACCESS enrollment is already complete. If you choose “I’ll do this later,” you will leave this setup for now; the monitor request and medication reconciliation will remain pending, and your progress will be saved.",
+          ES: "Su inscripción en ACCESS ya está completa. Si elige “Lo haré más tarde”, dejará esta configuración por ahora; la solicitud del monitor y la conciliación de medicamentos quedarán pendientes y se guardará su progreso.",
+          KR: "Enskripsyon ACCESS ou deja fini. Si ou chwazi “M ap fè sa pita,” ou ap kite konfigirasyon an pou kounye a; demann monitè a ak verifikasyon medikaman yo ap rete annatant epi pwogrè ou ap anrejistre."
+        })
+      : pick(locale, {
+          EN: "Your enrollment is complete. The next steps are to request your blood pressure monitor and reconcile the medications on your record. Select “Set up my care” to continue.",
+          ES: "Su inscripción está completa. Los próximos pasos son solicitar su monitor de presión arterial y conciliar los medicamentos de su registro. Seleccione “Configurar mi cuidado” para continuar.",
+          KR: "Enskripsyon ou fini. Pwochen etap yo se mande monitè tansyon ou epi verifye medikaman ki nan dosye ou. Chwazi “Konfigire swen mwen” pou kontinye."
+        })
+  },
+  {
+    intent: "CUFF_SIZE_GUIDANCE",
+    screens: ["ACCESS_BP_DEVICE_INFO"],
+    match: /(how|which).*(choose|select|know).*(cuff|size)|correct cuff size|cuff size.*fit|c[oó]mo.*(elegir|seleccionar).*(brazalete|talla)|ki jan.*(chwazi|konnen).*(manch[eè]t|gwos[eè])/i,
+    answer: locale => pick(locale, {
+      EN: "Measure around your upper arm and choose the matching range: Extra Small 15–28 cm (5.9–11 in), Standard 22–42 cm (8.7–16.5 in), or Extra Large 32–52 cm (12.6–20.5 in). If none fits, contact your care team before requesting the monitor.",
+      ES: "Mida alrededor de la parte superior del brazo y elija el rango correspondiente: Extra pequeño 15–28 cm (5.9–11 in), Estándar 22–42 cm (8.7–16.5 in) o Extra grande 32–52 cm (12.6–20.5 in). Si ninguno le sirve, comuníquese con su equipo antes de solicitar el monitor.",
+      KR: "Mezire otou pati anwo bra ou epi chwazi mezi ki koresponn lan: Trè piti 15–28 cm (5.9–11 pous), Nòmal 22–42 cm (8.7–16.5 pous), oswa Trè gwo 32–52 cm (12.6–20.5 pous). Si okenn pa bon, kontakte ekip swen ou anvan ou mande monitè a."
+    })
+  },
+  {
+    intent: "SHIPPING_ADDRESS_GUIDANCE",
+    screens: ["ACCESS_BP_SHIPPING_ADDRESS"],
+    match: /(address).*(wrong|incorrect|not right)|what.*if.*address|different address|direcci[oó]n.*(incorrecta|equivocada|distinta)|adr[eè]s.*(pa bon|diferan)/i,
+    answer: locale => pick(locale, {
+      EN: "If the address shown is wrong or you want delivery somewhere else, choose “Use a different address” and enter the delivery address before requesting the monitor.",
+      ES: "Si la dirección mostrada es incorrecta o desea recibirlo en otro lugar, elija “Usar una dirección diferente” e ingrese la dirección de entrega antes de solicitar el monitor.",
+      KR: "Si adrès ki parèt la pa bon oswa ou vle resevwa li yon lòt kote, chwazi “Sèvi ak yon lòt adrès” epi antre adrès livrezon an anvan ou mande monitè a."
+    })
+  },
+  {
+    intent: "SHIPPING_STATUS_LIMIT",
+    screens: ["ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "ACCESS_ONBOARDING_COMPLETE"],
+    match: /(how long|when).*(ship|shipping|arrive|deliver)|tracking number|cu[aá]nto.*(env[ií]o|llegar|entrega)|n[uú]mero de seguimiento|kil[eè].*(voye|rive|livre)|nimewo swivi/i,
+    answer: (locale, context) => context.deviceFulfillmentStatus === "REQUESTED"
+      ? pick(locale, {
+          EN: "Your monitor request is recorded, but there is no confirmed shipping date, delivery date, or tracking number in your care record yet. Your care team will keep you updated as it is prepared and sent.",
+          ES: "La solicitud de su monitor está registrada, pero todavía no hay una fecha de envío, entrega ni número de seguimiento confirmados en su registro. Su equipo le mantendrá informado mientras se prepara y se envía.",
+          KR: "Demann monitè ou an anrejistre, men poko gen dat yo konfime pou voye oswa livre li, ni nimewo swivi nan dosye swen ou. Ekip swen ou ap ba ou nouvèl pandan y ap prepare epi voye li."
+        })
+      : pick(locale, {
+          EN: "The monitor has not been requested yet, so there is no confirmed shipping date, delivery date, or tracking number. Confirm the delivery address and request the monitor first.",
+          ES: "El monitor todavía no se ha solicitado, por lo que no hay fecha de envío, entrega ni número de seguimiento confirmados. Primero confirme la dirección y solicite el monitor.",
+          KR: "Yo poko mande monitè a, kidonk pa gen dat yo konfime pou voye oswa livre li, ni nimewo swivi. Konfime adrès livrezon an epi mande monitè a anvan."
+        })
+  },
+  {
+    intent: "FULFILLMENT_NEXT_STEP",
+    screens: ["ACCESS_BP_FULFILLMENT_CONFIRMED"],
+    match: /(what.*(next|need to do|while i wait)|what happens if.*later|i('ll| will) do this later)|qu[eé].*(sigue|hacer|mientras espero)|hacerlo m[aá]s tarde|kisa.*(apre|pou m f[eè]|pandan m ap tann)|f[eè] sa pita/i,
+    answer: (locale, context, text) => /later|m[aá]s tarde|pita/i.test(text)
+      ? pick(locale, {
+          EN: "Your monitor request is already complete. If you choose “I’ll do this later,” only the medication reconciliation will remain pending, and your progress will be saved.",
+          ES: "La solicitud de su monitor ya está completa. Si elige “Lo haré más tarde”, solo quedará pendiente la conciliación de medicamentos y se guardará su progreso.",
+          KR: "Demann monitè ou deja fini. Si ou chwazi “M ap fè sa pita,” se verifikasyon medikaman yo sèlman k ap rete annatant epi pwogrè ou ap anrejistre."
+        })
+      : pick(locale, {
+          EN: "Your monitor request is complete. While it is being prepared, select “Review my medications” to complete the remaining medication reconciliation.",
+          ES: "La solicitud de su monitor está completa. Mientras se prepara, seleccione “Revisar mis medicamentos” para completar la conciliación pendiente.",
+          KR: "Demann monitè ou fini. Pandan y ap prepare li, chwazi “Revize medikaman mwen” pou fini verifikasyon medikaman ki rete a."
+        })
+  },
+  {
+    intent: "MEDICATION_REVIEW_REPORTING",
+    screens: ["MEDICATIONS_REVIEW"],
+    match: /(what.*(choose|select|press|tap|mark|report).*(dose|medication)|dose changed|stopped taking|no longer take)|(qu[eé].*(elijo|selecciono|marco).*(dosis|medicamento)|cambi[oó].*dosis|dej[eé] de tomar)|(kisa.*(chwazi|make).*(d[oò]z|medikaman)|d[oò]z.*chanje|sispann pran)/i,
+    answer: locale => pick(locale, {
+      EN: "Choose “Something changed” for that medication, then select the option that best describes the change, such as a changed dose or no longer taking it. This records what you report for your care team to review; it does not change the prescription automatically.",
+      ES: "Elija “Algo cambió” para ese medicamento y luego seleccione la opción que mejor describa el cambio, como una dosis distinta o que ya no lo toma. Esto registra lo que informa para que su equipo lo revise; no cambia automáticamente la receta.",
+      KR: "Chwazi “Gen yon bagay ki chanje” pou medikaman sa a, epi chwazi opsyon ki pi byen esplike chanjman an, tankou yon lòt dòz oswa ou pa pran li ankò. Sa anrejistre sa ou rapòte pou ekip swen ou revize; li pa chanje preskripsyon an otomatikman."
+    })
+  },
+  {
+    intent: "MEDICATION_MISSING",
+    screens: ["MEDICATIONS_REVIEW"],
+    match: /(medication|medicine|prescription).*(missing|not listed)|missing from.*list|medicamento.*(falta|no aparece|no est[aá])|medikaman.*(manke|pa nan lis)/i,
+    answer: locale => pick(locale, {
+      EN: "Select “Add another medication” and enter its name and, if you know them, the dose and instructions. It will be recorded as patient-reported information for your care team to review; it does not change a prescription.",
+      ES: "Seleccione “Agregar otro medicamento” e ingrese el nombre y, si los conoce, la dosis y las instrucciones. Se registrará como información informada por usted para que su equipo la revise; no cambia una receta.",
+      KR: "Chwazi “Ajoute yon lòt medikaman” epi antre non li ak dòz ak enstriksyon yo si ou konnen yo. Y ap anrejistre li kòm enfòmasyon ou rapòte pou ekip swen ou revize; sa pa chanje yon preskripsyon."
+    })
+  },
+  {
+    intent: "MEDICATION_REVIEW_UNSURE",
+    screens: ["MEDICATIONS_REVIEW"],
+    match: /(what.*do.*if.*not sure|not sure.*anything.*missing)|qu[eé].*hago.*no.*seguro|no.*seguro.*falta|kisa.*f[eè].*pa s[eè]ten|pa s[eè]ten.*manke/i,
+    answer: locale => pick(locale, {
+      EN: "That’s okay. If you are unsure whether anything is missing, choose “I’m not sure if anything is missing.” For uncertainty about one listed medication, choose “Something changed” and then “I’m not sure about this medication.” Your care team can review it with you.",
+      ES: "Está bien. Si no está seguro de que falte algún medicamento, elija “No estoy seguro de si falta alguno”. Si la duda es sobre un medicamento de la lista, elija “Algo cambió” y luego “No estoy seguro de este medicamento”. Su equipo puede revisarlo con usted.",
+      KR: "Sa pa yon pwoblèm. Si ou pa sèten si gen yon medikaman ki manke, chwazi “Mwen pa sèten si gen yon bagay ki manke.” Si ou pa sèten sou yon medikaman nan lis la, chwazi “Gen yon bagay ki chanje” epi “Mwen pa sèten sou medikaman sa a.” Ekip swen ou ka revize li avèk ou."
+    })
+  },
+  {
+    intent: "SETUP_COMPLETE",
+    screens: ["ACCESS_ONBOARDING_COMPLETE"],
+    match: /(any.*steps left|what.*left|what happens.*monitor|monitor.*now|setup complete|safely close)|queda.*paso|qu[eé].*monitor.*ahora|configuraci[oó]n.*completa|cerrar.*ventana|etap.*rete|kisa.*monit[eè].*kounye a|f[eè]men fen[eè]t/i,
+    answer: (locale, context, text) => /(monitor|monit[eè])/i.test(text)
+      ? pick(locale, {
+          EN: "Your monitor request was received and it is being prepared for shipment. There is no confirmed shipping or delivery date yet; your care team will keep you updated. There are no more steps in this setup process.",
+          ES: "La solicitud de su monitor fue recibida y se está preparando para el envío. Todavía no hay una fecha de envío o entrega confirmada; su equipo le mantendrá informado. No quedan más pasos en este proceso de configuración.",
+          KR: "Yo resevwa demann monitè ou epi y ap prepare li pou voye. Poko gen dat yo konfime pou voye oswa livre li; ekip swen ou ap ba ou nouvèl. Pa gen lòt etap nan pwosesis konfigirasyon sa a."
+        })
+      : pick(locale, {
+          EN: "Your ACCESS setup is complete: the monitor request and medication reconciliation are finished. There are no more steps in this process, and you can safely close this window.",
+          ES: "Su configuración de ACCESS está completa: la solicitud del monitor y la conciliación de medicamentos terminaron. No quedan más pasos en este proceso y puede cerrar esta ventana con seguridad.",
+          KR: "Konfigirasyon ACCESS ou fini: demann monitè a ak verifikasyon medikaman yo fini. Pa gen lòt etap nan pwosesis sa a epi ou ka fèmen fenèt sa a san pwoblèm."
+        })
+  },
   {
     intent: "MEDICATION_SAFETY",
     screens: ["MEDICATIONS_REVIEW"],

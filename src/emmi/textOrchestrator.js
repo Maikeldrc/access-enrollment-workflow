@@ -263,7 +263,7 @@ const DOCTOR_STATUS = /who is my (?:care manager|nurse|cardiologist|specialist|c
 // which asks whether that doctor stays involved, and from eligibility, which asks whether the
 // patient qualifies. Answering it means repeating the referral facts and adding nothing.
 const INVITATION_SOURCE = /who (invited|referred|sent)|who is this from|why (am i|did i) (receiving|receive|get|getting)|why was i (invited|referred)|how did you get my|qui[eé]n me (invit[oó]|refiri[oó]|envi[oó])|de qui[eé]n es esta invitaci[oó]n|por qu[eé] (recib[ií]|estoy recibiendo|me lleg[oó])|ki moun ki (envite|refere|voye) m|poukisa m (ap resevwa|resevwa|jwenn)/i;
-const NEXT_STEP = /what happens next|what is next|next step|qu[eé] sigue|pr[oó]ximo paso|kisa k ap pase apre|pwochen etap/i;
+const NEXT_STEP = /what happens next|what is next|what do i need to do next|next step|qu[eé] sigue|qu[eé] necesito hacer ahora|pr[oó]ximo paso|kisa k ap pase apre|kisa pou m f[eè] apre|pwochen etap/i;
 const REPEAT_FOLLOW_UP = /^(can you |could you |please )?(repeat|say that again|repeat that)|^(repita|puede repetir|d[ií]galo otra vez)|^(repete|di sa ank[oò])/i;
 const SIMPLIFY_FOLLOW_UP = /explain (that|it) (more )?simply|simpler|i (did not|didn'?t|don'?t) understand (that|it)|no entend[ií] (eso|esto)|expl[ií]quelo m[aá]s (f[aá]cil|sencillo)|mwen pa konprann|esplike sa pi senp/i;
 // Asking for a person. "I want to speak with a person", "I want to speak to a supervisor" and
@@ -294,7 +294,8 @@ const MEDICATION_SAFETY = new RegExp(
 const asksAboutMeasuringAgain = text => (/\bpressure\b/i.test(text) && /\bagain\b|\bnow\b/i.test(text))
   || (/presi[oó]n/i.test(text) && /otra vez|ahora/i.test(text))
   || (/tansyon/i.test(text) && /ank[oò]|kounye a/i.test(text));
-const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+const LEAVE_PROGRAM = /can i (leave|stop|end|quit)|leave the program|stop participating|end my participation|puedo (dejar|salir|terminar)|dejar el programa|salir del programa|mwen ka (kite|sispann)|kite pwogram/i;
+const MEDICATION_REVIEW_REPORT = /what.*(choose|select|press|tap|mark|report).*(dose|medication)|dose changed|stopped taking|no longer take|qu[eé].*(elijo|selecciono|marco).*(dosis|medicamento)|cambi[oó].*dosis|dej[eé] de tomar|kisa.*(chwazi|make).*(d[oò]z|medikaman)|d[oò]z.*chanje|sispann pran/i;
 // A patient asking whether enrollment is required is exercising choice, not describing legal
 // authority. Keep this ahead of retrieval so phrases such as “puedo decidir que no” cannot be
 // mis-ranked to the Personal Representative page merely because that page also contains “decidir”.
@@ -1028,7 +1029,7 @@ export class EmmiTextOrchestrator {
         if (SAFETY.test(asked)) return { text: pick(locale, { EN: "Thank you for telling me. How you are feeling comes first, so I’d like your care team to look at this. Would you like me to let them know?", ES: "Gracias por contármelo. Cómo se siente es lo primero, así que quiero que su equipo de atención lo revise. ¿Desea que les avise?", KR: "Mèsi paske ou di m sa. Kijan ou santi w se premye bagay, kidonk mwen vle ekip swen ou gade sa. Èske ou vle m fè yo konnen?" }), pendingAction: "clinical-task", trace };
       } catch (error) { emit("EMMI_TOOL_FAILED", { tool: "evaluateClinicalEscalation", error: error?.message || "unknown" }); return { text: retrievalUnavailable(locale), trace }; }
     }
-    if (MEDICATION_SAFETY.test(asked)) {
+    if (MEDICATION_SAFETY.test(asked) && !(context.currentScreen === "MEDICATIONS_REVIEW" && MEDICATION_REVIEW_REPORT.test(asked))) {
       trace.intent = "MEDICATION_SAFETY"; trace.responseMode = "DETERMINISTIC_SAFETY"; emit("EMMI_ANSWER_ROUTED");
       return { ...safetyResponseFor({ locale, medication: true }), trace };
     }

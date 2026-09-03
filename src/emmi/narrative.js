@@ -502,7 +502,7 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "No le diremos que fue enviado hasta que lo esté. Si algo de la solicitud necesita revisarse, su equipo de cuidado puede ayudarle.",
       "Nou p ap di ou li voye jiskaske li voye. Si gen yon bagay nan demann nan ki bezwen tcheke, ekip swen ou ka ede ou."
     ),
-    action: T("Continue to see the health goals your ACCESS care assigned you.", "Continúe para ver los objetivos de salud que le asignó su cuidado ACCESS.", "Kontinye pou wè objektif sante swen ACCESS ou ba ou yo.")
+    action: T("Review your medications while the monitor is being prepared.", "Revise sus medicamentos mientras se prepara el monitor.", "Revize medikaman ou pandan y ap prepare monitè a.")
   }),
 
   ACCESS_SUPPORT_NEEDS: objective({

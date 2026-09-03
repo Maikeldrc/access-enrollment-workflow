@@ -42,6 +42,39 @@ describe("deterministic guardrails are reachable again", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
+  it.each([
+    ["Why do you need my date of birth and ZIP code?", "IDENTITY_VERIFICATION", /match you to the correct care invitation/i],
+    ["What care will I receive through ACCESS?", "CARE_RECOMMENDATION", /connected blood pressure monitor.*personalized care plan/i],
+    ["Can I use two ACCESS providers at the same time?", "CONSENT_REVIEW", /only one participating provider at a time/i],
+    ["What do I need to do next?", "ENROLLMENT_CONFIRMED", /request your blood pressure monitor.*reconcile the medications/i],
+    ["What happens if I choose I’ll do this later?", "ENROLLMENT_CONFIRMED", /enrollment is already complete.*remain pending/i],
+    ["How do I choose the correct cuff size?", "ACCESS_BP_DEVICE_INFO", /Extra Small 15–28 cm.*Standard 22–42 cm.*Extra Large 32–52 cm/i],
+    ["What should I do if the address shown is wrong?", "ACCESS_BP_SHIPPING_ADDRESS", /Use a different address/i],
+    ["How long will shipping take?", "ACCESS_BP_SHIPPING_ADDRESS", /no confirmed shipping date.*tracking number/i],
+    ["What do I need to do while I wait?", "ACCESS_BP_FULFILLMENT_CONFIRMED", /Review my medications/i],
+    ["What happens if I choose I’ll do this later now?", "ACCESS_BP_FULFILLMENT_CONFIRMED", /only the medication reconciliation will remain pending/i],
+    ["What should I choose if my dose changed?", "MEDICATIONS_REVIEW", /Something changed.*does not change the prescription automatically/i],
+    ["What if I stopped taking one of these medicines?", "MEDICATIONS_REVIEW", /Something changed.*no longer taking it/i],
+    ["What if a medication I take is missing?", "MEDICATIONS_REVIEW", /Add another medication/i],
+    ["What should I do if I am not sure?", "MEDICATIONS_REVIEW", /I’m not sure if anything is missing/i],
+    ["Are there any steps left for me?", "ACCESS_ONBOARDING_COMPLETE", /There are no more steps.*safely close/i],
+    ["What happens with my monitor now?", "ACCESS_ONBOARDING_COMPLETE", /being prepared for shipment.*no confirmed shipping or delivery date/i]
+  ])("answers screen-grounded patient question %s", async (question, currentScreen, expected) => {
+    const { orchestrator, executeTool } = harness({ currentScreen, contextExtras: { deviceFulfillmentStatus: currentScreen === "ACCESS_BP_SHIPPING_ADDRESS" ? "NOT_REQUESTED" : "REQUESTED", enrollmentComplete: ["ENROLLMENT_CONFIRMED", "ACCESS_BP_DEVICE_INFO", "ACCESS_BP_SHIPPING_ADDRESS", "ACCESS_BP_FULFILLMENT_CONFIRMED", "MEDICATIONS_REVIEW", "ACCESS_ONBOARDING_COMPLETE"].includes(currentScreen) } });
+    const answer = await orchestrator.answer(question);
+    expect(answer.text).toMatch(expected);
+    expect(answer.trace.responseMode).toBe("DETERMINISTIC_GUARDRAIL");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
+  it("answers a typed request to stop participating without relying on retrieval", async () => {
+    const { orchestrator, executeTool } = harness({ currentScreen: "INVITATION" });
+    const answer = await orchestrator.answer("Can I stop participating later?");
+    expect(answer.text).toMatch(/90 days after enrollment/i);
+    expect(answer.trace.intent).toBe("LEAVE_ACCESS");
+    expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+  });
+
   it("reaches a guardrail through the quick question id when the label is translated", async () => {
     const { orchestrator } = harness({ locale: "KR", currentScreen: "HEALTH_INFORMATION_REVIEW" });
     const answer = await orchestrator.answer("Èske EMMI ka konfime enfòmasyon sa a?", { questionId: "health-emmi-confirm" });
