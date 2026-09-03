@@ -246,6 +246,7 @@ let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiWelcomeTimer = null;
 let emmiVoiceActivationPromise = null;
+let emmiDestinationRevealPending = false;
 let emmiPrewarmLocale = "";
 let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
@@ -1486,6 +1487,14 @@ function ensureEmmiRuntime() {
       // patient speech. Keep the UI state synchronized immediately: otherwise opening Ask EMMI
       // while narration is still playing sees a stale `false` and never reacquires the mic.
       state.assistantVoiceMuted = Boolean(emmiLive?.muted);
+      if (emmiDestinationRevealPending && ["EMMI_SPEAKING", "ERROR", "DISCONNECTED"].includes(voiceState)) {
+        emmiDestinationRevealPending = false;
+        const content = document.querySelector("#screen-content");
+        content?.removeAttribute("inert");
+        content?.removeAttribute("aria-hidden");
+        document.querySelector(".emmi-destination-wait")?.remove();
+        requestAnimationFrame(() => content?.querySelector("h1")?.focus({ preventScroll: true }));
+      }
       refreshVoiceGuidanceControls();
     },
     onTranscript: (role, text, _final, metadata = {}) => {
@@ -6626,7 +6635,8 @@ function render() {
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
   const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : "";
-  app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
+  const emmiDestinationWait = emmiDestinationRevealPending ? `<section class="emmi-destination-wait" role="status" aria-live="polite" aria-label="${L("Preparing EMMI", "Preparando a EMMI", "EMMI ap prepare")}"><img src="/assets/emmi-assistant.png" alt=""><span class="emmi-destination-wait-pulse" aria-hidden="true"></span><strong>${L("EMMI is preparing your next step…", "EMMI está preparando su próximo paso…", "EMMI ap prepare pwochen etap ou a…")}</strong><small>${L("The next screen will open when the voice guidance begins.", "La próxima pantalla se abrirá cuando comience la guía por voz.", "Pwochen ekran an ap louvri lè gid vwa a kòmanse.")}</small></section>` : "";
+  app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content" ${emmiDestinationRevealPending ? "inert aria-hidden=\"true\"" : ""}>${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiDestinationWait}${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
   // Loading the SDK and one short-lived, single-use token does not activate voice or request the
   // microphone. It removes those network waits from the patient's tap, so an immediate move to
@@ -7436,7 +7446,11 @@ async function advance() {
     if (result.status !== "received") { state.error = "reading"; audit(state, "first_reading", "not_received"); render(); return; }
     state.readingReceived = true; state.reading = result; audit(state, "first_reading", "received");
   }
+  const previousScreen = state.screen;
   state.screen = nextScreen(state);
+  if (previousScreen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused && emmiLive?.isConnectionReady()) {
+    emmiDestinationRevealPending = true;
+  }
   // A patient who pressed "Send invitation" and was taken through identity first has not seen it
   // go. They see the confirmation, and Done carries them on to where the enrollment was heading.
   if (state.careCircleJustSent) {
