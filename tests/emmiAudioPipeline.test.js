@@ -183,14 +183,13 @@ describe("EMMI audio pipeline", () => {
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
 
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
-    client.handleMicFrame(new Float32Array(2048).fill(0.2));
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
 
     expect(interruptions).toHaveLength(1);
-    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(6);
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(5);
     expect(client.state).toBe("USER_SPEAKING");
   });
 
@@ -206,9 +205,8 @@ describe("EMMI audio pipeline", () => {
     client.activeTurn = { id: "guide", generationId: 8, contextVersion: 1, priority: "SCREEN_GUIDANCE" };
 
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
-    client.handleMicFrame(new Float32Array(2048).fill(0.2));
     expect(gain.setValueAtTime).toHaveBeenCalledWith(0, 2);
-    for (let index = 0; index < 4; index += 1) client.handleMicFrame(new Float32Array(2048).fill(0.002));
+    for (let index = 0; index < 2; index += 1) client.handleMicFrame(new Float32Array(2048).fill(0.002));
 
     expect(interruptions).toEqual([]);
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();

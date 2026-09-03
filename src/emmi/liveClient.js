@@ -416,9 +416,12 @@ export class EmmiLiveClient {
       // frames begin a short echo probe: duck EMMI locally, then require speech to continue while
       // her output is inaudible. Echo disappears; a real patient keeps talking.
       if (!this.echoProbeActive) {
-        const candidate = rms >= 0.055 && peak >= 0.1;
+        // Start the echo check on the first clear speech-like frame. The check itself still
+        // requires continued energy after EMMI is ducked, so sensitivity here improves response
+        // time without letting a single speaker frame become an interruption.
+        const candidate = rms >= 0.03 && peak >= 0.06;
         this.outputSpeechCandidateFrames = candidate ? this.outputSpeechCandidateFrames + 1 : 0;
-        if (this.outputSpeechCandidateFrames >= 2) this.beginEchoProbe();
+        if (this.outputSpeechCandidateFrames >= 1) this.beginEchoProbe();
         return;
       }
       this.echoProbeFrames += 1;
@@ -429,7 +432,7 @@ export class EmmiLiveClient {
         this.clearEchoProbeState();
         return;
       }
-      if (this.echoProbeFrames >= 4) {
+      if (this.echoProbeFrames >= 2) {
         this.restoreOutputAfterEchoProbe();
         this.bargeIn.reset();
       }
