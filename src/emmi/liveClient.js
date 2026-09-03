@@ -83,6 +83,11 @@ export class EmmiLiveClient {
     this.outputContext = null;
     this.micNode = null;
     this.inputSource = null;
+    // While EMMI is audible, post-AEC microphone frames are held locally until sustained human
+    // speech is detected. This prevents speaker echo from reaching provider VAD without making
+    // the patient press a button before interrupting. The short buffer preserves the first word.
+    this.micPreroll = [];
+    this.maxMicPrerollFrames = 8;
     this.sources = new Map();
     this.nextPlaybackAt = 0;
     this.outputGain = null;
@@ -400,8 +405,26 @@ export class EmmiLiveClient {
     if (audibleOutputActive || patientFloorActive || this.bargeIn.speechActive) {
       this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
     }
+    if (audibleOutputActive) {
+      this.micPreroll.push(samples.slice());
+      if (this.micPreroll.length > this.maxMicPrerollFrames) this.micPreroll.shift();
+      // Do not feed EMMI's own audible output into provider VAD. Once local VAD confirms sustained
+      // patient speech, handlePatientSpeechStart has already stopped playback and the buffered
+      // frames (roughly 300 ms) preserve the beginning of the interruption.
+      if (!this.bargeIn.speechActive) return;
+      const buffered = this.micPreroll.splice(0);
+      buffered.forEach(frame => this.sendMicSamples(frame));
+      return;
+    }
+    this.micPreroll.length = 0;
+    this.sendMicSamples(samples);
+  }
+
+  sendMicSamples(samples) {
+    if (!this.session || !samples?.length) return false;
     const data = pcm16(resample(samples, this.inputContext.sampleRate, EMMI_PROVIDER_SAMPLE_RATE));
     this.session.sendRealtimeInput({ audio: { data: bytesToBase64(data), mimeType: `audio/pcm;rate=${EMMI_PROVIDER_SAMPLE_RATE}` } });
+    return true;
   }
 
   // Every path that tears down capture goes through this, so a reconnect or a device switch can
@@ -857,14 +880,6 @@ ${body}`,
       }
       return false;
     }
-    const passiveGuidance = ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
-    if (passiveGuidance && !this.muted) {
-      // Compact guidance is one-way playback. Leaving capture open lets the provider hear EMMI
-      // through the patient's speakers and classify it as patient speech, which interrupts the
-      // second screen and leaves the following UI oscillating between Listening and Thinking.
-      // Ask EMMI explicitly unmutes from a fresh patient gesture when conversation is desired.
-      void this.setMuted(true);
-    }
     const patientInitiated = ["PATIENT_RESPONSE", "CRITICAL_SAFETY"].includes(metadata.priority);
     if (patientInitiated && this.activeTurn) {
       // A typed question is allowed while voice guidance is playing. Treat it as the same floor
@@ -918,7 +933,7 @@ ${body}`,
       this.outputContext = null;
       this.outputGain = null;
     }
-    this.inputContext = null; this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
+    this.inputContext = null; this.micPreroll.length = 0; this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
     this.setState("DISCONNECTED", reason);
   }
   fail(code) {

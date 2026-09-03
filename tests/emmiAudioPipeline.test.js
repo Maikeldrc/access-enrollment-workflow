@@ -148,7 +148,7 @@ describe("EMMI audio pipeline", () => {
     expect(client.session.sendRealtimeInput).toHaveBeenCalledOnce();
   });
 
-  it("releases microphone capture before passive screen guidance can hear its own speaker", () => {
+  it("keeps microphone capture available during passive guidance for hands-free interruption", () => {
     const track = { stop: vi.fn() };
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }) });
     client.session = { sendClientContent: vi.fn() };
@@ -159,10 +159,37 @@ describe("EMMI audio pipeline", () => {
 
     expect(client.sendText("Explain this screen", { contextVersion: 2, priority: "SCREEN_GUIDANCE" })).toBe(true);
 
-    expect(client.muted).toBe(true);
-    expect(client.stopAudioCapture).toHaveBeenCalledOnce();
-    expect(track.stop).toHaveBeenCalledOnce();
+    expect(client.muted).toBe(false);
+    expect(client.stopAudioCapture).not.toHaveBeenCalled();
+    expect(track.stop).not.toHaveBeenCalled();
     expect(client.session.sendClientContent).toHaveBeenCalledOnce();
+  });
+
+  it("gates speaker echo but flushes patient speech with preroll while EMMI is talking", () => {
+    const interruptions = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onBargeIn: details => interruptions.push(details)
+    });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.inputContext = { sampleRate: 48000 };
+    client.state = "EMMI_SPEAKING";
+    client.activeTurn = { id: "guide", generationId: 3, contextVersion: 2, priority: "SCREEN_GUIDANCE" };
+    client.activeAudioGenerationId = 3;
+    client.sources.set({ stop: vi.fn() }, { metadata: client.activeTurn });
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.01));
+    client.handleMicFrame(new Float32Array(2048).fill(0.01));
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+
+    expect(interruptions).toHaveLength(1);
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(5);
+    expect(client.state).toBe("USER_SPEAKING");
   });
 
   it("keeps the microphone available for a patient-initiated response", () => {

@@ -1495,14 +1495,6 @@ function ensureEmmiRuntime() {
         && (!metadata.narrationId || metadata.narrationId === lastMessage.narrationId);
       if (completesVisibleVoiceTurn) lastMessage.voiceComplete = true;
       emmiTransitionManager?.onTurnComplete(metadata);
-      if (["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority) && !state.assistantOpen) {
-        // Compact screen guidance is playback, not an open conversation. Release the microphone
-        // as soon as narration drains so speaker echo cannot create a phantom patient turn that
-        // leaves the next screen in Thinking. Ask EMMI reopens it from the patient's click.
-        state.assistantVoiceMuted = true;
-        emmiLive?.setState("LISTENING", "guidance_complete");
-        emmiLive?.setMuted(true);
-      }
     },
     onBargeIn: details => {
       const lastMessage = state.assistantMessages.at(-1);

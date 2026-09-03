@@ -9,7 +9,8 @@ describe("EMMI local barge-in detector", () => {
     expect(detector.observeFrame({ rms: 0.005, peak: 0.01, now: 190, outputActive: true })).toBe("SILENCE");
     expect(starts).not.toHaveBeenCalled();
     detector.observeFrame({ rms: 0.05, peak: 0.12, now: 300, outputActive: true });
-    expect(detector.observeFrame({ rms: 0.052, peak: 0.13, now: 390, outputActive: true })).toBe("SPEECH");
+    expect(detector.observeFrame({ rms: 0.052, peak: 0.13, now: 390, outputActive: true })).toBe("PROBABLE_SPEECH");
+    expect(detector.observeFrame({ rms: 0.051, peak: 0.125, now: 480, outputActive: true })).toBe("SPEECH");
     expect(starts).toHaveBeenCalledOnce();
     expect(starts.mock.calls[0][0].detectedAt).toBe(300);
   });

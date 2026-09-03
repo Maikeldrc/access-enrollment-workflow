@@ -11,6 +11,8 @@ export class EmmiBargeInManager {
     onTelemetry = () => {},
     minimumStartRms = 0.025,
     startFrames = 2,
+    minimumOutputStartRms = 0.045,
+    outputStartFrames = 3,
     silenceDurationMs = 1200
   } = {}) {
     this.onSpeechStart = onSpeechStart;
@@ -18,6 +20,8 @@ export class EmmiBargeInManager {
     this.onTelemetry = onTelemetry;
     this.minimumStartRms = minimumStartRms;
     this.startFrames = startFrames;
+    this.minimumOutputStartRms = minimumOutputStartRms;
+    this.outputStartFrames = outputStartFrames;
     this.silenceDurationMs = silenceDurationMs;
     this.reset();
   }
@@ -33,11 +37,14 @@ export class EmmiBargeInManager {
     this.interruptionSource = "";
   }
 
-  threshold() { return clamp(this.noiseFloor * 3.2, this.minimumStartRms, 0.085); }
+  threshold(outputActive = false) {
+    return clamp(this.noiseFloor * 3.2, outputActive ? this.minimumOutputStartRms : this.minimumStartRms, 0.085);
+  }
 
   observeFrame({ rms, peak = 0, now = performance.now(), outputActive = false } = {}) {
     const level = Number.isFinite(rms) ? rms : 0;
-    const speechLike = level >= this.threshold() && peak >= Math.max(0.045, this.threshold() * 1.35);
+    const threshold = this.threshold(outputActive);
+    const speechLike = level >= threshold && peak >= Math.max(0.045, threshold * 1.35);
 
     if (!this.speechActive && !speechLike) {
       // Learn ambient noise slowly, but do not chase EMMI's residual speaker output upward.
@@ -49,12 +56,13 @@ export class EmmiBargeInManager {
       this.probableSpeechAt ||= now;
       this.aboveThresholdFrames += 1;
       this.lastSpeechAt = now;
-      if (!this.speechActive && this.aboveThresholdFrames >= this.startFrames) {
+      const requiredFrames = outputActive ? this.outputStartFrames : this.startFrames;
+      if (!this.speechActive && this.aboveThresholdFrames >= requiredFrames) {
         this.speechActive = true;
         this.speechStartedAt = this.probableSpeechAt || now;
         this.interruptionStartedAt ||= now;
         this.interruptionSource ||= "local_vad";
-        this.onSpeechStart({ source: this.interruptionSource, detectedAt: this.probableSpeechAt || now, confirmedAt: now, outputActive, threshold: this.threshold() });
+        this.onSpeechStart({ source: this.interruptionSource, detectedAt: this.probableSpeechAt || now, confirmedAt: now, outputActive, threshold });
       }
       return this.speechActive ? "SPEECH" : "PROBABLE_SPEECH";
     }
