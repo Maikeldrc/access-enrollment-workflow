@@ -216,19 +216,47 @@ export class EmmiLiveClient {
     this.prewarmedToken = null;
     return this.requestLiveToken(locale);
   }
-  async requestNarrationAudio(text, locale, signal) {
+  async requestNarrationAudio(text, locale, signal, onChunk = () => {}) {
     const key = `${locale}:${text}`;
-    if (this.narrationCache.has(key)) return this.narrationCache.get(key);
+    if (this.narrationCache.has(key)) {
+      const cached = this.narrationCache.get(key);
+      onChunk(cached.data);
+      return cached;
+    }
     const response = await fetch("/api/emmi/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, locale }),
       signal
     });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || !payload.data || !String(payload.mimeType || "").startsWith("audio/pcm")) {
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
       throw new Error(payload.error || "tts_generation_failed");
     }
+    const mimeType = String(response.headers?.get?.("content-type") || "");
+    if (!mimeType.startsWith("audio/pcm") || !response.body?.getReader) throw new Error("tts_invalid_audio_response");
+    const reader = response.body.getReader();
+    const chunks = [];
+    let totalLength = 0;
+    let carry = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      let bytes = value;
+      if (carry) {
+        const joined = new Uint8Array(carry.length + bytes.length);
+        joined.set(carry); joined.set(bytes, carry.length); bytes = joined; carry = null;
+      }
+      if (bytes.length % 2) { carry = bytes.slice(-1); bytes = bytes.slice(0, -1); }
+      if (!bytes.length) continue;
+      chunks.push(bytes); totalLength += bytes.length;
+      onChunk(bytesToBase64(bytes));
+    }
+    if (!totalLength) throw new Error("tts_returned_no_audio");
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    chunks.forEach(chunk => { combined.set(chunk, offset); offset += chunk.length; });
+    const payload = { data: bytesToBase64(combined), mimeType: "audio/pcm;rate=24000" };
     this.narrationCache.set(key, payload);
     if (this.narrationCache.size > 8) this.narrationCache.delete(this.narrationCache.keys().next().value);
     return payload;
@@ -242,18 +270,25 @@ export class EmmiLiveClient {
     turn.deterministicGuidance = true;
     const timeout = setTimeout(() => controller.abort(), EMMI_TTS_REQUEST_TIMEOUT_MS);
     this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_REQUESTED", { turnId: turn.id, generationId: turn.generationId });
-    this.requestNarrationAudio(semanticText, String(this.getContext?.()?.locale || "EN").toUpperCase(), controller.signal)
-      .then(payload => {
+    let started = false;
+    const playChunk = data => {
+      if (this.activeTurn?.generationId !== turn.generationId || controller.signal.aborted) return;
+      const played = this.playAudio(data, turn);
+      if (!played || started) return;
+      started = true;
+      clearTimeout(timeout);
+      this.lastEmmiUtterance = semanticText;
+      this.onTranscript?.("assistant", semanticText, true, turn);
+      this.setState("EMMI_SPEAKING", "deterministic_guidance");
+      this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_STARTED", { turnId: turn.id, generationId: turn.generationId });
+    };
+    this.requestNarrationAudio(semanticText, String(this.getContext?.()?.locale || "EN").toUpperCase(), controller.signal, playChunk)
+      .then(() => {
         if (this.activeTurn?.generationId !== turn.generationId || controller.signal.aborted) return;
         this.narrationAbortController = null;
-        const played = this.playAudio(payload.data, turn);
-        if (!played) throw new Error("tts_audio_playback_failed");
+        if (!started) throw new Error("tts_audio_playback_failed");
         turn.providerTurnComplete = true;
         turn.providerTurnCompleteAt = performance.now();
-        this.lastEmmiUtterance = semanticText;
-        this.onTranscript?.("assistant", semanticText, true, turn);
-        this.setState("EMMI_SPEAKING", "deterministic_guidance");
-        this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_STARTED", { turnId: turn.id, generationId: turn.generationId });
         this.finishTurnIfDrained(turn.generationId);
       })
       .catch(error => {

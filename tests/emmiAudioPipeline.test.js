@@ -182,7 +182,10 @@ describe("EMMI audio pipeline", () => {
     client.session = { sendRealtimeInput: vi.fn() };
     client.state = "LISTENING";
     client.setActiveContextVersion(8);
-    client.requestNarrationAudio = vi.fn().mockResolvedValue({ data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" });
+    client.requestNarrationAudio = vi.fn().mockImplementation(async (text, locale, signal, onChunk) => {
+      onChunk("AQIDBA==");
+      return { data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" };
+    });
     client.playAudio = vi.fn((data, turn) => {
       turn.firstAudioReceivedAt = performance.now();
       client.sources.set({}, { metadata: turn });
@@ -195,7 +198,7 @@ describe("EMMI audio pipeline", () => {
     })).toBe(true);
     await vi.waitFor(() => expect(client.state).toBe("EMMI_SPEAKING"));
 
-    expect(client.requestNarrationAudio).toHaveBeenCalledWith(script, "EN", expect.any(AbortSignal));
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith(script, "EN", expect.any(AbortSignal), expect.any(Function));
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
     expect(client.activeTurn).toMatchObject({ deterministicGuidance: true, providerTurnComplete: true });
     expect(transcripts).toEqual([{ role: "assistant", text: script }]);

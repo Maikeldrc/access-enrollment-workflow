@@ -3,10 +3,18 @@ import { buildEmmiTtsRequest, extractEmmiTtsAudio, handleEmmiTts, resetEmmiTtsRa
 
 const call = async ({ method = "POST", env = {}, body = {}, generate } = {}) => {
   let raw = "";
+  const audioChunks = [];
   const headers = {};
-  const res = { statusCode: 0, setHeader: (name, value) => { headers[name] = value; }, end: value => { raw = value; } };
+  const res = {
+    statusCode: 0,
+    setHeader: (name, value) => { headers[name] = value; },
+    write: value => { audioChunks.push(Buffer.from(value)); },
+    end: value => { if (value) raw = value; },
+    get headersSent() { return audioChunks.length > 0; }
+  };
   await handleEmmiTts({ method, body, headers: {}, socket: { remoteAddress: "tts-test" } }, res, env, generate);
-  return { status: res.statusCode, headers, body: JSON.parse(raw) };
+  const isAudio = String(headers["Content-Type"] || "").startsWith("audio/pcm");
+  return { status: res.statusCode, headers, body: isAudio ? Buffer.concat(audioChunks) : JSON.parse(raw) };
 };
 
 describe("EMMI deterministic screen narration", () => {
@@ -25,10 +33,11 @@ describe("EMMI deterministic screen narration", () => {
     expect(request.contents[0].parts[0].text).toContain("<script>Choose Continue.</script>");
   });
 
-  it("returns provider PCM without exposing the API key or prompt", async () => {
+  it("streams provider PCM without exposing the API key or prompt", async () => {
     const generate = vi.fn().mockResolvedValue({ candidates: [{ content: { parts: [{ inlineData: { data: "AQID", mimeType: "audio/pcm;rate=24000" } }] } }] });
     const result = await call({ env: { EMMI_PROTOTYPE_MODE: "true" }, body: { text: "Choose Continue.", locale: "EN" }, generate });
-    expect(result).toMatchObject({ status: 200, body: { data: "AQID", mimeType: "audio/pcm;rate=24000", voiceIdentity: { voiceId: "Sulafat" } } });
+    expect(result).toMatchObject({ status: 200, headers: { "Content-Type": "audio/pcm;rate=24000" } });
+    expect([...result.body]).toEqual([1, 2, 3]);
     expect(generate).toHaveBeenCalledOnce();
     expect(JSON.stringify(result)).not.toContain("GEMINI_API_KEY");
   });

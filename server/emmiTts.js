@@ -26,6 +26,12 @@ const json = (res, status, body) => {
   res.setHeader("Cache-Control", "no-store, max-age=0");
   res.end(JSON.stringify(body));
 };
+const beginAudio = res => {
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "audio/pcm;rate=24000");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+};
 const readBody = async req => {
   if (typeof req.body === "object" && req.body) return req.body;
   return new Promise(resolve => {
@@ -80,13 +86,22 @@ export async function handleEmmiTts(req, res, env = process.env, generate = null
 
   try {
     const request = buildEmmiTtsRequest({ text, locale: identity.locale, model: env.GEMINI_TTS_MODEL || DEFAULT_MODEL });
-    const response = generate
+    const generated = generate
       ? await generate(request)
-      : await new GoogleGenAI({ apiKey: env.GEMINI_API_KEY }).models.generateContent(request);
-    const audio = extractEmmiTtsAudio(response);
-    if (!audio) return json(res, 502, { error: "tts_returned_no_audio" });
-    return json(res, 200, { ...audio, voiceIdentity: identity });
+      : await new GoogleGenAI({ apiKey: env.GEMINI_API_KEY }).models.generateContentStream(request);
+    const stream = generated?.[Symbol.asyncIterator] ? generated : (async function* () { yield generated; })();
+    let wroteAudio = false;
+    for await (const chunk of stream) {
+      const audio = extractEmmiTtsAudio(chunk);
+      if (!audio) continue;
+      if (!wroteAudio) beginAudio(res);
+      wroteAudio = true;
+      res.write(Buffer.from(audio.data, "base64"));
+    }
+    if (!wroteAudio) return json(res, 502, { error: "tts_returned_no_audio" });
+    return res.end();
   } catch (error) {
+    if (res.headersSent) return res.end();
     const status = error?.status === 429 || error?.code === 429 ? 429 : 502;
     return json(res, status, { error: status === 429 ? "rate_limited" : "tts_generation_failed" });
   }
