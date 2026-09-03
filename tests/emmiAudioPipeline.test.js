@@ -171,6 +171,51 @@ describe("EMMI audio pipeline", () => {
     expect(client.session.sendClientContent).toHaveBeenCalledOnce();
   });
 
+  it("narrates approved screen guidance through deterministic TTS without consuming a Live turn", async () => {
+    const transcripts = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "ACCESS_ENROLLMENT_CONFIRMED" }),
+      onTranscript: (role, text) => transcripts.push({ role, text }),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.state = "LISTENING";
+    client.setActiveContextVersion(8);
+    client.requestNarrationAudio = vi.fn().mockResolvedValue({ data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" });
+    client.playAudio = vi.fn((data, turn) => {
+      turn.firstAudioReceivedAt = performance.now();
+      client.sources.set({}, { metadata: turn });
+      return true;
+    });
+    const script = "Your enrollment is complete. Choose Set up my care to continue now, or choose I'll do this later.";
+
+    expect(client.sendText("provider instruction", {
+      id: "access-welcome", contextVersion: 8, priority: "SCREEN_GUIDANCE", semanticText: script
+    })).toBe(true);
+    await vi.waitFor(() => expect(client.state).toBe("EMMI_SPEAKING"));
+
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith(script, "EN", expect.any(AbortSignal));
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    expect(client.activeTurn).toMatchObject({ deterministicGuidance: true, providerTurnComplete: true });
+    expect(transcripts).toEqual([{ role: "assistant", text: script }]);
+    expect(telemetry).toContain("EMMI_TTS_GUIDANCE_STARTED");
+  });
+
+  it("falls back to the existing Live route when deterministic narration is unavailable", async () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.state = "LISTENING";
+    client.setActiveContextVersion(1);
+    client.requestNarrationAudio = vi.fn().mockRejectedValue(new Error("unavailable"));
+
+    expect(client.sendText("Explain the invitation", {
+      id: "invitation", contextVersion: 1, priority: "SCREEN_GUIDANCE", semanticText: "Review this invitation, then choose Get started."
+    })).toBe(true);
+    await vi.waitFor(() => expect(client.session.sendRealtimeInput).toHaveBeenCalledOnce());
+    expect(client.session.sendRealtimeInput.mock.calls[0][0].text).toContain("Explain the invitation");
+  });
+
   it("prepares microphone capture while the live socket is still opening", async () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     const opening = deferred();

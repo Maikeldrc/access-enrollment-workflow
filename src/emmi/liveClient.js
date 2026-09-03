@@ -38,6 +38,7 @@ export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
 // look broken whenever Gemini left a turn open without PCM; retry while the patient's attention
 // is still on the screen, while retaining the single-retry guard against duplicate narration.
 export const EMMI_GUIDANCE_START_TIMEOUT_MS = 3500;
+export const EMMI_TTS_REQUEST_TIMEOUT_MS = 5500;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
 export const EMMI_PREWARM_MAX_AGE_MS = 45000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=4";
@@ -86,6 +87,8 @@ export class EmmiLiveClient {
     this.prewarmTokenPromise = null;
     this.prewarmedToken = null;
     this.prewarmLocale = "";
+    this.narrationAbortController = null;
+    this.narrationCache = new Map();
     this.connectionPromise = null;
     this.microphonePromise = null;
     this.audioCapturePromise = null;
@@ -212,6 +215,61 @@ export class EmmiLiveClient {
     }
     this.prewarmedToken = null;
     return this.requestLiveToken(locale);
+  }
+  async requestNarrationAudio(text, locale, signal) {
+    const key = `${locale}:${text}`;
+    if (this.narrationCache.has(key)) return this.narrationCache.get(key);
+    const response = await fetch("/api/emmi/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, locale }),
+      signal
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.data || !String(payload.mimeType || "").startsWith("audio/pcm")) {
+      throw new Error(payload.error || "tts_generation_failed");
+    }
+    this.narrationCache.set(key, payload);
+    if (this.narrationCache.size > 8) this.narrationCache.delete(this.narrationCache.keys().next().value);
+    return payload;
+  }
+  speakScriptedGuidance(turn, text) {
+    const semanticText = String(turn?.semanticText || "").trim();
+    if (!turn || !semanticText || turn.guidanceRetryCount) return false;
+    const controller = new AbortController();
+    this.narrationAbortController?.abort();
+    this.narrationAbortController = controller;
+    turn.deterministicGuidance = true;
+    const timeout = setTimeout(() => controller.abort(), EMMI_TTS_REQUEST_TIMEOUT_MS);
+    this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_REQUESTED", { turnId: turn.id, generationId: turn.generationId });
+    this.requestNarrationAudio(semanticText, String(this.getContext?.()?.locale || "EN").toUpperCase(), controller.signal)
+      .then(payload => {
+        if (this.activeTurn?.generationId !== turn.generationId || controller.signal.aborted) return;
+        this.narrationAbortController = null;
+        const played = this.playAudio(payload.data, turn);
+        if (!played) throw new Error("tts_audio_playback_failed");
+        turn.providerTurnComplete = true;
+        turn.providerTurnCompleteAt = performance.now();
+        this.lastEmmiUtterance = semanticText;
+        this.onTranscript?.("assistant", semanticText, true, turn);
+        this.setState("EMMI_SPEAKING", "deterministic_guidance");
+        this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_STARTED", { turnId: turn.id, generationId: turn.generationId });
+        this.finishTurnIfDrained(turn.generationId);
+      })
+      .catch(error => {
+        if (this.activeTurn?.generationId !== turn.generationId) return;
+        this.narrationAbortController = null;
+        turn.deterministicGuidance = false;
+        this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_FALLBACK", { turnId: turn.id, generationId: turn.generationId, reason: error?.name || "request_failed" });
+        if (!this.sendPreparedTurnToLive(turn, text)) {
+          this.activeTurn = null;
+          this.activeAudioGenerationId = 0;
+          this.setState("LISTENING", "guidance_unavailable");
+          this.onError?.("VOICE_PROVIDER_ERROR");
+        }
+      })
+      .finally(() => clearTimeout(timeout));
+    return true;
   }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
   retrySilentGuidance(turn, reason = "silent") {
@@ -963,6 +1021,8 @@ export class EmmiLiveClient {
   }
   stopPlayback({ fadeMs = 0 } = {}) {
     this.clearEchoProbeState();
+    this.narrationAbortController?.abort();
+    this.narrationAbortController = null;
     if (this.fallbackUtterance) {
       this.fallbackUtterance = null;
       globalThis.speechSynthesis?.cancel?.();
@@ -1066,6 +1126,17 @@ export class EmmiLiveClient {
   beginGracefulHandoff({ nextContextVersion, allowedTurnId = "", preserve = false, maxGracefulHandoffMs = 2500 } = {}) {
     this.setActiveContextVersion(nextContextVersion);
     if (this.gracefulHandoff) this.finishGracefulHandoff("superseded");
+    if (this.activeTurn?.deterministicGuidance) {
+      const replaced = this.activeTurn;
+      this.interruptedGenerationIds.add(replaced.generationId);
+      this.activeTurn = null;
+      this.activeAudioGenerationId = 0;
+      this.clearTurnWatchdog();
+      this.stopPlayback({ fadeMs: 60 });
+      this.setState("LISTENING", "screen_guidance_replaced");
+      this.emitVoiceTelemetry("EMMI_TTS_GUIDANCE_REPLACED", { turnId: replaced.id, generationId: replaced.generationId });
+      return Promise.resolve({ reason: "screen_guidance_replaced", durationMs: 0, forcedReconnect: false });
+    }
     if (!this.activeTurn || !["EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING"].includes(this.state)) {
       this.allowedGracefulTurnId = "";
       return Promise.resolve({ reason: "idle", durationMs: 0 });
@@ -1159,6 +1230,31 @@ export class EmmiLiveClient {
     } catch { return false; }
   }
 
+  sendPreparedTurnToLive(turn, text) {
+    if (!this.session || this.activeTurn?.generationId !== turn.generationId) return false;
+    const runtime = this.getContext?.() || {};
+    const continuity = runtime.emmiConversation || {};
+    const liveContext = {
+      conversationMode: continuity.conversationMode || "CONTINUATION",
+      greetingAllowed: Boolean(continuity.greetingAllowed),
+      currentScreen: runtime.currentScreen || "",
+      previousScreen: continuity.previousScreen || "",
+      currentStage: runtime.currentStage || "",
+      currentGoal: continuity.currentGoal || runtime.activeGoal || null,
+      lastUserIntent: continuity.lastUserIntent || "",
+      nextBestAction: runtime.nextBestAction || null,
+      view: runtime.view || null
+    };
+    const staged = this.pendingContextUpdate;
+    this.pendingContextUpdate = null;
+    const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
+    if (!this.sendRealtimeText(contextualTurn)) return false;
+    if (staged) this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: staged.label, contextVersion: this.activeContextVersion, boundToTurn: true });
+    this.touchTurnWatchdog(turn.generationId);
+    this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId: turn.generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "", route: "live" });
+    return true;
+  }
+
   // Gemini 3.1 Live accepts conversational text through realtime input. Binding the newest screen
   // context and the narration into this single input preserves ordering and minimizes latency.
   sendText(text, metadata = {}) {
@@ -1205,29 +1301,11 @@ export class EmmiLiveClient {
     this.awaitingPatientResponse = false;
     this.patientResponseReady = false;
     this.setState("EMMI_THINKING");
-    const runtime = this.getContext?.() || {};
-    const continuity = runtime.emmiConversation || {};
-    const liveContext = {
-      conversationMode: continuity.conversationMode || "CONTINUATION",
-      greetingAllowed: Boolean(continuity.greetingAllowed),
-      currentScreen: runtime.currentScreen || "",
-      previousScreen: continuity.previousScreen || "",
-      currentStage: runtime.currentStage || "",
-      currentGoal: continuity.currentGoal || runtime.activeGoal || null,
-      lastUserIntent: continuity.lastUserIntent || "",
-      nextBestAction: runtime.nextBestAction || null,
-      // What is on the screen right now. Rides along here as well as on the silent channel,
-      // because a turn the app initiates is the one moment we can be certain the model reads.
-      view: runtime.view || null
-    };
-    const staged = this.pendingContextUpdate;
-    this.pendingContextUpdate = null;
-    const contextualTurn = `[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: ${JSON.stringify(liveContext)}]\n${text}`;
-    if (!this.sendRealtimeText(contextualTurn)) return false;
-    if (staged) this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: staged.label, contextVersion: this.activeContextVersion, boundToTurn: true });
-    this.touchTurnWatchdog(generationId);
-    this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority || "" });
-    return true;
+    if (["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) && this.speakScriptedGuidance(turn, text)) {
+      this.emitVoiceTelemetry("EMMI_VOICE_TURN_SENT", { turnId: turn.id, generationId, sentAt: Math.round(turn.clientTurnSentAt), priority: turn.priority, route: "tts" });
+      return true;
+    }
+    return this.sendPreparedTurnToLive(turn, text);
   }
   async setMuted(value) {
     this.muted = Boolean(value);
