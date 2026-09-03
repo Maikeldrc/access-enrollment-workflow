@@ -26,33 +26,33 @@ const quantaOf = (count, size = 128, fill = index => index) =>
 describe("EMMI audio pipeline", () => {
   it("keeps the provider contract the previous pipeline established", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
-    expect(EMMI_MIC_FRAME_SIZE).toBe(2048);
-    expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v3");
-    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
+    expect(EMMI_MIC_FRAME_SIZE).toBe(1024);
+    expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v4");
+    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(750);
     expect(EMMI_GUIDANCE_START_TIMEOUT_MS).toBe(3500);
   });
 
   it("aggregates render quanta into one provider-sized frame instead of sending each one", () => {
-    // 4096 / 128 = 32 quanta per frame. Sending each quantum would be ~375 messages a second
-    // at 48 kHz; this keeps it at roughly twelve.
-    const { frames, pending } = collectFrames(quantaOf(16));
+    // 1024 / 128 = 8 quanta per frame. Sending each quantum would be ~375 messages a second
+    // at 48 kHz; this stays bounded while making hands-free interruption responsive.
+    const { frames, pending } = collectFrames(quantaOf(8));
     expect(frames).toHaveLength(1);
     expect(frames[0]).toHaveLength(EMMI_MIC_FRAME_SIZE);
     expect(pending).toBe(0);
     const messagesPerSecond = 48000 / EMMI_MIC_FRAME_SIZE;
-    expect(messagesPerSecond).toBeLessThan(25);
+    expect(messagesPerSecond).toBeLessThan(50);
   });
 
   it("loses no samples and never reorders them across frame boundaries", () => {
     const { frames, pending } = collectFrames(quantaOf(35));
-    expect(frames).toHaveLength(2);
-    expect(pending).toBe(35 * 128 - 2 * EMMI_MIC_FRAME_SIZE);
+    expect(frames).toHaveLength(4);
+    expect(pending).toBe(35 * 128 - 4 * EMMI_MIC_FRAME_SIZE);
     const flattened = frames.flatMap(frame => [...frame]);
-    expect(flattened).toEqual(Array.from({ length: 2 * EMMI_MIC_FRAME_SIZE }, (_, index) => index));
+    expect(flattened).toEqual(Array.from({ length: 4 * EMMI_MIC_FRAME_SIZE }, (_, index) => index));
   });
 
   it("hands each frame out as its own buffer so a transferred frame is never overwritten", () => {
-    const { frames } = collectFrames(quantaOf(32));
+    const { frames } = collectFrames(quantaOf(16));
     expect(frames).toHaveLength(2);
     expect(frames[0].buffer).not.toBe(frames[1].buffer);
     expect(frames[0][0]).toBe(0);
@@ -63,8 +63,8 @@ describe("EMMI audio pipeline", () => {
     const frame = Float32Array.from({ length: EMMI_MIC_FRAME_SIZE }, (_, index) => Math.sin(index / 20));
     const resampled = resample(frame, 48000, EMMI_PROVIDER_SAMPLE_RATE);
     expect(resampled).toHaveLength(Math.round(EMMI_MIC_FRAME_SIZE / 3));
-    // ~85 ms per packet, matching the cadence of the pipeline this replaced.
-    expect((resampled.length / EMMI_PROVIDER_SAMPLE_RATE) * 1000).toBeCloseTo(42.7, 1);
+    // ~21 ms per packet at 48 kHz keeps local interruption detection responsive.
+    expect((resampled.length / EMMI_PROVIDER_SAMPLE_RATE) * 1000).toBeCloseTo(21.3, 1);
   });
   it("attenuates frequencies above destination Nyquist", () => { const rate = 48000; const tone = Float32Array.from({ length: 4800 }, (_, index) => Math.sin(2 * Math.PI * 12000 * index / rate)); const output = resample(tone, rate, 16000); const rms = Math.sqrt(output.reduce((sum, value) => sum + value * value, 0) / output.length); expect(rms).toBeLessThan(0.08); });
 

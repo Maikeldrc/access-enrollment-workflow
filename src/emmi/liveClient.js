@@ -28,18 +28,18 @@ export const resample = (input, fromRate, toRate) => {
 export const lowPassForDownsampling = (input, fromRate, toRate, taps = 31) => { if (fromRate <= toRate) return input; const half = taps >> 1, cutoff = (toRate / fromRate) * .45, kernel = new Float32Array(taps); let total=0; for(let i=0;i<taps;i++){const d=i-half,s=d===0?2*cutoff:Math.sin(2*Math.PI*cutoff*d)/(Math.PI*d),w=.54-.46*Math.cos(2*Math.PI*i/(taps-1));kernel[i]=s*w;total+=kernel[i];} for(let i=0;i<taps;i++)kernel[i]/=total; const out=new Float32Array(input.length); for(let i=0;i<input.length;i++){let v=0;for(let k=0;k<taps;k++)v+=input[Math.max(0,Math.min(input.length-1,i+k-half))]*kernel[k];out[i]=v;} return out; };
 // The provider contract this pipeline has to keep: 16 kHz mono PCM16, little endian, base64.
 export const EMMI_PROVIDER_SAMPLE_RATE = 16000;
-export const EMMI_END_OF_SPEECH_SILENCE_MS = 1200;
-// One captured frame at the device rate. At a typical 48 kHz that is ~85 ms of audio, which is
-// the packet cadence the previous pipeline produced.
-export const EMMI_MIC_FRAME_SIZE = 2048;
-export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v3";
+export const EMMI_END_OF_SPEECH_SILENCE_MS = 750;
+// One captured frame at the device rate. At 48 kHz this is ~21 ms of audio, short enough for a
+// natural interruption while still batching eight 128-sample AudioWorklet render quanta.
+export const EMMI_MIC_FRAME_SIZE = 1024;
+export const EMMI_AUDIO_PIPELINE_VERSION = "emmi-audio-v4";
 export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
 // Normal live guidance begins well under two seconds. A longer wait made the first form screen
 // look broken whenever Gemini left a turn open without PCM; retry while the patient's attention
 // is still on the screen, while retaining the single-retry guard against duplicate narration.
 export const EMMI_GUIDANCE_START_TIMEOUT_MS = 3500;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
-const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=3";
+const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=4";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
 // the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
 export const supportsAudioWorklet = (context, scope = globalThis) =>
@@ -87,7 +87,7 @@ export class EmmiLiveClient {
     // speech is detected. This prevents speaker echo from reaching provider VAD without making
     // the patient press a button before interrupting. The short buffer preserves the first word.
     this.micPreroll = [];
-    this.maxMicPrerollFrames = 8;
+    this.maxMicPrerollFrames = 16;
     this.outputSpeechCandidateFrames = 0;
     this.echoProbeActive = false;
     this.echoProbeFrames = 0;

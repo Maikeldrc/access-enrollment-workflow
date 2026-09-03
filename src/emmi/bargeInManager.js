@@ -13,7 +13,7 @@ export class EmmiBargeInManager {
     startFrames = 2,
     minimumOutputStartRms = 0.045,
     outputStartFrames = 3,
-    silenceDurationMs = 1200
+    silenceDurationMs = 750
   } = {}) {
     this.onSpeechStart = onSpeechStart;
     this.onSpeechEnd = onSpeechEnd;
