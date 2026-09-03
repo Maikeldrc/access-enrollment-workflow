@@ -237,7 +237,7 @@ export class EmmiLiveClient {
     const retryCount = Number(turn?.guidanceRetryCount || 0);
     // One clean-session recovery is enough before switching to deterministic local narration.
     // Reopening more sockets adds seconds while a degraded provider keeps returning empty turns.
-    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || retryCount >= 1 || !turn.retryText) return false;
+    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || retryCount >= 3 || !turn.retryText) return false;
     const generationId = turn.generationId;
     const nextRetryCount = retryCount + 1;
     const metadata = {
@@ -279,7 +279,15 @@ export class EmmiLiveClient {
         this.onTurnComplete?.(turn);
       };
       utterance.onend = () => finish("local_guidance_complete");
-      utterance.onerror = () => finish("local_guidance_ended");
+      utterance.onerror = () => {
+        if (this.fallbackUtterance !== utterance) return;
+        this.fallbackUtterance = null;
+        // Headless browsers and a few locked-down devices expose the Web Speech API but cannot
+        // start a voice. Return to Gemini with a bounded extra clean session in that case.
+        if (this.restartSilentGuidance(turn, "local_guidance_failed")) return;
+        this.fallbackUtterance = utterance;
+        finish("local_guidance_ended");
+      };
       this.fallbackUtterance = utterance;
       turn.firstAudioReceivedAt = performance.now();
       turn.providerTurnComplete = true;
@@ -308,8 +316,9 @@ export class EmmiLiveClient {
         // Partial transcript activity must not keep a silent guidance turn in Thinking forever.
         // Retry the same screen once; transient provider gaps otherwise make the second screen
         // silent while the next navigation happens to work.
-        if (this.restartSilentGuidance(timedOut, "start_timeout")) return;
+        if (!timedOut.guidanceRetryCount && this.restartSilentGuidance(timedOut, "start_timeout")) return;
         if (this.speakGuidanceFallback(timedOut, "start_timeout")) return;
+        if (this.restartSilentGuidance(timedOut, "start_timeout")) return;
         this.interruptedGenerationIds.add(generationId);
         this.activeTurn = null;
         this.activeAudioGenerationId = 0;
@@ -859,8 +868,9 @@ export class EmmiLiveClient {
         // just after a context handoff. Restart once on a clean session and make the destination
         // its first turn; waiting for a watchdog cannot help because this turn already finished.
         if (!completed.firstAudioReceivedAt) {
-          if (this.restartSilentGuidance(completed, "empty_provider_turn")) return;
+          if (!completed.guidanceRetryCount && this.restartSilentGuidance(completed, "empty_provider_turn")) return;
           if (this.speakGuidanceFallback(completed, "empty_provider_turn")) return;
+          if (this.restartSilentGuidance(completed, "empty_provider_turn")) return;
         }
         this.finishTurnIfDrained(completed.generationId);
       } else if (!this.awaitingPatientResponse && this.state !== "CONNECTING" && !this.pendingConnectionTurn) {

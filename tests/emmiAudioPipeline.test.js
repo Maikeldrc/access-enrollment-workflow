@@ -284,7 +284,7 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_MUTED_INPUT_TRANSCRIPT_IGNORED");
   });
 
-  it("uses one bounded clean-session recovery when guidance completes without audio", async () => {
+  it("bounds clean-session recovery when local speech is unavailable", async () => {
     const completed = [];
     const telemetry = [];
     const client = new EmmiLiveClient({
@@ -324,6 +324,12 @@ describe("EMMI audio pipeline", () => {
     expect(completed).toHaveLength(0);
     expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
 
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+    expect(client.connect).toHaveBeenCalledTimes(2);
+    expect(client.activeTurn).toMatchObject({ guidanceRetryCount: 2 });
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+    expect(client.connect).toHaveBeenCalledTimes(3);
+    expect(client.activeTurn).toMatchObject({ guidanceRetryCount: 3 });
     await client.handleMessage({ serverContent: { turnComplete: true } });
 
     expect(client.session.sendClientContent).toHaveBeenCalledTimes(1);
@@ -614,6 +620,8 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
     expect(client.activeTurn.guidanceRetryCount).toBe(1);
     expect(client.connect).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(75);
+    vi.advanceTimersByTime(75);
     vi.advanceTimersByTime(75);
 
     expect(errors).toEqual([]);
