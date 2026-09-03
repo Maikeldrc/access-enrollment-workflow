@@ -244,10 +244,6 @@ let emmiConversationManager = null;
 let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
-let emmiWelcomeTimer = null;
-let emmiVoiceActivationPromise = null;
-let emmiDestinationRevealPending = false;
-let emmiDestinationRevealTimer = null;
 let emmiPrewarmLocale = "";
 let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
@@ -1488,14 +1484,6 @@ function ensureEmmiRuntime() {
       // patient speech. Keep the UI state synchronized immediately: otherwise opening Ask EMMI
       // while narration is still playing sees a stale `false` and never reacquires the mic.
       state.assistantVoiceMuted = Boolean(emmiLive?.muted);
-      if (emmiDestinationRevealPending && voiceState === "EMMI_SPEAKING" && !emmiDestinationRevealTimer) {
-        // The first PCM packet can be followed by a short provider buffer gap. Reveal after audio
-        // has begun and had a moment to establish, so the second UI never appears into what feels
-        // like silence even if the visible state briefly returns to Thinking.
-        emmiDestinationRevealTimer = setTimeout(revealEmmiDestination, 1000);
-      } else if (emmiDestinationRevealPending && ["ERROR", "DISCONNECTED"].includes(voiceState)) {
-        revealEmmiDestination();
-      }
       refreshVoiceGuidanceControls();
     },
     onTranscript: (role, text, _final, metadata = {}) => {
@@ -6636,8 +6624,7 @@ function render() {
   const renderer = renderers[state.screen] || (() => `${titleBlock(L("We need a moment", "Necesitamos un momento", "Nou bezwen yon ti moman"), L("Please call our care team for help.", "Llame a nuestro equipo de cuidado para obtener ayuda.", "Tanpri rele ekip swen nou an pou jwenn èd."))}`);
   const screenClass = state.screen === "DECISION_MAKER" ? "decision-maker-screen" : ["CARE_CIRCLE_INVITE", "CARE_CIRCLE_INVITE_SENT", "CARE_CIRCLE_PERMISSIONS", "MY_CARE_CIRCLE", "CARE_CIRCLE_REMOVE_CONFIRMATION", "SHARE_ACCESS"].includes(state.screen) ? `growth-screen${state.screen === "CARE_CIRCLE_INVITE" ? " care-circle-invite-screen" : ""}` : ["PERSONAL_REPRESENTATIVE_DETAILS", "REPRESENTATIVE_MOBILE_VERIFICATION", "REPRESENTATIVE_AUTHORITY_ATTESTATION", "REPRESENTATIVE_AUTHORITY_ESCALATION"].includes(state.screen) ? "representative-details-screen" : state.screen === "IDENTITY_VERIFICATION" ? "identity-screen" : state.screen === "CARE_RECOMMENDATION" ? "recommendation-screen" : state.screen === "HOW_CARE_WORKS" ? "care-works-screen" : state.screen === "DISCLOSURE" ? `important-information-screen${state.offer?.pathway === "ACCESS" ? " access-disclosure-screen" : ""}` :state.screen === "CONSENT_REVIEW" ? `consent-screen${state.offer?.pathway === "ACCESS" ? " access-consent-screen" : ""}` : state.screen === "ACCESS_PRE_ELIGIBILITY_NOTICE" ? "access-notice-screen" : state.screen === "ACCESS_ELIGIBILITY_PROCESSING" ? `eligibility-processing-screen${state.eligibilityError ? " eligibility-error-screen" : ""}` : state.screen === "CLINICAL_VERIFICATION" ? "health-information-review-screen" : state.screen === "MEDICATIONS_REVIEW" ? "medication-review-screen" : ["GOALS", "MY_GOALS"].includes(state.screen) ? "goals-screen" : "";
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : "";
-  const emmiDestinationWait = emmiDestinationRevealPending ? `<section class="emmi-destination-wait" role="status" aria-live="polite" aria-label="${L("Preparing EMMI", "Preparando a EMMI", "EMMI ap prepare")}"><img src="/assets/emmi-assistant.png" alt=""><span class="emmi-destination-wait-pulse" aria-hidden="true"></span><strong>${L("EMMI is preparing your next step…", "EMMI está preparando su próximo paso…", "EMMI ap prepare pwochen etap ou a…")}</strong><small>${L("The next screen will open when the voice guidance begins.", "La próxima pantalla se abrirá cuando comience la guía por voz.", "Pwochen ekran an ap louvri lè gid vwa a kòmanse.")}</small></section>` : "";
-  app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content" ${emmiDestinationRevealPending ? "inert aria-hidden=\"true\"" : ""}>${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiDestinationWait}${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
+  app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
   // Loading the SDK and one short-lived, single-use token does not activate voice or request the
   // microphone. It removes those network waits from the patient's tap, so an immediate move to
@@ -6660,18 +6647,6 @@ function render() {
   // it compares meaning, so a paint that changed nothing sends nothing.
   syncEmmiViewContext();
   finishRender(scrollSnapshot, errorAppeared);
-}
-
-function revealEmmiDestination() {
-  clearTimeout(emmiDestinationRevealTimer);
-  emmiDestinationRevealTimer = null;
-  if (!emmiDestinationRevealPending) return;
-  emmiDestinationRevealPending = false;
-  const content = document.querySelector("#screen-content");
-  content?.removeAttribute("inert");
-  content?.removeAttribute("aria-hidden");
-  document.querySelector(".emmi-destination-wait")?.remove();
-  requestAnimationFrame(() => content?.querySelector("h1")?.focus({ preventScroll: true }));
 }
 
 function bindPrototypeSetup() {
@@ -6982,24 +6957,6 @@ async function finalizeAccessBpBaseline({ navigate = true } = {}) {
 
 async function advance() {
   state.error = "";
-  clearTimeout(emmiWelcomeTimer);
-  emmiWelcomeTimer = null;
-  // If the patient enables voice and immediately presses Start, keep the connection wait on the
-  // invitation instead of landing on a silent second screen. Once the channel is ready, discard
-  // the superseded welcome so the destination guidance is the very first provider turn.
-  if (state.screen === "INVITATION" && state.emmiVoiceGuidance && emmiLive && (!emmiLive.isConnectionReady() || emmiVoiceActivationPromise)) {
-    emmiLive.discardPendingConnectionTurn("INVITATION");
-    const startButton = document.querySelector('[data-action="next"]');
-    if (startButton) {
-      startButton.disabled = true;
-      startButton.setAttribute("aria-busy", "true");
-      startButton.textContent = L("Preparing EMMI…", "Preparando a EMMI…", "EMMI ap prepare…");
-    }
-    const activation = emmiVoiceActivationPromise;
-    await Promise.all([emmiLive.waitForConnection(), activation?.catch(() => false)]);
-    if (emmiVoiceActivationPromise === activation) emmiVoiceActivationPromise = null;
-    if (state.screen !== "INVITATION") return;
-  }
   // "Start your care journey" is an invitation to join. A patient who has already joined and lands
   // back here — by reload, by a shared link, by Back — was being walked into "Who is completing
   // this?", asked to enrol a second time in a programme they are already in. They resume instead:
@@ -7459,13 +7416,7 @@ async function advance() {
     if (result.status !== "received") { state.error = "reading"; audit(state, "first_reading", "not_received"); render(); return; }
     state.readingReceived = true; state.reading = result; audit(state, "first_reading", "received");
   }
-  const previousScreen = state.screen;
   state.screen = nextScreen(state);
-  if (previousScreen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused && emmiLive?.isConnectionReady()) {
-    clearTimeout(emmiDestinationRevealTimer);
-    emmiDestinationRevealTimer = null;
-    emmiDestinationRevealPending = true;
-  }
   // A patient who pressed "Send invitation" and was taken through identity first has not seen it
   // go. They see the confirmation, and Done carries them on to where the enrollment was heading.
   if (state.careCircleJustSent) {
@@ -9465,36 +9416,23 @@ function bind() {
       persistEmmiPreferences();
       // Resolve the welcome from the locale the patient has selected right now.
       const message = state.screen === "INVITATION" ? emmiSpokenWelcome() : (emmiGuidanceForScreen() || emmiSpokenWelcome());
+      state.emmiGuidanceTranscript = message;
       // Open the playback AudioContext while the click still counts as a user gesture. Created
       // later it starts suspended, and the welcome plays silently until some other tap resumes it.
       const live = ensureEmmiRuntime().live;
       live.prepareAudioPlayback();
       // A preconnected session is deliberately muted. This call is made inside the patient's
       // click so browser microphone permission remains explicit and correctly user-activated.
-      const connection = live.isConnectionReady() ? Promise.resolve(true) : live.connect();
-      emmiVoiceActivationPromise = Promise.all([connection.catch(() => false), live.setMuted(false).catch(() => false)]);
+      if (!live.isConnectionReady()) live.connect().catch(() => false);
+      live.setMuted(false).catch(() => false);
       render();
-      if (state.screen === "INVITATION") {
-        // Give an immediate Start tap a short arbitration window. Without it, the welcome and the
-        // destination prompt can reach Gemini in adjacent turns; its late welcome completion then
-        // leaves the destination screen in Listening. The channel and microphone still start in
-        // this user gesture, while the welcome is sent only if the patient remains on Home.
-        clearTimeout(emmiWelcomeTimer);
-        emmiWelcomeTimer = setTimeout(() => {
-          emmiWelcomeTimer = null;
-          if (state.screen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused) {
-            deliverEmmiGuidance(message, state.screen, { connect: true });
-          }
-        }, 4000);
-      } else {
-        deliverEmmiGuidance(message, state.screen, { connect: true });
-      }
+      // Home already introduces EMMI visually. Keep activation silent here so an immediate Start
+      // cannot collide with a generated welcome; the first spoken turn belongs to the screen the
+      // patient actually navigates to. Repeat remains available if they want the Home message.
+      if (state.screen !== "INVITATION") deliverEmmiGuidance(message, state.screen, { connect: true });
       return;
     }
     if (action === "disable-emmi-guidance") {
-      clearTimeout(emmiWelcomeTimer);
-      emmiWelcomeTimer = null;
-      emmiVoiceActivationPromise = null;
       state.emmiVoiceGuidance = false;
       state.emmiVoiceGuidancePaused = false;
       state.emmiVoiceOptionsOpen = false;

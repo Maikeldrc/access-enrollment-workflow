@@ -23,6 +23,12 @@ function collectFrames(quanta, frameSize = EMMI_MIC_FRAME_SIZE) {
 const quantaOf = (count, size = 128, fill = index => index) =>
   Array.from({ length: count }, (_, quantum) => Float32Array.from({ length: size }, (_, index) => fill(quantum * size + index)));
 
+const deferred = () => {
+  let resolve;
+  const promise = new Promise(done => { resolve = done; });
+  return { promise, resolve };
+};
+
 describe("EMMI audio pipeline", () => {
   it("keeps the provider contract the previous pipeline established", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
@@ -163,6 +169,26 @@ describe("EMMI audio pipeline", () => {
     expect(client.stopAudioCapture).not.toHaveBeenCalled();
     expect(track.stop).not.toHaveBeenCalled();
     expect(client.session.sendClientContent).toHaveBeenCalledOnce();
+  });
+
+  it("prepares microphone capture while the live socket is still opening", async () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    const opening = deferred();
+    client.muted = true;
+    client.connectionPromise = opening.promise;
+    client.ensureMicrophoneStream = vi.fn().mockResolvedValue({});
+    client.ensureAudioCaptureReady = vi.fn().mockResolvedValue(true);
+
+    const activation = client.setMuted(false);
+    await Promise.resolve();
+    expect(client.ensureMicrophoneStream).toHaveBeenCalledOnce();
+    expect(client.ensureAudioCaptureReady).not.toHaveBeenCalled();
+
+    client.session = { sendClientContent: vi.fn() };
+    opening.resolve(true);
+    await expect(activation).resolves.toBe(true);
+    expect(client.ensureAudioCaptureReady).toHaveBeenCalledOnce();
+    expect(client.muted).toBe(false);
   });
 
   it("gates speaker echo but flushes patient speech with preroll while EMMI is talking", () => {

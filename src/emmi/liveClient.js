@@ -87,6 +87,8 @@ export class EmmiLiveClient {
     this.prewarmedToken = null;
     this.prewarmLocale = "";
     this.connectionPromise = null;
+    this.microphonePromise = null;
+    this.audioCapturePromise = null;
     this.outputContext = null;
     this.micNode = null;
     this.inputSource = null;
@@ -380,12 +382,9 @@ export class EmmiLiveClient {
     const simulated = new URLSearchParams(location.search).get("emmiFailure");
     if (simulated === "microphone-denied") throw this.fail("VOICE_PERMISSION_DENIED");
     this.setState("CONNECTING");
-    if (!this.muted) {
-      try {
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      } catch { throw this.fail("VOICE_PERMISSION_DENIED"); }
-      navigator.mediaDevices.addEventListener?.("devicechange", this.audioDeviceChangeHandler);
-    }
+    // Socket authentication and microphone permission are independent. Starting them together
+    // removes a full serial wait; the AudioWorklet attaches after the socket exists.
+    const openingMicrophone = !this.muted ? this.ensureMicrophoneStream().then(() => true, () => false) : null;
     if (simulated === "429") throw this.fail("rate_limited");
     if (simulated === "connection") throw this.fail("VOICE_SESSION_FAILED");
     const sdkPromise = this.loadSdk();
@@ -429,18 +428,6 @@ export class EmmiLiveClient {
           onopen: () => {
             this.intentionalClose = false;
             clearTimeout(this.stabilityTimer); this.stabilityTimer = setTimeout(() => { this.reconnectAttempts = 0; }, 10000);
-            if (this.muted) {
-              this.audioCaptureReady = true;
-              this.completeAudioCaptureStartup("muted");
-              return;
-            }
-            this.startAudioCapture().then(() => {
-              this.audioCaptureReady = true;
-              this.completeAudioCaptureStartup();
-            }).catch(() => {
-              this.emitVoiceTelemetry("EMMI_AUDIO_PIPELINE_ERROR", { pipelineVersion: EMMI_AUDIO_PIPELINE_VERSION, reason: "worklet_unavailable" });
-              this.disconnect("audio_worklet_unavailable");
-            });
           },
           onmessage: message => this.handleMessage(message),
           onerror: error => this.handleProviderError(error),
@@ -452,7 +439,15 @@ export class EmmiLiveClient {
           }
         }
       });
-      if (this.audioCaptureReady) this.completeAudioCaptureStartup(this.muted ? "muted" : "");
+      if (this.muted) {
+        this.audioCaptureReady = true;
+        this.completeAudioCaptureStartup("muted");
+      } else {
+        const microphoneReady = openingMicrophone === null ? await this.ensureMicrophoneStream().then(() => true, () => false) : await openingMicrophone;
+        if (!microphoneReady) throw this.fail("VOICE_PERMISSION_DENIED");
+        await this.ensureAudioCaptureReady();
+        this.completeAudioCaptureStartup();
+      }
       // connect() resolves once the server has acknowledged setup. Sending the welcome from
       // onopen instead sends it before the handshake finishes and the turn is dropped, which is
       // why the first tap connected but stayed silent.
@@ -564,6 +559,38 @@ export class EmmiLiveClient {
     if (this.echoProbeActive) this.restoreOutputAfterEchoProbe();
     this.micPreroll.length = 0;
     this.sendMicSamples(samples);
+  }
+  ensureMicrophoneStream() {
+    if (this.stream) return Promise.resolve(this.stream);
+    if (this.microphonePromise) return this.microphonePromise;
+    const opening = navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+      .then(stream => {
+        this.stream = stream;
+        navigator.mediaDevices.addEventListener?.("devicechange", this.audioDeviceChangeHandler);
+        return stream;
+      });
+    this.microphonePromise = opening;
+    return opening.finally(() => {
+      if (this.microphonePromise === opening) this.microphonePromise = null;
+    });
+  }
+  ensureAudioCaptureReady() {
+    if (this.audioCaptureReady && this.micNode && this.stream) return Promise.resolve(true);
+    if (this.audioCapturePromise) return this.audioCapturePromise;
+    const opening = (async () => {
+      await this.ensureMicrophoneStream();
+      if (!this.micNode) {
+        if (this.inputContext) await this.inputContext.close().catch(() => {});
+        this.inputContext = null;
+        await this.startAudioCapture();
+      }
+      this.audioCaptureReady = true;
+      return true;
+    })();
+    this.audioCapturePromise = opening;
+    return opening.finally(() => {
+      if (this.audioCapturePromise === opening) this.audioCapturePromise = null;
+    });
   }
 
   beginEchoProbe() {
@@ -1144,15 +1171,18 @@ ${body}`,
       this.stream = null;
       this.emitVoiceTelemetry("EMMI_MICROPHONE_RELEASED", { reason: "paused" });
     } else {
-      if (!this.session && this.connectionPromise) await this.connectionPromise.catch(() => false);
-      if (this.session && !this.stream) {
-        try {
-          this.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-          await this.startAudioCapture();
-        } catch {
-          this.muted = true;
-          this.onError?.("VOICE_PERMISSION_DENIED");
+      try {
+        // Request permission immediately in the click task and let the socket open in parallel.
+        // onopen never consumes the stream; capture attaches only after the session is assigned.
+        await this.ensureMicrophoneStream();
+        if (!this.session && this.connectionPromise) await this.connectionPromise.catch(() => false);
+        if (this.session) {
+          await this.ensureAudioCaptureReady();
+          this.completeAudioCaptureStartup();
         }
+      } catch {
+        this.muted = true;
+        this.onError?.("VOICE_PERMISSION_DENIED");
       }
     }
     this.onState?.(this.state, this.muted ? "muted" : "unmuted");
