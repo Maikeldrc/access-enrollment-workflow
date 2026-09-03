@@ -147,6 +147,17 @@ export class EmmiLiveClient {
     if (value === "LISTENING" && this.session && !this.toolRoundTripInFlight && this.pendingContextUpdate) this.flushContextUpdate();
     this.onState?.(value, detail);
   }
+  completeAudioCaptureStartup(detail = "") {
+    // The live socket can finish its setup and accept a queued destination narration while the
+    // AudioWorklet is still loading. In that case sendText() has already moved the session to
+    // THINKING (or audio may already be SPEAKING). Never overwrite that active provider turn with
+    // LISTENING: doing so made rapid Home -> first-form navigation look and behave as if EMMI were
+    // waiting for the patient instead of delivering the new screen guidance.
+    if (["DISCONNECTED", "ERROR"].includes(this.state)) return false;
+    if (this.state === "CONNECTING") this.setState("LISTENING", detail);
+    this.startTimers();
+    return true;
+  }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
   retrySilentGuidance(turn, reason = "silent") {
     if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || turn.guidanceRetryCount || !turn.retryText) return false;
@@ -329,13 +340,11 @@ export class EmmiLiveClient {
             this.intentionalClose = false;
             clearTimeout(this.stabilityTimer); this.stabilityTimer = setTimeout(() => { this.reconnectAttempts = 0; }, 10000);
             if (this.muted) {
-              this.setState("LISTENING", "muted");
-              this.startTimers();
+              this.completeAudioCaptureStartup("muted");
               return;
             }
             this.startAudioCapture().then(() => {
-              this.setState("LISTENING");
-              this.startTimers();
+              this.completeAudioCaptureStartup();
             }).catch(() => {
               this.emitVoiceTelemetry("EMMI_AUDIO_PIPELINE_ERROR", { pipelineVersion: EMMI_AUDIO_PIPELINE_VERSION, reason: "worklet_unavailable" });
               this.disconnect("audio_worklet_unavailable");

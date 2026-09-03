@@ -135,6 +135,35 @@ describe("EMMI semantic handoff", () => {
 });
 
 describe("EMMI live context guards", () => {
+  it("does not replace a queued narration turn with Listening when microphone startup finishes late", () => {
+    vi.useFakeTimers();
+    const states = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN" }),
+      onState: state => states.push(state)
+    });
+    client.state = "EMMI_THINKING";
+
+    expect(client.completeAudioCaptureStartup()).toBe(true);
+    expect(client.state).toBe("EMMI_THINKING");
+    expect(states).not.toContain("LISTENING");
+
+    client.disconnect("test_complete");
+    vi.useRealTimers();
+  });
+
+  it("moves an idle opening session to Listening after microphone startup", () => {
+    vi.useFakeTimers();
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    client.state = "CONNECTING";
+
+    expect(client.completeAudioCaptureStartup()).toBe(true);
+    expect(client.state).toBe("LISTENING");
+
+    client.disconnect("test_complete");
+    vi.useRealTimers();
+  });
+
   it("normalizes provider and permission failures into stable patient-safe states", () => {
     expect(normalizeEmmiVoiceError("microphone_denied")).toBe("VOICE_PERMISSION_DENIED");
     expect(normalizeEmmiVoiceError("token_generation_failed")).toBe("VOICE_PROVIDER_ERROR");
