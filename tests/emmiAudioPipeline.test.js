@@ -322,6 +322,25 @@ describe("EMMI audio pipeline", () => {
     expect(completed).toHaveLength(1);
   });
 
+  it("treats Gemini 3.1 generationComplete as the provider turn boundary", async () => {
+    const completed = [];
+    const states = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onTurnComplete: turn => completed.push(turn),
+      onState: state => states.push(state)
+    });
+    client.state = "EMMI_SPEAKING";
+    client.activeAudioGenerationId = 9;
+    client.activeTurn = { id: "guide", generationId: 9, firstAudioReceivedAt: performance.now() };
+
+    await client.handleMessage({ serverContent: { generationComplete: true } });
+
+    expect(client.activeTurn).toBeNull();
+    expect(states.at(-1)).toBe("LISTENING");
+    expect(completed).toHaveLength(1);
+  });
+
   it("discards provider transcript fragments from an interrupted generation", async () => {
     const transcripts = [];
     const telemetry = [];

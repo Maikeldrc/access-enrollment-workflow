@@ -788,7 +788,10 @@ export class EmmiLiveClient {
       }
       this.setState("EMMI_SPEAKING", this.activeTurn?.responseToInterruption ? "patient_response" : "guidance");
     }
-    if (server?.turnComplete) {
+    // Gemini 3.1 realtime text commonly closes the model output with generationComplete; older
+    // Live variants use turnComplete. Both are authoritative provider boundaries and must release
+    // the active turn once queued PCM drains, otherwise the mic can look idle for a watchdog cycle.
+    if (server?.turnComplete || server?.generationComplete) {
       const completed = this.activeTurn;
       if (completed) {
         completed.providerTurnComplete = true;
