@@ -198,8 +198,12 @@ export class EmmiTransitionManager {
     const prompt = this.formatPrompt(segment.text);
     const connect = this.connectNext;
     this.connectNext = false;
-    const sent = connect ? this.transport.connect(prompt, metadata) : this.transport.sendText(prompt, metadata);
-    if (!sent && !connect) {
+    let sent = connect ? this.transport.connect(prompt, metadata) : this.transport.sendText(prompt, metadata);
+    // Long enrollment flows can outlive a provider socket. A screen transition must never be
+    // dropped just because that socket closed between two clicks: reconnect at the current
+    // context and make this exact destination turn the pending first turn on the new session.
+    if (!sent && !connect) sent = this.transport.connect(prompt, metadata);
+    if (!sent) {
       narration.status = EMMI_NARRATION_STATUS.CANCELED;
       this.onStatus("IDLE");
       return false;

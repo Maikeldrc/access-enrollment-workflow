@@ -1615,7 +1615,13 @@ function ensureEmmiTransitionManager() {
     },
     onTrace: detail => {
       if (import.meta.env.DEV) console.debug("[EMMI graceful handoff]", detail);
-    }
+    },
+    // A page change is a stronger signal than finishing a long screen explanation. Give the
+    // current sentence a brief chance to settle, then move the live session to what the patient
+    // can actually see. Reconnecting keeps the click-enabled AudioContext and normally has the
+    // destination speaking well inside two seconds.
+    maxGracefulHandoffMs: 800,
+    settleMs: 80
   });
   return emmiTransitionManager;
 }
@@ -9426,10 +9432,10 @@ function bind() {
       if (!live.isConnectionReady()) live.connect().catch(() => false);
       live.setMuted(false).catch(() => false);
       render();
-      // Home already introduces EMMI visually. Keep activation silent here so an immediate Start
-      // cannot collide with a generated welcome; the first spoken turn belongs to the screen the
-      // patient actually navigates to. Repeat remains available if they want the Home message.
-      if (state.screen !== "INVITATION") deliverEmmiGuidance(message, state.screen, { connect: true });
+      // Activating voice is an explicit request to hear EMMI. If the patient advances immediately,
+      // the transition manager replaces this pending welcome with the destination narration, so
+      // speaking here is both responsive on Home and safe during fast navigation.
+      deliverEmmiGuidance(message, state.screen, { connect: true });
       return;
     }
     if (action === "disable-emmi-guidance") {

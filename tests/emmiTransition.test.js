@@ -128,6 +128,18 @@ describe("EMMI semantic handoff", () => {
     expect(manager.snapshot().narration.segments).toHaveLength(1);
   });
 
+  it("reconnects and preserves the destination narration when a long flow loses its socket", async () => {
+    const { manager, transport, sent } = harness();
+    await manager.updateContext({ screenId: "ACCESS_BP_FULFILLMENT_CONFIRMED", stageId: "DEVICE", locale: "EN" });
+    transport.sendText.mockReturnValueOnce(false);
+
+    await manager.updateContext({ screenId: "MEDICATIONS_REVIEW", stageId: "MEDICATIONS", locale: "EN" });
+
+    expect(transport.connect).toHaveBeenCalledOnce();
+    expect(sent.at(-1)).toMatchObject({ text: "FORWARD to MEDICATIONS_REVIEW.", connect: true });
+    expect(manager.snapshot().narration.status).toBe(EMMI_NARRATION_STATUS.PLAYING);
+  });
+
   it("restarts at a safe boundary when locale changes", async () => {
     const { manager, transport, handoffs } = harness();
     await manager.updateContext({ screenId: "A", stageId: "ONE", locale: "EN" });
@@ -144,6 +156,10 @@ describe("EMMI semantic handoff", () => {
       .toMatch(/representante personal/i);
     expect(buildTransitionNarration({ previousScreen: "IDENTITY_VERIFICATION", currentScreen: "DECISION_MAKER", locale: "KR", navigationDirection: "BACK" }).narrationText)
       .toMatch(/retounen/i);
+    expect(buildTransitionNarration({ previousScreen: "ACCESS_BP_FULFILLMENT_CONFIRMED", currentScreen: "MEDICATIONS_REVIEW", locale: "EN" }).narrationText)
+      .toMatch(/monitor request is recorded.*review the medicines/i);
+    expect(buildTransitionNarration({ previousScreen: "MEDICATIONS_REVIEW", currentScreen: "ONBOARDING_COMPLETE", locale: "EN" }).narrationText)
+      .toMatch(/ACCESS setup is now complete.*safely close/i);
   });
 });
 

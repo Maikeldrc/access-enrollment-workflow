@@ -930,6 +930,16 @@ const TRANSITIONS = Object.freeze({
     "Gracias. La revisión de sus medicamentos quedó guardada y ha vuelto a la configuración de su cuidado.",
     "Mèsi. Revizyon medikaman ou anrejistre, epi ou retounen nan konfigirasyon swen ou."
   ),
+  "ACCESS_BP_FULFILLMENT_CONFIRMED>MEDICATIONS_REVIEW": T(
+    "Your monitor request is recorded. Now let’s review the medicines on your record so your care team knows what you are actually taking today.",
+    "La solicitud de su monitor quedó registrada. Ahora revisemos los medicamentos de su expediente para que su equipo sepa qué está tomando actualmente.",
+    "Nou anrejistre demann monitè ou a. Kounye a ann revize medikaman ki nan dosye ou pou ekip swen ou konnen sa w ap pran jodi a."
+  ),
+  "MEDICATIONS_REVIEW>ONBOARDING_COMPLETE": T(
+    "Thank you. Your medication review is saved, your monitor request is recorded, and your ACCESS setup is now complete. There are no more steps in this process, so you can safely close this window.",
+    "Gracias. Su revisión de medicamentos quedó guardada, la solicitud de su monitor quedó registrada y la configuración de ACCESS está completa. No quedan más pasos en este proceso; puede cerrar esta ventana con tranquilidad.",
+    "Mèsi. Revizyon medikaman ou anrejistre, demann monitè ou anrejistre, epi konfigirasyon ACCESS ou fini. Pa gen lòt etap nan pwosesis sa a; ou ka fèmen fenèt sa a san pwoblèm."
+  ),
   "ACCESS_BP_DEVICE_RESULT>ACCESS_BP_GUIDED_SETUP": T(
     "Your monitor is confirmed. Next, we will prepare it for your first measurement.",
     "Su monitor está confirmado. Ahora vamos a prepararlo para su primera medición.",
