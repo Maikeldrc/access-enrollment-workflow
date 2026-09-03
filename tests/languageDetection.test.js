@@ -33,6 +33,10 @@ describe("detecting the language a patient is using", () => {
     expect(detectPatientLanguage("appointment with Dr. Fresner")).toBe("en");
   });
 
+  it("recognises ordinary Spanish function words in a short voice fragment", () => {
+    expect(detectPatientLanguage("a ver si y hacer las rondas")).toBe("es");
+  });
+
   it("never returns Korean, because KR here is Haitian Creole", () => {
     expect(detectPatientLanguage("Mwen bezwen èd ak tansyon mwen")).toBe("ht");
     expect(["en", "es", "ht"]).toContain(detectPatientLanguage("Bonjou, mwen vle pale ak doktè mwen"));

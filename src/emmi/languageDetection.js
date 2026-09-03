@@ -17,6 +17,7 @@ const MARKERS = {
     "qué", "que", "cómo", "como", "cuándo", "cuánto", "cuál", "por qué", "porque", "dónde",
     "necesito", "quiero", "puedo", "tengo", "quisiera", "gracias", "hola", "señor", "señora",
     "mi", "mis", "usted", "ustedes", "para", "con", "pero", "también", "muy", "está", "estoy",
+    "hacer", "ver", "las", "los", "una", "uno", "este", "esta", "eso", "algo", "ahora", "entonces",
     "presión", "sangre", "médico", "medicamento", "cita", "ayuda", "entiendo", "seguro"
   ],
   ht: [
