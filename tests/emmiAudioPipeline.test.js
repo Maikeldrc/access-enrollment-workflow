@@ -186,10 +186,34 @@ describe("EMMI audio pipeline", () => {
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
     expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
     client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
 
     expect(interruptions).toHaveLength(1);
-    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(5);
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(6);
     expect(client.state).toBe("USER_SPEAKING");
+  });
+
+  it("rejects sustained speaker echo when it disappears during the output duck", () => {
+    const gain = { cancelScheduledValues: vi.fn(), setValueAtTime: vi.fn(), value: 1 };
+    const interruptions = [];
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }), onBargeIn: details => interruptions.push(details) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.inputContext = { sampleRate: 48000 };
+    client.outputContext = { currentTime: 2 };
+    client.outputGain = { gain };
+    client.state = "EMMI_SPEAKING";
+    client.activeTurn = { id: "guide", generationId: 8, contextVersion: 1, priority: "SCREEN_GUIDANCE" };
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    expect(gain.setValueAtTime).toHaveBeenCalledWith(0, 2);
+    for (let index = 0; index < 4; index += 1) client.handleMicFrame(new Float32Array(2048).fill(0.002));
+
+    expect(interruptions).toEqual([]);
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    expect(gain.setValueAtTime).toHaveBeenLastCalledWith(1, 2);
+    expect(client.echoProbeActive).toBe(false);
   });
 
   it("keeps the microphone available for a patient-initiated response", () => {

@@ -88,6 +88,9 @@ export class EmmiLiveClient {
     // the patient press a button before interrupting. The short buffer preserves the first word.
     this.micPreroll = [];
     this.maxMicPrerollFrames = 8;
+    this.outputSpeechCandidateFrames = 0;
+    this.echoProbeActive = false;
+    this.echoProbeFrames = 0;
     this.sources = new Map();
     this.nextPlaybackAt = 0;
     this.outputGain = null;
@@ -402,22 +405,67 @@ export class EmmiLiveClient {
     // energy cannot cancel a welcome before its first PCM chunk arrives.
     const audibleOutputActive = this.sources.size > 0 || this.state === "EMMI_SPEAKING";
     const patientFloorActive = !this.activeTurn && ["LISTENING", "USER_SPEAKING"].includes(this.state);
-    if (audibleOutputActive || patientFloorActive || this.bargeIn.speechActive) {
+    const rms = Math.sqrt(sumOfSquares / samples.length);
+    if (!audibleOutputActive && (patientFloorActive || this.bargeIn.speechActive)) {
       this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
     }
     if (audibleOutputActive) {
       this.micPreroll.push(samples.slice());
       if (this.micPreroll.length > this.maxMicPrerollFrames) this.micPreroll.shift();
-      // Do not feed EMMI's own audible output into provider VAD. Once local VAD confirms sustained
-      // patient speech, handlePatientSpeechStart has already stopped playback and the buffered
-      // frames (roughly 300 ms) preserve the beginning of the interruption.
-      if (!this.bargeIn.speechActive) return;
-      const buffered = this.micPreroll.splice(0);
-      buffered.forEach(frame => this.sendMicSamples(frame));
+      // AEC is strong on phones but not perfect on every speaker/browser combination. Two strong
+      // frames begin a short echo probe: duck EMMI locally, then require speech to continue while
+      // her output is inaudible. Echo disappears; a real patient keeps talking.
+      if (!this.echoProbeActive) {
+        const candidate = rms >= 0.055 && peak >= 0.1;
+        this.outputSpeechCandidateFrames = candidate ? this.outputSpeechCandidateFrames + 1 : 0;
+        if (this.outputSpeechCandidateFrames >= 2) this.beginEchoProbe();
+        return;
+      }
+      this.echoProbeFrames += 1;
+      const result = this.bargeIn.observeFrame({ rms, peak, outputActive: false });
+      if (result === "SPEECH") {
+        const buffered = this.micPreroll.splice(0);
+        buffered.forEach(frame => this.sendMicSamples(frame));
+        this.clearEchoProbeState();
+        return;
+      }
+      if (this.echoProbeFrames >= 4) {
+        this.restoreOutputAfterEchoProbe();
+        this.bargeIn.reset();
+      }
       return;
     }
+    if (this.echoProbeActive) this.restoreOutputAfterEchoProbe();
     this.micPreroll.length = 0;
     this.sendMicSamples(samples);
+  }
+
+  beginEchoProbe() {
+    this.echoProbeActive = true;
+    this.echoProbeFrames = 0;
+    this.outputSpeechCandidateFrames = 0;
+    const now = this.outputContext?.currentTime;
+    if (this.outputGain && Number.isFinite(now)) {
+      this.outputGain.gain.cancelScheduledValues(now);
+      this.outputGain.gain.setValueAtTime(0, now);
+    }
+    this.emitVoiceTelemetry("EMMI_ECHO_PROBE_STARTED");
+  }
+
+  clearEchoProbeState() {
+    this.echoProbeActive = false;
+    this.echoProbeFrames = 0;
+    this.outputSpeechCandidateFrames = 0;
+  }
+
+  restoreOutputAfterEchoProbe() {
+    const now = this.outputContext?.currentTime;
+    if (this.outputGain && Number.isFinite(now)) {
+      this.outputGain.gain.cancelScheduledValues(now);
+      this.outputGain.gain.setValueAtTime(1, now);
+    }
+    this.clearEchoProbeState();
+    this.emitVoiceTelemetry("EMMI_ECHO_PROBE_REJECTED");
   }
 
   sendMicSamples(samples) {
@@ -677,6 +725,7 @@ export class EmmiLiveClient {
     return true;
   }
   stopPlayback({ fadeMs = 0 } = {}) {
+    this.clearEchoProbeState();
     const targetSources = [...this.sources.keys()];
     const targetGain = this.outputGain;
     const targetContext = this.outputContext;
@@ -933,7 +982,7 @@ ${body}`,
       this.outputContext = null;
       this.outputGain = null;
     }
-    this.inputContext = null; this.micPreroll.length = 0; this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
+    this.inputContext = null; this.micPreroll.length = 0; this.clearEchoProbeState(); this.pendingConnectionTurn = null; this.activeTurn = null; this.activeAudioGenerationId = 0; this.awaitingPatientResponse = false; this.patientResponseReady = false; this.bargeIn.reset();
     this.setState("DISCONNECTED", reason);
   }
   fail(code) {
