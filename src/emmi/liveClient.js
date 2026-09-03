@@ -39,6 +39,7 @@ export const EMMI_TURN_STALL_TIMEOUT_MS = 20000;
 // is still on the screen, while retaining the single-retry guard against duplicate narration.
 export const EMMI_GUIDANCE_START_TIMEOUT_MS = 3500;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
+export const EMMI_PREWARM_MAX_AGE_MS = 45000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=4";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
 // the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
@@ -81,6 +82,10 @@ export class EmmiLiveClient {
     this.stream = null;
     this.inputContext = null;
     this.audioCaptureReady = false;
+    this.sdkPromise = null;
+    this.prewarmTokenPromise = null;
+    this.prewarmedToken = null;
+    this.prewarmLocale = "";
     this.outputContext = null;
     this.micNode = null;
     this.inputSource = null;
@@ -158,6 +163,53 @@ export class EmmiLiveClient {
     if (this.state === "CONNECTING") this.setState("LISTENING", detail);
     this.startTimers();
     return true;
+  }
+  loadSdk() {
+    this.sdkPromise ||= import("@google/genai").catch(error => {
+      this.sdkPromise = null;
+      throw error;
+    });
+    return this.sdkPromise;
+  }
+  async requestLiveToken(locale) {
+    const response = await fetch("/api/emmi/live-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale })
+    });
+    const payload = await response.json().catch(() => ({}));
+    return { response, payload, locale, fetchedAt: Date.now() };
+  }
+  prewarm(locale = this.getContext()?.locale) {
+    const canonicalVoice = this.voiceIdentity.resolve(locale, null, { screenId: this.getContext()?.currentScreen || "", connectionId: "prewarm" });
+    if (!canonicalVoice.supported) return Promise.resolve(false);
+    const sdk = this.loadSdk();
+    const fresh = this.prewarmedToken?.locale === canonicalVoice.locale
+      && Date.now() - this.prewarmedToken.fetchedAt < EMMI_PREWARM_MAX_AGE_MS;
+    if (fresh) return Promise.allSettled([sdk]).then(() => true);
+    if (!this.prewarmTokenPromise || this.prewarmLocale !== canonicalVoice.locale) {
+      this.prewarmLocale = canonicalVoice.locale;
+      this.prewarmTokenPromise = this.requestLiveToken(canonicalVoice.locale)
+        .then(result => {
+          if (result.response.ok) this.prewarmedToken = result;
+          return result.response.ok ? result : null;
+        })
+        .catch(() => null)
+        .finally(() => { this.prewarmTokenPromise = null; });
+    }
+    return Promise.allSettled([sdk, this.prewarmTokenPromise]).then(results => results.every(result => result.status === "fulfilled"));
+  }
+  async takeLiveToken(locale) {
+    if (this.prewarmLocale === locale && this.prewarmTokenPromise) await this.prewarmTokenPromise;
+    const fresh = this.prewarmedToken?.locale === locale
+      && Date.now() - this.prewarmedToken.fetchedAt < EMMI_PREWARM_MAX_AGE_MS;
+    if (fresh) {
+      const result = this.prewarmedToken;
+      this.prewarmedToken = null;
+      return result;
+    }
+    this.prewarmedToken = null;
+    return this.requestLiveToken(locale);
   }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
   retrySilentGuidance(turn, reason = "silent") {
@@ -301,16 +353,17 @@ export class EmmiLiveClient {
     }
     if (simulated === "429") throw this.fail("rate_limited");
     if (simulated === "connection") throw this.fail("VOICE_SESSION_FAILED");
-    let response;
-    try { response = await fetch("/api/emmi/live-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ locale: canonicalVoice.locale }) }); }
+    const sdkPromise = this.loadSdk();
+    let tokenResult;
+    try { tokenResult = await this.takeLiveToken(canonicalVoice.locale); }
     catch { throw this.fail("VOICE_SESSION_FAILED"); }
-    const payload = await response.json().catch(() => ({}));
+    const { response, payload } = tokenResult;
     if (!response.ok) throw this.fail(response.status === 429 || payload.error === "rate_limited" ? "rate_limited" : normalizeEmmiVoiceError(payload.error || "connection_failed"));
     const resolvedVoice = this.voiceIdentity.resolve(context.locale, payload.voiceIdentity, { screenId: context.currentScreen, connectionId });
     if (!payload.voiceIdentity || payload.voiceIdentity.voiceId !== resolvedVoice.voiceId || payload.voiceIdentity.voiceVersion !== resolvedVoice.voiceVersion || payload.voiceIdentity.provider !== resolvedVoice.provider) throw this.fail("voice_identity_mismatch");
     this.onVoiceIdentity?.("EMMI_VOICE_SESSION_CONFIGURED", { ...resolvedVoice, sessionId: context.sessionId, screenId: context.currentScreen, connectionId });
     try {
-      const { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity } = await import("@google/genai");
+      const { ActivityHandling, EndSensitivity, GoogleGenAI, Modality, StartSensitivity } = await sdkPromise;
       // Ephemeral auth tokens are only served on v1alpha: the SDK routes them to
       // BidiGenerateContentConstrained, which does not exist on v1beta, so the socket never
       // opens and no audio is ever produced.

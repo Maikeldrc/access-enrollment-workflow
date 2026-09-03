@@ -244,6 +244,7 @@ let emmiConversationManager = null;
 let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
+let emmiPrewarmLocale = "";
 let emmiSheetReturnAction = "open-emmi-voice-options";
 // Which control opened the expanded panel: focus goes back to it on close, and analytics record
 // the surface without ever needing a second event model per surface.
@@ -6613,6 +6614,13 @@ function render() {
   const assuranceOverride = state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "eligible" ? "NO_COMMITMENT_YET" : state.screen === "ACCESS_ELIGIBILITY_RESULT" && state.accessOutcome === "notEligible" ? "NOT_ELIGIBLE_REASSURANCE" : state.screen === "CONSENT_REVIEW" && state.offer?.pathway === "ACCESS" ? "ENROLLMENT_CHOICE" : "";
   app.innerHTML = `<main class="shell patient-app-shell">${header()}<section class="screen ${screenClass}" id="screen-content">${voiceGuidancePanel()}${renderer()}${state.screen === "INVITATION" ? "" : contextualAssuranceFooter(state.screen, assuranceOverride)}</section>${emmiAssistant()}<div class="save-status" role="status" aria-live="polite"></div></main>${devPanel()}`;
   bind();
+  // Loading the SDK and one short-lived, single-use token does not activate voice or request the
+  // microphone. It removes those network waits from the patient's tap, so an immediate move to
+  // the next screen can start its narration as soon as the live socket opens.
+  if (state.screen === "INVITATION" && !state.emmiVoiceGuidance && emmiVoiceIsSupported(languageCode()) && emmiPrewarmLocale !== languageCode()) {
+    emmiPrewarmLocale = languageCode();
+    setTimeout(() => ensureEmmiRuntime().live.prewarm(languageCode()), 0);
+  }
   const emmiTransitioned = syncEmmiNavigationContext();
   if (!emmiTransitioned) scheduleEmmiGuidance();
   // Only a genuinely new screen hands focus to its heading. Re-focusing the h1 after an in-place

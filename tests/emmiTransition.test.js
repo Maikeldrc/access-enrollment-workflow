@@ -324,6 +324,19 @@ describe("EMMI live context guards", () => {
     expect(client.pendingConnectionTurn.text).toBe("Who is completing this?");
   });
 
+  it("consumes a fresh prewarmed token without another network request", async () => {
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
+    const response = { ok: true };
+    const payload = { token: "warmed-once" };
+    client.prewarmLocale = "EN";
+    client.prewarmedToken = { response, payload, locale: "EN", fetchedAt: Date.now() };
+    const request = vi.spyOn(client, "requestLiveToken");
+
+    await expect(client.takeLiveToken("EN")).resolves.toMatchObject({ payload });
+    expect(request).not.toHaveBeenCalled();
+    expect(client.prewarmedToken).toBeNull();
+  });
+
   it("does not queue narration while voice is disconnected", () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);
