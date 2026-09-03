@@ -191,6 +191,10 @@ describe("EMMI audio pipeline", () => {
     expect(interruptions).toHaveLength(1);
     expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(5);
     expect(client.state).toBe("USER_SPEAKING");
+
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    client.handleMicFrame(new Float32Array(2048).fill(0.2));
+    expect(client.session.sendRealtimeInput).toHaveBeenCalledTimes(7);
   });
 
   it("rejects sustained speaker echo when it disappears during the output duck", () => {
@@ -349,7 +353,7 @@ describe("EMMI audio pipeline", () => {
     expect(client.state).toBe("EMMI_THINKING");
   });
 
-  it("recovers to listening when a barge-in produces no transcript", () => {
+  it("speaks a safe recovery when a barge-in produces no transcript", () => {
     vi.useFakeTimers();
     const states = [];
     const telemetry = [];
@@ -359,6 +363,7 @@ describe("EMMI audio pipeline", () => {
       onVoiceTelemetry: type => telemetry.push(type),
       transcriptWaitTimeoutMs: 50
     });
+    client.session = { sendClientContent: vi.fn() };
     client.awaitingPatientResponse = true;
     client.state = "USER_SPEAKING";
 
@@ -366,7 +371,10 @@ describe("EMMI audio pipeline", () => {
     vi.advanceTimersByTime(50);
 
     expect(client.awaitingPatientResponse).toBe(false);
-    expect(states.at(-1)).toEqual({ state: "LISTENING", detail: "transcript_not_received" });
+    expect(states.at(-1).state).toBe("EMMI_THINKING");
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("If this may be a medical emergency, call 911 now")
+    }));
     expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
     vi.useRealTimers();
   });
@@ -431,7 +439,7 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED");
   });
 
-  it("tracks ordinary speech while listening and recovers if ASR returns no transcript", () => {
+  it("tracks ordinary speech while listening and asks safely for a repeat if ASR returns no transcript", () => {
     vi.useFakeTimers();
     const states = [];
     const telemetry = [];
@@ -441,6 +449,7 @@ describe("EMMI audio pipeline", () => {
       onVoiceTelemetry: type => telemetry.push(type),
       transcriptWaitTimeoutMs: 50
     });
+    client.session = { sendClientContent: vi.fn() };
     client.state = "LISTENING";
 
     expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: 10 })).toBe(false);
@@ -450,7 +459,10 @@ describe("EMMI audio pipeline", () => {
     vi.advanceTimersByTime(50);
 
     expect(client.awaitingPatientResponse).toBe(false);
-    expect(states.at(-1)).toEqual({ state: "LISTENING", detail: "transcript_not_received" });
+    expect(states.at(-1).state).toBe("EMMI_THINKING");
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("Please say it again")
+    }));
     expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
     vi.useRealTimers();
   });
@@ -566,6 +578,34 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
     expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
       turns: expect.stringContaining("TRUSTED ASR SAFETY OVERRIDE"),
+      turnComplete: false
+    }));
+  });
+
+  it("does not treat a low-information interruption fragment as the patient's request", async () => {
+    const transcripts = [];
+    const telemetry = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata }),
+      onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.currentInterruption = { source: "local_vad", previousGenerationId: 3 };
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "ball" } } });
+
+    expect(transcripts).toContainEqual(expect.objectContaining({
+      role: "user",
+      text: "ball",
+      metadata: expect.objectContaining({
+        transcriptReliability: "CLARIFICATION_REQUIRED",
+        transcriptReliabilityReason: "low_information_interruption"
+      })
+    }));
+    expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
+    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
+      turns: expect.stringContaining("Please say it again"),
       turnComplete: false
     }));
   });

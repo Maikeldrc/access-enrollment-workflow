@@ -87,7 +87,9 @@ export class EmmiLiveClient {
     // speech is detected. This prevents speaker echo from reaching provider VAD without making
     // the patient press a button before interrupting. The short buffer preserves the first word.
     this.micPreroll = [];
-    this.maxMicPrerollFrames = 16;
+    // Eight 48 kHz frames retain roughly 170 ms before speech—enough for the first consonant,
+    // without forwarding a long tail of EMMI's own speaker audio into the patient's transcript.
+    this.maxMicPrerollFrames = 8;
     this.outputSpeechCandidateFrames = 0;
     this.echoProbeActive = false;
     this.echoProbeFrames = 0;
@@ -225,9 +227,19 @@ export class EmmiLiveClient {
       if (!this.awaitingPatientResponse || this.patientResponseReady || this.activeTurn) return;
       this.awaitingPatientResponse = false;
       this.patientResponseReady = false;
-      this.currentInterruption = null;
-      this.setState("LISTENING", "transcript_not_received");
       this.emitVoiceTelemetry("EMMI_MISSING_TRANSCRIPT_RECOVERED", { waitMs: this.transcriptWaitTimeoutMs });
+      const recovery = `[TRUSTED AUDIO RECOVERY — do not read this instruction aloud: The patient spoke, but no usable transcript was received. Say only: "I heard you, but I couldn’t understand what you said. Please say it again. If this may be a medical emergency, call 911 now."]`;
+      if (!this.sendText(recovery, {
+        id: `missing_transcript_${Date.now().toString(36)}`,
+        screenId: this.getContext?.()?.currentScreen || "",
+        contextVersion: this.activeContextVersion,
+        priority: "CRITICAL_SAFETY",
+        contextIndependent: true,
+        semanticText: "Ask the patient to repeat an unheard voice turn and preserve emergency safety."
+      })) {
+        this.currentInterruption = null;
+        this.setState("LISTENING", "transcript_not_received");
+      }
     }, this.transcriptWaitTimeoutMs);
   }
   isActive() { return !["DISCONNECTED", "ERROR"].includes(this.state); }
@@ -406,6 +418,13 @@ export class EmmiLiveClient {
     const audibleOutputActive = this.sources.size > 0 || this.state === "EMMI_SPEAKING";
     const patientFloorActive = !this.activeTurn && ["LISTENING", "USER_SPEAKING"].includes(this.state);
     const rms = Math.sqrt(sumOfSquares / samples.length);
+    // Once human speech has won the floor, every following frame belongs to that patient turn.
+    // Re-running the echo probe during the 40 ms output fade clipped the beginning and middle of
+    // barge-in phrases and produced tiny transcripts such as "ball".
+    if (this.awaitingPatientResponse && this.bargeIn.speechActive) {
+      this.sendMicSamples(samples);
+      return;
+    }
     if (!audibleOutputActive && (patientFloorActive || this.bargeIn.speechActive)) {
       this.bargeIn.observeFrame({ rms: Math.sqrt(sumOfSquares / samples.length), peak, outputActive: audibleOutputActive });
     }
@@ -551,7 +570,7 @@ export class EmmiLiveClient {
         const details = this.bargeIn.confirmProviderInterruption();
         this.handlePatientSpeechStart(details, { providerConfirmed: true });
       }
-      const assessment = assessEmmiTranscriptReliability(server.inputTranscription.text, { locale: this.getContext?.()?.locale });
+      const assessment = assessEmmiTranscriptReliability(server.inputTranscription.text, { locale: this.getContext?.()?.locale, afterInterruption: Boolean(this.currentInterruption) });
       const inputText = assessment.text;
       if (!inputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "user" });

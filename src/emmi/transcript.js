@@ -42,7 +42,14 @@ const normalizedLocale = locale => {
 // language mismatch is therefore the one deterministic low-confidence signal we can act on
 // without guessing from names, medications or short replies. The model still receives the audio,
 // but gets an explicit safety override before it can turn corrupted ASR into patient intent.
-export function assessEmmiTranscriptReliability(value, { locale = "en" } = {}) {
+const VALID_SHORT_INTERRUPTION = new Set([
+  "yes", "no", "ok", "okay", "why", "what", "when", "where", "who", "how",
+  "help", "stop", "wait", "repeat", "cost", "bill", "pain", "fall",
+  "si", "que", "como", "ayuda", "pare", "dolor", "caida",
+  "wi", "non", "poukisa", "kisa", "kijan", "ede", "rete", "doule", "tonbe"
+]);
+
+export function assessEmmiTranscriptReliability(value, { locale = "en", afterInterruption = false } = {}) {
   const text = sanitizeEmmiTranscript(value);
   const expectedLanguage = normalizedLocale(locale);
   const detectedLanguage = detectPatientLanguage(text);
@@ -53,15 +60,20 @@ export function assessEmmiTranscriptReliability(value, { locale = "en" } = {}) {
   // readings and yes/no replies deliberately remain exempt.
   const wordCount = text.split(/\s+/).filter(Boolean).length;
   const lowLocaleEvidence = wordCount >= 10 && !detectedLanguage;
+  // During speaker overlap, an ASR engine can collapse a full interruption to one tiny phonetic
+  // fragment (for example, "Will my doctor…" becoming "ball"). Never let that fragment authorize
+  // an answer. Common conversational and urgent one-word turns remain valid.
+  const normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+  const lowInformationInterruption = afterInterruption && wordCount === 1 && normalized.length <= 4 && !VALID_SHORT_INTERRUPTION.has(normalized);
   return {
     text,
     expectedLanguage,
     detectedLanguage,
-    reliable: !unexpectedLanguage && !lowLocaleEvidence,
-    reason: unexpectedLanguage ? "unexpected_language" : lowLocaleEvidence ? "low_locale_evidence" : ""
+    reliable: !unexpectedLanguage && !lowLocaleEvidence && !lowInformationInterruption,
+    reason: unexpectedLanguage ? "unexpected_language" : lowLocaleEvidence ? "low_locale_evidence" : lowInformationInterruption ? "low_information_interruption" : ""
   };
 }
 
 export function emmiAsrClarificationInstruction({ expectedLanguage = "en", detectedLanguage = "" } = {}) {
-  return `[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript appears to be ${detectedLanguage || "a different language"}, while the active conversation language is ${expectedLanguage}. Do not infer or execute the patient's intent from that transcript. Briefly say that you may have heard a different language, repeat only the exact words you heard when useful, and ask whether the patient wants to switch language or repeat.]`;
+  return `[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable${detectedLanguage ? ` and appears to be ${detectedLanguage}` : ""}; the active conversation language is ${expectedLanguage}. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now."]`;
 }

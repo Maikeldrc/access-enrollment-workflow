@@ -38,6 +38,14 @@ describe("EMMI transcript boundary", () => {
     expect(assessEmmiTranscriptReliability("Please explain ACCESS in one short sentence.", { locale: "en" }).reliable).toBe(true);
   });
 
+  it("rejects tiny nonsensical barge-in fragments but preserves short valid turns", () => {
+    expect(assessEmmiTranscriptReliability("ball", { locale: "en", afterInterruption: true }))
+      .toMatchObject({ reliable: false, reason: "low_information_interruption" });
+    for (const phrase of ["no", "why", "help", "pain", "fall", "sí", "ayuda", "wi", "doulè", "Metformin"]) {
+      expect(assessEmmiTranscriptReliability(phrase, { locale: "en", afterInterruption: true }).reliable, phrase).toBe(true);
+    }
+  });
+
   it("builds a trusted clarification override without presenting it as patient speech", () => {
     const instruction = emmiAsrClarificationInstruction({ expectedLanguage: "en", detectedLanguage: "es" });
     expect(instruction).toContain("TRUSTED ASR SAFETY OVERRIDE");
