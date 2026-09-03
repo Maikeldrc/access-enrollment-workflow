@@ -31,6 +31,16 @@ export function sanitizeEmmiTranscript(value) {
   return text.slice(0, 2000);
 }
 
+const TOOL_SYNTAX_PREFIX = /^[A-Za-z][A-Za-z0-9_]*\s*\(\s*\{/;
+const PATIENT_FACING_RECOVERY = /\b(?:I apologize|I['’]m sorry|Sorry|Please|Yes|No|ACCESS)\b/i;
+
+export function sanitizeEmmiAssistantTranscript(value) {
+  const text = sanitizeEmmiTranscript(value);
+  if (!TOOL_SYNTAX_PREFIX.test(text)) return text;
+  const recovery = text.match(PATIENT_FACING_RECOVERY);
+  return recovery ? text.slice(recovery.index).trim() : "";
+}
+
 const normalizedLocale = locale => {
   const value = String(locale || "en").toLowerCase();
   if (["es", "spanish"].includes(value)) return "es";

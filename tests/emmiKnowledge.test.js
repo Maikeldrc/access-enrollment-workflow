@@ -157,6 +157,8 @@ describe("source hierarchy and wiring", () => {
     expect(EMMI_SYSTEM_PROMPT).toContain("SOURCES OF TRUTH");
     expect(EMMI_SYSTEM_PROMPT).toMatch(/never establishes what is true for this patient/i);
     expect(EMMI_SYSTEM_PROMPT).toMatch(/KR is never Korean/i);
+    expect(EMMI_SYSTEM_PROMPT).toMatch(/Tool names, arguments, JSON, function syntax.*never patient-facing/i);
+    expect(EMMI_SYSTEM_PROMPT).toMatch(/never use raw transcript words as medicationId/i);
   });
 
   it("injects an explicit Haitian Creole instruction for internal locale KR", () => {

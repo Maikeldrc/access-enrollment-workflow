@@ -3,7 +3,7 @@ import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
 import { EmmiVoiceIdentityGuard, getEmmiSpeechConfig } from "./voiceIdentity.js";
 import { EmmiBargeInManager } from "./bargeInManager.js";
-import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiTranscript } from "./transcript.js";
+import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiAssistantTranscript, sanitizeEmmiTranscript } from "./transcript.js";
 
 const bytesToBase64 = bytes => {
   let binary = "";
@@ -609,7 +609,7 @@ export class EmmiLiveClient {
     }
     const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady);
     if (server?.outputTranscription?.text && acceptsOutputTranscript) {
-      const outputText = sanitizeEmmiTranscript(server.outputTranscription.text);
+      const outputText = sanitizeEmmiAssistantTranscript(server.outputTranscription.text);
       if (!outputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "assistant", generationId: this.activeAudioGenerationId });
       } else {

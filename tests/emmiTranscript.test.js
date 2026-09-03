@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiTranscript } from "../src/emmi/transcript.js";
+import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiAssistantTranscript, sanitizeEmmiTranscript } from "../src/emmi/transcript.js";
 
 describe("EMMI transcript boundary", () => {
   it("never renders stringified SDK objects", () => {
@@ -51,5 +51,12 @@ describe("EMMI transcript boundary", () => {
     expect(instruction).toContain("TRUSTED ASR SAFETY OVERRIDE");
     expect(instruction).toContain("Do not infer or execute");
     expect(sanitizeEmmiTranscript(instruction)).toBe("");
+  });
+
+  it("removes leaked function syntax from assistant-facing transcript text", () => {
+    expect(sanitizeEmmiAssistantTranscript("startRefillReview({'medicationId':'this program'}I apologize, I couldn't hear you."))
+      .toBe("I apologize, I couldn't hear you.");
+    expect(sanitizeEmmiAssistantTranscript("startRefillReview({'medicationId':'x'})")).toBe("");
+    expect(sanitizeEmmiAssistantTranscript("ACCESS gives you support between visits.")).toBe("ACCESS gives you support between visits.");
   });
 });
