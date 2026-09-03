@@ -9452,7 +9452,7 @@ function bind() {
           if (state.screen === "INVITATION" && state.emmiVoiceGuidance && !state.emmiVoiceGuidancePaused) {
             deliverEmmiGuidance(message, state.screen, { connect: true });
           }
-        }, 1500);
+        }, 4000);
       } else {
         deliverEmmiGuidance(message, state.screen, { connect: true });
       }
