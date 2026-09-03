@@ -245,6 +245,7 @@ let emmiTextOrchestrator = null;
 let emmiNavigationIntent = null;
 let emmiGuidanceTimer = null;
 let emmiWelcomeTimer = null;
+let emmiVoiceActivationPromise = null;
 let emmiPrewarmLocale = "";
 let emmiPreconnectStarted = false;
 let emmiSheetReturnAction = "open-emmi-voice-options";
@@ -6963,7 +6964,7 @@ async function advance() {
   // If the patient enables voice and immediately presses Start, keep the connection wait on the
   // invitation instead of landing on a silent second screen. Once the channel is ready, discard
   // the superseded welcome so the destination guidance is the very first provider turn.
-  if (state.screen === "INVITATION" && state.emmiVoiceGuidance && emmiLive && !emmiLive.isConnectionReady()) {
+  if (state.screen === "INVITATION" && state.emmiVoiceGuidance && emmiLive && (!emmiLive.isConnectionReady() || emmiVoiceActivationPromise)) {
     emmiLive.discardPendingConnectionTurn("INVITATION");
     const startButton = document.querySelector('[data-action="next"]');
     if (startButton) {
@@ -6971,7 +6972,9 @@ async function advance() {
       startButton.setAttribute("aria-busy", "true");
       startButton.textContent = L("Preparing EMMI…", "Preparando a EMMI…", "EMMI ap prepare…");
     }
-    await emmiLive.waitForConnection();
+    const activation = emmiVoiceActivationPromise;
+    await Promise.all([emmiLive.waitForConnection(), activation?.catch(() => false)]);
+    if (emmiVoiceActivationPromise === activation) emmiVoiceActivationPromise = null;
     if (state.screen !== "INVITATION") return;
   }
   // "Start your care journey" is an invitation to join. A patient who has already joined and lands
@@ -9439,7 +9442,8 @@ function bind() {
       live.prepareAudioPlayback();
       // A preconnected session is deliberately muted. This call is made inside the patient's
       // click so browser microphone permission remains explicit and correctly user-activated.
-      live.setMuted(false).catch(() => {});
+      const connection = live.isConnectionReady() ? Promise.resolve(true) : live.connect();
+      emmiVoiceActivationPromise = Promise.all([connection.catch(() => false), live.setMuted(false).catch(() => false)]);
       render();
       if (state.screen === "INVITATION") {
         // Give an immediate Start tap a short arbitration window. Without it, the welcome and the
@@ -9461,6 +9465,7 @@ function bind() {
     if (action === "disable-emmi-guidance") {
       clearTimeout(emmiWelcomeTimer);
       emmiWelcomeTimer = null;
+      emmiVoiceActivationPromise = null;
       state.emmiVoiceGuidance = false;
       state.emmiVoiceGuidancePaused = false;
       state.emmiVoiceOptionsOpen = false;
