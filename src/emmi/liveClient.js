@@ -235,10 +235,9 @@ export class EmmiLiveClient {
   }
   restartSilentGuidance(turn, reason = "start_timeout") {
     const retryCount = Number(turn?.guidanceRetryCount || 0);
-    // Two clean-session recoveries cover the rare case where Gemini acknowledges consecutive
-    // automatic guidance turns without PCM. Keep the bound strict so a provider outage can never
-    // create an endless reconnect loop.
-    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || retryCount >= 2 || !turn.retryText) return false;
+    // One clean-session recovery is enough before switching to deterministic local narration.
+    // Reopening more sockets adds seconds while a degraded provider keeps returning empty turns.
+    if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || retryCount >= 1 || !turn.retryText) return false;
     const generationId = turn.generationId;
     const nextRetryCount = retryCount + 1;
     const metadata = {
@@ -254,6 +253,42 @@ export class EmmiLiveClient {
     this.disconnect("guidance_start_timeout", { preserveOutput: true });
     this.connect(turn.retryText, metadata).catch(() => { /* connect() publishes the patient-safe error. */ });
     return true;
+  }
+
+  speakGuidanceFallback(turn, reason = "provider_returned_no_audio") {
+    const synth = globalThis.speechSynthesis;
+    const Utterance = globalThis.SpeechSynthesisUtterance;
+    const text = String(turn?.semanticText || "").trim();
+    if (!turn || !text || !synth || typeof synth.speak !== "function" || typeof Utterance !== "function") return false;
+    try {
+      synth.cancel?.();
+      const utterance = new Utterance(text);
+      const locale = String(this.getContext?.()?.locale || "EN").toUpperCase();
+      utterance.lang = locale === "ES" ? "es-US" : "en-US";
+      utterance.rate = 0.96;
+      utterance.pitch = 1;
+      const voices = synth.getVoices?.() || [];
+      utterance.voice = voices.find(voice => String(voice.lang || "").toLowerCase().startsWith(utterance.lang.slice(0, 2).toLowerCase())) || null;
+      const finish = status => {
+        if (this.fallbackUtterance !== utterance) return;
+        this.fallbackUtterance = null;
+        if (this.activeTurn?.generationId === turn.generationId) this.activeTurn = null;
+        this.activeAudioGenerationId = 0;
+        this.clearTurnWatchdog();
+        this.setState("LISTENING", status);
+        this.onTurnComplete?.(turn);
+      };
+      utterance.onend = () => finish("local_guidance_complete");
+      utterance.onerror = () => finish("local_guidance_ended");
+      this.fallbackUtterance = utterance;
+      turn.firstAudioReceivedAt = performance.now();
+      turn.providerTurnComplete = true;
+      this.clearTurnWatchdog();
+      this.setState("EMMI_SPEAKING", "local_guidance_fallback");
+      this.emitVoiceTelemetry("EMMI_VOICE_LOCAL_GUIDANCE_FALLBACK", { turnId: turn.id, generationId: turn.generationId, reason });
+      synth.speak(utterance);
+      return true;
+    } catch { return false; }
   }
   touchTurnWatchdog(generationId = this.activeTurn?.generationId) {
     this.clearTurnWatchdog();
@@ -274,6 +309,7 @@ export class EmmiLiveClient {
         // Retry the same screen once; transient provider gaps otherwise make the second screen
         // silent while the next navigation happens to work.
         if (this.restartSilentGuidance(timedOut, "start_timeout")) return;
+        if (this.speakGuidanceFallback(timedOut, "start_timeout")) return;
         this.interruptedGenerationIds.add(generationId);
         this.activeTurn = null;
         this.activeAudioGenerationId = 0;
@@ -822,7 +858,10 @@ export class EmmiLiveClient {
         // all. A second prompt on that same socket can be acknowledged empty as well, especially
         // just after a context handoff. Restart once on a clean session and make the destination
         // its first turn; waiting for a watchdog cannot help because this turn already finished.
-        if (!completed.firstAudioReceivedAt && this.restartSilentGuidance(completed, "empty_provider_turn")) return;
+        if (!completed.firstAudioReceivedAt) {
+          if (this.restartSilentGuidance(completed, "empty_provider_turn")) return;
+          if (this.speakGuidanceFallback(completed, "empty_provider_turn")) return;
+        }
         this.finishTurnIfDrained(completed.generationId);
       } else if (!this.awaitingPatientResponse && this.state !== "CONNECTING" && !this.pendingConnectionTurn) {
         // Setup acknowledgements can include turnComplete before the SDK has exposed the live
@@ -914,6 +953,10 @@ export class EmmiLiveClient {
   }
   stopPlayback({ fadeMs = 0 } = {}) {
     this.clearEchoProbeState();
+    if (this.fallbackUtterance) {
+      this.fallbackUtterance = null;
+      globalThis.speechSynthesis?.cancel?.();
+    }
     const targetSources = [...this.sources.keys()];
     const targetGain = this.outputGain;
     const targetContext = this.outputContext;

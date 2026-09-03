@@ -284,7 +284,7 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_MUTED_INPUT_TRANSCRIPT_IGNORED");
   });
 
-  it("uses two bounded clean-session recoveries when guidance completes without audio", async () => {
+  it("uses one bounded clean-session recovery when guidance completes without audio", async () => {
     const completed = [];
     const telemetry = [];
     const client = new EmmiLiveClient({
@@ -326,15 +326,43 @@ describe("EMMI audio pipeline", () => {
 
     await client.handleMessage({ serverContent: { turnComplete: true } });
 
-    expect(client.connect).toHaveBeenCalledTimes(2);
-    expect(client.activeTurn).toMatchObject({ guidanceRetryCount: 2 });
-    expect(completed).toHaveLength(0);
-
-    await client.handleMessage({ serverContent: { turnComplete: true } });
-
     expect(client.session.sendClientContent).toHaveBeenCalledTimes(1);
     expect(client.activeTurn).toBeNull();
     expect(completed).toHaveLength(1);
+  });
+
+  it("speaks the exact screen guidance locally after the clean retry also returns no audio", async () => {
+    const completed = [];
+    const telemetry = [];
+    class FakeUtterance {
+      constructor(text) { this.text = text; }
+    }
+    const synth = { cancel: vi.fn(), getVoices: vi.fn(() => [{ lang: "en-US" }]), speak: vi.fn() };
+    vi.stubGlobal("SpeechSynthesisUtterance", FakeUtterance);
+    vi.stubGlobal("speechSynthesis", synth);
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "IDENTITY_VERIFICATION" }),
+      onTurnComplete: turn => completed.push(turn),
+      onVoiceTelemetry: type => telemetry.push(type)
+    });
+    client.session = { sendClientContent: vi.fn() };
+    client.state = "LISTENING";
+    client.setActiveContextVersion(3);
+    client.sendText("provider prompt", {
+      id: "identity-retry", screenId: "IDENTITY_VERIFICATION", contextVersion: 3,
+      priority: "SCREEN_GUIDANCE", semanticText: "Enter your date of birth and ZIP code, then choose Continue.", guidanceRetryCount: 1
+    });
+
+    await client.handleMessage({ serverContent: { generationComplete: true } });
+
+    expect(synth.speak).toHaveBeenCalledOnce();
+    expect(synth.speak.mock.calls[0][0].text).toBe("Enter your date of birth and ZIP code, then choose Continue.");
+    expect(client.state).toBe("EMMI_SPEAKING");
+    expect(telemetry).toContain("EMMI_VOICE_LOCAL_GUIDANCE_FALLBACK");
+    synth.speak.mock.calls[0][0].onend();
+    expect(client.state).toBe("LISTENING");
+    expect(completed).toHaveLength(1);
+    vi.unstubAllGlobals();
   });
 
   it("treats Gemini 3.1 generationComplete as the provider turn boundary", async () => {
@@ -586,11 +614,6 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_VOICE_GUIDANCE_RETRY");
     expect(client.activeTurn.guidanceRetryCount).toBe(1);
     expect(client.connect).toHaveBeenCalledOnce();
-    vi.advanceTimersByTime(75);
-
-    expect(completed).toHaveLength(0);
-    expect(client.activeTurn.guidanceRetryCount).toBe(2);
-    expect(client.connect).toHaveBeenCalledTimes(2);
     vi.advanceTimersByTime(75);
 
     expect(errors).toEqual([]);
