@@ -263,6 +263,24 @@ describe("EMMI live context guards", () => {
     ]);
   });
 
+  it("queues destination guidance after onopen reports Listening but before the session is assigned", () => {
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" })
+    });
+    client.state = "LISTENING";
+    client.session = null;
+
+    expect(client.sendText("Who is completing this?", {
+      screenId: "DECISION_MAKER",
+      contextVersion: 2,
+      priority: "TRANSITION_GUIDANCE"
+    })).toBe(true);
+    expect(client.pendingConnectionTurn).toEqual({
+      text: "Who is completing this?",
+      metadata: expect.objectContaining({ screenId: "DECISION_MAKER", contextVersion: 2 })
+    });
+  });
+
   it("does not queue narration while voice is disconnected", () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);

@@ -977,9 +977,13 @@ ${body}`,
   // text turn sent that way is accepted silently and never produces a spoken reply.
   sendText(text, metadata = {}) {
     if (!this.session) {
-      if (this.state === "CONNECTING") {
+      if (["CONNECTING", "LISTENING"].includes(this.state)) {
         // Keep only the latest destination. A rapid A → B → C sequence must narrate C, never
         // replay the welcome or an intermediate screen after the connection finally opens.
+        // The SDK fires onopen before its connect() promise assigns `this.session`; microphone
+        // startup can therefore move the UI to LISTENING while that promise is still pending.
+        // LISTENING with no session is that narrow opening window, not an idle disconnected
+        // session, so the destination turn must be retained rather than discarded.
         this.pendingConnectionTurn = { text, metadata: { ...metadata } };
         this.emitVoiceTelemetry("EMMI_VOICE_TURN_QUEUED_DURING_CONNECT", { screenId: metadata.screenId || "", priority: metadata.priority || "" });
         return true;
