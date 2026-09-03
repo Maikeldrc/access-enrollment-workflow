@@ -701,7 +701,10 @@ export class EmmiLiveClient {
         // help because, from the provider's perspective, this turn already finished.
         if (!completed.firstAudioReceivedAt && this.retrySilentGuidance(completed, "empty_provider_turn")) return;
         this.finishTurnIfDrained(completed.generationId);
-      } else if (!this.awaitingPatientResponse) {
+      } else if (!this.awaitingPatientResponse && this.state !== "CONNECTING" && !this.pendingConnectionTurn) {
+        // Setup acknowledgements can include turnComplete before the SDK has exposed the live
+        // session. A destination narration may already be queued for that opening connection;
+        // presenting this acknowledgement as LISTENING falsely says EMMI is waiting for speech.
         this.setState("LISTENING");
         this.finishGracefulHandoff("semantic_boundary");
       }

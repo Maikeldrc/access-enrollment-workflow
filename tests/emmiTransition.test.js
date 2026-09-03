@@ -305,6 +305,25 @@ describe("EMMI live context guards", () => {
     });
   });
 
+  it("ignores an empty setup completion while destination guidance is queued", async () => {
+    const states = [];
+    const client = new EmmiLiveClient({
+      getContext: () => ({ locale: "EN", currentScreen: "DECISION_MAKER" }),
+      onState: state => states.push(state)
+    });
+    client.state = "CONNECTING";
+    client.pendingConnectionTurn = {
+      text: "Who is completing this?",
+      metadata: { screenId: "DECISION_MAKER", contextVersion: 2 }
+    };
+
+    await client.handleMessage({ serverContent: { turnComplete: true } });
+
+    expect(client.state).toBe("CONNECTING");
+    expect(states).not.toContain("LISTENING");
+    expect(client.pendingConnectionTurn.text).toBe("Who is completing this?");
+  });
+
   it("does not queue narration while voice is disconnected", () => {
     const client = new EmmiLiveClient({ getContext: () => ({ locale: "EN" }) });
     expect(client.sendText("Do not queue", { contextVersion: 1 })).toBe(false);
