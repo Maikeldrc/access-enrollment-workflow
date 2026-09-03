@@ -740,6 +740,10 @@ test("ACCESS monitor fulfillment rejects an incomplete different shipping addres
   await page.locator('.choice-card:has(input[value="TENOVI_XL"])').click();
   await page.getByRole("button", { name: "Request my monitor" }).click();
   await page.locator('.choice-card:has(input[value="other"])').click();
+  await expect(page.getByLabel("Street address")).toHaveValue("");
+  await expect(page.getByLabel("City")).toHaveValue("");
+  await expect(page.getByLabel("State")).toHaveValue("");
+  await expect(page.getByLabel("ZIP code")).toHaveValue("");
   await page.getByLabel("Street address").fill("");
   await page.getByLabel("City").fill("Miami");
   await page.getByLabel("State").fill("fl");
