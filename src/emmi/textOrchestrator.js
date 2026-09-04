@@ -1,10 +1,12 @@
 import { classifyBarrierText } from "../goalBarriers.js";
+import { GOAL_STATEMENT_KINDS, classifyGoalStatement } from "../personalGoals.js";
 import { APPOINTMENT_INTENTS, APPOINTMENT_INTENT_ACTIONS, classifyAppointmentIntent } from "./appointmentIntents.js";
 import { createSafetyEpisode, detectEmergencyLanguage, detectSafetyResolution, safetyEpisodeIsActive, safetyResolutionCopy, safetyResponseFor } from "./safetyPolicy.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
 import { emmiGuardrailAnswer } from "./guardrails.js";
 import { CARE_TEAM_CONTACT_INTENT, careTeamContactPrompt, detectCareTeamContact } from "./careTeamContact.js";
 import { resolveRequestedProfessional } from "../careTeamDirectory.js";
+import { decomposeCompoundQuestion, hasBareReferent, isFollowUpQuestion, mergeCompoundAnswers, resolveConversationSubject, resolveTurnSubject, subjectOf } from "./conversationSubject.js";
 import { appointmentTopicListText, parseAppointmentTopicCommands } from "./appointmentTopics.js";
 const pick = (locale, values) => values[String(locale || "EN").toUpperCase()] || values.EN;
 const clean = value => String(value || "").replace(/\s+/g, " ").trim();
@@ -35,12 +37,21 @@ const BP_READING = /(\d{2,3})\s*(?:over|\/|sobre|con)\s*(\d{2,3})/i;
 // $0" is the most likely thing a patient asks on the consent screen.
 // What a patient is talking about when the cost question is not about ACCESS at all.
 const TRANSPORT_SUBJECT = /\b(uber|lyft|taxi|cab|ride|rides|rideshare|transportation|transport|bus fare|mileage)\b|transporte|taxi|viaje|pasaje|transp[o\u00f2]|woulib/i;
-const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
+const COST = /\$\s?\d|\b(how much|cost|costs|pay|pays|paying|owe|charge|charged|bill|billed|copay|coinsurance|deductible|price|cu[a\u00e1]nto|costo|costos|pagar|pago|precio|copago|coseguro|deducible|konbyen|pri|peye|koute)\b/
 const ELIGIBILITY = /am i eligible|do i qualify|my eligibility|am i enrolled|did i enroll|have i enrolled|am i signed up|soy elegible|califico|mi elegibilidad|estoy inscrito|ya me inscrib|mwen kalifye|kalifikasyon mwen|mwen enskri|èske m enskri/i;
 const MEDICATION_LIST = /what (medications|medicines|pills).*(have|file|registered)|medications.*(have|file)|qu[eé] medicamentos.*(tienen|registr)|medicamentos registrados|ki medikaman.*dosye|medikaman.*genyen/i;
 const DEVICE_STATUS = /what (monitor|device) do i have|which (monitor|device)|is my (monitor|device).*(connected|assigned)|(?:when|has|did|will).*(monitor|device).*(ship|sent|arrive|deliver)|(?:monitor|device).*(ship|sent|arrive|deliver)|qu[eé] (monitor|aparato).*(tengo|asign)|(?:est[aá].*(monitor|aparato).*(conect)|conectad[oa]?.*(monitor|aparato))|(?:cu[aá]ndo|ya|van a|me van a).*(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|(enviar|env[ií]o|llegar|recibir|entregar).*(monitor|aparato)|ki apar[eè]y.*genyen|(?:apar[eè]y.*konekte|konekte.*apar[eè]y)|(?:kil[eè]|deja).*(voye|rive|resevwa).*(apar[eè]y|monit[eè])/i;
 const DEVICE_FULFILLMENT = /ship|sent|arrive|deliver|env[ií]o|enviar|llegar|recibir|entregar|voye|rive|resevwa/i;
-const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l es mi meta|mis metas|ki objektif mwen/i;
+const GOAL_STATUS = /what is my goal|what are my goals|my current goal|my goals|cu[aá]l es mi meta|cu[aá]les son mis metas|mis metas|ki objektif mwen/i;
+// "What am I doing about it" is a different question from "what is it", and answering the first
+// with the second is exactly the confusion this feature exists to remove. It asks about the plan:
+// the steps, not the outcome.
+const GOAL_PLAN_QUESTION = /what (am i|do i have to|should i) do(ing)?\b[^?]{0,40}\b(goal|plan)|my (steps|plan) for|steps? (in|of) my (plan|goal)|what.{0,20}\b(steps|actions)\b.{0,20}\bgoal|qu[eé] (tengo que|debo|estoy) hac(er|iendo)|mis pasos|los pasos de mi (plan|meta)|plan de mi meta|kisa (pou )?m ap fè|etap mwen/i;
+// The patient describing something they want. Deliberately broad on the wanting and narrow on the
+// asking: it must not swallow "I want to know what this costs", which is a question, not a goal.
+const GOAL_SETTING = /\b(set|add|create|make)\b[^.?!]{0,20}\b(a )?(new )?goal\b|\bmy goal (is|would be)\b|\bnueva meta\b|\b(crear|poner|agregar|a[ñn]adir|definir)\b[^.?!]{0,20}\bmeta\b|\bmi meta (es|ser[ií]a)\b|\bnouvo objektif\b|^(i (want|would like|'d like) to|quiero|me gustar[ií]a|quisiera|mwen vle)\b(?!.{0,30}\b(know|understand|ask|see|check|talk|speak|call|cancel|leave|saber|entender|preguntar|ver|revisar|hablar|llamar|cancelar|salir|konnen|konprann|mande|wè|pale|rele)\b)/i;
+// Changing what the patient does, which is a step and never the goal's name.
+const GOAL_STEP_CHANGE = /\b(change|make|switch|update)\b[^.?!]{0,30}\b(walk|walking|step|reminder|routine)\b[^.?!]{0,30}\b(to|into)\b|\b(cambia|cambiar|cambie|actualiza|pon|poner)\b[^.?!]{0,30}\b(caminata|paso|rutina|recordatorio)\b|\bchanje\b[^.?!]{0,30}\b(mache|etap)\b/i;
 // A saved appointment-prep topic is often submitted verbatim (for example "BP Readings") after
 // EMMI asks which topic to discuss. Treat that short label as a request for the patient's actual
 // reading. Otherwise it falls through to knowledge retrieval, where an older conversation topic
@@ -48,6 +59,8 @@ const GOAL_STATUS = /what is my goal|what are my goals|my current goal|cu[aá]l 
 const LATEST_HEALTH_READING = /latest (blood pressure )?reading|my (blood pressure|bp).*(reading|today)|what does my.*reading|^(my )?(blood pressure|bp) readings?$|lectura (m[aá]s reciente|de hoy)|mi presi[oó]n.*(lectura|hoy)|^(mis? )?lecturas? de (la )?presi[oó]n( arterial)?$|d[eè]nye lekti|tansyon mwen.*jodi|^(mezi|lekti) tansyon( mwen)?( yo)?$/i;
 const HEALTH_TREND = /how has my (blood pressure|bp)|pressure.*this week|reading trend|blood pressure trend|c[oó]mo ha estado mi presi[oó]n|tendencia.*presi[oó]n|kijan tansyon mwen|tandans.*tansyon/i;
 const CLINICAL_TARGET = /my (blood pressure )?target|expected range|rango esperado|objetivo.*presi[oó]n|sib tansyon|limit.*tansyon/i;
+// A request for the number to be different, as opposed to a question about what it is.
+const WANTS_A_DIFFERENT_NUMBER = /\b(i want|i'?d like|i would like|can you (change|set|lower|raise)|change|set|make|lower|raise)\b|\b(quiero|me gustar[ií]a|quisiera|cambi(a|ar|e)|pon(er|ga)?|baj(a|ar|e)|sub(a|ir|e))\b|\bmwen vle\b|\bchanje\b/i;
 const GOAL_PROGRESS = /goal progress|how am i doing.*goal|progreso.*meta|c[oó]mo voy.*meta|pwogr[eè].*objektif/i;
 // Where this patient started, and what ACCESS will recognise as improvement for them.
 //
@@ -281,6 +294,32 @@ const DRUG_SUFFIX = "[a-z]{4,}(?:pril|statin|olol|sartan|azide|ipine|formin|praz
 // — the two commonest dosing questions there are — fell past this gate into the knowledge base and
 // came back as programme education. Missing a dose is not a question EMMI may answer; it is a
 // question it must hand to a clinician.
+// Asking what a drug is for, what it does, or what it might do to you is drug education, and ITERA
+// has decided it is out of scope: it belongs to a pharmacist or the care team, and if it is ever
+// brought in-house it comes from a licensed monograph feed, not from this knowledge base and not
+// from the model.
+//
+// This has to be a route rather than a knowledge page. Left to retrieval, the model answered "what
+// is lisinopril for?" with a fluent, unsourced pharmacology lesson it wrote from its own weights -
+// which is exactly the class of answer the audit exists to prevent, on exactly the subject where
+// being confidently wrong does the most harm.
+const DRUG_NAMES = `(?:${DRUG_SUFFIX}|aspirin|ibuprofen|tylenol|acetaminophen|insulin|warfarin|aspirina|ibuprofeno|insulina|ibipwofen)`;
+// String.raw, because a plain "\b" in a JS string literal is a backspace character and not a word
+// boundary - written the other way this pattern silently matched nothing at all.
+const DRUG_EDUCATION = new RegExp([
+  String.raw`\b(?:what (?:is|are|does|do)|what'?s|why (?:do|am) i|how does|tell me about|side ?effects?|used for)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:for|side ?effects?|do to me|make me|safe|interact)\b`,
+  String.raw`\b(?:para qu[eé] (?:es|sirve)|qu[eé] hace|efectos? secundarios?)\b[^?.!]{0,40}\b` + DRUG_NAMES,
+  DRUG_NAMES + String.raw`[^?.!]{0,40}\b(?:para qu[eé]|efectos? secundarios?|me hace)\b`,
+  String.raw`\b(?:pou ki sa|efè segond[eè])\b[^?.!]{0,40}\b` + DRUG_NAMES
+].join("|"), "i");
+
+const drugEducationAnswer = locale => pick(locale, {
+  EN: "I can’t tell you what a specific medicine does, what it is for, or what side effects it may have — that needs someone who can see your full medication list and your health history. Your pharmacist can answer it, and so can your care team. Would you like me to ask your care team to call you about it?",
+  ES: "No puedo decirle qué hace un medicamento concreto, para qué sirve ni qué efectos secundarios puede tener: eso necesita a alguien que vea toda su lista de medicamentos y su historial. Su farmacéutico puede responderlo, y su equipo de atención también. ¿Desea que le pida a su equipo que le llame por esto?",
+  KR: "Mwen pa ka di w kisa yon medikaman patikilye fè, pou ki sa li ye, ni ki efè segondè li ka genyen — sa mande yon moun ki ka wè tout lis medikaman ou ak istwa sante ou. Famasyen ou ka reponn sa, epi ekip swen ou tou. Èske ou vle m mande ekip swen ou pou yo rele w sou sa?"
+});
+
 const MEDICATION_SAFETY = new RegExp(
   "(stop|quit|skip|skipped|miss|missed|missing|forgot|forget|double|increase|decrease|change|split|halve)[^?.]{0,40}(medication|medicine|medicines|pill|pills|dose|doses|tablet|" + DRUG_SUFFIX + ")"
   + "|(took|take|taken|taking)[^?.]{0,20}(two|three|2|3|double|an extra|extra|another|a second)[^?.]{0,10}(dose|pill|tablet)"
@@ -563,13 +602,23 @@ const barrierAcknowledgement = (locale, category, alreadyKnown = false) => {
   return `${prefix} ${base}`;
 };
 
-export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null } = {}) => {
+export const expandEmmiQuery = ({ question, conversation = {}, program = "", appointmentPrep = null, carriedSubject = "" } = {}) => {
   const raw = clean(question);
   const prepTopic = resolveAppointmentPrepTopic({ question: raw, conversation, appointmentPrep });
   if (prepTopic && topicKey(raw) !== topicKey(prepTopic)) return `${raw} Appointment preparation topic: ${prepTopic}`;
   const context = `${conversation.conversationSummary || ""} ${(conversation.recentTurns || []).map(turn => turn.text).join(" ")}`;
   const mentioned = ["ACCESS", "CCM", "RPM", "PCM", "APCM", "ASM"].filter(item => new RegExp(`\\b${item}\\b`, "i").test(context));
   if (/(difference|different|compare|diferencia|diferente|comparar|diferans)/i.test(raw) && mentioned.length >= 2) return `${raw} ${mentioned.slice(-2).join(" ")}`;
+  // The half of a compound question that named the subject hands it to the half that did not:
+  // "am I eligible and how much does it cost?" asks the second half about eligibility's subject.
+  if (carriedSubject) return `${raw} ${carriedSubject}`;
+  // "And does that cost anything?" carries no subject of its own. Retrieval had only those words
+  // to rank on and returned whatever page mentioned cost, so a question about the monitor came
+  // back as the programme's cost page. Put the subject the patient stopped repeating back in.
+  if (isFollowUpQuestion(raw)) {
+    const subject = resolveConversationSubject(conversation);
+    if (subject) return `${raw} ${subject}`;
+  }
   if (/^(and|what about|y|e)\b/i.test(raw) && mentioned.length) return `${raw} Previous topic: ${mentioned.at(-1)}`;
   if (/\b(this|that|it|esto|eso|este programa|sa a)\b/i.test(raw) && program) return `${raw} Current program: ${program}`;
   return raw;
@@ -655,7 +704,10 @@ const GENERIC_PROGRAM_PAGE = /^programs\/(access|ccm|rpm|pcm|apcm|asm|bhi|cocm|t
 // internal vocabulary (runtime, tool, guardrail, chunk, PHI), and editorial scaffolding (source
 // registries, "Answer from this page"). They belong in the model's grounding, where they steer the
 // answer, and never in the answer itself — which is exactly where they were being printed.
-const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep |use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
+// "keep" on its own was too broad: it stripped "Keep your feet flat on the floor" out of the
+// monitor instructions, which is the patient's own guidance and not a note to whoever wrote the
+// page. Only the authoring objects belong here.
+const AUTHORING_VOICE = /^(never|do not|don'?t|always|avoid|prefer|preserve|keep (?:the (?:answer|response|tone|wording|list|language)|answers|responses|it short|language|wording)|use plain|treat |ensure |give them|answer |explain the|explain medicare|state |say )\b/i;
 const INTERNAL_VOCABULARY = /\b(runtime|tool|guardrail|chunk|retrieval|markdown|PHI|credential|configuration|config\b|this page|the model|prompt|G-?code|_sources?:|\(READ\)|\bUso:|\bNota:)/i;
 // A directive can also be phrased about the patient rather than to the reader.
 const THIRD_PERSON_DIRECTIVE = /\b(must (not|never|remain|be)|should (not|be given|use)|is not answered by|it must appear|rather than assumed)\b/i;
@@ -863,6 +915,96 @@ const accessMilestoneAnswer = (locale, entry) => {
   });
 };
 
+// A patient who asked for a different clinical number was told whose the number is. That answer is
+// correct and it is not the whole of what they wanted: they were describing something they want to
+// get better at, and there is a goal in that which is entirely theirs to set.
+//
+// It comes second, always, and it never softens the first half. "Your care team owns this target"
+// followed by "and here is what I can help you with" is the honest shape; leading with the offer
+// would read as talking them out of the question they actually asked.
+const clinicalGoalOffer = (question, locale) => {
+  // Only when they asked for the number to be different. "What is my blood pressure target?" is a
+  // question about their care, and answering it with an offer would be selling them something they
+  // did not ask for — the classifier alone cannot tell the two apart, because both name a target.
+  if (!WANTS_A_DIFFERENT_NUMBER.test(clean(question))) return "";
+  const verdict = classifyGoalStatement(question);
+  if (verdict.kind !== GOAL_STATEMENT_KINDS.CLINICAL_TARGET || !verdict.goal) return "";
+  const goal = typeof verdict.goal.title === "string" ? verdict.goal.title : pick(locale, { EN: verdict.goal.title.en, ES: verdict.goal.title.es, KR: verdict.goal.title.ht });
+  const topic = verdict.careTeamTopic ? pick(locale, { EN: verdict.careTeamTopic.en, ES: verdict.careTeamTopic.es, KR: verdict.careTeamTopic.ht }) : "";
+  return pick(locale, {
+    EN: `What I can help with is a goal of your own — something like “${goal}”.${topic ? ` I can also write down “${topic}” to ask them.` : ""} Would you like to set that up?`,
+    ES: `Con lo que sí puedo ayudarle es con una meta suya, algo como «${goal}».${topic ? ` También puedo anotar «${topic}» para preguntarles.` : ""} ¿Quiere que la definamos?`,
+    KR: `Sa mwen ka ede w avè l se yon objektif pa ou — yon bagay tankou « ${goal} ».${topic ? ` Mwen ka ekri « ${topic} » tou pou mande yo.` : ""} Èske ou vle nou mete l?`
+  });
+};
+
+// "What am I doing to reach it?" — the plan, named goal by goal. A goal with no steps says so
+// rather than being left out, because "you have no plan yet" is the answer that leads somewhere.
+const goalPlanAnswer = (result, locale) => {
+  const goals = (result?.goals || []).filter(item => item?.title);
+  if (!goals.length) return pick(locale, { EN: "You don’t have any goals saved yet, so there are no steps to show.", ES: "Todavía no tiene metas guardadas, así que no hay pasos que mostrar.", KR: "Ou poko gen objektif ki sove, kidonk pa gen etap pou montre." });
+  const lines = goals.map(goal => {
+    const steps = (goal.actions || []).filter(item => item?.title).map(item => item.title);
+    return steps.length
+      ? pick(locale, {
+        EN: `For “${goal.title}”, your plan is: ${steps.join("; ")}.`,
+        ES: `Para «${goal.title}», su plan es: ${steps.join("; ")}.`,
+        KR: `Pou « ${goal.title} », plan ou se: ${steps.join("; ")}.`
+      })
+      : pick(locale, {
+        EN: `“${goal.title}” has no steps in its plan yet.`,
+        ES: `«${goal.title}» todavía no tiene pasos en su plan.`,
+        KR: `« ${goal.title} » poko gen etap nan plan li.`
+      });
+  });
+  const closing = pick(locale, {
+    EN: "Those steps are what you do; the goal is what you are working toward. You can change a step without changing the goal.",
+    ES: "Esos pasos son lo que usted hace; la meta es lo que quiere conseguir. Puede cambiar un paso sin cambiar la meta.",
+    KR: "Etap sa yo se sa ou fè; objektif la se sa w ap chèche rive. Ou ka chanje yon etap san ou pa chanje objektif la."
+  });
+  return `${lines.join(" ")} ${closing}`;
+};
+
+// What we would write down, offered back. Nothing has been saved at this point and the wording
+// says so, because a patient told "I saved that" about a proposal they never accepted has been
+// lied to about their own record.
+const goalProposalAnswer = (opened, locale) => {
+  if (opened.clarify) return opened.clarify;
+  const goal = opened.suggestedGoal?.title || "";
+  const step = opened.suggestedAction?.title || "";
+  const clinical = opened.clinicalMeasure === "MEDICATION"
+    ? pick(locale, { EN: " Your treatment stays with your care team — I can’t change a medication or a dose.", ES: " Su tratamiento sigue a cargo de su equipo de atención: no puedo cambiar un medicamento ni una dosis.", KR: " Tretman ou rete ak ekip swen ou — mwen pa ka chanje yon medikaman ni yon doz." })
+    : opened.clinicalMeasure
+      ? pick(locale, { EN: " The target numbers stay with your care team.", ES: " Los números objetivo siguen a cargo de su equipo de atención.", KR: " Chif sib yo rete ak ekip swen ou." })
+      : "";
+  const topic = opened.careTeamTopic
+    ? pick(locale, { EN: ` I’ve also put “${opened.careTeamTopic}” there as a question for them.`, ES: ` También puse «${opened.careTeamTopic}» ahí como pregunta para ellos.`, KR: ` Mwen mete « ${opened.careTeamTopic} » la tou kòm yon kesyon pou yo.` })
+    : "";
+  const body = goal && step
+    ? pick(locale, {
+      EN: `That sounds like something you’ll do, so I’d put “${step}” in your plan and set your goal as “${goal}”.`,
+      ES: `Eso suena a algo que usted hará, así que pondría «${step}» en su plan y su meta sería «${goal}».`,
+      KR: `Sa sanble ak yon bagay w ap fè, kidonk mwen ta mete « ${step} » nan plan ou epi objektif ou ta « ${goal} ».`
+    })
+    : goal
+      ? pick(locale, {
+        EN: `I’d write your goal as “${goal}”.`,
+        ES: `Escribiría su meta como «${goal}».`,
+        KR: `Mwen ta ekri objektif ou konsa: « ${goal} ».`
+      })
+      : pick(locale, {
+        EN: "Let’s put that into words together.",
+        ES: "Pongámoslo en palabras juntos.",
+        KR: "Ann mete sa an mo ansanm."
+      });
+  const closing = pick(locale, {
+    EN: " It’s on screen now — change any of it, and save it when it sounds right. Nothing is saved until you do.",
+    ES: " Está en pantalla ahora: cambie lo que quiera y guárdelo cuando le parezca bien. No se guarda nada hasta que lo haga.",
+    KR: " Li sou ekran an kounye a — chanje sa ou vle, epi sove l lè li sanble kòrèk. Anyen pa sove jiskaske ou fè sa."
+  });
+  return `${body}${clinical}${topic}${closing}`;
+};
+
 const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
   if (tool === "getExpectedAccessCost") {
     const cost = accessCostAnswer(result, locale);
@@ -924,9 +1066,22 @@ const runtimeAnswer = ({ tool, result, locale, context, question = "" }) => {
     const names = (result.medications || []).filter(item => item.active).map(item => item.details ? `${item.name} (${item.details})` : item.name);
     return names.length ? pick(locale, { EN: `The medications currently on file are ${names.join(" and ")}. Please review them on the medication screen; this does not change a prescription.`, ES: `Los medicamentos registrados actualmente son ${names.join(" y ")}. Revíselos en la pantalla de medicamentos; esta revisión no cambia una receta.`, KR: `Medikaman ki nan dosye a kounye a se ${names.join(" ak ")}. Tanpri revize yo sou ekran medikaman an; sa pa chanje yon preskripsyon.` }) : pick(locale, { EN: "I don’t see any medications on file in this prototype.", ES: "No veo medicamentos registrados en este prototipo.", KR: "Mwen pa wè okenn medikaman nan dosye pwototip sa a." });
   }
+  // Two kinds of goal, kept apart in the answer because they are kept apart everywhere else. A
+  // patient who cannot tell which goals their care plan set from the ones they set themselves
+  // cannot tell which ones are theirs to change.
   if (tool === "getPatientGoals") {
-    const goals = result.goals || [];
-    return goals.length ? pick(locale, { EN: `Your current goal${goals.length > 1 ? "s are" : " is"}: ${goals.map(item => item.title).join("; ")}. You can change personal goals later.`, ES: `Su${goals.length > 1 ? "s metas actuales son" : " meta actual es"}: ${goals.map(item => item.title).join("; ")}. Puede cambiar sus metas personales después.`, KR: `Objektif ou${goals.length > 1 ? " yo se" : " se"}: ${goals.map(item => item.title).join("; ")}. Ou ka chanje objektif pèsonèl yo pita.` }) : pick(locale, { EN: "You have not saved a personal goal yet.", ES: "Todavía no ha guardado una meta personal.", KR: "Ou poko sove yon objektif pèsonèl." });
+    const goals = (result.goals || []).filter(item => item?.title);
+    if (!goals.length) return pick(locale, { EN: "You don’t have any goals saved yet. You can add one from My Goals.", ES: "Todavía no tiene metas guardadas. Puede agregar una desde Mis metas.", KR: "Ou poko gen okenn objektif ki sove. Ou ka ajoute youn nan Objektif mwen." });
+    const fromPlan = goals.filter(item => item.goalKind !== "PERSONAL").map(item => item.title);
+    const own = goals.filter(item => item.goalKind === "PERSONAL").map(item => item.title);
+    const parts = [
+      fromPlan.length ? pick(locale, { EN: `From your care plan: ${fromPlan.join("; ")}.`, ES: `De su plan de cuidado: ${fromPlan.join("; ")}.`, KR: `Nan plan swen ou: ${fromPlan.join("; ")}.` }) : "",
+      own.length ? pick(locale, { EN: `Goals you set yourself: ${own.join("; ")}.`, ES: `Metas que usted definió: ${own.join("; ")}.`, KR: `Objektif ou menm mete: ${own.join("; ")}.` }) : ""
+    ].filter(Boolean);
+    const closing = own.length
+      ? pick(locale, { EN: "You can reword or remove your own goals whenever you like; your care team keeps the targets on the plan ones.", ES: "Puede reescribir o eliminar sus propias metas cuando quiera; su equipo mantiene los objetivos de las del plan.", KR: "Ou ka reekri oswa retire pwòp objektif ou lè ou vle; ekip ou kenbe sib yo sou sa ki nan plan an." })
+      : pick(locale, { EN: "You can also set a goal of your own from My Goals.", ES: "También puede definir una meta propia desde Mis metas.", KR: "Ou ka mete yon objektif pa ou tou nan Objektif mwen." });
+    return `${parts.join(" ")} ${closing}`;
   }
   if (tool === "getLatestReading") {
     const reading = result.reading;
@@ -991,17 +1146,85 @@ export class EmmiTextOrchestrator {
     this.onSafetyResolved = onSafetyResolved;
   }
 
-  async answer(question, { questionId = "" } = {}) {
+  // Each half of a compound turn is routed on its own and the answers are merged. The half that
+  // names the subject hands it to the half that does not, so "am I eligible and how much does it
+  // cost?" asks the second question about the same thing as the first.
+  async #answerCompound({ parts, locale, questionId, trace, emit }) {
+    const results = [];
+    let carried = "";
+    for (const part of parts) {
+      const own = subjectOf(part);
+      const inherits = !own || own.weak || hasBareReferent(part);
+      results.push(await this.answer(part, { questionId, subQuestion: true, carriedSubject: inherits ? carried : "" }));
+      if (own && !own.weak) carried = own.label;
+    }
+    const text = mergeCompoundAnswers(results.map(item => item?.text), { unavailableText: unavailable(locale) });
+    Object.assign(trace, {
+      intent: "COMPOUND_QUESTION",
+      responseMode: "COMPOUND",
+      compoundParts: parts,
+      toolCalls: results.flatMap(item => item?.trace?.toolCalls || []),
+      knowledgeChunkIds: results.flatMap(item => item?.trace?.knowledgeChunkIds || []),
+      runtimeFactsUsed: results.flatMap(item => item?.trace?.runtimeFactsUsed || []),
+      partIntents: results.map(item => item?.trace?.intent || "UNKNOWN")
+    });
+    emit("EMMI_ANSWER_ROUTED");
+    const carriedField = field => results.find(item => item?.[field])?.[field];
+    return {
+      text: text || results[0]?.text || unavailable(locale),
+      ...(carriedField("pendingAction") ? { pendingAction: carriedField("pendingAction") } : {}),
+      ...(carriedField("quickAction") ? { quickAction: carriedField("quickAction") } : {}),
+      ...(carriedField("appointmentPrepUpdate") ? { appointmentPrepUpdate: carriedField("appointmentPrepUpdate"), appointmentId: carriedField("appointmentId") || "" } : {}),
+      trace
+    };
+  }
+
+  async answer(question, { questionId = "", subQuestion = false, carriedSubject = "" } = {}) {
     const context = this.getContext();
     const locale = context.locale || "EN";
     const conversation = this.getConversation?.() || {};
     const appointmentPrepTopic = resolveAppointmentPrepTopic({ question, conversation, appointmentPrep: context.appointmentPrep });
-    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep });
+    const retrievalQuery = expandEmmiQuery({ question, conversation, program: context.program, appointmentPrep: context.appointmentPrep, carriedSubject });
     const trace = { turnId: `emmi_turn_${Date.now().toString(36)}`, conversationSessionId: conversation.conversationSessionId || "", screenId: context.currentScreen, retrievalQuery, intent: "UNKNOWN", knowledgeChunkIds: [], toolCalls: [], runtimeFactsUsed: [], responseMode: "UNKNOWN" };
     const emit = (type, details = {}) => this.onEvent(type, { ...trace, ...details });
 
     const asked = foldApostrophes(question);
     const openEpisode = safetyEpisodeIsActive(conversation.activeSafetyEpisode) ? conversation.activeSafetyEpisode : null;
+
+    // A patient who asks two things in one breath used to get one answer and silence for the rest,
+    // because everything below is a chain of routes that returns on the first match.
+    //
+    // Two kinds of turn are answered whole instead. Safety, because half of "my chest hurts and
+    // when is my appointment" is not a question about an appointment. And the routes that are
+    // already deliberately multi-intent: appointment coordination answers a combined
+    // ride-and-companion request as one action with the appointment attached, which is a better
+    // answer than two smaller ones, so splitting it would be a downgrade. Appointment preparation
+    // is left alone too — it owns its own turn-taking.
+    if (!subQuestion) {
+      const claimedBySafety = Boolean(openEpisode) || SAFETY.test(asked) || BP_READING.test(asked)
+        || MEDICATION_SAFETY.test(asked) || Boolean(conversationPolicyResponse(question, locale));
+      // Only when coordination is the whole turn. Their route answers a combined ride-and-companion
+      // request better than two split answers, but it answers one thing: given "my daughter wants
+      // to come with me but I also need to change the time" it opens the companion flow and the
+      // reschedule disappears. So it takes the turn only when every part of it is coordination.
+      // A trailing "¿cómo lo coordinamos?" is the same request continuing, not a second subject, so
+      // it counts as coordination too. "I also need to change the time" names something else and
+      // does not.
+      const coordinationPart = part => APPOINTMENT_TRANSPORTATION.test(part) || APPOINTMENT_COMPANION.test(part) || isFollowUpQuestion(part);
+      const coordinatingAppointment = Boolean(context.appointmentPrep?.appointmentId)
+        && coordinationPart(question)
+        && decomposeCompoundQuestion(question).every(coordinationPart);
+      const resolvingCompanionPrivacy = context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question);
+      // "How much does it cost and do I keep my doctor?" has a handler of its own. Both routes say
+      // the same two things; that one says them in the better order, leading with the reassurance
+      // and then the money, in a single paragraph. Decomposition covers the rest of the class.
+      const askingCostAndDoctor = COST.test(asked) && DOCTOR_STATUS.test(asked) && !TRANSPORT_SUBJECT.test(asked);
+      const preparing = context.appointmentPrep?.emmiPreparation?.status === "IN_PROGRESS";
+      const claimed = claimedBySafety || coordinatingAppointment || resolvingCompanionPrivacy || askingCostAndDoctor || preparing;
+      const parts = claimed ? [] : decomposeCompoundQuestion(question);
+      if (parts.length > 1) return await this.#answerCompound({ parts, locale, questionId, trace, emit });
+    }
+
     if (openEpisode) {
       // Resolution is read before the emergency gate. A patient saying "I called 911" or "the
       // emergency team is with me now" uses the words that raise an emergency, so the gate treated
@@ -1044,6 +1267,16 @@ export class EmmiTextOrchestrator {
     if (guardrail) {
       trace.intent = guardrail.intent; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
       return { text: guardrail.text, ...(guardrail.quickAction ? { quickAction: guardrail.quickAction } : {}), trace };
+    }
+
+    // After the guardrail on purpose. The product already carries approved, reviewed education for
+    // the medications it puts on file, and that stays: a patient asking about their own lisinopril
+    // gets the approved sentence. What this catches is everything the allowlist does not cover,
+    // where the model was answering "what is X for?" with a fluent unsourced pharmacology lesson
+    // written from its own weights - on the one subject where being confidently wrong hurts most.
+    if (DRUG_EDUCATION.test(asked)) {
+      trace.intent = "MEDICATION_EDUCATION_OUT_OF_SCOPE"; trace.responseMode = "DETERMINISTIC_GUARDRAIL"; emit("EMMI_ANSWER_ROUTED");
+      return { text: drugEducationAnswer(locale), pendingAction: "callback", trace };
     }
     if (REPEAT_FOLLOW_UP.test(asked) || SIMPLIFY_FOLLOW_UP.test(asked)) {
       const prior = clean(conversation.lastEmmiTurn || [...(conversation.recentTurns || [])].reverse().find(turn => turn?.role === "assistant")?.text || "");
@@ -1110,7 +1343,11 @@ export class EmmiTextOrchestrator {
     }
     if (HUMAN_SUPPORT.test(asked)) {
       trace.intent = "HUMAN_SUPPORT"; trace.responseMode = "CONFIRMATION_REQUIRED"; emit("EMMI_ANSWER_ROUTED");
-      return { text: pick(locale, { EN: "Would you like me to ask the ITERA care team to call you?", ES: "¿Desea que solicite al equipo de atención de ITERA que le llame?", KR: "Èske ou vle m mande ekip swen ITERA a rele ou?" }), pendingAction: "callback", trace };
+      return { text: pick(locale, {
+        EN: "Would you like me to ask the ITERA care team to call you? They are there Monday to Friday, 9:00 to 17:00 Eastern, and usually reach people within one business day. If something feels urgent before then, call your doctor’s office — and if it is an emergency, call 911.",
+        ES: "¿Desea que solicite al equipo de atención de ITERA que le llame? Están disponibles de lunes a viernes, de 9:00 a 17:00 del Este, y por lo general se comunican en un día hábil. Si algo le urge antes, llame al consultorio de su médico; y si es una emergencia, llame al 911.",
+        KR: "Èske ou vle m mande ekip swen ITERA a rele ou? Yo la lendi jiska vandredi, 9:00 a 17:00 lè Lès, epi anjeneral yo rive jwenn moun nan yon jou ouvrab. Si yon bagay sanble ijan anvan sa, rele biwo doktè ou — epi si se yon ijans, rele 911."
+      }), pendingAction: "callback", trace };
     }
     // Whether to measure again is a question about the baseline counters, so it is answered only
     // when those counters actually say no; anything else falls through to normal routing.
@@ -1222,7 +1459,10 @@ export class EmmiTextOrchestrator {
     // block at all, because clinical safety above already took the turn (§3, §4, §5, §139).
     // §41: a pronoun only refers to an appointment when one is genuinely the subject of this
     // conversation. Recent turns decide that; a bare "cancel it" out of nowhere still means nothing.
-    const appointmentInContext = APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
+    // A patient with an appointment open in front of them has an appointment in context, whether or
+    // not anyone has said the word in the last few turns.
+    const appointmentInContext = Boolean(context.appointmentPrep?.appointmentId)
+      || APPOINTMENT_MENTION.test(String(conversation.conversationSummary || ""))
       || (conversation.recentTurns || []).some(turn => APPOINTMENT_MENTION.test(String(turn?.text || "")));
     if (context.appointmentSupport?.barrierType === "companion" && COMPANION_PRIVACY.test(question)) {
       trace.intent = "APPOINTMENT_COMPANION_PRIVACY";
@@ -1230,7 +1470,11 @@ export class EmmiTextOrchestrator {
       emit("EMMI_ANSWER_ROUTED", { appointmentId: context.appointmentSupport.appointmentId || "", companionStep: context.appointmentSupport.step || "" });
       return { text: companionPrivacyAnswer(locale, context.appointmentSupport.contactName), appointmentId: context.appointmentSupport.appointmentId || "", trace };
     }
-    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId) {
+    // "Who pays for the Uber?" is not a status question, and answering it with "I do not see
+    // confirmed transportation on file" implies there is transportation to confirm. ITERA has
+    // decided there is no transportation benefit, so a question about who pays goes to the page
+    // that says so rather than to a lookup that sounds like a maybe.
+    if (APPOINTMENT_TRANSPORTATION.test(question) && context.appointmentPrep?.appointmentId && !COST.test(asked)) {
       trace.intent = "APPOINTMENT_TRANSPORTATION_STATUS";
       trace.responseMode = "RUNTIME_GROUNDED";
       trace.toolCalls.push("getAppointment", "getAppointmentTransportation");
@@ -1380,14 +1624,99 @@ export class EmmiTextOrchestrator {
       }
     }
 
+    // --- Goals and the steps that serve them ----------------------------------------------------
+    //
+    // These run before the tool table below and before retrieval, because retrieval has no idea
+    // what a goal is: "I want to swim three times a week" used to come back as a paragraph about
+    // the ninety-day notice, and "change my walk to 30 minutes" as a paragraph about QMB. A patient
+    // asking to change their care plan was being answered with whichever page happened to score.
+
+    // Changing a step. Never the goal's name, whatever the patient called it.
+    if (GOAL_STEP_CHANGE.test(asked)) {
+      trace.intent = "GOAL_STEP_CHANGE"; trace.responseMode = "GOAL_ENGINE"; trace.toolCalls.push("startGoalStepEdit");
+      try {
+        // The patient's whole sentence is what identifies the step, never what replaces it: filling
+        // the box with "Change my walk to 30 minutes. Yes, please do it." would put that in their
+        // plan. They set the new wording on the screen, which is also where they can see the goal
+        // above it is untouched.
+        const opened = await this.executeTool("startGoalStepEdit", { patientId: context.patientId, phrase: clean(question) });
+        emit("EMMI_ANSWER_ROUTED");
+        if (opened?.success && opened.opened) {
+          return { text: pick(locale, {
+            EN: `That changes a step in your plan, not your goal — “${opened.goalTitle}” stays exactly as it is. I’ve opened “${opened.currentTitle}”: set the new wording there and save it.`,
+            ES: `Eso cambia un paso de su plan, no su meta: «${opened.goalTitle}» queda exactamente igual. Abrí «${opened.currentTitle}»: escriba ahí el nuevo texto y guárdelo.`,
+            KR: `Sa chanje yon etap nan plan ou, pa objektif ou — « ${opened.goalTitle} » rete menm jan. Mwen louvri « ${opened.currentTitle} »: ekri nouvo mo yo la epi sove l.`
+          }), trace };
+        }
+        if (opened?.needsChoice) {
+          return { text: pick(locale, {
+            EN: (opened.steps || []).length
+              ? `That would change a step in your plan, not your goal. Which one do you mean: ${(opened.steps || []).map(item => `“${item.title}”`).join(" or ")}?`
+              : "There are no steps in your plan to change yet. You can add one from the goal itself, under My Goals.",
+            ES: (opened.steps || []).length
+              ? `Eso cambiaría un paso de su plan, no su meta. ¿Cuál de ellos: ${(opened.steps || []).map(item => `«${item.title}»`).join(" o ")}?`
+              : "Todavía no hay pasos en su plan que cambiar. Puede agregar uno desde la meta misma, en Mis metas.",
+            KR: (opened.steps || []).length
+              ? `Sa ta chanje yon etap nan plan ou, pa objektif ou. Kilès ou vle di: ${(opened.steps || []).map(item => `« ${item.title} »`).join(" oswa ")}?`
+              : "Poko gen etap nan plan ou pou chanje. Ou ka ajoute youn sou objektif la, nan Objektif mwen."
+          }), trace };
+        }
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "startGoalStepEdit", error: error?.message || "unknown" });
+      }
+      return { text: pick(locale, {
+        EN: "I couldn’t open that step just now, so nothing changed. You can change it on the goal itself, under My Goals.",
+        ES: "No pude abrir ese paso ahora, así que no cambió nada. Puede cambiarlo en la meta misma, en Mis metas.",
+        KR: "Mwen pa t ka louvri etap sa a kounye a, kidonk anyen pa chanje. Ou ka chanje l sou objektif la, nan Objektif mwen."
+      }), trace };
+    }
+
+    // What the patient is doing about a goal: the plan, not the outcome.
+    if (GOAL_PLAN_QUESTION.test(asked)) {
+      trace.intent = "GOAL_PLAN"; trace.responseMode = "RUNTIME_GROUNDED"; trace.toolCalls.push("getPatientGoals");
+      try {
+        const result = await this.executeTool("getPatientGoals", { patientId: context.patientId });
+        trace.runtimeFactsUsed.push("getPatientGoals"); emit("EMMI_ANSWER_ROUTED");
+        return { text: goalPlanAnswer(result, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "getPatientGoals", error: error?.message || "unknown" });
+        return { text: unavailable(locale), trace };
+      }
+    }
+
+    // Setting one. The classifier decides goal-or-action; the screen shows the proposal; the
+    // patient saves it. Chat never writes a goal on its own, and never says one was saved.
+    if (GOAL_SETTING.test(asked)) {
+      trace.intent = "GOAL_SETTING"; trace.responseMode = "GOAL_ENGINE"; trace.toolCalls.push("startPersonalGoal");
+      try {
+        const opened = await this.executeTool("startPersonalGoal", { patientId: context.patientId, statement: clean(question) });
+        emit("EMMI_ANSWER_ROUTED", { statementKind: opened?.kind || "" });
+        if (opened?.success) return { text: goalProposalAnswer(opened, locale), trace };
+      } catch (error) {
+        emit("EMMI_TOOL_FAILED", { tool: "startPersonalGoal", error: error?.message || "unknown" });
+      }
+      return { text: pick(locale, {
+        EN: "I couldn’t open that just now, so nothing was saved. You can add a goal from My Goals whenever you like.",
+        ES: "No pude abrirlo ahora, así que no se guardó nada. Puede agregar una meta desde Mis metas cuando quiera.",
+        KR: "Mwen pa t ka louvri sa kounye a, kidonk anyen pa sove. Ou ka ajoute yon objektif nan Objektif mwen lè ou vle."
+      }), trace };
+    }
+
     // "Who pays for the Uber?" is a cost question, but not a question about the ACCESS cost. Sent to
     // the financial engine it came back "your expected payment for ACCESS is $0" — which a patient
     // asking about a ride reads as a promise that the ride is free. What transportation costs, and
     // who pays it, is not something this product knows; that belongs to the transportation route,
     // which says so plainly.
-    const asksAboutTransportCost = COST.test(asked) && TRANSPORT_SUBJECT.test(asked);
+    // The same words carry three different answers depending on what they are asked about. The
+    // programme's $0 is true of the programme only: said about a ride it reads as a promise the
+    // ride is free, said about a prescription it reads as a promise the copay is nothing. The
+    // monitor, the ride and the medication each have their own answer, so a cost question about
+    // one of them is left to the route that knows it. The subject can come from an earlier turn:
+    // "and does that cost anything?" is about whatever the patient was just asking about.
+    const costSubject = resolveTurnSubject({ question: asked, conversation, carriedSubject, fromConversation: false })?.key || "";
+    const asksAboutTransportCost = COST.test(asked) && (TRANSPORT_SUBJECT.test(asked) || costSubject === "TRANSPORT");
     let tool = "";
-    if (COST.test(asked) && !asksAboutTransportCost) tool = "getExpectedAccessCost";
+    if (COST.test(asked) && !asksAboutTransportCost && !["DEVICE", "MEDICATION"].includes(costSubject)) tool = "getExpectedAccessCost";
     else if (ELIGIBILITY.test(asked)) tool = "getEnrollmentContext";
     else if (MEDICATION_LIST.test(asked)) tool = "getMedicationList";
     else if (DEVICE_STATUS.test(asked)) tool = "getAssignedDevice";
@@ -1426,6 +1755,12 @@ export class EmmiTextOrchestrator {
               })}`;
             }
           } catch { /* the care-team target still stands on its own */ }
+          // Asking what the target IS gets the target. Asking to CHANGE it gets the target, the
+          // program's control target above, and then the goal that is theirs to set. The classifier
+          // tells the two questions apart, so "what is my blood pressure target?" is never answered
+          // with an offer nobody asked for.
+          const offer = clinicalGoalOffer(question, locale);
+          if (offer) return { text: `${text} ${offer}`, trace };
         }
         if (context.appointmentPrep && ["getLatestReading", "getReadingTrend"].includes(tool) && appointmentPrepTopic) {
           const preparation = context.appointmentPrep.emmiPreparation || {};

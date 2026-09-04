@@ -3,6 +3,7 @@ import { getEmmiVoiceIdentity } from "./voiceIdentity.js";
 import { EMMI_ACCESS_DISCLOSURES, EMMI_DEMO_DEVICES, EMMI_DEMO_PATIENTS, emmiDemoCoverage } from "../mock/emmiFixtures.js";
 import { normalizeCoverage } from "../coverage.js";
 import { DEMO_BP_MONITORING_RULES } from "../goalHealth.js";
+import { PROTECTED_CLINICAL_FIELDS } from "../goals.js";
 import { BP_CLINICAL_STATE, EMERGENCY_SYMPTOM_PATTERN, classifyObservation } from "../clinicalMonitoring.js";
 import { resolveExpectedPatientResponsibility } from "../financialResponsibility.js";
 import { conversationPolicyResponse } from "./conversationPolicy.js";
@@ -64,7 +65,15 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
   { name: "getPatientCoverage", description: "Get this patient's verified coverage: whether they have Original Medicare or Medicare Advantage, Part A and Part B status, and any secondary payers including Medicare Supplement, Medicaid or QMB. Always use for 'do I have Medicare', 'do I have supplemental insurance', 'what is my secondary coverage' and similar patient-specific coverage questions. Only a payer typed MEDICARE_SUPPLEMENT may be described to the patient as supplemental or Medigap coverage.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getAssignedDevice", description: "Get the fictional demo patient's assigned monitor plus current fulfillment and shipment status. Use this for patient-specific questions about which monitor they have, whether it is connected, whether it was requested or shipped, or when it may arrive. Never infer a shipment or delivery date.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
   { name: "getMedicationList", description: "Get the fictional medications currently on file for this patient. Use for patient-specific medication-list questions.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
-  { name: "getPatientGoals", description: "Get the fictional personal goals currently saved for this patient.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "getPatientGoals", description: "Get this patient's goals, each one marked CARE_PLAN (their care plan set it) or PERSONAL (they set it themselves), with the steps in its plan. Always use it for 'what are my goals', 'what am I working on' or 'what do I have to do for this goal', and answer with the two kinds kept apart. A step in a plan is never reported as a goal.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" } }, required: ["patientId"] } },
+  { name: "classifyGoalStatement", description: "Decide whether something the patient said describes a GOAL (a result, change or state they want to reach) or an ACTION (something they will do), and get the outcome goal we can offer them if it is an action. ALWAYS call this before creating a goal or a step from the patient's words, and never make this judgement yourself: the answer must be the same in chat and in voice, and it comes from here. It returns kind (GOAL, ACTION, VAGUE, CLINICAL_TARGET, MEDICATION_CHANGE or EMPTY), a proposed goal, a proposed step, one short question to ask when nothing is safe to assume, and a topic for the care team when the patient asked for something clinical. Everything it returns is a PROPOSAL: it saves nothing.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, statement: { type: "STRING" } }, required: ["statement"] } },
+  { name: "startPersonalGoal", description: "Open the create-a-goal screen with what the patient said already worked out: the outcome we would offer as the goal, the step we would offer for their plan, and the wording they can change. Use it when the patient says they want to set a goal, or describes something they want to improve or start doing. It writes nothing — the patient still has to accept and save — so never say a goal was created after calling it.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, statement: { type: "STRING" } }, required: ["statement"] } },
+  { name: "startGoalStepEdit", description: "Open the editor for one step of a goal's plan, with the new wording filled in for the patient to confirm. Use it when the patient asks to change something they are doing — 'make the walk 20 minutes'. It changes the step and never the goal, and it saves nothing by itself.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" }, actionId: { type: "STRING" }, title: { type: "STRING" }, phrase: { type: "STRING" } }, required: [] } },
+  { name: "createPersonalGoal", description: "Save a personal goal the patient confirmed, with an optional first step of their plan. The title must describe what the patient wants to REACH: a title that describes something they would do is refused and the outcome goal to offer instead is returned, so never retry with the same wording. A personal goal is the patient's own input for their care team to see; it is never a clinical target, never an order, and it changes no baseline, target, medication or treatment. Only say the goal was saved after this returns success.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, title: { type: "STRING" }, templateId: { type: "STRING" }, firstActionTitle: { type: "STRING" }, firstActionFrequency: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["title", "confirmed"] } },
+  { name: "addGoalAction", description: "Add one step to the plan for a goal after the patient confirmed it. A step is what the patient will do — walk 15 minutes three times a week, use less salt. This is where anything the patient describes as a routine belongs, never in the goal's name. Adding a step never changes the goal, and never changes a clinical target, a dose or a treatment. frequency is one of daily, few-days, choose-days or care-team-plan.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" }, title: { type: "STRING" }, frequency: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["goalId", "title", "confirmed"] } },
+  { name: "updateGoalAction", description: "Change one step of a goal's plan after the patient confirmed it — this is what 'change the walk to 20 minutes' means. It changes that step only: the goal's name is untouched. A step completed by a monitor or by a lesson cannot be changed this way, and the result says so.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" }, actionId: { type: "STRING" }, title: { type: "STRING" }, frequency: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["goalId", "actionId", "confirmed"] } },
+  { name: "removeGoalAction", description: "Remove one step from a goal's plan after the patient explicitly confirmed removing it. The goal stays exactly as it is. Never infer a removal from the patient saying a step is hard: that is a difficulty to record and help with, not a deletion.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" }, actionId: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["goalId", "actionId", "confirmed"] } },
+  { name: "updateGoalWording", description: "Reword a goal the patient set for themselves, after they confirmed the new wording. Only a PERSONAL goal can be reworded: a goal that came from the care plan is refused, and so is a new wording that describes something the patient would do rather than something they want to reach. The steps in the plan are never touched by this.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, goalId: { type: "STRING" }, title: { type: "STRING" }, confirmed: { type: "BOOLEAN" } }, required: ["goalId", "title", "confirmed"] } },
   { name: "getLatestReading", description: "Get the latest authoritative health reading already available to the patient UI. Never infer or invent a reading.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, metricType: { type: "STRING" } }, required: ["patientId", "metricType"] } },
   { name: "getReadingTrend", description: "Get the deterministic trend already calculated by the patient runtime. The model must explain it, not recalculate it.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, metricType: { type: "STRING" }, periodDays: { type: "NUMBER" } }, required: ["patientId", "metricType"] } },
   { name: "getClinicalTarget", description: "Get a care-team-defined clinical target when one is present. Never create or modify a target.", parameters: { type: "OBJECT", properties: { patientId: { type: "STRING" }, metricType: { type: "STRING" } }, required: ["patientId", "metricType"] } },
@@ -109,7 +118,7 @@ export const EMMI_TOOL_DECLARATIONS = [{ functionDeclarations: [
 ] }];
 
 export class EmmiToolOrchestrator {
-  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onAppointmentTransportation = () => null, onAppointmentTopics = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, onDescribeView = () => null, onPerformViewAction = () => null, auditLog }) {
+  constructor({ getContext, onCallback = () => {}, onTask = () => {}, onProgress = () => {}, onBarrier = () => null, onReminder = () => null, onMedicationSupply = () => [], onActiveRefills = () => [], onRefillReview = () => null, onUpcomingAppointments = () => [], onAppointment = () => null, onAppointmentTransportation = () => null, onAppointmentTopics = () => null, onSchedulingCapability = () => null, onProviderAvailability = () => null, onStartAppointmentRequest = () => null, onCreateAppointmentRequest = () => null, onBookAppointment = () => null, onRescheduleAppointment = () => null, onCancelAppointment = () => null, onAppointmentReminder = () => null, onCareCircle = () => [], onShareAppointment = () => null, onDescribeView = () => null, onPerformViewAction = () => null, auditLog, onClassifyStatement = () => null, onCreatePersonalGoal = () => null, onGoalActionWrite = () => null, onGoalWording = () => null, onStartPersonalGoal = () => null, onStartGoalStepEdit = () => null }) {
     if (!emmiPrototypeIsSafe()) throw new Error("unsafe_emmi_configuration");
     this.getContext = getContext;
     this.onCallback = onCallback;
@@ -119,6 +128,15 @@ export class EmmiToolOrchestrator {
     // than keeping a second copy of the truth inside EMMI.
     this.onBarrier = onBarrier;
     this.onReminder = onReminder;
+    // Goals and the steps in their plans are patient state too, and the goal-or-action decision is
+    // a product rule rather than a judgement call — so both live in the application and EMMI asks.
+    // That is what makes the same sentence classify the same way in chat and in voice.
+    this.onClassifyStatement = onClassifyStatement;
+    this.onCreatePersonalGoal = onCreatePersonalGoal;
+    this.onGoalActionWrite = onGoalActionWrite;
+    this.onGoalWording = onGoalWording;
+    this.onStartPersonalGoal = onStartPersonalGoal;
+    this.onStartGoalStepEdit = onStartGoalStepEdit;
     // Medication supply and refills are patient state too: the tool asks the application rather
     // than keeping a second copy of what is true.
     this.onMedicationSupply = onMedicationSupply;
@@ -178,7 +196,77 @@ export class EmmiToolOrchestrator {
       };
       result = device ? { found: true, ...clone(device), ...fulfillment } : patient.deviceSource === "PATIENT_OWNED" ? { found: false, patientOwnsMonitor: true, deviceSource: "PATIENT_OWNED", deviceId: null, vendor: "OTHER", status: "ACTIVE", integrationStatus: "UNSUPPORTED", ...fulfillment } : { found: false, patientOwnsMonitor: false, deviceId: null, status: "NOT_ASSIGNED", integrationStatus: "NOT_CONNECTED", ...fulfillment };
     } else if (name === "getMedicationList") result = { medications: clone(context.medications || []) };
-    else if (name === "getPatientGoals") result = { goals: clone(context.patientGoals || []), activeGoal: clone(context.activeGoal || null) };
+    else if (name === "getPatientGoals") {
+      const goals = clone(context.patientGoals || []);
+      result = {
+        goals,
+        carePlanGoals: goals.filter(item => item.goalKind !== "PERSONAL"),
+        personalGoals: goals.filter(item => item.goalKind === "PERSONAL"),
+        activeGoal: clone(context.activeGoal || null),
+        // Named rather than described. A model told "clinical things are protected" has to decide
+        // what counts; a model handed the list does not.
+        patientCannotChange: [...PROTECTED_CLINICAL_FIELDS],
+        note: "goalKind CARE_PLAN means the care plan set it; PERSONAL means the patient did. actions are the steps in the plan, never goals. Everything in patientCannotChange belongs to the care team and cannot be changed from here, on either kind of goal."
+      };
+    }
+    // The one place that decides goal-or-action, so chat and voice cannot disagree. It writes
+    // nothing: everything it returns is something to offer the patient.
+    else if (name === "classifyGoalStatement") {
+      const verdict = this.onClassifyStatement({ statement: String(args.statement || "").slice(0, 400) });
+      result = verdict
+        ? { ...clone(verdict), savedAnything: false, note: "This is a proposal. Offer it to the patient and let them accept it, change it, or say it differently. Never save an ACTION as the name of a goal." }
+        : { kind: "EMPTY", savedAnything: false };
+    } else if (name === "startPersonalGoal") {
+      // Opening the flow is not creating a goal, the same way opening a refill review is not
+      // requesting a refill. The patient is taken to the screen holding the proposal, and the
+      // proposal is what comes back so the conversation can describe what they are about to see.
+      const opened = this.onStartPersonalGoal({ statement: String(args.statement || "").slice(0, 400) });
+      result = opened
+        ? { success: true, status: "FLOW_OPENED", savedAnything: false, ...clone(opened) }
+        : { success: false, status: "GOAL_FLOW_NOT_OPENED" };
+    } else if (name === "startGoalStepEdit") {
+      const opened = this.onStartGoalStepEdit({ goalId: String(args.goalId || ""), actionId: String(args.actionId || ""), title: String(args.title || "").slice(0, 160), phrase: String(args.phrase || "").slice(0, 400) });
+      result = opened
+        ? { success: true, status: "FLOW_OPENED", savedAnything: false, goalTitleChanged: false, ...clone(opened) }
+        : { success: false, status: "STEP_NOT_FOUND" };
+    } else if (name === "createPersonalGoal") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const created = this.onCreatePersonalGoal({
+          title: String(args.title || "").slice(0, 180),
+          templateId: String(args.templateId || ""),
+          firstActionTitle: String(args.firstActionTitle || "").slice(0, 160),
+          firstActionFrequency: String(args.firstActionFrequency || "")
+        });
+        // A refusal carries the outcome goal to offer instead, so the model has somewhere to go
+        // that is not "try the same sentence again".
+        result = created?.success
+          ? { success: true, goalId: created.goalId, title: created.title, goalKind: "PERSONAL", actions: clone(created.actions || []), careTeamReviewStatus: created.careTeamReviewStatus, clinicalTargetChanged: false }
+          : { success: false, status: created?.status || "GOAL_NOT_CREATED", suggestedGoal: clone(created?.suggestedGoal || null), suggestedAction: clone(created?.suggestedAction || null), clarify: created?.clarify || "", note: created?.note || "" };
+      }
+    } else if (["addGoalAction", "updateGoalAction", "removeGoalAction"].includes(name)) {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const written = this.onGoalActionWrite({
+          operation: name === "addGoalAction" ? "ADD" : name === "updateGoalAction" ? "UPDATE" : "REMOVE",
+          goalId: String(args.goalId || ""),
+          actionId: String(args.actionId || ""),
+          title: String(args.title || "").slice(0, 160),
+          frequency: String(args.frequency || "")
+        });
+        result = written?.success
+          ? { success: true, goalId: written.goalId, actionId: written.actionId, title: written.title || "", frequency: written.frequency || "", goalTitleChanged: false, clinicalTargetChanged: false }
+          : { success: false, status: written?.status || "ACTION_NOT_CHANGED" };
+      }
+    } else if (name === "updateGoalWording") {
+      if (args.confirmed !== true) result = { success: false, status: "CONFIRMATION_REQUIRED" };
+      else {
+        const written = this.onGoalWording({ goalId: String(args.goalId || ""), title: String(args.title || "").slice(0, 180) });
+        result = written?.success
+          ? { success: true, goalId: written.goalId, title: written.title, actionsChanged: false, clinicalTargetChanged: false }
+          : { success: false, status: written?.status || "GOAL_NOT_UPDATED", suggestedGoal: clone(written?.suggestedGoal || null), note: written?.note || "" };
+      }
+    }
     else if (name === "getLatestReading") result = { metricType: args.metricType, reading: clone(context.activeGoal?.latestReading || null), source: context.activeGoal?.latestReading ? "PATIENT_RUNTIME" : "UNAVAILABLE" };
     else if (name === "getReadingTrend") result = { metricType: args.metricType, trend: clone(context.activeGoal?.readingTrend || null), source: context.activeGoal?.readingTrend ? "DETERMINISTIC_ANALYTICS" : "UNAVAILABLE" };
     else if (name === "getClinicalTarget") result = { metricType: args.metricType, target: clone(context.activeGoal?.clinicalTarget || null), source: context.activeGoal?.clinicalTarget ? "CARE_TEAM_CONFIGURATION" : "UNAVAILABLE" };

@@ -40,8 +40,15 @@ const finishCareSetup = async page => {
   await page.locator(".support-need-group").first().locator('input[value="FORGETFULNESS_ROUTINE"]').check();
   await page.locator(".support-need-group").nth(1).locator('input[value="NONE"]').check();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "Yes, everything is correct" }).click();
-  await page.getByRole("button", { name: /Confirm|Continue/i }).last().click();
+  // No health-information review on the ACCESS path any more: care setup runs goals, then what
+  // makes it harder, then medications, then preferences. Medications gate their own Continue
+  // until every one is answered, so the generic loop below cannot walk past them on its own.
+  // The list re-renders after every answer, so collected handles go stale: always take the first
+  // one that is still unanswered.
+  const confirmMedication = page.locator('[data-action="confirm-medication-current"]');
+  while (await confirmMedication.count()) await confirmMedication.first().click();
+  await page.locator('[data-action="no-additional-medications"]').click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   for (let step = 0; step < 8; step += 1) {
     if (await page.getByRole("heading", { name: "Your ACCESS care is ready" }).count()) break;
     const primary = page.locator(".actions button:not([disabled])").last();

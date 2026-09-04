@@ -20,11 +20,18 @@ One valid transmission can verify connectivity; baseline measurement requirement
 
 ## EMMI response rule
 
+ITERA has decided this: the equipment is **loaned**, not given. It is ITERA's, the patient is never
+charged, and it is collected when their care ends. Say that. The model has twice generated "the
+monitor is yours to keep" unprompted, which is the opposite, so the basis has to be stated here
+rather than inferred. Medicare's own patient-facing wording agrees that a vendor "may give or loan"
+equipment and that a patient "may need to return the items later" but "won't have to pay to use
+them".
+
 Use plain, senior-friendly language. If the question becomes patient-specific, prefer trusted runtime data and approved tools over static knowledge.
 
 ## Patient answer (EN)
 
-The equipment you are given for your ACCESS care, such as a blood pressure monitor, is provided to you as part of that care. You are never asked to buy, rent or pay out of pocket for it, and you cannot be required to own a device in order to take part. Depending on how it was provided it may be a loan, which means you may be asked to return it when your care period ends or if you leave the program. If you already own a monitor you may be able to use it instead, and your care team can tell you whether yours can be connected.
+The equipment you are given for your ACCESS care, such as a blood pressure monitor, is provided to you as part of that care. You are never asked to buy, rent or pay out of pocket for it, and you cannot be required to own a device in order to take part. The equipment stays ITERA's, on loan to you for as long as you are in ACCESS. If you leave the programme or your care period ends, ITERA arranges to collect it — there is no charge and nothing for you to do beyond letting us know. If you already own a monitor you may be able to use it instead, and your care team can tell you whether yours can be connected.
 
 ## Patient answer (ES)
 
