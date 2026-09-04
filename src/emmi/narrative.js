@@ -38,23 +38,23 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     length: "CONCEPTUAL",
     purpose: T(
-      "Before we continue, we just need to know who is filling this out today.",
-      "Antes de continuar, solo necesitamos saber quién está completando esto hoy.",
+      "First, we need to know who is filling this out today.",
+      "Primero necesitamos saber quién está completando esto hoy.",
       "Anvan nou kontinye, nou jis bezwen konnen ki moun k ap ranpli sa a jodi a."
     ),
     benefit: T(
-      "Knowing this lets us set up the rest of the experience correctly for you.",
-      "Saberlo nos permite preparar correctamente el resto de la experiencia para usted.",
+      "That lets us set the rest up correctly for you.",
+      "Así preparamos bien el resto para usted.",
       "Lè nou konnen sa, nou ka prepare rès eksperyans lan kòrèkteman pou ou."
     ),
     reassurance: T(
-      "If someone is simply helping you, you still make the decisions about your care.",
-      "Si alguien solo le está ayudando, usted sigue tomando las decisiones sobre su cuidado.",
+      "If someone is helping you, you still make the decisions about your care.",
+      "Si alguien le ayuda, usted sigue decidiendo sobre su cuidado.",
       "Si yon moun ap senpleman ede w, se ou menm ki toujou pran desizyon sou swen ou."
     ),
     action: T(
-      "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
-      "Elija la opción que le describe: para usted mismo, alguien que le ayuda, o un representante personal autorizado para tomar decisiones médicas.",
+      "Choose the option that describes you: yourself, someone helping you, or an authorized personal representative.",
+      "Elija la opción que le describe: usted mismo, alguien que le ayuda, o un representante personal autorizado.",
       "Chwazi opsyon ki dekri ou: pou tèt ou, yon moun k ap ede w, oswa yon reprezantan pèsonèl ki otorize pou pran desizyon swen sante."
     )
   }),
@@ -96,23 +96,23 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     length: "SIMPLE_TASK",
     purpose: T(
-      "This is a quick identity check so we know we are working with the right record.",
-      "Esta es una verificación rápida de identidad para asegurarnos de trabajar con el registro correcto.",
+      "A quick identity check confirms we have the right record.",
+      "Esta verificación rápida confirma que tenemos el registro correcto.",
       "Sa a se yon ti verifikasyon idantite pou nou konnen n ap travay ak bon dosye a."
     ),
     benefit: T(
-      "It helps protect your health information.",
-      "Ayuda a proteger su información de salud.",
+      "It protects your health information.",
+      "Protege su información de salud.",
       "Li ede pwoteje enfòmasyon sante ou."
     ),
     reassurance: T(
-      "This check does not change your Medicare benefits and does not enroll you in anything by itself.",
-      "Esta verificación no cambia sus beneficios de Medicare ni le inscribe en nada por sí sola.",
+      "It does not change your Medicare benefits or enroll you.",
+      "No cambia sus beneficios de Medicare ni le inscribe.",
       "Verifikasyon sa a pa chanje benefis Medicare ou epi li pa enskri w nan anyen poukont li."
     ),
     action: T(
       "Enter your date of birth and ZIP code, then choose Continue.",
-      "Ingrese su fecha de nacimiento y su código postal, y luego elija Continuar.",
+      "Ingrese su fecha de nacimiento y código postal, y elija Continuar.",
       "Antre dat nesans ou ak kòd postal ou, epi chwazi Kontinye."
     )
   }),
@@ -124,18 +124,18 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Men sipò ki disponib ant vizit kay doktè."
     ),
     purpose: T(
-      "Here you can see the kind of support your care team can provide between doctor visits.",
-      "Aquí puede ver el tipo de apoyo que su equipo de cuidado puede brindarle entre visitas al médico.",
+      "Here you can see the support your care team can give you between doctor visits.",
+      "Aquí ve el apoyo que su equipo de cuidado puede darle entre visitas al médico.",
       "Isit la ou ka wè kalite sipò ekip swen ou ka ba ou ant vizit kay doktè."
     ),
     benefit: T(
-      "Your care team can check in with you, help you stay on track with your plan, and keep important information connected with the doctors you already see.",
-      "Su equipo puede comunicarse con usted, ayudarle a seguir su plan y mantener la información importante conectada con los médicos que ya consulta.",
+      "They can check in, help you follow your plan, and keep your doctors informed.",
+      "Puede comunicarse con usted, ayudarle a seguir su plan y mantener informados a sus médicos.",
       "Ekip swen ou ka pran nouvèl ou, ede w suiv plan ou, epi kenbe enfòmasyon enpòtan konekte ak doktè ou deja wè yo."
     ),
     reassurance: T(
-      "Nothing is decided yet, and you can ask me about anything here.",
-      "Todavía no se ha decidido nada y puede preguntarme sobre cualquier cosa aquí.",
+      "Nothing is decided yet, and you can ask me anything.",
+      "Todavía no se ha decidido nada y puede preguntarme lo que quiera.",
       "Anyen poko deside, epi ou ka mande m sou nenpòt bagay isit la."
     ),
     action: T(
@@ -154,21 +154,21 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     risk: "medium",
     purpose: T(
       "This quick Medicare check tells us whether this care option is available to you.",
-      "Esta breve verificación de Medicare nos indica si esta opción de cuidado está disponible para usted.",
+      "Esta verificación de Medicare nos dice si esta opción está disponible para usted.",
       "Ti verifikasyon Medicare sa a di nou si opsyon swen sa a disponib pou ou."
     ),
     benefit: T(
-      "It saves you from going through steps that may not apply to you.",
+      "It saves you from steps that may not apply to you.",
       "Le evita seguir pasos que quizá no le corresponden.",
       "Li anpeche w fè etap ki ka pa aplike pou ou."
     ),
     reassurance: T(
-      "It does not change your Medicare benefits or coverage, and being eligible does not mean you are enrolled — you will still review the important details before deciding.",
-      "No cambia sus beneficios ni su cobertura de Medicare, y ser elegible no significa estar inscrito: usted revisará los detalles importantes antes de decidir.",
+      "It does not change your Medicare benefits, and being eligible does not enroll you — you still decide after reviewing the details.",
+      "No cambia sus beneficios de Medicare, y ser elegible no le inscribe: usted decide después de revisar los detalles.",
       "Li pa chanje benefis ni kouvèti Medicare ou, epi si ou kalifye sa pa vle di ou enskri — w ap toujou revize detay enpòtan yo anvan ou deside."
     ),
     action: T(
-      "Review the notice and confirm when you are ready for us to check.",
+      "Review the notice and confirm when you are ready.",
       "Revise el aviso y confirme cuando esté listo para que verifiquemos.",
       "Revize avi a epi konfime lè ou pare pou nou verifye."
     )
@@ -192,13 +192,13 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Li di w si opsyon swen sa a disponib pou ou kounye a."
     ),
     reassurance: T(
-      "Your enrollment is not complete yet, and your Medicare benefits are unchanged either way.",
-      "Su inscripción aún no está completa y sus beneficios de Medicare no cambian en ningún caso.",
+      "Your enrollment is not complete yet, and your Medicare benefits are unchanged.",
+      "Su inscripción aún no está completa y sus beneficios de Medicare no cambian.",
       "Enskripsyon ou poko fini, epi benefis Medicare ou pa chanje nan tou de ka yo."
     ),
     action: T(
-      "Review the result. If this screen says you can continue, choose Continue to review the information you need before deciding whether to enroll.",
-      "Revise el resultado. Si esta pantalla indica que puede continuar, elija Continuar para revisar la información que necesita antes de decidir si desea inscribirse.",
+      "Review the result. If this screen says you can continue, choose Continue to see the information you need before deciding.",
+      "Revise el resultado. Si esta pantalla indica que puede continuar, elija Continuar para ver la información antes de decidir.",
       "Revize rezilta a. Si ekran sa a di ou ka kontinye, chwazi Kontinye pou revize enfòmasyon ou bezwen anvan ou deside si w ap enskri."
     )
   }),
@@ -271,13 +271,13 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     length: "TRANSITION",
     dynamic: ["nextStepLabel", "estimatedDuration"],
     purpose: T(
-      "Congratulations, and welcome to your care with ITERA. You did it — this is an important step for your health, and you are now enrolled.",
-      "¡Felicidades y bienvenido a su cuidado con ITERA! Lo logró: este es un paso importante para su salud y ya está inscrito.",
+      "Congratulations, and welcome to your care with ITERA — you are now enrolled.",
+      "¡Felicidades y bienvenido a su cuidado con ITERA! Ya está inscrito.",
       "Felisitasyon, epi byenveni nan swen ou avèk ITERA. Ou fè l — sa se yon etap enpòtan pou sante ou, epi kounye a ou enskri."
     ),
     benefit: T(
-      "Your ITERA care team and I are here to support you, answer questions, and help make each next step feel manageable.",
-      "Su equipo de cuidado de ITERA y yo estamos aquí para apoyarle, responder sus preguntas y ayudarle a avanzar paso a paso.",
+      "Your care team and I are here to support you and make each next step manageable.",
+      "Su equipo de cuidado y yo estamos aquí para apoyarle paso a paso.",
       "Ekip swen ITERA ou ak mwen la pou sipòte w, reponn kesyon ou, epi ede chak pwochen etap vin pi fasil."
     ),
     reassurance: T(
@@ -286,8 +286,8 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Ou ka kontinye kounye a oswa retounen lè ou pare."
     ),
     action: T(
-      "The next step helps us understand your health a little better so we can personalize your care.",
-      "El siguiente paso nos ayuda a conocer mejor su salud para poder personalizar su cuidado.",
+      "The next step helps us personalize your care.",
+      "El siguiente paso nos ayuda a personalizar su cuidado.",
       "Pwochen etap la ede nou konprann sante ou yon ti kras pi byen pou nou ka pèsonalize swen ou."
     )
   }),
@@ -306,18 +306,18 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Felisitasyon, epi byenveni nan swen ACCESS ou avèk ITERA. Enskripsyon ou fini."
     ),
     benefit: T(
-      "The next setup will request your connected blood pressure monitor and confirm the medicines you take, so your care team has what it needs to support you.",
-      "La próxima configuración solicitará su monitor de presión arterial conectado y confirmará los medicamentos que toma, para que su equipo tenga lo necesario para apoyarle.",
+      "Next, we request your connected blood pressure monitor and confirm your medicines.",
+      "Ahora solicitaremos su monitor de presión conectado y confirmaremos sus medicamentos.",
       "Pwochen konfigirasyon an ap mande monitè tansyon konekte ou epi konfime medikaman ou pran yo, pou ekip swen ou gen sa li bezwen pou sipòte w."
     ),
     reassurance: T(
-      "Your enrollment is already complete. You can do this setup now or return later, and your progress will be saved.",
-      "Su inscripción ya está completa. Puede hacer esta configuración ahora o volver después; su progreso quedará guardado.",
+      "You can do this now or later; your progress will be saved.",
+      "Puede hacerlo ahora o después; su progreso quedará guardado.",
       "Enskripsyon ou deja fini. Ou ka fè konfigirasyon sa a kounye a oswa retounen pita; pwogrè ou ap anrejistre."
     ),
     action: T(
-      "Choose ‘Set up my care’ to continue now, or choose ‘I’ll do this later’ if you want to stop here.",
-      "Elija ‘Configurar mi cuidado’ para continuar ahora, o ‘Lo haré más tarde’ si desea detenerse aquí.",
+      "Choose ‘Set up my care’ to continue, or ‘I’ll do this later’.",
+      "Elija ‘Configurar mi cuidado’ para continuar, o ‘Lo haré más tarde’.",
       "Chwazi ‘Konfigire swen mwen’ pou kontinye kounye a, oswa ‘M ap fè sa pita’ si ou vle kanpe la."
     )
   }),
@@ -359,13 +359,13 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     risk: "high",
     dynamic: ["medicationCount"],
     purpose: T(
-      "Keeping your medication list up to date helps your care team understand what you are actually taking today.",
-      "Mantener su lista de medicamentos al día ayuda a su equipo a saber qué está tomando realmente hoy.",
+      "An up-to-date list helps your care team understand what you are actually taking.",
+      "Una lista al día ayuda a su equipo a saber qué está tomando realmente.",
       "Kenbe lis medikaman ou ajou ede ekip swen ou konprann kisa ou reyèlman ap pran jodi a."
     ),
     benefit: T(
-      "An accurate list helps your care team coordinate your care more safely.",
-      "Una lista precisa ayuda a su equipo a coordinar su cuidado con más seguridad.",
+      "It lets them coordinate your care more safely.",
+      "Les permite coordinar su cuidado con más seguridad.",
       "Yon lis egzak ede ekip swen ou kowòdone swen ou pi an sekirite."
     ),
     reassurance: T(
@@ -374,8 +374,8 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Ou pa bezwen sonje tout bagay pafètman, epi anyen isit la pa di w kòmanse oswa sispann yon medikaman."
     ),
     action: T(
-      "Review each medicine and tell us whether you still take it, whether something changed, or if you are not sure.",
-      "Revise cada medicamento y díganos si aún lo toma, si algo cambió, o si no está seguro.",
+      "For each medicine, tell us if you still take it, if something changed, or if you are not sure.",
+      "De cada medicamento, díganos si aún lo toma, si algo cambió o si no está seguro.",
       "Revize chak medikaman epi di nou si w ap toujou pran l, si yon bagay chanje, oswa si ou pa sèten."
     )
   }),
@@ -388,13 +388,13 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     length: "SIMPLE_TASK",
     purpose: T(
-      "These questions help us understand how you prefer to be contacted and supported.",
-      "Estas preguntas nos ayudan a saber cómo prefiere que le contactemos y le apoyemos.",
+      "These questions tell us how you prefer to be contacted and supported.",
+      "Estas preguntas nos dicen cómo prefiere que le contactemos y apoyemos.",
       "Kesyon sa yo ede nou konprann kijan ou prefere nou kontakte w epi sipòte w."
     ),
     benefit: T(
-      "Choosing what works best for you makes it easier for your care team to reach you in a way that fits your routine.",
-      "Elegir lo que mejor le funcione facilita que su equipo le contacte de una forma que se ajuste a su rutina.",
+      "That helps your care team reach you in a way that fits your routine.",
+      "Así su equipo le contacta de una forma que se ajusta a su rutina.",
       "Chwazi sa ki pi bon pou ou fè li pi fasil pou ekip swen ou jwenn ou yon fason ki adapte ak woutin ou."
     ),
     reassurance: T(
@@ -403,8 +403,8 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Ou ka chanje yo pita."
     ),
     action: T(
-      "Choose the options that fit you best.",
-      "Elija las opciones que mejor se ajusten a usted.",
+      "Choose what fits you best.",
+      "Elija lo que mejor le convenga.",
       "Chwazi opsyon ki pi bon pou ou."
     )
   }),
@@ -417,18 +417,18 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     tone: "encouraging",
     purpose: T(
-      "Your care team has identified goals that may support your care. This part helps you choose what matters to you.",
-      "Su equipo de atención identificó metas que pueden apoyar su cuidado. Esta parte le ayuda a elegir lo que es importante para usted.",
+      "Your care team suggested goals that may support your care; here you choose what matters to you.",
+      "Su equipo sugirió metas que pueden apoyar su cuidado; aquí elige lo que es importante para usted.",
       "Ekip swen ou idantifye objektif ki ka sipòte swen ou. Pati sa a ede w chwazi sa ki enpòtan pou ou."
     ),
     benefit: T(
-      "Your care is not only about medical numbers — it should also support the things you want to keep doing in your life, like staying active, keeping your blood pressure under control, or remaining independent.",
-      "Su cuidado no se trata solo de cifras médicas: también debe apoyar lo que usted quiere seguir haciendo en su vida, como mantenerse activo, controlar su presión arterial o seguir siendo independiente.",
+      "Your care is not only about medical numbers — it should also support what you want to keep doing in your life.",
+      "Su cuidado no se trata solo de cifras médicas: también debe apoyar lo que quiere seguir haciendo en su vida.",
       "Swen ou pa sèlman sou chif medikal — li ta dwe sipòte tou bagay ou vle kontinye fè nan lavi ou, tankou rete aktif, kontwole tansyon ou, oswa rete endepandan."
     ),
     reassurance: T(
-      "You can change them later and personalize how you work toward them. Your care team remains responsible for clinical targets and treatment decisions.",
-      "Puede cambiarlas después y personalizar cómo trabajar en ellas. Su equipo de atención sigue siendo responsable de los objetivos clínicos y las decisiones de tratamiento.",
+      "You can change them later; your care team stays responsible for clinical targets.",
+      "Puede cambiarlas después; su equipo sigue a cargo de los objetivos clínicos.",
       "Ou ka chanje yo pita epi pèsonalize kijan ou travay sou yo. Ekip swen ou rete responsab sib klinik yo ak desizyon tretman yo."
     ),
     action: T(
@@ -441,28 +441,28 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
   MY_GOALS: objective({
     summary: T("Your goals and progress are here in one place.", "Sus metas y su progreso están aquí en un solo lugar.", "Objektif ou ak pwogrè ou la nan yon sèl kote."),
     tone: "encouraging",
-    purpose: T("This area helps you keep working toward the personal goals you chose.", "Esta sección le ayuda a seguir avanzando hacia las metas personales que eligió.", "Zòn sa a ede w kontinye travay sou objektif pèsonèl ou chwazi yo."),
-    benefit: T("You can review your plan, record progress, and ask your care team for support when something gets in the way.", "Puede revisar su plan, registrar su progreso y pedir apoyo a su equipo cuando algo se lo dificulte.", "Ou ka revize plan ou, anrejistre pwogrè ou, epi mande ekip swen ou sipò lè yon bagay anpeche w."),
-    reassurance: T("These are your personal goals. They do not change clinical targets or medical orders, and you can adjust them later.", "Estas son sus metas personales. No cambian objetivos clínicos ni indicaciones médicas y puede ajustarlas después.", "Sa yo se objektif pèsonèl ou. Yo pa chanje sib klinik ni lòd medikal, epi ou ka ajiste yo pita."),
-    action: T("Choose a goal to view it or add another goal when you are ready.", "Elija una meta para verla o agregue otra cuando esté listo.", "Chwazi yon objektif pou gade li oswa ajoute yon lòt lè ou pare.")
+    purpose: T("This area helps you keep working toward the goals you chose.", "Esta sección le ayuda a seguir avanzando hacia las metas personales que eligió.", "Zòn sa a ede w kontinye travay sou objektif pèsonèl ou chwazi yo."),
+    benefit: T("You can review your plan, record progress, and ask your care team for support.", "Puede revisar su plan, registrar su progreso y pedir apoyo a su equipo.", "Ou ka revize plan ou, anrejistre pwogrè ou, epi mande ekip swen ou sipò lè yon bagay anpeche w."),
+    reassurance: T("These are your personal goals; they do not change medical orders, and you can adjust them later.", "Son sus metas personales: no cambian indicaciones médicas y puede ajustarlas después.", "Sa yo se objektif pèsonèl ou. Yo pa chanje sib klinik ni lòd medikal, epi ou ka ajiste yo pita."),
+    action: T("Choose a goal to view it, or add another when you are ready.", "Elija una meta para verla o agregue otra cuando esté listo.", "Chwazi yon objektif pou gade li oswa ajoute yon lòt lè ou pare.")
   }),
 
   ACCESS_GOALS: objective({
     summary: T("These goals are already part of your ACCESS care.", "Estas metas ya forman parte de su cuidado ACCESS.", "Objektif sa yo deja fè pati swen ACCESS ou."),
     tone: "reassuring",
     purpose: T(
-      "These are the health goals your ACCESS care already includes. You are not choosing them here — this screen explains what they are.",
-      "Estas son las metas de salud que su cuidado ACCESS ya incluye. Aquí no las elige: esta pantalla le explica cuáles son.",
+      "These are the health goals your ACCESS care already includes; this screen explains them.",
+      "Estas son las metas que su cuidado ACCESS ya incluye; esta pantalla se las explica.",
       "Sa yo se objektif sante swen ACCESS ou deja genyen. Ou pa chwazi yo isit la — ekran sa a eksplike kisa yo ye."
     ),
     benefit: T(
-      "Each one shows where you are starting and how ACCESS measures progress, so you can see what your care is working toward.",
-      "Cada una muestra su punto de partida y cómo ACCESS mide el progreso, para que vea hacia dónde va su cuidado.",
+      "Each one shows where you start and how progress is measured.",
+      "Cada una muestra su punto de partida y cómo se mide el progreso.",
       "Chak youn montre kote ou kòmanse ak kijan ACCESS mezire pwogrè, pou ou wè sa swen ou ap chèche."
     ),
     reassurance: T(
-      "ACCESS assigns these goals as part of your care. Your care team stays responsible for clinical targets and treatment decisions.",
-      "ACCESS asigna estas metas como parte de su cuidado. Su equipo sigue siendo responsable de los objetivos clínicos y las decisiones de tratamiento.",
+      "ACCESS assigns them as part of your care; your care team stays responsible for clinical targets.",
+      "ACCESS las asigna como parte de su cuidado; su equipo sigue a cargo de los objetivos clínicos.",
       "ACCESS bay objektif sa yo kòm pati nan swen ou. Ekip swen ou rete responsab sib klinik yo ak desizyon tretman yo."
     ),
     action: T("Open a goal to see how progress is measured, then continue.", "Abra una meta para ver cómo se mide el progreso y continúe.", "Louvri yon objektif pou wè kijan yo mezire pwogrè, epi kontinye.")
@@ -472,21 +472,21 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     summary: T("We are preparing your blood pressure monitor.", "Estamos preparando su monitor de presión arterial.", "N ap prepare aparèy tansyon ou a."),
     tone: "reassuring",
     purpose: T(
-      "This step prepares the monitor your ACCESS care uses. You only need to choose the cuff size that fits you.",
-      "Este paso prepara el monitor que usa su cuidado ACCESS. Solo necesita elegir la talla de brazalete que le queda.",
+      "This step prepares the monitor your ACCESS care uses; you only choose the cuff size that fits you.",
+      "Este paso prepara el monitor de su cuidado ACCESS; solo elige la talla de brazalete que le queda.",
       "Etap sa a prepare aparèy swen ACCESS ou itilize a. Ou sèlman bezwen chwazi gwosè manchèt ki bon pou ou."
     ),
     benefit: T(
-      "Your readings reach your care team on their own, so they can see how you are doing between visits without you sending anything.",
-      "Sus mediciones llegan solas a su equipo, así ven cómo está entre visitas sin que usted envíe nada.",
+      "Your readings reach your care team on their own, so they see how you are doing between visits.",
+      "Sus mediciones llegan solas a su equipo, que así ve cómo está entre visitas.",
       "Mezi ou yo rive nan men ekip swen ou poukont yo, konsa yo wè kijan w ap ale ant vizit yo san ou pa voye anyen."
     ),
     reassurance: T(
-      "Nothing is ordered until you confirm the address on the next step, and we will not say it has shipped until it has.",
-      "No se solicita nada hasta que confirme la dirección en el paso siguiente, y no diremos que fue enviado hasta que lo esté.",
+      "Nothing is ordered until you confirm the address on the next step.",
+      "No se solicita nada hasta que confirme la dirección en el paso siguiente.",
       "Anyen pa kòmande jiskaske ou konfime adrès la nan pwochen etap la, epi nou p ap di li voye jiskaske li voye."
     ),
-    action: T("Measure around your upper arm and choose the size that matches.", "Mida alrededor de la parte superior de su brazo y elija la talla que corresponda.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn.")
+    action: T("Measure around your upper arm and choose the matching size.", "Mida alrededor de la parte alta del brazo y elija la talla que corresponda.", "Mezire otou pati anwo bra ou epi chwazi gwosè ki koresponn.")
   }),
 
   // Two screens of the care activation flow had no objective at all, so buildNarration returned null
@@ -497,18 +497,18 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     summary: T("This is where your monitor will be delivered.", "Aquí es donde se entregará su monitor.", "Se la y ap livre aparèy ou a."),
     tone: "reassuring",
     purpose: T(
-      "This step confirms where your monitor should be delivered. It is the step that actually places the request.",
-      "Este paso confirma dónde debe entregarse su monitor. Es el paso que realmente hace la solicitud.",
+      "This step confirms where your monitor should be delivered, and it places the request.",
+      "Este paso confirma dónde entregar su monitor y hace la solicitud.",
       "Etap sa a konfime kote pou yo livre aparèy ou a. Se etap ki fè demann nan tout bon."
     ),
     benefit: T(
-      "Getting the address right is what makes sure the monitor reaches you rather than an old address on file.",
-      "Acertar la dirección es lo que asegura que el monitor le llegue a usted y no a una dirección antigua en el registro.",
+      "The right address is what makes sure the monitor reaches you.",
+      "La dirección correcta asegura que el monitor le llegue a usted.",
       "Bay bon adrès la se sa ki fè aparèy la rive jwenn ou olye yon ansyen adrès nan dosye a."
     ),
     reassurance: T(
-      "You can send it somewhere else if the address shown is not where you want it. Nothing is requested until you confirm.",
-      "Puede enviarlo a otro lugar si la dirección que aparece no es donde lo quiere. No se solicita nada hasta que usted confirme.",
+      "You can send it somewhere else, and nothing is requested until you confirm.",
+      "Puede enviarlo a otro lugar, y no se solicita nada hasta que confirme.",
       "Ou ka voye l yon lòt kote si adrès ki parèt la se pa kote ou vle l. Anyen pa mande jiskaske ou konfime."
     ),
     action: T("Check the address, then request your monitor.", "Revise la dirección y luego solicite su monitor.", "Tcheke adrès la, apre sa mande aparèy ou a.")
@@ -518,42 +518,42 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     summary: T("Your monitor has been requested.", "Su monitor ha sido solicitado.", "Yo mande aparèy ou a."),
     tone: "reassuring",
     purpose: T(
-      "Your request is in. This screen shows what was recorded: the request itself, the cuff size and the address you confirmed.",
-      "Su solicitud está hecha. Esta pantalla muestra lo que quedó registrado: la solicitud, la talla de brazalete y la dirección que confirmó.",
+      "Your request is in; this screen shows what was recorded: the request, the cuff size and the address.",
+      "Su solicitud está hecha; esta pantalla muestra lo registrado: la solicitud, la talla y la dirección.",
       "Demann ou an fèt. Ekran sa a montre sa yo anrejistre: demann nan, gwosè manchèt la ak adrès ou konfime a."
     ),
     benefit: T(
-      "You do not have to wait here. Your care continues while the monitor is prepared.",
-      "No tiene que esperar aquí. Su cuidado continúa mientras se prepara el monitor.",
+      "You do not have to wait here; your care continues while the monitor is prepared.",
+      "No tiene que esperar aquí; su cuidado continúa mientras se prepara el monitor.",
       "Ou pa bezwen tann isit la. Swen ou kontinye pandan y ap prepare aparèy la."
     ),
     reassurance: T(
-      "We will not tell you it has shipped until it has. If anything about the request needs checking, your care team can help.",
-      "No le diremos que fue enviado hasta que lo esté. Si algo de la solicitud necesita revisarse, su equipo de cuidado puede ayudarle.",
+      "We will not say it has shipped until it has; your care team can help with any question.",
+      "No diremos que fue enviado hasta que lo esté; su equipo puede ayudarle con cualquier duda.",
       "Nou p ap di ou li voye jiskaske li voye. Si gen yon bagay nan demann nan ki bezwen tcheke, ekip swen ou ka ede ou."
     ),
-    action: T("Review your medications while the monitor is being prepared.", "Revise sus medicamentos mientras se prepara el monitor.", "Revize medikaman ou pandan y ap prepare monitè a.")
+    action: T("Review your medications while the monitor is prepared.", "Revise sus medicamentos mientras se prepara el monitor.", "Revize medikaman ou pandan y ap prepare monitè a.")
   }),
 
   ACCESS_SUPPORT_NEEDS: objective({
     summary: T("Your care plan is already in place. We are checking what might make it harder.", "Su plan de cuidado ya está activo. Estamos viendo qué podría dificultarlo.", "Plan swen ou deja anplas. N ap gade sa ki ka fè l pi difisil."),
     tone: "reassuring",
     purpose: T(
-      "Your ACCESS care plan already exists. This asks whether anything could make it harder to follow, so we can add the right support.",
-      "Su plan de cuidado ACCESS ya existe. Esto pregunta si algo podría dificultar seguirlo, para agregar el apoyo adecuado.",
+      "Your ACCESS care plan already exists; this asks whether anything could make it harder to follow.",
+      "Su plan ACCESS ya existe; esto pregunta si algo podría dificultar seguirlo.",
       "Plan swen ACCESS ou deja egziste. Sa a mande si gen yon bagay ki ka fè l pi difisil pou swiv, pou nou ka ajoute bon sipò a."
     ),
     benefit: T(
-      "What you tell us here changes the support you get — reminders, help with your monitor, or a follow-up from your care team.",
-      "Lo que nos diga aquí cambia el apoyo que recibe: recordatorios, ayuda con su monitor o un seguimiento de su equipo.",
+      "What you tell us changes the support you get: reminders, help with your monitor, or a follow-up.",
+      "Lo que nos diga cambia el apoyo que recibe: recordatorios, ayuda con su monitor o un seguimiento.",
       "Sa ou di nou isit la chanje sipò ou resevwa — rapèl, èd ak aparèy ou, oswa yon swivi nan men ekip swen ou."
     ),
     reassurance: T(
-      "Nothing here changes your goals or your medical instructions, and saying nothing is in the way is a complete answer.",
-      "Nada de esto cambia sus metas ni sus indicaciones médicas, y decir que nada le dificulta es una respuesta completa.",
+      "Nothing here changes your goals or medical instructions, and 'nothing is in the way' is a complete answer.",
+      "Nada cambia sus metas ni sus indicaciones médicas, y decir que nada le dificulta es una respuesta completa.",
       "Anyen isit la pa chanje objektif ou oswa enstriksyon medikal ou, epi di anyen pa anpeche w se yon repons konplè."
     ),
-    action: T("Choose anything that applies, or say nothing is in the way right now.", "Elija lo que corresponda, o diga que nada le dificulta ahora.", "Chwazi sa ki aplike, oswa di anyen pa anpeche w kounye a.")
+    action: T("Choose anything that applies.", "Elija lo que corresponda.", "Chwazi sa ki aplike, oswa di anyen pa anpeche w kounye a.")
   }),
 
   ACCESS_ONBOARDING_COMPLETE: objective({
@@ -594,17 +594,17 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
       "Yon monitè konekte pèmèt ekip swen ou resevwa mezi lakay ou ant vizit yo."
     ),
     benefit: T(
-      "Instead of waiting until your next office visit, your care team can see how things are going and respond earlier when something needs attention.",
-      "En lugar de esperar a su próxima consulta, su equipo puede ver cómo va todo y responder antes si algo necesita atención.",
+      "Instead of waiting for your next visit, they can respond earlier when something needs attention.",
+      "En lugar de esperar a su próxima consulta, pueden responder antes si algo necesita atención.",
       "Olye pou n tann pwochen vizit ou, ekip swen ou ka wè kijan bagay yo ap mache epi reyaji pi bonè lè yon bagay bezwen atansyon."
     ),
     reassurance: T(
-      "We will help you get the right monitor connected and show you what to do — you do not need to figure out the technology on your own.",
-      "Le ayudaremos a conectar el monitor adecuado y le mostraremos qué hacer: no tiene que resolver la tecnología por su cuenta.",
+      "We will help you connect the right monitor and show you what to do.",
+      "Le ayudaremos a conectar el monitor adecuado y le mostraremos qué hacer.",
       "N ap ede w konekte bon monitè a epi montre w kisa pou fè — ou pa bezwen konprann teknoloji a poukont ou."
     ),
     action: T(
-      "Let us know whether you already have a monitor or need one from ITERA.",
+      "Tell us whether you already have a monitor or need one from ITERA.",
       "Díganos si ya tiene un monitor o si necesita uno de ITERA.",
       "Fè nou konnen si ou deja gen yon monitè oswa si ou bezwen youn nan men ITERA."
     )
@@ -647,23 +647,23 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     length: "SIMPLE_TASK",
     purpose: T(
-      "Let us get your monitor ready to take a reading.",
-      "Vamos a preparar su monitor para tomar una medición.",
+      "Let's get your monitor ready.",
+      "Preparemos su monitor.",
       "Ann pare monitè ou pou pran yon mezi."
     ),
     benefit: T(
-      "A good setup is what makes the reading accurate and lets it reach your care team.",
-      "Una buena preparación es lo que hace que la medición sea precisa y llegue a su equipo.",
+      "A good setup makes the reading accurate.",
+      "Una buena preparación hace la medición precisa.",
       "Yon bon preparasyon se sa ki fè mezi a egzak epi ki pèmèt li rive jwenn ekip swen ou."
     ),
     reassurance: T(
-      "Take your time — I will go one step at a time and you can ask me to repeat anything.",
-      "Tómese su tiempo: iré paso a paso y puede pedirme que repita lo que necesite.",
+      "Take your time; ask me to repeat anything.",
+      "Tómese su tiempo; puede pedirme que repita lo que necesite.",
       "Pran tan ou — m ap ale yon etap alafwa epi ou ka mande m repete nenpòt bagay."
     ),
     action: T(
-      "Sit comfortably with your arm supported, and place the cuff on your bare upper arm.",
-      "Siéntese cómodamente con el brazo apoyado y coloque el brazalete en la parte superior del brazo descubierto.",
+      "Sit with your arm supported and place the cuff on your bare upper arm.",
+      "Siéntese con el brazo apoyado y coloque el brazalete en el brazo descubierto.",
       "Chita alèz ak bra ou apiye, epi mete manchèt la sou pati anwo bra ou san rad."
     )
   }),
@@ -676,23 +676,23 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     risk: "medium",
     purpose: T(
-      "This first reading confirms that your monitor can send information to ITERA.",
+      "This first reading confirms your monitor can send information to ITERA.",
       "Esta primera medición confirma que su monitor puede enviar información a ITERA.",
       "Premye mezi sa a konfime ke monitè ou ka voye enfòmasyon bay ITERA."
     ),
     benefit: T(
-      "It also begins building your starting blood pressure picture, which your care team uses to personalize your support.",
-      "También comienza a formar su panorama inicial de presión arterial, que su equipo usa para personalizar su apoyo.",
+      "It also starts your blood pressure picture, which your care team uses to personalize your support.",
+      "También inicia su panorama de presión arterial, que su equipo usa para personalizar su apoyo.",
       "Li kòmanse tou bati premye pòtrè tansyon ou, ke ekip swen ou itilize pou pèsonalize sipò ou."
     ),
     reassurance: T(
-      "You do not need to take all of your starting readings at once — we keep track as more come in.",
+      "You do not need all your starting readings at once; we keep track as they come in.",
       "No necesita tomar todas sus mediciones iniciales de una vez: llevamos el registro a medida que llegan.",
       "Ou pa bezwen pran tout premye mezi ou yo yon sèl kou — n ap swiv yo pandan lòt yo ap rive."
     ),
     action: T(
-      "Start the reading when you are ready and stay still while it works.",
-      "Inicie la medición cuando esté listo y quédese quieto mientras funciona.",
+      "Start the reading when you are ready and stay still.",
+      "Inicie la medición cuando esté listo y quédese quieto.",
       "Kòmanse mezi a lè ou pare epi rete trankil pandan l ap travay."
     )
   }),
@@ -705,23 +705,23 @@ export const NARRATIVE_OBJECTIVES = Object.freeze({
     ),
     risk: "medium",
     purpose: T(
-      "You can invite someone you trust to help with things like reminders, setup, or next steps.",
+      "You can invite someone you trust to help with reminders, setup, or next steps.",
       "Puede invitar a alguien de confianza para ayudarle con recordatorios, la configuración o los próximos pasos.",
       "Ou ka envite yon moun ou fè konfyans pou ede w ak bagay tankou rapèl, konfigirasyon, oswa pwochen etap yo."
     ),
     benefit: T(
-      "Having someone alongside you can make the process easier to manage.",
-      "Tener a alguien a su lado puede hacer que el proceso sea más fácil de manejar.",
+      "Having someone alongside you can make things easier.",
+      "Tener a alguien a su lado puede facilitar el proceso.",
       "Gen yon moun bò kote w ka fè pwosesis la pi fasil pou jere."
     ),
     reassurance: T(
-      "You remain in control of your care. This invitation does not let that person consent, sign, or make healthcare decisions for you.",
-      "Usted mantiene el control de su cuidado. Esta invitación no permite que esa persona consienta, firme ni tome decisiones médicas por usted.",
+      "You stay in control: that person cannot consent, sign, or make healthcare decisions for you.",
+      "Usted mantiene el control: esa persona no puede consentir, firmar ni decidir por usted.",
       "Se ou ki gen kontwòl swen ou. Envitasyon sa a pa pèmèt moun sa a bay konsantman, siyen, oswa pran desizyon swen sante pou ou."
     ),
     action: T(
-      "Share their name and mobile number if you would like to invite them.",
-      "Comparta su nombre y número de celular si desea invitarle.",
+      "Share their name and mobile number to invite them.",
+      "Comparta su nombre y celular para invitarle.",
       "Pataje non li ak nimewo telefòn li si ou ta renmen envite l."
     )
   }),
@@ -804,7 +804,7 @@ const PROGRAM_INTRODUCTION_FALLBACK = displayName => T(
 const HOME_OPENING = T("Hi, I'm EMMI, your ITERA Care Assistant.", "Hola, soy EMMI, su Asistente de cuidado de ITERA.", "Bonjou, mwen se EMMI, Asistan swen ITERA ou.");
 
 const HOME_PROGRAM_SUMMARY = {
-  ACCESS: T("ACCESS is a Medicare care option that gives you extra support between doctor visits, not to replace your doctors.", "ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos.", "ACCESS se yon opsyon swen Medicare ki ba ou plis sipò ant vizit, li pa la pou ranplase doktè ou."),
+  ACCESS: T("ACCESS is a Medicare option for extra support between doctor visits, not to replace your doctors.", "ACCESS es una opción de Medicare para más apoyo entre visitas, no para reemplazar a sus médicos.", "ACCESS se yon opsyon swen Medicare ki ba ou plis sipò ant vizit, li pa la pou ranplase doktè ou."),
   CCM: T("This care gives people with ongoing health conditions extra support between visits.", "Este cuidado brinda apoyo adicional entre visitas a personas con condiciones de salud continuas.", "Swen sa a bay moun ki gen pwoblèm sante kontinyèl plis sipò ant vizit yo."),
   RPM: T("Remote Patient Monitoring uses a connected monitor to share health readings with your care team between visits.", "El monitoreo remoto utiliza un monitor conectado para compartir mediciones con su equipo entre visitas.", "Siveyans a distans sèvi ak yon aparèy konekte pou pataje mezi ak ekip swen ou ant vizit yo."),
   PCM: T("Principal Care Management gives focused support between visits for the health condition needing the most attention.", "El manejo de cuidado principal brinda apoyo enfocado entre visitas para la condición que requiere más atención.", "Jesyon swen prensipal bay sipò espesyal ant vizit pou pwoblèm sante ki bezwen plis atansyon a."),
@@ -813,14 +813,14 @@ const HOME_PROGRAM_SUMMARY = {
 };
 
 const HOME_PHYSICIAN = physician => T(
-  `${physician}'s care team invited you to learn about additional support available through Medicare. Your doctor remains part of your care, while ITERA can support you between visits.`,
-  `El equipo de ${physician} le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas.`,
+  `${physician}'s care team invited you; your doctor remains part of your care.`,
+  `El equipo de ${physician} le invitó; su médico sigue en su cuidado.`,
   `Ekip swen ${physician} envite w aprann sou sipò anplis ki disponib atravè Medicare. Doktè ou rete yon pati nan swen ou, pandan ITERA ka sipòte w ant vizit yo.`
 );
 
 const HOME_CLOSING = T(
-  "Taking part is your choice, and I will explain each step in simple terms before you decide. When you're ready, choose 'Start your care journey.'",
-  "Participar es su decisión, y le explicaré cada paso en palabras sencillas antes de que decida. Cuando esté listo, elija 'Comience su recorrido de cuidado'.",
+  "Taking part is your choice. When you're ready, choose 'Start your care journey.'",
+  "Participar es su decisión. Cuando esté listo, elija 'Comience su recorrido de cuidado'.",
   "Patisipe se chwa ou, epi m ap eksplike chak etap an mo senp anvan ou deside. Lè ou pare, chwazi 'Kòmanse pwosesis swen ou'."
 );
 

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { buildEmmiLiveTokenConfig, handleEmmiLiveToken, resetEmmiTokenRateLimits } from "../server/emmiLiveToken.js";
+import { EMMI_END_OF_SPEECH_SILENCE_MS } from "../src/emmi/voiceTurnConfig.js";
+import { EMMI_END_OF_SPEECH_SILENCE_MS as CLIENT_END_OF_SPEECH_SILENCE_MS } from "../src/emmi/liveClient.js";
 
 const call = async (method, env, requestBody = undefined, request = {}) => {
   let body = "";
@@ -29,12 +31,15 @@ describe("EMMI ephemeral token endpoint safety", () => {
             startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
             endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
             prefixPaddingMs: 300,
-            silenceDurationMs: 1200
+            silenceDurationMs: EMMI_END_OF_SPEECH_SILENCE_MS
           },
           activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
         }
       }
     });
+    // The token locks this window for the whole session, so the client must be built on the same
+    // number or it will describe a turn boundary the provider never applies.
+    expect(config.liveConnectConstraints.config.realtimeInputConfig.automaticActivityDetection.silenceDurationMs).toBe(CLIENT_END_OF_SPEECH_SILENCE_MS);
     expect(config.liveConnectConstraints.config).not.toHaveProperty("systemInstruction");
     expect(config.liveConnectConstraints.config).not.toHaveProperty("tools");
     expect(config.liveConnectConstraints.config).toMatchObject({

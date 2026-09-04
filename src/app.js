@@ -327,23 +327,35 @@ const offerText = (source, variables = {}) => localizeOfferText(state.language, 
 const t = () => commonMessagesFor(state.language);
 const languageCode = () => localeCode(state.language);
 const languageActionLabel = () => L("Change language to Spanish", "Cambiar idioma a criollo", "Chanje lang pou anglè");
-const setLanguage = language => {
+const setLanguage = (language, { spokenConfirmation = "" } = {}) => {
   const changed = state.language !== language;
   state.language = language;
   document.documentElement.lang = htmlLanguage(language);
   try { localStorage.setItem("itera.enrollment.language.v1", language); } catch { /* Language persistence is best effort. */ }
   if (state.identityVerified) draftStore.save(state);
   // Applying the same language again (on boot, for example) must not tear down a live session.
-  if (changed) syncEmmiLanguage();
+  if (changed) syncEmmiLanguage({ spokenConfirmation });
 };
 
 // The patient's language is the single source of truth for EMMI. A live session carries its
 // locale in the system instruction, so a language change has to stop the old-language audio
 // and rebuild the session rather than let EMMI finish the sentence it started.
-function syncEmmiLanguage() {
+function syncEmmiLanguage({ spokenConfirmation = "" } = {}) {
   state.emmiLastGuidanceScreen = "";
   state.emmiGuidanceTranscript = "";
   emmiConversationManager?.transition({ ...assistantContext(), locale: languageCode() }, { localeChanged: true });
+  // The patient asked for the new language out loud. Rebuild the session now and let the first
+  // thing they hear be the confirmation, in that language, rather than the tail of a reply in the
+  // old one or a narration that never comes because this screen has none.
+  if (spokenConfirmation && emmiVoiceIsSupported(languageCode()) && emmiLive?.isActive()) {
+    emmiTransitionManager?.cancel("locale_changed", { immediate: true });
+    state.assistantVoiceError = "";
+    emmiLive.restartForLocale(spokenConfirmation, { id: `language_switch_${Date.now().toString(36)}`, priority: "SCREEN_GUIDANCE", semanticText: spokenConfirmation, contextIndependent: true })
+      .catch(() => { /* The live client publishes a localized safe fallback. */ });
+    audit(state, "emmi_language_changed", "success", { locale: languageCode(), spoken: true });
+    refreshVoiceGuidanceControls();
+    return;
+  }
   if (!emmiVoiceIsSupported(languageCode())) {
     emmiTransitionManager?.cancel("locale_voice_unavailable", { immediate: true });
     if (emmiLive?.isActive()) emmiLive.disconnect("locale_changed");
@@ -1168,7 +1180,10 @@ const emmiToolStatusLabel = name => ({
   cancelAppointment: L("Canceling your appointment…", "Cancelando su cita…", "N ap anile randevou ou…"),
   createAppointmentReminder: L("Saving your reminder…", "Guardando su recordatorio…", "N ap anrejistre rapèl ou…"),
   getCareCircle: L("Checking your Care Circle…", "Revisando su Círculo de cuidado…", "N ap verifye Sèk swen ou…"),
-  shareAppointment: L("Sharing your appointment…", "Compartiendo su cita…", "N ap pataje randevou ou…")
+  shareAppointment: L("Sharing your appointment…", "Compartiendo su cita…", "N ap pataje randevou ou…"),
+  performViewAction: L("Doing that for you…", "Un momento, lo hago…", "Yon ti moman, m ap fè l…"),
+  describeCurrentView: L("Looking at the screen…", "Mirando la pantalla…", "M ap gade ekran an…"),
+  manageAppointmentTopics: L("Updating your list…", "Actualizando su lista…", "N ap mete lis ou ajou…")
 })[name] || L("Checking your information…", "Revisando su información…", "N ap verifye enfòmasyon ou…");
 
 function ensureEmmiRuntime() {
@@ -1306,9 +1321,17 @@ function ensureEmmiRuntime() {
         if (index === -1) return topics.length - 1;
         if (Number.isInteger(index) && index >= 0) return index < topics.length ? index : -1;
         const key = normalize(target);
-        if (/^(ese|esa|that|it)$/.test(key)) {
+        // "El último" / "the last one" is positional; everything else in this list points at the
+        // topic the conversation touched most recently. "Pon que son sobre todo por la mañana"
+        // arrives here as target "eso" and used to be answered TOPIC_NOT_FOUND.
+        if (/^(el ultimo|la ultima|lo ultimo|the last one|the last|last one|el de abajo)$/.test(key)) return topics.length ? topics.length - 1 : -1;
+        if (/^(ese|esa|eso|esto|este|esta|that|it|this|that one|this one|the same|eso mismo|lo mismo|lo anterior|el anterior|la anterior|the previous one|the one before)$/.test(key)) {
           const recent = normalize(preparation.lastTopic || preparation.currentTopic || "");
-          return recent ? topics.findIndex(item => normalize(item) === recent || normalize(item).includes(recent) || recent.includes(normalize(item))) : -2;
+          const found = recent ? topics.findIndex(item => normalize(item) === recent || normalize(item).includes(recent) || recent.includes(normalize(item))) : -1;
+          if (found >= 0) return found;
+          // Nothing was touched yet in this conversation: with one topic there is nothing to
+          // confuse it with, and the most recent addition is the natural referent otherwise.
+          return topics.length ? topics.length - 1 : -1;
         }
         if (!key) return -2;
         const words = key.replace(/^(lo de|el tema de|la pregunta de) /, "").split(" ").filter(word => word.length > 2);
@@ -1687,6 +1710,25 @@ function ensureEmmiRuntime() {
       // or clipped barge-ins from becoming medical intent. The live client records only the
       // reliability reason in voice telemetry and delivers the safe clarification separately.
       if (role === "user" && metadata.transcriptReliability === "CLARIFICATION_REQUIRED") return;
+      // The language the patient is actually speaking, handled the way the text path handles the
+      // language they type: an explicit request switches at once; speaking another supported
+      // language twice in a row is the same answer given without the words. Emergency language
+      // is never delayed by a language question.
+      if (role === "user" && (metadata.languageRequest || metadata.languageSwitchCandidate) && !detectEmergencyLanguage(cleaned)) {
+        const requested = metadata.languageRequest || "";
+        const candidate = metadata.languageSwitchCandidate || "";
+        const active = EMMI_LOCALE_KEYS[state.language] || "en";
+        if (requested && requested !== active && !state.emmiDeclinedLocales.includes(requested) && emmiVoiceIsSupported(requested === "ht" ? "KR" : requested.toUpperCase())) {
+          state.emmiLanguageStreak = 0;
+          applyEmmiLanguage(requested, { spoken: true });
+        } else if (candidate && candidate !== active && !state.emmiDeclinedLocales.includes(candidate)) {
+          state.emmiLanguageStreak = state.emmiOfferedLocale === candidate ? state.emmiLanguageStreak + 1 : 1;
+          state.emmiOfferedLocale = candidate;
+          if (state.emmiLanguageStreak >= 2 && emmiVoiceIsSupported(candidate === "ht" ? "KR" : candidate.toUpperCase())) applyEmmiLanguage(candidate, { spoken: true });
+        }
+      } else if (role === "user") {
+        state.emmiLanguageStreak = 0;
+      }
       const guidance = role === "assistant" && ["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(metadata.priority);
       // Screen narration already has a dedicated transcript in Voice options. Do not also append
       // provider-generated narration to chat: that was the source of repeated, stale bubbles from
@@ -1700,7 +1742,12 @@ function ensureEmmiRuntime() {
       // Patient answers continue to group strictly by generation.
       const sameNarration = guidance && metadata.narrationId && last?.guidance && !last.interrupted
         && last.narrationId === metadata.narrationId;
-      const sameVoiceTurn = sameNarration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
+      // A chunk that names the generation it belongs to joins that message even after the turn was
+      // marked complete: a provider's final transcript commonly lags its audio, and treating that
+      // lag as a new message produced the orphan tails ("comunicarse con su equipo") seen in
+      // production. Chunks without a generation id keep the older rule.
+      const sameGeneration = Boolean(metadata.generationId && last?.generationId && last.generationId === metadata.generationId && last.role === role && last.voice && !last.interrupted);
+      const sameVoiceTurn = sameNarration || sameGeneration || (last?.role === role && last.voice && !last.interrupted && !last.voiceComplete
         && (!metadata.generationId || !last.generationId || last.generationId === metadata.generationId));
       if (sameVoiceTurn) last.text = sanitizeEmmiTranscript(`${last.text} ${cleaned}`);
       else state.assistantMessages.push({ role, text: cleaned, voice: true, voiceComplete: false, guidance, screen: metadata.screenId || state.screen, generationId: metadata.generationId || 0, narrationId: metadata.narrationId || "" });
@@ -5254,7 +5301,7 @@ if (!import.meta.env.PROD) {
   globalThis.__emmiActionProbe = params => performEmmiViewAction(params || {});
   // The conversation as the patient sees it, turn by turn. A voice audit reads what EMMI actually
   // said from here rather than from the audio, because the audio is what it is measuring.
-  globalThis.__emmiThreadProbe = () => (state.assistantMessages || []).map(message => ({ role: message.role, text: message.text, voice: Boolean(message.voice), voiceComplete: Boolean(message.voiceComplete), guidance: Boolean(message.guidance), generationId: message.generationId || 0, intent: message.intent || "" }));
+  globalThis.__emmiThreadProbe = () => (state.assistantMessages || []).map(m => ({ role: m.role, text: m.text, voice: Boolean(m.voice), voiceComplete: Boolean(m.voiceComplete), guidance: Boolean(m.guidance), generationId: m.generationId || 0, intent: m.intent || "" }));
   // Whether a live session is open, which is what decides whether a screen change is pushed. The
   // fields after contextVersion are what a voice run needs to tell a silent turn from a dropped
   // one; every one is optional-chained, so a client that does not track it reports null.
@@ -5390,6 +5437,14 @@ async function performEmmiViewAction({ actionId = "", optionRef = "", confirmed 
   // The handlers are async and re-render; wait a paint so the result describes what the patient
   // can now see rather than what they could see a moment ago.
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  // Some presses start work that finishes later: searching for rides, booking one, sending an
+  // invitation, moving the appointment, checking the device. Answering the model two frames after
+  // the click handed it "the ride is chosen but NOT booked" right after the patient said yes, so a
+  // truthful model said "todavía no está reservado" — and then nothing at all when the booking
+  // completed, because a voice session receives no push. Waiting here, bounded, means the result
+  // carries what really happened and the microphone shows "working on it" for exactly as long as
+  // the work takes.
+  const settled = await waitForViewActionToSettle();
   const after = emmiViewContext();
   publishedView = after;
   publishedViewSignature = emmiViewSignature(after);
@@ -5397,10 +5452,27 @@ async function performEmmiViewAction({ actionId = "", optionRef = "", confirmed 
     success: true,
     status: VIEW_ACTION_STATUS.PERFORMED,
     performed: { id: option ? option.id : target.id, label: target.label, kind },
+    ...(settled.waitedMs ? { backgroundWork: settled.settled ? "COMPLETED" : "STILL_RUNNING", waitedMs: settled.waitedMs } : {}),
     // What the patient is now looking at. The model answers from this rather than from what it
     // expected the button to do, which is what stops it announcing a result that did not happen.
     currentView: emmiViewForModel(after)
   };
+}
+
+// The barrier-resolution steps during which the screen is only a spinner. A press that lands on one
+// of them is followed until the step changes, for at most this long; a booking simulator here takes
+// one to three seconds, and a real dispatcher would not be much different.
+const VIEW_ACTION_TRANSIENT_STEPS = Object.freeze(["SEARCHING", "BOOKING", "RETURN_BOOKING", "SENDING", "CHANGING", "CHECKING", "CLASSIFYING"]);
+const VIEW_ACTION_SETTLE_TIMEOUT_MS = 8000;
+async function waitForViewActionToSettle() {
+  const startedAt = Date.now();
+  const transient = () => VIEW_ACTION_TRANSIENT_STEPS.includes(String(activeResolution()?.step || ""));
+  if (!transient()) return { settled: true, waitedMs: 0 };
+  while (transient() && Date.now() - startedAt < VIEW_ACTION_SETTLE_TIMEOUT_MS) {
+    await new Promise(resolve => setTimeout(resolve, 120));
+  }
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  return { settled: !transient(), waitedMs: Date.now() - startedAt };
 }
 
 // §82/§83: an upcoming visit or an open request with the same office, for the same reason, is the
@@ -8183,7 +8255,7 @@ function handlePatientLanguage(text) {
 
 // One activeLocale for text and voice. setLanguage already rebuilds the live voice session in the
 // new language, so this is the single switch both modalities follow.
-function applyEmmiLanguage(locale) {
+function applyEmmiLanguage(locale, { spoken = false } = {}) {
   state.emmiOfferedLocale = "";
   state.emmiLanguageStreak = 0;
   const confirmation = languageSwitchCopy(locale);
@@ -8191,8 +8263,11 @@ function applyEmmiLanguage(locale) {
   // setLanguage rebuilds the live voice session in the new language, so text and voice stay one
   // conversation. The screen behind the panel is not re-rendered here: render() tears the panel
   // down, which would close EMMI in the middle of the turn that asked for the switch.
-  setLanguage(locale);
+  setLanguage(locale, { spokenConfirmation: spoken ? confirmation : "" });
   state.assistantLanguageChanged = true;
+  // A spoken switch with no panel open has nothing waiting to re-render the screen on close, so
+  // the labels under the conversation would stay in the old language until the next navigation.
+  if (spoken && !state.assistantOpen) { state.assistantLanguageChanged = false; render(); }
   document.documentElement.lang = htmlLanguage(state.language);
   state.assistantMessages.push({ role: "assistant", text: confirmation, intent: "LANGUAGE_SWITCH" });
   emmiConversationManager?.recordTurn("assistant", confirmation, { screen: state.screen, localeChanged: true });

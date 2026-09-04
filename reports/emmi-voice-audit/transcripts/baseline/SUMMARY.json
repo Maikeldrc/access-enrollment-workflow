@@ -1,0 +1,1130 @@
+{
+  "generatedAt": "2026-09-04T05:31:39.606Z",
+  "dir": "reports/emmi-voice-audit/transcripts/baseline",
+  "summary": {
+    "sessions": 24,
+    "spoken_turns": 282,
+    "total_turns": 364,
+    "long_sessions_15_plus_turns": 11,
+    "long_sessions_15_plus_spoken_turns": 9,
+    "response_start": {
+      "p50": 1814,
+      "p95": 5347,
+      "min": 1719,
+      "max": 11681,
+      "avg": 2269,
+      "perceived_p50": "NOTICEABLE DELAY"
+    },
+    "provider_vad_window": {
+      "p50": 1234,
+      "p95": 1275
+    },
+    "app_overhead_first_chunk_to_audible": {
+      "p50": 4,
+      "p95": 3601,
+      "max": 9946
+    },
+    "local_speech_end_after_T1": {
+      "p50": 1249
+    },
+    "barge_ins": {
+      "count": 6,
+      "registered_by_app": 6,
+      "stop_p50": 183,
+      "stop_max": 301,
+      "provider_interrupt_p50": 153
+    },
+    "spoken_turns_with_context_before_answer": "42/282",
+    "navigation_taps": {
+      "count": 40,
+      "with_context_push": 0,
+      "with_tts_narration": 26
+    },
+    "turns_suppressed_by_transcript_guard": [
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 17,
+        "text": "Pon la primera.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S03-interruptions-es",
+        "turn": 16,
+        "text": "Para.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S03-interruptions-es",
+        "turn": 18,
+        "text": "Mejor la primera.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S04-topics-memory-es",
+        "turn": 7,
+        "text": "No, me equivoqué. Ponlo otra vez.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S04-topics-memory-es",
+        "turn": 9,
+        "text": "Cambia ese por 'mareos al levantarme'.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S05-reschedule-change-of-mind-es",
+        "turn": 7,
+        "text": "La del jueves.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S05-reschedule-change-of-mind-es",
+        "turn": 9,
+        "text": "Mejor no quiero cambiarla.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 3,
+        "text": "Yo uso walker para caminar.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 4,
+        "text": "Quiero un Uber X",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 5,
+        "text": "Mi doctor dijo que no",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 6,
+        "text": "Pon la primera del jueves",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 7,
+        "text": "180 sobre 120 y me siento mareado.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 8,
+        "text": "Can we switch to English please?",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S08-safety-mid-task-es",
+        "turn": 6,
+        "text": "Ninguna ayuda. Busca ya.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S10-enrollment-en",
+        "turn": 5,
+        "text": "I'm doing it myself.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S11-long-mixed-es",
+        "turn": 9,
+        "text": "Viene mi hija conmigo.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S12-video-visit-es",
+        "turn": 6,
+        "text": "Ya lo hice. Revisa otra vez.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S14-spoken-language-switch",
+        "turn": 3,
+        "text": "Prefiero hablar en español. Hable conmigo en español ahora.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S14-spoken-language-switch",
+        "turn": 5,
+        "text": "¿A qué hora es mi cita?",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S16-long-confused-transport-es",
+        "turn": 22,
+        "text": "No, me recoge mi hija.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 7,
+        "text": "Lo hago yo misma.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 20,
+        "text": "¿Ya?",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 6,
+        "text": "No, mejor por la tarde.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 17,
+        "text": "Léeme la cita nueva.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 20,
+        "text": "Ok, listo, bye.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 16,
+        "text": "Quita el de la rodilla.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 17,
+        "text": "No, no, déjalo. Ponlo otra vez.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 18,
+        "text": "Léeme toda la lista.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 5,
+        "text": "Okay, send it a María.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 16,
+        "text": "Book that one.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 7,
+        "text": "La visita… por video… no sé.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 3,
+        "text": "Yes, my home address.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 4,
+        "text": "No, nothing special.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 5,
+        "text": "Go ahead and search.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 9,
+        "text": "Yes, book it.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 12,
+        "text": "Hmm. Actually, cancel it.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 13,
+        "text": "Yes, cancel it.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 18,
+        "text": "Just book the cheapest one.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 24,
+        "text": "Still nothing? Then the big one instead.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 3,
+        "text": "Ki lè randevou mwen an?",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 4,
+        "text": "Mwen pa gen transpò.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 5,
+        "text": "Pale kreyòl avè m, tanpri.",
+        "events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ]
+      }
+    ],
+    "problems": [
+      {
+        "session": "S01-transport-canonical-es",
+        "turn": 6,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 2,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 4,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 7,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 9,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 12,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 15,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 17,
+        "p": "response start 3439 ms"
+      },
+      {
+        "session": "S02-transport-by-hand-es",
+        "turn": 17,
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_OPTIONS"
+      },
+      {
+        "session": "S03-interruptions-es",
+        "turn": 16,
+        "p": "response start 3699 ms"
+      },
+      {
+        "session": "S03-interruptions-es",
+        "turn": 18,
+        "p": "response start 3504 ms"
+      },
+      {
+        "session": "S04-topics-memory-es",
+        "turn": 7,
+        "p": "response start 4628 ms"
+      },
+      {
+        "session": "S04-topics-memory-es",
+        "turn": 9,
+        "p": "response start 4680 ms"
+      },
+      {
+        "session": "S05-reschedule-change-of-mind-es",
+        "turn": 7,
+        "p": "response start 4181 ms"
+      },
+      {
+        "session": "S05-reschedule-change-of-mind-es",
+        "turn": 9,
+        "p": "response start 6907 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 3,
+        "p": "response start 5384 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 4,
+        "p": "response start 5895 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 5,
+        "p": "response start 5342 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 6,
+        "p": "response start 6889 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 7,
+        "p": "response start 5900 ms"
+      },
+      {
+        "session": "S07-spanglish-and-language-es",
+        "turn": 8,
+        "p": "response start 5170 ms"
+      },
+      {
+        "session": "S08-safety-mid-task-es",
+        "turn": 6,
+        "p": "response start 3087 ms"
+      },
+      {
+        "session": "S09-silence-and-recovery-es",
+        "turn": 4,
+        "p": "no audible response was produced for this turn"
+      },
+      {
+        "session": "S09-silence-and-recovery-es",
+        "turn": 4,
+        "p": "turn did not finish within 20000 ms (state USER_SPEAKING)"
+      },
+      {
+        "session": "S09-silence-and-recovery-es",
+        "turn": 5,
+        "p": "EMMI was not idle before the patient spoke (state USER_SPEAKING)"
+      },
+      {
+        "session": "S09-silence-and-recovery-es",
+        "turn": 6,
+        "p": "app raised EMMI_VOICE_TURN_TIMEOUT, EMMI_VOICE_ERROR:VOICE_RESPONSE_TIMEOUT"
+      },
+      {
+        "session": "S10-enrollment-en",
+        "turn": 4,
+        "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+      },
+      {
+        "session": "S10-enrollment-en",
+        "turn": 4,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S10-enrollment-en",
+        "turn": 5,
+        "p": "response start 4705 ms"
+      },
+      {
+        "session": "S11-long-mixed-es",
+        "turn": 9,
+        "p": "response start 3447 ms"
+      },
+      {
+        "session": "S12-video-visit-es",
+        "turn": 6,
+        "p": "response start 3457 ms"
+      },
+      {
+        "session": "S14-spoken-language-switch",
+        "turn": 3,
+        "p": "response start 2940 ms"
+      },
+      {
+        "session": "S14-spoken-language-switch",
+        "turn": 5,
+        "p": "response start 3096 ms"
+      },
+      {
+        "session": "S16-long-confused-transport-es",
+        "turn": 3,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S16-long-confused-transport-es",
+        "turn": 13,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S16-long-confused-transport-es",
+        "turn": 22,
+        "p": "response start 3481 ms"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 1,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 6,
+        "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 6,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 7,
+        "p": "response start 6932 ms"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 9,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 11,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 14,
+        "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 14,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 15,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 18,
+        "p": "EMMI was not idle before the patient spoke (state LISTENING)"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 18,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 20,
+        "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+      },
+      {
+        "session": "S17-long-enrollment-journey-es",
+        "turn": 20,
+        "p": "response start 3492 ms"
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 5,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 6,
+        "p": "response start 5373 ms"
+      },
+      {
+        "session": "S18-long-multi-intent-reschedule-es",
+        "turn": 20,
+        "p": "response start 3533 ms"
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 4,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 16,
+        "p": "response start 4719 ms"
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 17,
+        "p": "response start 4705 ms"
+      },
+      {
+        "session": "S19-long-topics-and-questions-es",
+        "turn": 18,
+        "p": "response start 4733 ms"
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 5,
+        "p": "response start 7070 ms"
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 9,
+        "p": "expected view PICKUP, got BARRIER_COMPANION_REVIEW"
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 15,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S20-long-spanglish-companion-and-ride-es",
+        "turn": 16,
+        "p": "response start 5866 ms"
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 5,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 7,
+        "p": "response start 6841 ms"
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 15,
+        "p": "no audible response was produced for this turn"
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 15,
+        "p": "turn did not finish within 20000 ms (state USER_SPEAKING)"
+      },
+      {
+        "session": "S21-long-elderly-video-visit-es",
+        "turn": 16,
+        "p": "EMMI was not idle before the patient spoke (state USER_SPEAKING)"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 3,
+        "p": "response start 5338 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 4,
+        "p": "response start 3701 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 4,
+        "p": "expected view TIME, got BARRIER_TRANSPORTATION_PICKUP"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 5,
+        "p": "response start 3482 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 7,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 8,
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 9,
+        "p": "response start 5901 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 12,
+        "p": "response start 4679 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 13,
+        "p": "response start 4231 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 18,
+        "p": "response start 6457 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 18,
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 24,
+        "p": "response start 5347 ms"
+      },
+      {
+        "session": "S22-long-change-of-mind-en",
+        "turn": 24,
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 3,
+        "p": "response start 3703 ms"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 4,
+        "p": "response start 3450 ms"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 4,
+        "p": "expected view PICKUP, got APPOINTMENT_CONFIRMED"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 5,
+        "p": "response start 11681 ms"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 7,
+        "p": "expected view NEEDS, got APPOINTMENT_CONFIRMED"
+      },
+      {
+        "session": "S23-creole-sample-ht",
+        "turn": 8,
+        "p": "expected view TIME, got APPOINTMENT_CONFIRMED"
+      },
+      {
+        "session": "S24-long-my-care-hub-es",
+        "turn": 1,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S24-long-my-care-hub-es",
+        "turn": 8,
+        "p": "the app sent no screen context to the provider before it answered this spoken turn"
+      },
+      {
+        "session": "S24-long-my-care-hub-es",
+        "turn": 9,
+        "p": "expected view APPOINTMENT, got SCREEN_MY_CARE"
+      }
+    ]
+  },
+  "table": "| session | profile | lang | turns | spoken | start p50 | start p95 | barge-ins (stop p50) | context before answer | problems |\n|---|---|---|---:|---:|---:|---:|---|---|---|\n| S01-transport-canonical-es | A (adulto mayor, responde muy poco) | es | 14 | 11 | 1827 | 1905 | 0 (-) | 0/11 | 1 |\n| S02-transport-by-hand-es | C (se confunde fácilmente) | es | 23 | 13 | 1802 | 3439 | 0 (-) | 1/13 | 8 |\n| S03-interruptions-es | E (interrumpe frecuentemente) | es | 22 | 12 | 1793 | 3699 | 4 (187) | 2/12 | 2 |\n| S04-topics-memory-es | B (habla mucho, información desordenada) | es | 13 | 12 | 1815 | 4680 | 0 (-) | 2/12 | 2 |\n| S05-reschedule-change-of-mind-es | D (cambia de opinión) | es | 11 | 9 | 1822 | 6907 | 0 (-) | 2/9 | 2 |\n| S06-companion-confirmations-es | G (hace muchas preguntas antes de decidir) | es | 11 | 9 | 1815 | 1934 | 0 (-) | 0/9 | 0 |\n| S07-spanglish-and-language-es | F (utiliza Spanglish) | es | 10 | 9 | 5342 | 6889 | 0 (-) | 6/9 | 6 |\n| S08-safety-mid-task-es | H (quiere completar todo rápido) | es | 11 | 8 | 1848 | 3087 | 0 (-) | 1/8 | 1 |\n| S09-silence-and-recovery-es | A (adulto mayor, responde muy poco) | es | 8 | 5 | 1785 | 1813 | 0 (-) | 0/5 | 4 |\n| S10-enrollment-en | G (asks many questions before deciding) | en | 9 | 8 | 1790 | 4705 | 1 (177) | 1/8 | 3 |\n| S11-long-mixed-es | B (habla mucho, información desordenada) | es | 28 | 24 | 1797 | 1861 | 0 (-) | 1/24 | 1 |\n| S12-video-visit-es | C (se confunde fácilmente) | es | 8 | 5 | 1800 | 3457 | 0 (-) | 1/5 | 1 |\n| S13-transcript-assembly-es | A (adulto mayor, responde muy poco) | es | 4 | 2 | 1773 | 1777 | 0 (-) | 0/2 | 0 |\n| S14-spoken-language-switch | F (utiliza Spanglish) | en | 6 | 4 | 1820 | 3096 | 0 (-) | 2/4 | 2 |\n| S15-session-rotation-es | G (hace muchas preguntas antes de decidir) | es | 6 | 3 | 1785 | 1804 | 0 (-) | 0/3 | 0 |\n| S16-long-confused-transport-es | C (se confunde fácilmente) | es | 23 | 20 | 1809 | 1877 | 0 (-) | 1/20 | 3 |\n| S17-long-enrollment-journey-es | G (hace muchas preguntas antes de decidir) | es | 21 | 17 | 1796 | 6932 | 0 (-) | 2/17 | 13 |\n| S18-long-multi-intent-reschedule-es | H (quiere completar todo rápido) | es | 20 | 16 | 1836 | 5373 | 0 (-) | 3/16 | 3 |\n| S19-long-topics-and-questions-es | B (habla mucho, información desordenada) | es | 20 | 18 | 1810 | 4733 | 0 (-) | 3/18 | 4 |\n| S20-long-spanglish-companion-and-ride-es | F (utiliza Spanglish) | es | 20 | 16 | 1832 | 7070 | 0 (-) | 2/16 | 4 |\n| S21-long-elderly-video-visit-es | A (adulto mayor, responde muy poco) | es | 21 | 15 | 1807 | 6841 | 0 (-) | 1/15 | 5 |\n| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1858 | 5901 | 1 (183) | 8/21 | 13 |\n| S23-creole-sample-ht | A (granmoun, reponn kout) | es | 9 | 7 | 1858 | 11681 | 0 (-) | 3/7 | 6 |\n| S24-long-my-care-hub-es | G (hace muchas preguntas antes de decidir) | es | 18 | 18 | 1795 | 1841 | 0 (-) | 0/18 | 3 |"
+}

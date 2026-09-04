@@ -170,8 +170,9 @@ function resolutionProgress(resolution, appointment, locale) {
         label: t("Ride booked", "Viaje reservado", "Vwayaj rezève"),
         detail: [data.reservation.serviceName, clock(data.reservation.pickupAt, appointment, locale), data.reservation.reservationId].filter(Boolean).join(" · ")
       });
-    } else if (data.selectedOptionId) {
-      // The distinction the whole contract turns on: chosen, not booked.
+    } else if (data.selectedOptionId && step !== "BOOKING_FAILED") {
+      // The distinction the whole contract turns on: chosen, not booked. After a failed booking the
+      // patient did confirm; what is pending is the failure itself (below), not their confirmation.
       pending.push({ id: "CONFIRM_BOOKING", label: t("The ride is chosen but NOT booked — it needs your confirmation on the review screen", "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión", "Vwayaj la chwazi men li PA rezève: li bezwen konfimasyon ou nan ekran revizyon an") });
     }
     if (data.returnReservation) completed.push({ id: "RETURN_BOOKED", label: t("Ride home booked", "Viaje de regreso reservado", "Vwayaj retou rezève"), detail: clock(data.returnReservation.pickupAt, appointment, locale) });
@@ -327,12 +328,13 @@ function resolutionActions(resolution, locale) {
       on("barrier-companion-answer", t("Answer yes or no", "Responder sí o no", "Reponn wi oswa non"), "SELECT"),
       on("barrier-decline", t("Not right now", "No por ahora", "Pa kounye a"), "NAVIGATE")
     ],
-    PICKUP: [on("barrier-pickup-home", t("Use the home address", "Usar la dirección de casa", "Sèvi ak adrès kay la"), "SELECT"), on("barrier-pickup-other", t("Use a different address", "Usar otra dirección", "Sèvi ak yon lòt adrès"), "INPUT")],
-    PICKUP_EDIT: [on("barrier-pickup-save", t("Save the address typed in the form", "Guardar la dirección escrita en el formulario", "Anrejistre adrès ki nan fòm nan"), "INPUT")],
-    NEEDS: [on("barrier-needs-continue", t("Continue", "Continuar", "Kontinye"), "NAVIGATE")],
-    TIME: [on("barrier-time-accept", t("Look for rides", "Buscar vehículos", "Chèche machin"), "NAVIGATE"), on("barrier-time-change", t("Choose a different pickup time", "Elegir otra hora de recogida", "Chwazi yon lòt lè"), "NAVIGATE")],
-    OPTIONS: [],
+    PICKUP: [on("barrier-back", t("Back to the previous step", "Volver al paso anterior", "Retounen nan etap anvan an"), "NAVIGATE"), on("barrier-pickup-home", t("Use the home address", "Usar la dirección de casa", "Sèvi ak adrès kay la"), "SELECT"), on("barrier-pickup-other", t("Use a different address", "Usar otra dirección", "Sèvi ak yon lòt adrès"), "INPUT")],
+    PICKUP_EDIT: [on("barrier-back", t("Back to the pickup address", "Volver a la dirección de recogida", "Retounen nan adrès la"), "NAVIGATE"), on("barrier-pickup-save", t("Save the address typed in the form", "Guardar la dirección escrita en el formulario", "Anrejistre adrès ki nan fòm nan"), "INPUT")],
+    NEEDS: [on("barrier-needs-continue", t("Continue", "Continuar", "Kontinye"), "NAVIGATE"), on("barrier-back", t("Back to the pickup address", "Volver a la dirección de recogida", "Retounen nan adrès la"), "NAVIGATE")],
+    TIME: [on("barrier-time-accept", t("Look for rides", "Buscar vehículos", "Chèche machin"), "NAVIGATE"), on("barrier-time-change", t("Choose a different pickup time", "Elegir otra hora de recogida", "Chwazi yon lòt lè"), "NAVIGATE"), on("barrier-back", t("Back to the travel needs", "Volver a las necesidades del viaje", "Retounen nan bezwen vwayaj yo"), "NAVIGATE")],
+    OPTIONS: [on("barrier-back", t("Back to the pickup time", "Volver a la hora de recogida", "Retounen nan lè pou pran w"), "NAVIGATE")],
     REVIEW: [
+      on("barrier-back", t("Go back and change the choice", "Volver y cambiar la elección", "Retounen epi chanje chwa a"), "NAVIGATE"),
       on("barrier-reserve-confirm", t("Book this ride", "Reservar este viaje", "Rezève vwayaj sa a"), "CONFIRM", t("This books the ride", "Esto reserva el viaje", "Sa rezève vwayaj la")),
       on("barrier-companion-send", t("Send the invitation", "Enviar la invitación", "Voye envitasyon an"), "CONFIRM", t("This sends the message", "Esto envía el mensaje", "Sa voye mesaj la")),
       on("barrier-reschedule-confirm", t("Confirm the change", "Confirmar el cambio", "Konfime chanjman an"), "CONFIRM", t("This moves the appointment", "Esto cambia la cita", "Sa chanje randevou a"))
@@ -344,15 +346,18 @@ function resolutionActions(resolution, locale) {
       on("barrier-return-no", t("No ride home", "Sin viaje de regreso", "Pa gen vwayaj retou"), "NAVIGATE")
     ],
     RETURN_OFFER: [on("barrier-return-yes", t("Yes, arrange a ride home", "Sí, coordinar el regreso", "Wi, òganize retou a"), "NAVIGATE"), on("barrier-return-no", t("No", "No", "Non"), "NAVIGATE")],
-    CANCEL_CONFIRM: [on("barrier-ride-cancel-confirm", t("Yes, cancel the ride", "Sí, cancelar el viaje", "Wi, anile vwayaj la"), "DESTRUCTIVE", t("This cancels the booked ride", "Esto cancela el viaje reservado", "Sa anile vwayaj ki rezève a"))],
+    CANCEL_CONFIRM: [on("barrier-back", t("Keep the ride", "Conservar el viaje", "Kenbe vwayaj la"), "NAVIGATE"), on("barrier-ride-cancel-confirm", t("Yes, cancel the ride", "Sí, cancelar el viaje", "Wi, anile vwayaj la"), "DESTRUCTIVE", t("This cancels the booked ride", "Esto cancela el viaje reservado", "Sa anile vwayaj ki rezève a"))],
     ISSUES: [on("barrier-video-guide", t("Walk me through it", "Guíeme paso a paso", "Gide m etap pa etap"), "NAVIGATE")],
-    GUIDE: [on("barrier-video-recheck", t("Check again", "Revisar de nuevo", "Tcheke ankò"), "NAVIGATE")],
-    CONTACTS: [on("barrier-companion-new", t("Ask someone else", "Otra persona", "Yon lòt moun"), "INPUT")],
-    NEW_CONTACT: [on("barrier-companion-save", t("Continue with the contact typed in the form", "Continuar con el contacto escrito en el formulario", "Kontinye ak kontak ki nan fòm nan"), "INPUT")],
+    GUIDE: [on("barrier-video-recheck", t("Check again", "Revisar de nuevo", "Tcheke ankò"), "NAVIGATE"), on("barrier-back", t("Back to what was found", "Volver a lo que se encontró", "Retounen nan sa nou jwenn"), "NAVIGATE")],
+    CONTACTS: [on("barrier-back", t("Back to the previous step", "Volver al paso anterior", "Retounen nan etap anvan an"), "NAVIGATE"), on("barrier-companion-new", t("Ask someone else", "Otra persona", "Yon lòt moun"), "INPUT")],
+    NEW_CONTACT: [on("barrier-back", t("Back to the contacts", "Volver a los contactos", "Retounen nan kontak yo"), "NAVIGATE"), on("barrier-companion-save", t("Continue with the contact typed in the form", "Continuar con el contacto escrito en el formulario", "Kontinye ak kontak ki nan fòm nan"), "INPUT")],
     DESCRIBE: [{ ...on("barrier-other-submit", t("Say what is making the visit hard", "Decir qué dificulta la visita", "Di sa k ap fè vizit la difisil"), "INPUT"), inputSelector: "#barrier-describe", inputHint: t("What the patient said is making the visit hard, in their own words", "Lo que el paciente dijo que dificulta la visita, en sus palabras", "Sa pasyan an di k ap fè vizit la difisil, nan mo pa li") }],
     ROUTED: [on("barrier-route", t("Open that help", "Abrir esa ayuda", "Louvri èd sa a"), "NAVIGATE")],
     DECLINED_BY_CONTACT: [on("barrier-companion-another", t("Ask someone else", "Pedírselo a otra persona", "Mande yon lòt moun"), "NAVIGATE")],
-    BOOKING_FAILED: [on("barrier-retry", t("Try booking again", "Intentar reservar de nuevo", "Eseye rezève ankò"), "CONFIRM")],
+    BOOKING_FAILED: [
+      on("barrier-retry", t("Try booking again", "Intentar reservar de nuevo", "Eseye rezève ankò"), "CONFIRM"),
+      on("barrier-back", t("Choose another ride", "Elegir otro vehículo", "Chwazi yon lòt machin"), "NAVIGATE")
+    ],
     CHANGED: [on("barrier-transport-update", t("Update the ride", "Actualizar el transporte", "Mete transpò a ajou"), "NAVIGATE")],
     CANCELED: [on("barrier-accept", t("Arrange another ride", "Coordinar otro viaje", "Òganize yon lòt vwayaj"), "NAVIGATE")]
   };

@@ -3,7 +3,8 @@ import { EMMI_TOOL_DECLARATIONS } from "./tools.js";
 import { buildEmmiSystemInstruction } from "./systemPrompt.js";
 import { EmmiVoiceIdentityGuard, getEmmiSpeechConfig } from "./voiceIdentity.js";
 import { EmmiBargeInManager } from "./bargeInManager.js";
-import { assessEmmiTranscriptReliability, emmiAsrClarificationInstruction, sanitizeEmmiAssistantTranscript, sanitizeEmmiTranscript } from "./transcript.js";
+import { assessEmmiTranscriptReliability, emmiRecoveryLine, sanitizeEmmiAssistantTranscript, sanitizeEmmiTranscript } from "./transcript.js";
+import { EMMI_END_OF_SPEECH_SILENCE_MS as SHARED_END_OF_SPEECH_SILENCE_MS, EMMI_START_OF_SPEECH_PREFIX_MS } from "./voiceTurnConfig.js";
 
 const bytesToBase64 = bytes => {
   let binary = "";
@@ -28,7 +29,8 @@ export const resample = (input, fromRate, toRate) => {
 export const lowPassForDownsampling = (input, fromRate, toRate, taps = 31) => { if (fromRate <= toRate) return input; const half = taps >> 1, cutoff = (toRate / fromRate) * .45, kernel = new Float32Array(taps); let total=0; for(let i=0;i<taps;i++){const d=i-half,s=d===0?2*cutoff:Math.sin(2*Math.PI*cutoff*d)/(Math.PI*d),w=.54-.46*Math.cos(2*Math.PI*i/(taps-1));kernel[i]=s*w;total+=kernel[i];} for(let i=0;i<taps;i++)kernel[i]/=total; const out=new Float32Array(input.length); for(let i=0;i<input.length;i++){let v=0;for(let k=0;k<taps;k++)v+=input[Math.max(0,Math.min(input.length-1,i+k-half))]*kernel[k];out[i]=v;} return out; };
 // The provider contract this pipeline has to keep: 16 kHz mono PCM16, little endian, base64.
 export const EMMI_PROVIDER_SAMPLE_RATE = 16000;
-export const EMMI_END_OF_SPEECH_SILENCE_MS = 750;
+// Shared with the token builder, which locks the provider to this value; see voiceTurnConfig.js.
+export const EMMI_END_OF_SPEECH_SILENCE_MS = SHARED_END_OF_SPEECH_SILENCE_MS;
 // One captured frame at the device rate. At 48 kHz this is ~21 ms of audio, short enough for a
 // natural interruption while still batching eight 128-sample AudioWorklet render quanta.
 export const EMMI_MIC_FRAME_SIZE = 1024;
@@ -41,6 +43,14 @@ export const EMMI_GUIDANCE_START_TIMEOUT_MS = 3500;
 export const EMMI_TTS_REQUEST_TIMEOUT_MS = 5500;
 export const EMMI_TRANSCRIPT_WAIT_TIMEOUT_MS = 5000;
 export const EMMI_PREWARM_MAX_AGE_MS = 45000;
+// How many stalled provider turns in a row are tolerated before the socket is treated as dead.
+export const EMMI_MAX_CONSECUTIVE_STALLS = 2;
+// A provider's final output-transcript piece commonly lands after turnComplete and after the last PCM
+// chunk has drained. For this long it still belongs to the reply that just ended.
+export const EMMI_LATE_TRANSCRIPT_GRACE_MS = 4000;
+// Local notices (recovery lines EMMI speaks herself through the narration route) are short; their
+// TTS request must not hold the microphone hostage for the full guidance timeout.
+export const EMMI_LOCAL_NOTICE_TIMEOUT_MS = 4000;
 const EMMI_MIC_WORKLET_URL = "/audio/emmi-mic-processor.js?v=4";
 // Probed on the live context rather than on AudioContext.prototype: reading `audioWorklet` off
 // the prototype throws "Illegal invocation" in Chrome, which silently killed capture.
@@ -99,9 +109,11 @@ export class EmmiLiveClient {
     // speech is detected. This prevents speaker echo from reaching provider VAD without making
     // the patient press a button before interrupting. The short buffer preserves the first word.
     this.micPreroll = [];
-    // Eight 48 kHz frames retain roughly 170 ms before speech—enough for the first consonant,
-    // without forwarding a long tail of EMMI's own speaker audio into the patient's transcript.
-    this.maxMicPrerollFrames = 8;
+    // Sixteen 48 kHz frames retain roughly 340 ms before the echo probe confirms speech. Eight
+    // (170 ms) lost the first word of an interruption whenever the first probe failed on a quiet
+    // onset — production transcripts kept "Wait" and "Espere" out of the patient's turn. The tail of
+    // EMMI's own speaker audio that this forwards stays short enough not to produce a transcript.
+    this.maxMicPrerollFrames = 16;
     this.outputSpeechCandidateFrames = 0;
     this.echoProbeActive = false;
     this.echoProbeFrames = 0;
@@ -127,6 +139,12 @@ export class EmmiLiveClient {
     this.lastEmmiSemanticSegment = "";
     this.lastInterruptionContext = null;
     this.currentInterruption = null;
+    // Consecutive recovery counters: the first miss is a plain "say that again"; only a repeat
+    // adds the emergency reminder, and only a repeated stall gives up on the socket.
+    this.missedTranscripts = 0;
+    this.recentTurn = null;
+    this.stalledTurns = 0;
+    this.sessionRotationTimer = null;
     this.allowedGracefulTurnId = "";
     this.gracefulHandoff = null;
     this.warningTimer = null;
@@ -307,6 +325,78 @@ export class EmmiLiveClient {
     return true;
   }
   clearTurnWatchdog() { clearTimeout(this.turnWatchdogTimer); this.turnWatchdogTimer = null; }
+  // A short sentence EMMI says herself — "Perdón, no le entendí bien. ¿Me lo repite?" — through the
+  // same deterministic narration route as screen guidance. Nothing is sent to the model, so the
+  // wording is exact and in the active language, and the patient can interrupt it like any reply.
+  speakLocalNotice(text, { reason = "local_notice" } = {}) {
+    const semanticText = String(text || "").trim();
+    if (!semanticText || !this.session) return false;
+    if (this.activeTurn) return false;
+    const generationId = ++this.generationSequence;
+    const turn = {
+      id: `notice_${Date.now().toString(36)}`,
+      contextVersion: this.activeContextVersion,
+      generationId,
+      clientTurnSentAt: performance.now(),
+      providerTurnComplete: false,
+      priority: "LOCAL_NOTICE",
+      contextIndependent: true,
+      semanticText,
+      localNotice: true,
+      // Treated like screen narration by a navigation handoff: replaced at once, never waited for.
+      deterministicGuidance: true
+    };
+    this.activeTurn = turn;
+    this.activeAudioGenerationId = generationId;
+    this.awaitingPatientResponse = false;
+    this.patientResponseReady = false;
+    this.currentInterruption = null;
+    this.setState("EMMI_THINKING", reason);
+    this.emitVoiceTelemetry("EMMI_LOCAL_NOTICE", { turnId: turn.id, generationId, reason });
+    const controller = new AbortController();
+    this.narrationAbortController?.abort();
+    this.narrationAbortController = controller;
+    const timeout = setTimeout(() => controller.abort(), EMMI_LOCAL_NOTICE_TIMEOUT_MS);
+    let started = false;
+    const playChunk = data => {
+      if (this.activeTurn?.generationId !== generationId || controller.signal.aborted) return;
+      const played = this.playAudio(data, turn);
+      if (!played || started) return;
+      started = true;
+      clearTimeout(timeout);
+      this.onTranscript?.("assistant", semanticText, true, turn);
+      this.setState("EMMI_SPEAKING", reason);
+    };
+    const release = detail => {
+      if (this.activeTurn?.generationId !== generationId) return;
+      this.activeTurn = null;
+      this.activeAudioGenerationId = 0;
+      this.clearTurnWatchdog();
+      this.setState("LISTENING", detail);
+    };
+    this.requestNarrationAudio(semanticText, String(this.getContext?.()?.locale || "EN").toUpperCase(), controller.signal, playChunk)
+      .then(() => {
+        if (this.activeTurn?.generationId !== generationId || controller.signal.aborted) return;
+        this.narrationAbortController = null;
+        if (!started) throw new Error("tts_audio_playback_failed");
+        turn.providerTurnComplete = true;
+        turn.providerTurnCompleteAt = performance.now();
+        this.finishTurnIfDrained(generationId);
+      })
+      .catch(() => {
+        if (this.activeTurn?.generationId !== generationId) return;
+        this.narrationAbortController = null;
+        // Without narration audio the browser's own voice is the next best thing; failing that the
+        // patient simply hears silence and the microphone reopens, which is the least bad outcome
+        // for a sentence whose only job is to ask them to repeat.
+        if (this.speakGuidanceFallback(turn, "local_notice_tts_failed")) return;
+        this.emitVoiceTelemetry("EMMI_LOCAL_NOTICE_FAILED", { turnId: turn.id, generationId, reason });
+        release("local_notice_unavailable");
+      })
+      .finally(() => clearTimeout(timeout));
+    this.touchTurnWatchdog(generationId);
+    return true;
+  }
   retrySilentGuidance(turn, reason = "silent") {
     if (!turn || !["SCREEN_GUIDANCE", "TRANSITION_GUIDANCE"].includes(turn.priority) || turn.guidanceRetryCount || !turn.retryText) return false;
     const generationId = turn.generationId;
@@ -420,12 +510,29 @@ export class EmmiLiveClient {
         this.emitVoiceTelemetry("EMMI_VOICE_GUIDANCE_TIMEOUT_RECOVERED", { turnId: timedOut.id, generationId, waitMs: this.guidanceStartTimeoutMs });
         return;
       }
+      // A reply that never came. Dropping the whole session for one stalled turn turned a slow
+      // provider moment into "voice unavailable" mid-conversation, with nothing said to the
+      // patient. Release the turn, tell the patient in their language, and keep listening; only a
+      // second stall in a row treats the socket as dead.
+      this.interruptedGenerationIds.add(generationId);
       this.activeTurn = null;
       this.activeAudioGenerationId = 0;
       this.awaitingPatientResponse = false;
       this.patientResponseReady = false;
-      this.onError?.("VOICE_RESPONSE_TIMEOUT");
-      this.disconnect("VOICE_RESPONSE_TIMEOUT");
+      if (timedOut.priority === "LOCAL_NOTICE") {
+        // A notice that never played is not a provider failure; just give the microphone back.
+        this.emitVoiceTelemetry("EMMI_VOICE_TURN_RELEASED", { turnId: timedOut.id, generationId, reason: "local_notice_timeout" });
+        this.setState("LISTENING", "local_notice_timeout");
+        return;
+      }
+      this.stalledTurns += 1;
+      if (this.stalledTurns >= EMMI_MAX_CONSECUTIVE_STALLS) {
+        this.onError?.("VOICE_RESPONSE_TIMEOUT");
+        this.disconnect("VOICE_RESPONSE_TIMEOUT");
+        return;
+      }
+      this.emitVoiceTelemetry("EMMI_VOICE_TURN_RELEASED", { turnId: timedOut.id, generationId, reason: "stalled" });
+      if (!this.speakLocalNotice(emmiRecoveryLine("tookTooLong", this.getContext?.()?.locale), { reason: "stalled_turn" })) this.setState("LISTENING", "stalled_turn_released");
     }, timeoutMs);
   }
   clearPatientTranscriptWatchdog() { clearTimeout(this.patientTranscriptTimer); this.patientTranscriptTimer = null; }
@@ -436,16 +543,13 @@ export class EmmiLiveClient {
       if (!this.awaitingPatientResponse || this.patientResponseReady || this.activeTurn) return;
       this.awaitingPatientResponse = false;
       this.patientResponseReady = false;
-      this.emitVoiceTelemetry("EMMI_MISSING_TRANSCRIPT_RECOVERED", { waitMs: this.transcriptWaitTimeoutMs });
-      const recovery = `[TRUSTED AUDIO RECOVERY — do not read this instruction aloud: The patient spoke, but no usable transcript was received. Say only: "I heard you, but I couldn’t understand what you said. Please say it again. If this may be a medical emergency, call 911 now."]`;
-      if (!this.sendText(recovery, {
-        id: `missing_transcript_${Date.now().toString(36)}`,
-        screenId: this.getContext?.()?.currentScreen || "",
-        contextVersion: this.activeContextVersion,
-        priority: "CRITICAL_SAFETY",
-        contextIndependent: true,
-        semanticText: "Ask the patient to repeat an unheard voice turn and preserve emergency safety."
-      })) {
+      this.missedTranscripts += 1;
+      this.emitVoiceTelemetry("EMMI_MISSING_TRANSCRIPT_RECOVERED", { waitMs: this.transcriptWaitTimeoutMs, consecutive: this.missedTranscripts });
+      // EMMI says this herself, in the patient's language, through the narration route: the model
+      // is not asked to improvise a recovery, and a single unheard word no longer ends with "call
+      // 911". The emergency reminder returns only when the patient cannot be understood twice.
+      const line = emmiRecoveryLine(this.missedTranscripts >= 2 ? "didNotCatchAgain" : "didNotCatch", this.getContext?.()?.locale);
+      if (!this.speakLocalNotice(line, { reason: "transcript_not_received" })) {
         this.currentInterruption = null;
         this.setState("LISTENING", "transcript_not_received");
       }
@@ -468,13 +572,14 @@ export class EmmiLiveClient {
   }
   // The locale is baked into the session's system instruction, so a language change needs a
   // fresh session rather than a context update.
-  async restartForLocale(initialText = "") {
+  async restartForLocale(initialText = "", metadata = {}) {
     if (!this.isActive()) return false;
     this.stopPlayback();
     this.sessionResumptionHandle = "";
     this.onSessionResumption?.({ handle: "", resumable: false, reason: "locale_changed" });
-    this.disconnect("locale_changed");
-    await this.connect(initialText);
+    // Keep the click-activated output context: the new session must be audible without another tap.
+    this.disconnect("locale_changed", { preserveOutput: true });
+    await this.connect(initialText, metadata);
     return true;
   }
   preconnect() {
@@ -556,7 +661,7 @@ export class EmmiLiveClient {
               disabled: false,
               startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
               endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
-              prefixPaddingMs: 300,
+              prefixPaddingMs: EMMI_START_OF_SPEECH_PREFIX_MS,
               silenceDurationMs: EMMI_END_OF_SPEECH_SILENCE_MS
             },
             activityHandling: ActivityHandling.START_OF_ACTIVITY_INTERRUPTS
@@ -604,8 +709,22 @@ export class EmmiLiveClient {
   }
   startTimers() {
     const minutes = EMMI_CONFIG.sessionMaxMinutes;
+    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.sessionRotationTimer);
     this.warningTimer = setTimeout(() => this.onState?.(this.state, "session_ending_soon"), Math.max(1, minutes - 2) * 60 * 1000);
+    // A conversation does not end because a token does. One minute before the hard limit the
+    // session is rotated onto a fresh token with the provider's resumption handle, silently and only
+    // while nobody is speaking; the hard stop below remains as the last resort when no handle exists
+    // or the rotation never found a quiet moment.
+    this.sessionRotationTimer = setTimeout(() => this.rotateSessionBeforeExpiry(), Math.max(30, (minutes - 1) * 60) * 1000);
     this.endTimer = setTimeout(() => this.disconnect("session_timeout"), minutes * 60 * 1000);
+  }
+  rotateSessionBeforeExpiry() {
+    if (!this.isActive() || !this.session) return false;
+    if (!this.sessionResumptionHandle) { this.emitVoiceTelemetry("EMMI_SESSION_ROTATION_SKIPPED", { reason: "no_resumption_handle" }); return false; }
+    const busy = Boolean(this.activeTurn) || this.awaitingPatientResponse || this.toolRoundTripInFlight || ["USER_SPEAKING", "INTERRUPTING", "EMMI_SPEAKING", "EMMI_THINKING", "TOOL_RUNNING"].includes(this.state);
+    if (busy) { this.sessionRotationTimer = setTimeout(() => this.rotateSessionBeforeExpiry(), 3000); return false; }
+    this.emitVoiceTelemetry("EMMI_SESSION_ROTATION", { handle: Boolean(this.sessionResumptionHandle) });
+    return this.scheduleReconnect("session_expiring", { proactive: true, silent: true });
   }
   // Capture runs on an AudioWorklet: the deprecated ScriptProcessorNode ran its callback on the
   // main thread, so a slow render there could drop microphone frames mid-sentence.
@@ -662,6 +781,10 @@ export class EmmiLiveClient {
     // barge-in phrases and produced tiny transcripts such as "ball".
     if (this.awaitingPatientResponse && this.bargeIn.speechActive) {
       this.sendMicSamples(samples);
+      // The detector keeps running on these frames (no echo probe, EMMI is silent): its end-of-speech
+      // is what arms the bounded wait for a transcript. Without it, a turn the provider never
+      // transcribes left the client in USER_SPEAKING with no way out but the next patient turn.
+      this.bargeIn.observeFrame({ rms, peak, outputActive: false });
       return;
     }
     if (!audibleOutputActive && (patientFloorActive || this.bargeIn.speechActive)) {
@@ -868,27 +991,41 @@ export class EmmiLiveClient {
           this.setState("EMMI_THINKING", "patient_response");
           this.touchTurnWatchdog(this.activeAudioGenerationId);
         }
-        this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()) });
+        this.emitVoiceTelemetry("EMMI_INPUT_TRANSCRIPTION_RECEIVED", { receivedAt: Math.round(performance.now()), confidence: assessment.confidence });
+        this.missedTranscripts = 0;
         if (!assessment.reliable) {
+          // Only a script EMMI does not speak or a lone fragment clipped by an interruption are
+          // discarded now. The answer to this turn is suppressed and EMMI asks again herself.
           this.activeTurn.unreliableInput = true;
-          this.activeTurn.clarificationInstruction = emmiAsrClarificationInstruction(assessment);
           this.emitVoiceTelemetry("EMMI_ASR_CLARIFICATION_REQUIRED", { reason: assessment.reason, expectedLanguage: assessment.expectedLanguage, detectedLanguage: assessment.detectedLanguage });
-          // Append the guard to the audio turn already in flight. Marking this as another complete
-          // client turn can produce a duplicate assistant response on some Live API versions.
-          this.sendRealtimeText(emmiAsrClarificationInstruction(assessment), { turnComplete: false });
+        } else if (assessment.confidence === "LOW") {
+          // Weak language evidence is information for telemetry, not a reason to ignore the patient:
+          // the model keeps its own ASR-uncertainty rule and will ask when the words fit nothing.
+          this.emitVoiceTelemetry("EMMI_ASR_LOW_CONFIDENCE", { expectedLanguage: assessment.expectedLanguage });
         }
-        this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId, transcriptReliability: assessment.reliable ? "RELIABLE" : "CLARIFICATION_REQUIRED", transcriptReliabilityReason: assessment.reason });
+        if (assessment.languageSwitchCandidate || assessment.languageRequest) {
+          this.emitVoiceTelemetry("EMMI_LANGUAGE_SIGNAL", { detectedLanguage: assessment.detectedLanguage, languageRequest: assessment.languageRequest, expectedLanguage: assessment.expectedLanguage });
+        }
+        this.onTranscript?.("user", inputText, true, { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId, transcriptReliability: assessment.reliable ? "RELIABLE" : "CLARIFICATION_REQUIRED", transcriptReliabilityReason: assessment.reason, transcriptConfidence: assessment.confidence, languageSwitchCandidate: assessment.languageSwitchCandidate, languageRequest: assessment.languageRequest });
         if (this.awaitingPatientResponse && !this.bargeIn.speechActive) {
           this.patientResponseReady = true;
           this.setState("EMMI_THINKING", "patient_response");
         }
       }
     }
-    const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady);
+    // The tail of a reply that just finished playing is still that reply's transcript, not noise:
+    // it joins the same bubble (the app joins by generation) as long as the patient has not started
+    // talking and the reply ended within the grace window.
+    const lateForRecentTurn = !this.activeTurn && Boolean(this.recentTurn) && !this.bargeIn.speechActive && performance.now() - this.recentTurn.completedAt <= EMMI_LATE_TRANSCRIPT_GRACE_MS;
+    const acceptsOutputTranscript = Boolean(this.activeTurn) || (this.awaitingPatientResponse && this.patientResponseReady) || lateForRecentTurn;
     if (server?.outputTranscription?.text && acceptsOutputTranscript) {
       const outputText = this.activeTurn?.unreliableInput ? "" : sanitizeEmmiAssistantTranscript(server.outputTranscription.text);
       if (!outputText) {
         this.emitVoiceTelemetry("EMMI_INVALID_TRANSCRIPT_DISCARDED", { role: "assistant", generationId: this.activeAudioGenerationId });
+      } else if (!this.activeTurn && lateForRecentTurn) {
+        this.emitVoiceTelemetry("EMMI_LATE_TRANSCRIPT_JOINED", { generationId: this.recentTurn.generationId, lateMs: Math.round(performance.now() - this.recentTurn.completedAt) });
+        this.lastEmmiUtterance = `${this.lastEmmiUtterance} ${outputText}`.trim().slice(-1200);
+        this.onTranscript?.("assistant", outputText, true, { ...this.recentTurn, voiceComplete: true });
       } else {
         const transcriptTurn = this.activeTurn || { screenId: this.getContext?.()?.currentScreen || "", contextVersion: this.activeContextVersion, priority: "PATIENT_RESPONSE", generationId: this.activeAudioGenerationId };
         this.touchTurnWatchdog(transcriptTurn.generationId);
@@ -946,21 +1083,16 @@ export class EmmiLiveClient {
           this.activeAudioGenerationId = 0;
           this.clearTurnWatchdog();
           this.emitVoiceTelemetry("EMMI_UNRELIABLE_RESPONSE_SUPPRESSED", { generationId: completed.generationId });
-          this.sendText(completed.clarificationInstruction || emmiAsrClarificationInstruction({ expectedLanguage: this.getContext?.()?.locale }), {
-            id: `clarify_${Date.now().toString(36)}`,
-            screenId: this.getContext?.()?.currentScreen || "",
-            contextVersion: this.activeContextVersion,
-            priority: "CRITICAL_SAFETY",
-            contextIndependent: true,
-            semanticText: "Ask the patient to repeat an unreliable voice turn."
-          });
+          if (!this.speakLocalNotice(emmiRecoveryLine("didNotCatch", this.getContext?.()?.locale), { reason: "unreliable_transcript" })) this.setState("LISTENING", "unreliable_transcript");
           return;
         }
         // Gemini Live occasionally acknowledges an automatic guidance request with no PCM at
         // all. A second prompt on that same socket can be acknowledged empty as well, especially
         // just after a context handoff. Restart once on a clean session and make the destination
         // its first turn; waiting for a watchdog cannot help because this turn already finished.
-        if (!completed.firstAudioReceivedAt) {
+        // A provider boundary that lands while EMMI is speaking a local notice belongs to a turn
+        // the provider never owned; the notice finishes on its own narration route.
+        if (!completed.firstAudioReceivedAt && completed.priority !== "LOCAL_NOTICE") {
           if (!completed.guidanceRetryCount && this.restartSilentGuidance(completed, "empty_provider_turn")) return;
           if (this.speakGuidanceFallback(completed, "empty_provider_turn")) return;
           if (this.restartSilentGuidance(completed, "empty_provider_turn")) return;
@@ -1019,6 +1151,7 @@ export class EmmiLiveClient {
     const startAt = Math.max(this.outputContext.currentTime, this.nextPlaybackAt);
     if (!metadata.firstAudioReceivedAt) {
       metadata.firstAudioReceivedAt = performance.now();
+      this.stalledTurns = 0;
       this.emitVoiceTelemetry("EMMI_FIRST_AUDIO_CHUNK", {
         turnId: metadata.id,
         generationId: metadata.generationId,
@@ -1040,6 +1173,7 @@ export class EmmiLiveClient {
     this.activeAudioGenerationId = 0;
     this.clearTurnWatchdog();
     const drainedAt = performance.now();
+    this.recentTurn = { ...completed, completedAt: drainedAt };
     this.emitVoiceTelemetry("EMMI_AUDIO_TURN_DRAINED", {
       turnId: completed.id,
       generationId,
@@ -1089,6 +1223,7 @@ export class EmmiLiveClient {
     });
   }
   handlePatientSpeechStart(details = {}, { providerConfirmed = false } = {}) {
+    this.recentTurn = null;
     if (this.awaitingPatientResponse && !this.activeTurn) {
       this.setState("USER_SPEAKING", providerConfirmed ? "provider_vad" : "local_vad");
       return false;
@@ -1116,6 +1251,7 @@ export class EmmiLiveClient {
     // ASR miss from leaving the interface looking active while no response can ever arrive.
     this.awaitingPatientResponse = true;
     this.patientResponseReady = false;
+    this.pushContextOnSpeechStart();
     const stoppedAt = performance.now();
     const fadeMs = audibleOutputWasActive ? 40 : 0;
     if (outputWasActive) this.setState("INTERRUPTING", providerConfirmed ? "provider_vad" : "local_vad");
@@ -1254,6 +1390,20 @@ export class EmmiLiveClient {
     return Boolean(this.session && !this.toolRoundTripInFlight);
   }
 
+  // EXPERIMENTAL (EMMI_VOICE_CONTEXT_ON_SPEECH_START, off by default). A spoken turn carries no
+  // screen update: the staged view only travels with app-initiated text turns. This sends the
+  // staged view as realtime text the moment the patient starts speaking, so it lands inside the
+  // same activity window as their audio. Whether Gemini 3.1 folds it into that turn or answers it
+  // separately has to be confirmed against the real provider before this is enabled.
+  pushContextOnSpeechStart() {
+    if (!EMMI_CONFIG.voiceContextOnSpeechStart || !this.session || !this.pendingContextUpdate || this.toolRoundTripInFlight) return false;
+    const staged = this.pendingContextUpdate;
+    this.pendingContextUpdate = null;
+    const view = this.getContext?.()?.view || staged.payload;
+    const sent = this.sendRealtimeText(`[TRUSTED APP SCREEN UPDATE — do not read aloud and do not answer this; it is what the patient is looking at right now: ${JSON.stringify(view)}]`);
+    if (sent) this.emitVoiceTelemetry("EMMI_VOICE_CONTEXT_UPDATED", { label: staged.label, contextVersion: this.activeContextVersion, boundToTurn: false, onSpeechStart: true });
+    return sent;
+  }
   sendRealtimeText(text, { turnComplete = true } = {}) {
     if (!this.session || !text) return false;
     try {
@@ -1368,10 +1518,29 @@ export class EmmiLiveClient {
     return !this.muted;
   }
   handleProviderError(error) { const code=normalizeEmmiVoiceError(error?.message?.includes("429")?"rate_limited":"VOICE_PROVIDER_ERROR");this.onError?.(code);this.disconnect(code);return false; }
-  scheduleReconnect(reason,{proactive=false}={}){if(!this.sessionResumptionHandle||this.reconnectAttempts>=this.maxReconnectAttempts)return false;clearTimeout(this.reconnectTimer);const attempt=++this.reconnectAttempts,delay=proactive?100:Math.min(2000,250*(2**(attempt-1))),handle=this.sessionResumptionHandle,recovery=this.onReconnectNeeded?.({reason,handle,attempt})||"";this.setState("CONNECTING","VOICE_RECONNECTING");this.reconnectTimer=setTimeout(()=>{if(proactive&&this.isActive())this.disconnect("go_away_handoff");this.goAwayReconnectScheduled=false;this.connect(recovery,{priority:"TRANSITION_GUIDANCE"}).catch(()=>{});},delay);return true;}
+  scheduleReconnect(reason, { proactive = false, silent = false } = {}) {
+    if (!this.sessionResumptionHandle || this.reconnectAttempts >= this.maxReconnectAttempts) return false;
+    clearTimeout(this.reconnectTimer);
+    const attempt = ++this.reconnectAttempts;
+    const delay = proactive ? 100 : Math.min(2000, 250 * (2 ** (attempt - 1)));
+    const handle = this.sessionResumptionHandle;
+    // A silent handoff (session rotation) resumes the provider's own history and says nothing; a
+    // recovery after a lost socket sends the app's continuity summary as the opening turn.
+    const recovery = silent ? "" : this.onReconnectNeeded?.({ reason, handle, attempt }) || "";
+    if (silent) this.onReconnectNeeded?.({ reason, handle, attempt, silent: true });
+    this.setState("CONNECTING", "VOICE_RECONNECTING");
+    this.reconnectTimer = setTimeout(() => {
+      // The output AudioContext was created inside the patient's tap. Closing it here would leave
+      // the new session with a context that mobile browsers keep suspended until the next gesture.
+      if (proactive && this.isActive()) this.disconnect("go_away_handoff", { preserveOutput: true });
+      this.goAwayReconnectScheduled = false;
+      this.connect(recovery, recovery ? { priority: "TRANSITION_GUIDANCE" } : {}).catch(() => {});
+    }, delay);
+    return true;
+  }
   disconnect(reason = "ended", { preserveOutput = false } = {}) {
     this.intentionalClose = true;
-    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.stabilityTimer); this.clearTurnWatchdog(); this.clearPatientTranscriptWatchdog(); this.stopPlayback();
+    clearTimeout(this.warningTimer); clearTimeout(this.endTimer); clearTimeout(this.sessionRotationTimer); clearTimeout(this.stabilityTimer); this.clearTurnWatchdog(); this.clearPatientTranscriptWatchdog(); this.stopPlayback();
     try { this.session?.close(); } catch { /* Already closed. */ }
     this.session = null; this.stopAudioCapture();
     this.stream?.getTracks().forEach(track => track.stop()); this.stream = null;

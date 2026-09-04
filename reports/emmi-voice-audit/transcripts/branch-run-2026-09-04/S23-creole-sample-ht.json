@@ -1,0 +1,4387 @@
+{
+  "session_id": "S23-creole-sample-ht",
+  "patient_profile": "A (granmoun, reponn kout)",
+  "language": "es",
+  "flow": "Haitian Creole sample: voice guidance is not offered in Kreyòl (VOICE_UNAVAILABLE_FOR_LOCALE), so the session is Spanish and the patient speaks Kreyòl, then asks for Kreyòl",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "The app only offers voice in English and Spanish; a Kreyòl UI shows 'Voice guidance isn't available in this language yet'. This sample checks what the Spanish session does with Kreyòl speech (language signal, no discard) and with an explicit request it cannot honour (no session rebuild, EMMI keeps answering).",
+  "startedAt": "2026-09-04T20:39:35.573Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Bonjou.",
+      "recognized_text": "Bonjou.",
+      "EMMI_response": "Hola. Estoy aquí para ayudarle con su cita.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@163",
+          "EMMI_THINKING@1988",
+          "EMMI_SPEAKING@2546",
+          "LISTENING@5946"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 41786,
+        "speech_ended_at": 42486,
+        "provider_speech_end_detected_at": 43725,
+        "provider_vad_window_ms": 1239,
+        "provider_first_chunk_at": 44312,
+        "app_first_audio_at": 44315,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 42486,
+        "T2_first_audible_response": 44315,
+        "T3_response_complete": 47647,
+        "response_start_latency_ms": 1829,
+        "response_completion_latency_ms": 5161,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1267,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Ki lè randevou mwen an?",
+      "recognized_text": "Ki lè randevou mwen an?",
+      "EMMI_response": "No veo la hora. ‖ I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": true,
+        "context_envelopes_in_turn": 1,
+        "recovery_prompts_sent_by_app": [
+          "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, a",
+          "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\""
+        ],
+        "app_transcript_suppression_events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ],
+        "provider_generations": 3,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 29,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@157",
+          "EMMI_THINKING@3190",
+          "EMMI_SPEAKING@5128",
+          "LISTENING@9154"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "error": "unreliable_voice_input"
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "response start 6568 ms"
+      ],
+      "severity": "P2",
+      "notes": "Kreyòl inside a Spanish session: a language signal, never a discarded turn",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 49287,
+        "speech_ended_at": 51210,
+        "provider_speech_end_detected_at": 52415,
+        "provider_vad_window_ms": 1205,
+        "provider_first_chunk_at": 52983,
+        "app_first_audio_at": 57778,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 51210,
+        "T2_first_audible_response": 57778,
+        "T3_response_complete": 63730,
+        "response_start_latency_ms": 6568,
+        "response_completion_latency_ms": 12520,
+        "app_overhead_first_chunk_to_audible_ms": 4795,
+        "local_speech_end_detected_ms_after_T1": 1215,
+        "perceived": "VERY POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "recovery",
+        "reply",
+        "recovery"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Mwen pa gen transpò.",
+      "recognized_text": "Mwen pa gen transpò.",
+      "EMMI_response": "¿Dónde le recogemos? ‖ I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": true,
+        "context_envelopes_in_turn": 1,
+        "recovery_prompts_sent_by_app": [
+          "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, a",
+          "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\""
+        ],
+        "app_transcript_suppression_events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ],
+        "provider_generations": 3,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 6,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@204",
+          "EMMI_THINKING@2785",
+          "EMMI_SPEAKING@4540",
+          "LISTENING@8173",
+          "EMMI_SPEAKING@8450",
+          "LISTENING@13982"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-open-barrier"
+          },
+          "result": {
+            "error": "unreliable_voice_input"
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "2"
+          },
+          "result": {
+            "error": "unreliable_voice_input"
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-accept"
+          },
+          "result": {
+            "error": "unreliable_voice_input"
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "response start 6866 ms",
+        "expected view PICKUP, got APPOINTMENT_CONFIRMED"
+      ],
+      "severity": "P2",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 65434,
+        "speech_ended_at": 66972,
+        "provider_speech_end_detected_at": 68198,
+        "provider_vad_window_ms": 1226,
+        "provider_first_chunk_at": 68786,
+        "app_first_audio_at": 73838,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 66972,
+        "T2_first_audible_response": 73838,
+        "T3_response_complete": 79396,
+        "response_start_latency_ms": 6866,
+        "response_completion_latency_ms": 12424,
+        "app_overhead_first_chunk_to_audible_ms": 5052,
+        "local_speech_end_detected_ms_after_T1": 1244,
+        "perceived": "VERY POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "recovery",
+        "reply",
+        "recovery"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Pale kreyòl avè m, tanpri.",
+      "recognized_text": "Pale kreyòl avè m, tanpri.",
+      "EMMI_response": "Lo siento, por ahora la guía por voz solo está disponible en español y en inglés. Puede escribirme en criollo en el chat. ‖ I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": true,
+        "context_envelopes_in_turn": 1,
+        "recovery_prompts_sent_by_app": [
+          "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, a",
+          "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\""
+        ],
+        "app_transcript_suppression_events": [
+          "EMMI_ASR_CLARIFICATION_REQUIRED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
+        ],
+        "provider_generations": 3,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 63,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@210",
+          "EMMI_THINKING@3158",
+          "EMMI_SPEAKING@13261",
+          "LISTENING@16932"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [
+        "response start 14977 ms"
+      ],
+      "severity": "P2",
+      "notes": "explicit request for a language voice does not support: no rebuild, the session must stay alive",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 81102,
+        "speech_ended_at": 83025,
+        "provider_speech_end_detected_at": 84216,
+        "provider_vad_window_ms": 1191,
+        "provider_first_chunk_at": 84774,
+        "app_first_audio_at": 98002,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 83025,
+        "T2_first_audible_response": 98002,
+        "T3_response_complete": 103711,
+        "response_start_latency_ms": 14977,
+        "response_completion_latency_ms": 20686,
+        "app_overhead_first_chunk_to_audible_ms": 13228,
+        "local_speech_end_detected_ms_after_T1": 1210,
+        "perceived": "VERY POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "recovery",
+        "reply",
+        "recovery"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "silence",
+      "label": "after the request",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 7,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Wi.",
+      "recognized_text": "Wi.",
+      "EMMI_response": "¿Necesita alguna ayuda especial para viajar?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@149",
+          "EMMI_THINKING@1892",
+          "EMMI_SPEAKING@2537",
+          "LISTENING@4989"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-pickup-home"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "expected view NEEDS, got APPOINTMENT_CONFIRMED"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 108555,
+        "speech_ended_at": 109255,
+        "provider_speech_end_detected_at": 110436,
+        "provider_vad_window_ms": 1181,
+        "provider_first_chunk_at": 111002,
+        "app_first_audio_at": 111005,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 109255,
+        "T2_first_audible_response": 111005,
+        "T3_response_complete": 113495,
+        "response_start_latency_ms": 1750,
+        "response_completion_latency_ms": 4240,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1200,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 8,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Non, mèsi.",
+      "recognized_text": "Non, mèsi.",
+      "EMMI_response": "No pude completar ese paso: UNKNOWN_ACTION.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@117",
+          "EMMI_THINKING@2083",
+          "EMMI_SPEAKING@2629",
+          "LISTENING@5144"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "1"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableChoices": [],
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "currentView": {
+              "viewId": "APPOINTMENT_CONFIRMED",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Cita confirmada",
+              "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "La cita está confirmada"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-open-prep",
+                  "label": "Preparar temas para la visita",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-open-brief",
+                  "label": "Ver mi lista de temas",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-open-barrier",
+                  "label": "Algo lo dificulta",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-open-reminder",
+                  "label": "Recordármelo en la aplicación",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-open-share",
+                  "label": "Compartir con mi Círculo de cuidado",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-get-directions",
+                  "label": "Cómo llegar",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-request-reschedule",
+                  "label": "Cambiar la hora",
+                  "kind": "CONFIRM"
+                },
+                {
+                  "id": "appointment-request-cancel",
+                  "label": "Cancelar la cita",
+                  "kind": "DESTRUCTIVE"
+                },
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-needs-continue"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "expected view TIME, got APPOINTMENT_CONFIRMED"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 115265,
+        "speech_ended_at": 116034,
+        "provider_speech_end_detected_at": 117271,
+        "provider_vad_window_ms": 1237,
+        "provider_first_chunk_at": 117845,
+        "app_first_audio_at": 117848,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 116034,
+        "T2_first_audible_response": 117848,
+        "T3_response_complete": 120345,
+        "response_start_latency_ms": 1814,
+        "response_completion_latency_ms": 4311,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1246,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Gracias.",
+      "recognized_text": "Gracias.",
+      "EMMI_response": "De nada.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@127",
+          "EMMI_THINKING@1994",
+          "EMMI_SPEAKING@2553",
+          "LISTENING@3396"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 122151,
+        "speech_ended_at": 122851,
+        "provider_speech_end_detected_at": 124111,
+        "provider_vad_window_ms": 1260,
+        "provider_first_chunk_at": 124670,
+        "app_first_audio_at": 124673,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 122851,
+        "T2_first_audible_response": 124673,
+        "T3_response_complete": 125505,
+        "response_start_latency_ms": 1822,
+        "response_completion_latency_ms": 2654,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1274,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T20:39:39.519Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 1082 ms after tap"
+    },
+    {
+      "at": "2026-09-04T20:41:24.626Z",
+      "text": "after the Kreyòl request: html lang=es; provider sessions opened=1; voice state=LISTENING; socket=true"
+    }
+  ],
+  "language_switch": {
+    "lang": "es",
+    "sessions": 1,
+    "state": "LISTENING"
+  },
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788554378786,
+      "words": 88,
+      "seconds": 36.66666666666667,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas. ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos. Participar es su decisión, y le e",
+      "locale": "ES"
+    },
+    {
+      "at": 1788554416974,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    }
+  ],
+  "finishedAt": "2026-09-04T20:41:43.281Z",
+  "state_transitions": [
+    {
+      "t": 1694,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 2589,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 39134,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 40074,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 40895,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 41949,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 43774,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 44332,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 47732,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 49444,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 52477,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 54415,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 58441,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 65638,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 68219,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 69974,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 73607,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 73884,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 79416,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 81312,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 84260,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 94363,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 98034,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 108704,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 110447,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 111092,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 113544,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 115382,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 117348,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 117894,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 120409,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 122278,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 124145,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 124704,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 125547,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 47417,
+      "at": 1788554424359,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4fdg_l79i",
+      "chunk": 14
+    },
+    {
+      "t": 47419,
+      "at": 1788554424360,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4fdg_l79i"
+    },
+    {
+      "t": 47419,
+      "at": 1788554424360,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4fdg_l79i"
+    },
+    {
+      "t": 47419,
+      "at": 1788554424361,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf4fdg_l79i"
+    },
+    {
+      "t": 49336,
+      "at": 1788554426278,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 52415,
+      "at": 1788554429357,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1870,
+      "speechLastAt": 51207
+    },
+    {
+      "t": 52415,
+      "at": 1788554429357,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ki lè randevou mwen an?"
+    },
+    {
+      "t": 52415,
+      "at": 1788554429357,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ki lè randevou mwen an?"
+    },
+    {
+      "t": 52419,
+      "at": 1788554429361,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": false,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 52419,
+      "at": 1788554429361,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4m29_qoq6",
+      "source": "text",
+      "transcript": "",
+      "kind": "recovery"
+    },
+    {
+      "t": 52419,
+      "at": 1788554429361,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4m29_ria6",
+      "source": "audio",
+      "transcript": "Ki lè randevou mwen an?",
+      "kind": "reply"
+    },
+    {
+      "t": 52977,
+      "at": 1788554429918,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 52977,
+      "at": 1788554429918,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 52977,
+      "at": 1788554429919,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_b1ikgn\",\"name\":\"describeCurrentView\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+    },
+    {
+      "t": 52983,
+      "at": 1788554429924,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf4m29_ria6",
+      "text": "No veo la hora.",
+      "seconds": 1.67,
+      "chunks": 7
+    },
+    {
+      "t": 52984,
+      "at": 1788554429926,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 1
+    },
+    {
+      "t": 52985,
+      "at": 1788554429926,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "text": "No"
+    },
+    {
+      "t": 53109,
+      "at": 1788554430050,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 2
+    },
+    {
+      "t": 53109,
+      "at": 1788554430051,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "text": "veo"
+    },
+    {
+      "t": 53354,
+      "at": 1788554430295,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 3
+    },
+    {
+      "t": 53354,
+      "at": 1788554430296,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "text": "la"
+    },
+    {
+      "t": 53597,
+      "at": 1788554430539,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 4
+    },
+    {
+      "t": 53598,
+      "at": 1788554430539,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "text": "hora."
+    },
+    {
+      "t": 53843,
+      "at": 1788554430785,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 5
+    },
+    {
+      "t": 54089,
+      "at": 1788554431030,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 6
+    },
+    {
+      "t": 54335,
+      "at": 1788554431277,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6",
+      "chunk": 7
+    },
+    {
+      "t": 54336,
+      "at": 1788554431277,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6"
+    },
+    {
+      "t": 54337,
+      "at": 1788554431278,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Bonjou.\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": true,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 54337,
+      "at": 1788554431278,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "source": "text",
+      "transcript": ",\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"",
+      "kind": "recovery"
+    },
+    {
+      "t": 54337,
+      "at": 1788554431279,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4m29_ria6"
+    },
+    {
+      "t": 54343,
+      "at": 1788554431285,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf4m29_ria6"
+    },
+    {
+      "t": 54892,
+      "at": 1788554431833,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "seconds": 8.75,
+      "chunks": 37
+    },
+    {
+      "t": 54893,
+      "at": 1788554431834,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 1
+    },
+    {
+      "t": 54895,
+      "at": 1788554431837,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "I’m"
+    },
+    {
+      "t": 55026,
+      "at": 1788554431967,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 2
+    },
+    {
+      "t": 55027,
+      "at": 1788554431969,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "sorry,"
+    },
+    {
+      "t": 55278,
+      "at": 1788554432220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 3
+    },
+    {
+      "t": 55281,
+      "at": 1788554432223,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "I"
+    },
+    {
+      "t": 55528,
+      "at": 1788554432469,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 4
+    },
+    {
+      "t": 55530,
+      "at": 1788554432472,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "didn’t"
+    },
+    {
+      "t": 55777,
+      "at": 1788554432719,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 5
+    },
+    {
+      "t": 55781,
+      "at": 1788554432722,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "hear"
+    },
+    {
+      "t": 56025,
+      "at": 1788554432966,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 6
+    },
+    {
+      "t": 56027,
+      "at": 1788554432969,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "that"
+    },
+    {
+      "t": 56273,
+      "at": 1788554433215,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 7
+    },
+    {
+      "t": 56275,
+      "at": 1788554433217,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "clearly."
+    },
+    {
+      "t": 56524,
+      "at": 1788554433465,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 8
+    },
+    {
+      "t": 56526,
+      "at": 1788554433468,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "Please"
+    },
+    {
+      "t": 56778,
+      "at": 1788554433719,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 9
+    },
+    {
+      "t": 56780,
+      "at": 1788554433722,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "say"
+    },
+    {
+      "t": 57028,
+      "at": 1788554433969,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 10
+    },
+    {
+      "t": 57029,
+      "at": 1788554433971,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "it"
+    },
+    {
+      "t": 57278,
+      "at": 1788554434220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 11
+    },
+    {
+      "t": 57280,
+      "at": 1788554434222,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "again."
+    },
+    {
+      "t": 57527,
+      "at": 1788554434469,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 12
+    },
+    {
+      "t": 57529,
+      "at": 1788554434471,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "If"
+    },
+    {
+      "t": 57776,
+      "at": 1788554434718,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 13
+    },
+    {
+      "t": 57779,
+      "at": 1788554434721,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "this"
+    },
+    {
+      "t": 58028,
+      "at": 1788554434969,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 14
+    },
+    {
+      "t": 58030,
+      "at": 1788554434972,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "may"
+    },
+    {
+      "t": 58279,
+      "at": 1788554435220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 15
+    },
+    {
+      "t": 58283,
+      "at": 1788554435225,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "be"
+    },
+    {
+      "t": 58527,
+      "at": 1788554435468,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 16
+    },
+    {
+      "t": 58527,
+      "at": 1788554435469,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "a"
+    },
+    {
+      "t": 58784,
+      "at": 1788554435726,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 17
+    },
+    {
+      "t": 58784,
+      "at": 1788554435726,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "medical"
+    },
+    {
+      "t": 59037,
+      "at": 1788554435979,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 18
+    },
+    {
+      "t": 59038,
+      "at": 1788554435980,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "emergency,"
+    },
+    {
+      "t": 59294,
+      "at": 1788554436236,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 19
+    },
+    {
+      "t": 59295,
+      "at": 1788554436236,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "call"
+    },
+    {
+      "t": 59543,
+      "at": 1788554436484,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 20
+    },
+    {
+      "t": 59543,
+      "at": 1788554436485,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "911"
+    },
+    {
+      "t": 59788,
+      "at": 1788554436729,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 21
+    },
+    {
+      "t": 59788,
+      "at": 1788554436730,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "text": "now."
+    },
+    {
+      "t": 60034,
+      "at": 1788554436975,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 22
+    },
+    {
+      "t": 60277,
+      "at": 1788554437218,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 23
+    },
+    {
+      "t": 60523,
+      "at": 1788554437465,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 24
+    },
+    {
+      "t": 60768,
+      "at": 1788554437710,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 25
+    },
+    {
+      "t": 61015,
+      "at": 1788554437956,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 26
+    },
+    {
+      "t": 61258,
+      "at": 1788554438199,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 27
+    },
+    {
+      "t": 61502,
+      "at": 1788554438444,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 28
+    },
+    {
+      "t": 61748,
+      "at": 1788554438689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 29
+    },
+    {
+      "t": 62000,
+      "at": 1788554438942,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 30
+    },
+    {
+      "t": 62249,
+      "at": 1788554439190,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 31
+    },
+    {
+      "t": 62494,
+      "at": 1788554439435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 32
+    },
+    {
+      "t": 62744,
+      "at": 1788554439685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 33
+    },
+    {
+      "t": 62986,
+      "at": 1788554439928,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 34
+    },
+    {
+      "t": 63235,
+      "at": 1788554440177,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 35
+    },
+    {
+      "t": 63479,
+      "at": 1788554440421,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 36
+    },
+    {
+      "t": 63730,
+      "at": 1788554440671,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe",
+      "chunk": 37
+    },
+    {
+      "t": 63730,
+      "at": 1788554440672,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe"
+    },
+    {
+      "t": 63732,
+      "at": 1788554440673,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4nji_tlbe"
+    },
+    {
+      "t": 63732,
+      "at": 1788554440673,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf4nji_tlbe"
+    },
+    {
+      "t": 65486,
+      "at": 1788554442428,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 68198,
+      "at": 1788554445139,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1490,
+      "speechLastAt": 66976
+    },
+    {
+      "t": 68198,
+      "at": 1788554445139,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Mwen pa gen transpò."
+    },
+    {
+      "t": 68198,
+      "at": 1788554445139,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Mwen pa gen transpò."
+    },
+    {
+      "t": 68202,
+      "at": 1788554445144,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": false,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 68202,
+      "at": 1788554445144,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4y8o_iyso",
+      "source": "text",
+      "transcript": "",
+      "kind": "recovery"
+    },
+    {
+      "t": 68202,
+      "at": 1788554445144,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "source": "audio",
+      "transcript": "Mwen pa gen transpò.",
+      "kind": "reply"
+    },
+    {
+      "t": 68766,
+      "at": 1788554445707,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "appointment-open-barrier"
+      }
+    },
+    {
+      "t": 68766,
+      "at": 1788554445707,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 68767,
+      "at": 1788554445708,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_o82azw\",\"name\":\"performViewAction\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+    },
+    {
+      "t": 68771,
+      "at": 1788554445713,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "2"
+      }
+    },
+    {
+      "t": 68771,
+      "at": 1788554445713,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 68772,
+      "at": 1788554445713,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_phkh8f\",\"name\":\"performViewAction\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+    },
+    {
+      "t": 68778,
+      "at": 1788554445720,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-accept"
+      }
+    },
+    {
+      "t": 68778,
+      "at": 1788554445720,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 68779,
+      "at": 1788554445721,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_f1gr3c\",\"name\":\"performViewAction\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+    },
+    {
+      "t": 68786,
+      "at": 1788554445728,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "text": "¿Dónde le recogemos?",
+      "seconds": 1.25,
+      "chunks": 6
+    },
+    {
+      "t": 68787,
+      "at": 1788554445728,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 1
+    },
+    {
+      "t": 68787,
+      "at": 1788554445729,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "text": "¿Dónde"
+    },
+    {
+      "t": 68915,
+      "at": 1788554445857,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 2
+    },
+    {
+      "t": 68915,
+      "at": 1788554445857,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "text": "le"
+    },
+    {
+      "t": 69159,
+      "at": 1788554446101,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 3
+    },
+    {
+      "t": 69160,
+      "at": 1788554446102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "text": "recogemos?"
+    },
+    {
+      "t": 69409,
+      "at": 1788554446350,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 4
+    },
+    {
+      "t": 69661,
+      "at": 1788554446602,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 5
+    },
+    {
+      "t": 69907,
+      "at": 1788554446848,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4",
+      "chunk": 6
+    },
+    {
+      "t": 69908,
+      "at": 1788554446849,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4"
+    },
+    {
+      "t": 69909,
+      "at": 1788554446851,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Bonjou.\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": true,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 69909,
+      "at": 1788554446851,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "source": "text",
+      "transcript": ",\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"",
+      "kind": "recovery"
+    },
+    {
+      "t": 69909,
+      "at": 1788554446851,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4y8o_u1w4"
+    },
+    {
+      "t": 69910,
+      "at": 1788554446852,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf4y8o_u1w4"
+    },
+    {
+      "t": 70461,
+      "at": 1788554447402,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "seconds": 8.75,
+      "chunks": 37
+    },
+    {
+      "t": 70463,
+      "at": 1788554447405,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 1
+    },
+    {
+      "t": 70467,
+      "at": 1788554447409,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "I’m"
+    },
+    {
+      "t": 70595,
+      "at": 1788554447537,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 2
+    },
+    {
+      "t": 70597,
+      "at": 1788554447538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "sorry,"
+    },
+    {
+      "t": 70846,
+      "at": 1788554447787,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 3
+    },
+    {
+      "t": 70848,
+      "at": 1788554447789,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "I"
+    },
+    {
+      "t": 71095,
+      "at": 1788554448036,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 4
+    },
+    {
+      "t": 71097,
+      "at": 1788554448039,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "didn’t"
+    },
+    {
+      "t": 71341,
+      "at": 1788554448282,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 5
+    },
+    {
+      "t": 71343,
+      "at": 1788554448285,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "hear"
+    },
+    {
+      "t": 71587,
+      "at": 1788554448528,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 6
+    },
+    {
+      "t": 71589,
+      "at": 1788554448531,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "that"
+    },
+    {
+      "t": 71837,
+      "at": 1788554448779,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 7
+    },
+    {
+      "t": 71840,
+      "at": 1788554448782,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "clearly."
+    },
+    {
+      "t": 72090,
+      "at": 1788554449031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 8
+    },
+    {
+      "t": 72093,
+      "at": 1788554449034,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "Please"
+    },
+    {
+      "t": 72346,
+      "at": 1788554449287,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 9
+    },
+    {
+      "t": 72348,
+      "at": 1788554449290,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "say"
+    },
+    {
+      "t": 72596,
+      "at": 1788554449538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 10
+    },
+    {
+      "t": 72599,
+      "at": 1788554449541,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "it"
+    },
+    {
+      "t": 72843,
+      "at": 1788554449785,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 11
+    },
+    {
+      "t": 72845,
+      "at": 1788554449787,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "again."
+    },
+    {
+      "t": 73089,
+      "at": 1788554450031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 12
+    },
+    {
+      "t": 73093,
+      "at": 1788554450035,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "If"
+    },
+    {
+      "t": 73336,
+      "at": 1788554450278,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 13
+    },
+    {
+      "t": 73337,
+      "at": 1788554450279,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "this"
+    },
+    {
+      "t": 73584,
+      "at": 1788554450525,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 14
+    },
+    {
+      "t": 73587,
+      "at": 1788554450529,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "may"
+    },
+    {
+      "t": 73836,
+      "at": 1788554450777,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 15
+    },
+    {
+      "t": 73840,
+      "at": 1788554450781,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "be"
+    },
+    {
+      "t": 74087,
+      "at": 1788554451028,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 16
+    },
+    {
+      "t": 74089,
+      "at": 1788554451031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "a"
+    },
+    {
+      "t": 74335,
+      "at": 1788554451276,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 17
+    },
+    {
+      "t": 74337,
+      "at": 1788554451279,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "medical"
+    },
+    {
+      "t": 74582,
+      "at": 1788554451523,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 18
+    },
+    {
+      "t": 74584,
+      "at": 1788554451526,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "emergency,"
+    },
+    {
+      "t": 74829,
+      "at": 1788554451771,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 19
+    },
+    {
+      "t": 74832,
+      "at": 1788554451774,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "call"
+    },
+    {
+      "t": 75078,
+      "at": 1788554452020,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 20
+    },
+    {
+      "t": 75081,
+      "at": 1788554452023,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "911"
+    },
+    {
+      "t": 75327,
+      "at": 1788554452269,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 21
+    },
+    {
+      "t": 75329,
+      "at": 1788554452271,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "text": "now."
+    },
+    {
+      "t": 75575,
+      "at": 1788554452516,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 22
+    },
+    {
+      "t": 75825,
+      "at": 1788554452767,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 23
+    },
+    {
+      "t": 76075,
+      "at": 1788554453016,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 24
+    },
+    {
+      "t": 76328,
+      "at": 1788554453269,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 25
+    },
+    {
+      "t": 76578,
+      "at": 1788554453519,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 26
+    },
+    {
+      "t": 76823,
+      "at": 1788554453765,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 27
+    },
+    {
+      "t": 77071,
+      "at": 1788554454012,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 28
+    },
+    {
+      "t": 77317,
+      "at": 1788554454259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 29
+    },
+    {
+      "t": 77564,
+      "at": 1788554454505,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 30
+    },
+    {
+      "t": 77814,
+      "at": 1788554454755,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 31
+    },
+    {
+      "t": 78064,
+      "at": 1788554455006,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 32
+    },
+    {
+      "t": 78311,
+      "at": 1788554455253,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 33
+    },
+    {
+      "t": 78557,
+      "at": 1788554455499,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 34
+    },
+    {
+      "t": 78802,
+      "at": 1788554455744,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 35
+    },
+    {
+      "t": 79047,
+      "at": 1788554455988,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 36
+    },
+    {
+      "t": 79295,
+      "at": 1788554456236,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n",
+      "chunk": 37
+    },
+    {
+      "t": 79296,
+      "at": 1788554456237,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n"
+    },
+    {
+      "t": 79296,
+      "at": 1788554456237,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf4zk3_p55n"
+    },
+    {
+      "t": 79296,
+      "at": 1788554456237,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf4zk3_p55n"
+    },
+    {
+      "t": 81186,
+      "at": 1788554458127,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 84216,
+      "at": 1788554461158,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1810,
+      "speechLastAt": 82996
+    },
+    {
+      "t": 84216,
+      "at": 1788554461158,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Pale kreyòl avè m, tanpri."
+    },
+    {
+      "t": 84216,
+      "at": 1788554461158,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Pale kreyòl avè m, tanpri."
+    },
+    {
+      "t": 84220,
+      "at": 1788554461162,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": false,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 84220,
+      "at": 1788554461162,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf5alm_8i8e",
+      "source": "text",
+      "transcript": "",
+      "kind": "recovery"
+    },
+    {
+      "t": 84221,
+      "at": 1788554461162,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf5alm_po5d",
+      "source": "audio",
+      "transcript": "Pale kreyòl avè m, tanpri.",
+      "kind": "reply"
+    },
+    {
+      "t": 84774,
+      "at": 1788554461716,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "Lo siento, por ahora la guía por voz solo está disponible en español y en inglés. Puede escribirme en criollo en el chat.",
+      "seconds": 9.58,
+      "chunks": 40
+    },
+    {
+      "t": 84777,
+      "at": 1788554461718,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 1
+    },
+    {
+      "t": 84778,
+      "at": 1788554461719,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "Lo"
+    },
+    {
+      "t": 84900,
+      "at": 1788554461842,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 2
+    },
+    {
+      "t": 84901,
+      "at": 1788554461842,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "siento,"
+    },
+    {
+      "t": 85153,
+      "at": 1788554462094,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 3
+    },
+    {
+      "t": 85154,
+      "at": 1788554462095,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "por"
+    },
+    {
+      "t": 85404,
+      "at": 1788554462345,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 4
+    },
+    {
+      "t": 85404,
+      "at": 1788554462346,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "ahora"
+    },
+    {
+      "t": 85647,
+      "at": 1788554462589,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 5
+    },
+    {
+      "t": 85648,
+      "at": 1788554462590,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "la"
+    },
+    {
+      "t": 85898,
+      "at": 1788554462840,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 6
+    },
+    {
+      "t": 85898,
+      "at": 1788554462840,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "guía"
+    },
+    {
+      "t": 86143,
+      "at": 1788554463085,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 7
+    },
+    {
+      "t": 86144,
+      "at": 1788554463086,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "por"
+    },
+    {
+      "t": 86387,
+      "at": 1788554463329,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 8
+    },
+    {
+      "t": 86388,
+      "at": 1788554463330,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "voz"
+    },
+    {
+      "t": 86636,
+      "at": 1788554463578,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 9
+    },
+    {
+      "t": 86637,
+      "at": 1788554463579,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "solo"
+    },
+    {
+      "t": 86881,
+      "at": 1788554463822,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 10
+    },
+    {
+      "t": 86882,
+      "at": 1788554463823,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "está"
+    },
+    {
+      "t": 87138,
+      "at": 1788554464079,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 11
+    },
+    {
+      "t": 87139,
+      "at": 1788554464080,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "disponible"
+    },
+    {
+      "t": 87386,
+      "at": 1788554464328,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 12
+    },
+    {
+      "t": 87387,
+      "at": 1788554464328,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "en"
+    },
+    {
+      "t": 87632,
+      "at": 1788554464574,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 13
+    },
+    {
+      "t": 87633,
+      "at": 1788554464574,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "español"
+    },
+    {
+      "t": 87886,
+      "at": 1788554464828,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 14
+    },
+    {
+      "t": 87887,
+      "at": 1788554464829,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "y"
+    },
+    {
+      "t": 88132,
+      "at": 1788554465073,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 15
+    },
+    {
+      "t": 88133,
+      "at": 1788554465074,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "en"
+    },
+    {
+      "t": 88375,
+      "at": 1788554465317,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 16
+    },
+    {
+      "t": 88376,
+      "at": 1788554465317,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "inglés."
+    },
+    {
+      "t": 88621,
+      "at": 1788554465563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 17
+    },
+    {
+      "t": 88622,
+      "at": 1788554465563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "Puede"
+    },
+    {
+      "t": 88867,
+      "at": 1788554465808,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 18
+    },
+    {
+      "t": 88867,
+      "at": 1788554465809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "escribirme"
+    },
+    {
+      "t": 89118,
+      "at": 1788554466060,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 19
+    },
+    {
+      "t": 89119,
+      "at": 1788554466061,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "en"
+    },
+    {
+      "t": 89364,
+      "at": 1788554466305,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 20
+    },
+    {
+      "t": 89365,
+      "at": 1788554466306,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "criollo"
+    },
+    {
+      "t": 89608,
+      "at": 1788554466549,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 21
+    },
+    {
+      "t": 89609,
+      "at": 1788554466550,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "en"
+    },
+    {
+      "t": 89855,
+      "at": 1788554466797,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 22
+    },
+    {
+      "t": 89856,
+      "at": 1788554466798,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "el"
+    },
+    {
+      "t": 90099,
+      "at": 1788554467041,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 23
+    },
+    {
+      "t": 90100,
+      "at": 1788554467042,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "text": "chat."
+    },
+    {
+      "t": 90354,
+      "at": 1788554467296,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 24
+    },
+    {
+      "t": 90596,
+      "at": 1788554467538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 25
+    },
+    {
+      "t": 90838,
+      "at": 1788554467780,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 26
+    },
+    {
+      "t": 91087,
+      "at": 1788554468028,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 27
+    },
+    {
+      "t": 91338,
+      "at": 1788554468279,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 28
+    },
+    {
+      "t": 91588,
+      "at": 1788554468530,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 29
+    },
+    {
+      "t": 91838,
+      "at": 1788554468779,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 30
+    },
+    {
+      "t": 92083,
+      "at": 1788554469025,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 31
+    },
+    {
+      "t": 92336,
+      "at": 1788554469277,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 32
+    },
+    {
+      "t": 92578,
+      "at": 1788554469519,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 33
+    },
+    {
+      "t": 92827,
+      "at": 1788554469769,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 34
+    },
+    {
+      "t": 93077,
+      "at": 1788554470019,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 35
+    },
+    {
+      "t": 93324,
+      "at": 1788554470266,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 36
+    },
+    {
+      "t": 93568,
+      "at": 1788554470510,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 37
+    },
+    {
+      "t": 93816,
+      "at": 1788554470758,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 38
+    },
+    {
+      "t": 94069,
+      "at": 1788554471011,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 39
+    },
+    {
+      "t": 94313,
+      "at": 1788554471255,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d",
+      "chunk": 40
+    },
+    {
+      "t": 94314,
+      "at": 1788554471256,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d"
+    },
+    {
+      "t": 94316,
+      "at": 1788554471257,
+      "dir": "in",
+      "type": "text",
+      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Bonjou.\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable and appears to be ht; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "contextEnvelope": true,
+      "narration": false,
+      "recovery": true
+    },
+    {
+      "t": 94316,
+      "at": 1788554471257,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "source": "text",
+      "transcript": ",\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"",
+      "kind": "recovery"
+    },
+    {
+      "t": 94316,
+      "at": 1788554471258,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5alm_po5d"
+    },
+    {
+      "t": 94317,
+      "at": 1788554471259,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf5alm_po5d"
+    },
+    {
+      "t": 94867,
+      "at": 1788554471808,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "seconds": 8.75,
+      "chunks": 37
+    },
+    {
+      "t": 94869,
+      "at": 1788554471810,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 1
+    },
+    {
+      "t": 94872,
+      "at": 1788554471814,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "I’m"
+    },
+    {
+      "t": 94997,
+      "at": 1788554471938,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 2
+    },
+    {
+      "t": 94999,
+      "at": 1788554471940,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "sorry,"
+    },
+    {
+      "t": 95246,
+      "at": 1788554472187,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 3
+    },
+    {
+      "t": 95247,
+      "at": 1788554472189,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "I"
+    },
+    {
+      "t": 95496,
+      "at": 1788554472438,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 4
+    },
+    {
+      "t": 95498,
+      "at": 1788554472439,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "didn’t"
+    },
+    {
+      "t": 95743,
+      "at": 1788554472684,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 5
+    },
+    {
+      "t": 95745,
+      "at": 1788554472687,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "hear"
+    },
+    {
+      "t": 95997,
+      "at": 1788554472938,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 6
+    },
+    {
+      "t": 95998,
+      "at": 1788554472940,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "that"
+    },
+    {
+      "t": 96241,
+      "at": 1788554473183,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 7
+    },
+    {
+      "t": 96242,
+      "at": 1788554473184,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "clearly."
+    },
+    {
+      "t": 96494,
+      "at": 1788554473436,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 8
+    },
+    {
+      "t": 96497,
+      "at": 1788554473439,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "Please"
+    },
+    {
+      "t": 96744,
+      "at": 1788554473685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 9
+    },
+    {
+      "t": 96747,
+      "at": 1788554473689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "say"
+    },
+    {
+      "t": 96993,
+      "at": 1788554473935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 10
+    },
+    {
+      "t": 96994,
+      "at": 1788554473936,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "it"
+    },
+    {
+      "t": 97246,
+      "at": 1788554474188,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 11
+    },
+    {
+      "t": 97247,
+      "at": 1788554474189,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "again."
+    },
+    {
+      "t": 97496,
+      "at": 1788554474438,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 12
+    },
+    {
+      "t": 97499,
+      "at": 1788554474440,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "If"
+    },
+    {
+      "t": 97747,
+      "at": 1788554474689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 13
+    },
+    {
+      "t": 97750,
+      "at": 1788554474691,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "this"
+    },
+    {
+      "t": 98001,
+      "at": 1788554474943,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 14
+    },
+    {
+      "t": 98004,
+      "at": 1788554474945,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "may"
+    },
+    {
+      "t": 98248,
+      "at": 1788554475190,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 15
+    },
+    {
+      "t": 98249,
+      "at": 1788554475191,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "be"
+    },
+    {
+      "t": 98494,
+      "at": 1788554475435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 16
+    },
+    {
+      "t": 98494,
+      "at": 1788554475436,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "a"
+    },
+    {
+      "t": 98739,
+      "at": 1788554475681,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 17
+    },
+    {
+      "t": 98740,
+      "at": 1788554475682,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "medical"
+    },
+    {
+      "t": 98997,
+      "at": 1788554475938,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 18
+    },
+    {
+      "t": 98997,
+      "at": 1788554475939,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "emergency,"
+    },
+    {
+      "t": 99250,
+      "at": 1788554476192,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 19
+    },
+    {
+      "t": 99251,
+      "at": 1788554476193,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "call"
+    },
+    {
+      "t": 99497,
+      "at": 1788554476438,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 20
+    },
+    {
+      "t": 99497,
+      "at": 1788554476439,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "911"
+    },
+    {
+      "t": 99746,
+      "at": 1788554476687,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 21
+    },
+    {
+      "t": 99747,
+      "at": 1788554476689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "text": "now."
+    },
+    {
+      "t": 99997,
+      "at": 1788554476939,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 22
+    },
+    {
+      "t": 100246,
+      "at": 1788554477188,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 23
+    },
+    {
+      "t": 100494,
+      "at": 1788554477435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 24
+    },
+    {
+      "t": 100744,
+      "at": 1788554477685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 25
+    },
+    {
+      "t": 100997,
+      "at": 1788554477938,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 26
+    },
+    {
+      "t": 101248,
+      "at": 1788554478189,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 27
+    },
+    {
+      "t": 101497,
+      "at": 1788554478438,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 28
+    },
+    {
+      "t": 101741,
+      "at": 1788554478683,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 29
+    },
+    {
+      "t": 101986,
+      "at": 1788554478928,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 30
+    },
+    {
+      "t": 102230,
+      "at": 1788554479171,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 31
+    },
+    {
+      "t": 102478,
+      "at": 1788554479419,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 32
+    },
+    {
+      "t": 102725,
+      "at": 1788554479666,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 33
+    },
+    {
+      "t": 102970,
+      "at": 1788554479911,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 34
+    },
+    {
+      "t": 103213,
+      "at": 1788554480155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 35
+    },
+    {
+      "t": 103459,
+      "at": 1788554480400,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 36
+    },
+    {
+      "t": 103711,
+      "at": 1788554480652,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv",
+      "chunk": 37
+    },
+    {
+      "t": 103711,
+      "at": 1788554480653,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv"
+    },
+    {
+      "t": 103712,
+      "at": 1788554480654,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5ie1_8wkv"
+    },
+    {
+      "t": 103713,
+      "at": 1788554480654,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf5ie1_8wkv"
+    },
+    {
+      "t": 108616,
+      "at": 1788554485557,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 110436,
+      "at": 1788554487377,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 620,
+      "speechLastAt": 109236
+    },
+    {
+      "t": 110436,
+      "at": 1788554487377,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Wi."
+    },
+    {
+      "t": 110436,
+      "at": 1788554487377,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Wi."
+    },
+    {
+      "t": 110440,
+      "at": 1788554487382,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf5uty_oviw",
+      "source": "audio",
+      "transcript": "Wi.",
+      "kind": "reply"
+    },
+    {
+      "t": 110993,
+      "at": 1788554487935,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-pickup-home"
+      }
+    },
+    {
+      "t": 110993,
+      "at": 1788554487935,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 110997,
+      "at": 1788554487939,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ystno8\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 111002,
+      "at": 1788554487944,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "¿Necesita alguna ayuda especial para viajar?",
+      "seconds": 2.5,
+      "chunks": 11
+    },
+    {
+      "t": 111004,
+      "at": 1788554487945,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 1
+    },
+    {
+      "t": 111007,
+      "at": 1788554487948,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "¿Necesita"
+    },
+    {
+      "t": 111131,
+      "at": 1788554488072,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 2
+    },
+    {
+      "t": 111133,
+      "at": 1788554488075,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "alguna"
+    },
+    {
+      "t": 111381,
+      "at": 1788554488323,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 3
+    },
+    {
+      "t": 111383,
+      "at": 1788554488325,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "ayuda"
+    },
+    {
+      "t": 111627,
+      "at": 1788554488569,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 4
+    },
+    {
+      "t": 111629,
+      "at": 1788554488571,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "especial"
+    },
+    {
+      "t": 111875,
+      "at": 1788554488817,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 5
+    },
+    {
+      "t": 111878,
+      "at": 1788554488819,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "para"
+    },
+    {
+      "t": 112126,
+      "at": 1788554489068,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 6
+    },
+    {
+      "t": 112131,
+      "at": 1788554489073,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "text": "viajar?"
+    },
+    {
+      "t": 112377,
+      "at": 1788554489319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 7
+    },
+    {
+      "t": 112624,
+      "at": 1788554489566,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 8
+    },
+    {
+      "t": 112873,
+      "at": 1788554489815,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 9
+    },
+    {
+      "t": 113118,
+      "at": 1788554490060,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 10
+    },
+    {
+      "t": 113364,
+      "at": 1788554490305,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw",
+      "chunk": 11
+    },
+    {
+      "t": 113365,
+      "at": 1788554490307,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw"
+    },
+    {
+      "t": 113365,
+      "at": 1788554490307,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf5uty_oviw"
+    },
+    {
+      "t": 113365,
+      "at": 1788554490307,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf5uty_oviw"
+    },
+    {
+      "t": 115316,
+      "at": 1788554492257,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 117271,
+      "at": 1788554494213,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 730,
+      "speechLastAt": 116045
+    },
+    {
+      "t": 117271,
+      "at": 1788554494213,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Non, mèsi."
+    },
+    {
+      "t": 117271,
+      "at": 1788554494213,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Non, mèsi."
+    },
+    {
+      "t": 117276,
+      "at": 1788554494218,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf603t_rw2p",
+      "source": "audio",
+      "transcript": "Non, mèsi.",
+      "kind": "reply"
+    },
+    {
+      "t": 117830,
+      "at": 1788554494771,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "1"
+      }
+    },
+    {
+      "t": 117830,
+      "at": 1788554494771,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 117831,
+      "at": 1788554494773,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_dvyvfw\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableChoices\":[],\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}],\"currentView\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 117836,
+      "at": 1788554494777,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-needs-continue"
+      }
+    },
+    {
+      "t": 117836,
+      "at": 1788554494777,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 117837,
+      "at": 1788554494778,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_sowt7g\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 117845,
+      "at": 1788554494786,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "No pude completar ese paso: UNKNOWN_ACTION.",
+      "seconds": 2.5,
+      "chunks": 11
+    },
+    {
+      "t": 117846,
+      "at": 1788554494788,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 1
+    },
+    {
+      "t": 117849,
+      "at": 1788554494791,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "No"
+    },
+    {
+      "t": 117981,
+      "at": 1788554494922,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 2
+    },
+    {
+      "t": 117982,
+      "at": 1788554494923,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "pude"
+    },
+    {
+      "t": 118232,
+      "at": 1788554495173,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 3
+    },
+    {
+      "t": 118235,
+      "at": 1788554495177,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "completar"
+    },
+    {
+      "t": 118481,
+      "at": 1788554495423,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 4
+    },
+    {
+      "t": 118484,
+      "at": 1788554495425,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "ese"
+    },
+    {
+      "t": 118730,
+      "at": 1788554495672,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 5
+    },
+    {
+      "t": 118731,
+      "at": 1788554495673,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "paso:"
+    },
+    {
+      "t": 118981,
+      "at": 1788554495923,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 6
+    },
+    {
+      "t": 118984,
+      "at": 1788554495925,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "text": "UNKNOWN_ACTION."
+    },
+    {
+      "t": 119232,
+      "at": 1788554496174,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 7
+    },
+    {
+      "t": 119477,
+      "at": 1788554496419,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 8
+    },
+    {
+      "t": 119730,
+      "at": 1788554496672,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 9
+    },
+    {
+      "t": 119982,
+      "at": 1788554496924,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 10
+    },
+    {
+      "t": 120227,
+      "at": 1788554497169,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p",
+      "chunk": 11
+    },
+    {
+      "t": 120229,
+      "at": 1788554497171,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p"
+    },
+    {
+      "t": 120229,
+      "at": 1788554497171,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf603t_rw2p"
+    },
+    {
+      "t": 120229,
+      "at": 1788554497171,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf603t_rw2p"
+    },
+    {
+      "t": 122186,
+      "at": 1788554499127,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 124111,
+      "at": 1788554501053,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 680,
+      "speechLastAt": 122866
+    },
+    {
+      "t": 124111,
+      "at": 1788554501053,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Gracias."
+    },
+    {
+      "t": 124111,
+      "at": 1788554501053,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Gracias."
+    },
+    {
+      "t": 124117,
+      "at": 1788554501058,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnf65du_iii3",
+      "source": "audio",
+      "transcript": "Gracias.",
+      "kind": "reply"
+    },
+    {
+      "t": 124670,
+      "at": 1788554501612,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnf65du_iii3",
+      "text": "De nada.",
+      "seconds": 0.83,
+      "chunks": 4
+    },
+    {
+      "t": 124671,
+      "at": 1788554501613,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "chunk": 1
+    },
+    {
+      "t": 124675,
+      "at": 1788554501616,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "text": "De"
+    },
+    {
+      "t": 124798,
+      "at": 1788554501740,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "chunk": 2
+    },
+    {
+      "t": 124800,
+      "at": 1788554501742,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "text": "nada."
+    },
+    {
+      "t": 125047,
+      "at": 1788554501989,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "chunk": 3
+    },
+    {
+      "t": 125297,
+      "at": 1788554502238,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3",
+      "chunk": 4
+    },
+    {
+      "t": 125298,
+      "at": 1788554502240,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3"
+    },
+    {
+      "t": 125298,
+      "at": 1788554502240,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnf65du_iii3"
+    },
+    {
+      "t": 125298,
+      "at": 1788554502240,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnf65du_iii3"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 7,
+    "total_turns": 9,
+    "response_start_p50_ms": 1829,
+    "response_start_p95_ms": 14977,
+    "response_start_avg_ms": 5089,
+    "app_overhead_p50_ms": 3,
+    "barge_ins": 0,
+    "barge_in_stop_p50_ms": null,
+    "barge_in_stop_max_ms": -1,
+    "spoken_turns_with_context_before_answer": 3,
+    "problems": [
+      "turn 3: response start 6568 ms",
+      "turn 4: response start 6866 ms",
+      "turn 4: expected view PICKUP, got APPOINTMENT_CONFIRMED",
+      "turn 5: response start 14977 ms",
+      "turn 7: expected view NEEDS, got APPOINTMENT_CONFIRMED",
+      "turn 8: expected view TIME, got APPOINTMENT_CONFIRMED"
+    ]
+  }
+}
