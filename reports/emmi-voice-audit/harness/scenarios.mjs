@@ -1,3 +1,5 @@
+import { setProviderOption, providerSessionCount, providerSetupCount } from "./voice-harness.mjs";
+
 // Conversation scenarios for the voice harness.
 //
 // Every `model` block below is what the SCRIPTED DOUBLE says when PROVIDER=fake. It is written to
@@ -240,13 +242,13 @@ export const SCENARIOS = [
       { navigate: { selector: '[data-action="appointment-open"]', label: "open the appointment" } },
       { speak: { text: "Hola.", model: { text: "Hola. Estoy aquí para ayudarle con su cita. ¿Qué necesita?" } } },
       { silence: { ms: 12000, label: "the patient says nothing for 12 s" } },
-      { custom: async ({ page, recorder }) => { await page.evaluate(() => { window.__fakeLive.options.transcribe = false; }); recorder.observe("provider set to return no transcript for the next turn"); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { transcribe: false }, "provider set to return no transcript for the next turn"); } },
       { speak: { text: "(mumbled, unrecognisable)", model: { text: "" }, notes: "provider returns no transcript; the app's own recovery is what is measured", timeoutMs: 20000 } },
-      { custom: async ({ page }) => { await page.evaluate(() => { window.__fakeLive.options.transcribe = true; }); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { transcribe: true }); } },
       { speak: { text: "Repítemelo.", model: { text: "Le decía que estoy aquí para ayudarle con su cita." } } },
-      { custom: async ({ page, recorder }) => { await page.evaluate(() => { window.__fakeLive.options.respond = false; }); recorder.observe("provider set to never answer the next turn (stall)"); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { respond: false }, "provider set to never answer the next turn (stall)"); } },
       { speak: { text: "¿Qué hago ahora?", model: { text: "" }, notes: "provider stalls; the app's watchdog behaviour is what is measured", timeoutMs: 30000 } },
-      { custom: async ({ page }) => { await page.evaluate(() => { window.__fakeLive.options.respond = true; }); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { respond: true }); } },
       { silence: { ms: 4000, label: "after the stall" } },
       { speak: { text: "¿Sigues ahí?", model: { text: "Sí, aquí estoy." }, timeoutMs: 40000 } }
     ]
@@ -366,8 +368,8 @@ export const SCENARIOS = [
       { silence: { ms: 4000, label: "session rebuilt in Spanish" } },
       { custom: async ({ page, recorder }) => {
         const lang = await page.evaluate(() => ({ html: document.documentElement.lang, guide: document.querySelector(".emmi-guide")?.innerText?.slice(0, 120) || "", welcome: document.querySelector(".emmi-welcome-choice")?.innerText?.slice(0, 120) || "" }));
-        const sessions = await page.evaluate(() => window.__fakeLive.sessionCount);
-        const setups = await page.evaluate(() => window.__fakeLive.log.filter(e => e.type === "setup").length);
+        const sessions = await providerSessionCount(page);
+        const setups = await providerSetupCount(page);
         recorder.observe(`after the spoken request: html lang=${lang.html}; provider sessions opened=${sessions}; setups=${setups}; guide="${lang.guide}"`);
         recorder.session.language_switch = { ...lang, sessions, setups };
       } },
@@ -388,7 +390,7 @@ export const SCENARIOS = [
       { speak: { text: "¿Con quién es la cita?", model: describe(`const f = (view?.onScreen || []).find(x => x.Doctor); return f ? \`Con \${f.Doctor}.\` : "No lo veo.";`) } },
       { silence: { ms: 70000, label: "a long pause across the one-minute rotation point" } },
       { custom: async ({ page, recorder }) => {
-        const sessions = await page.evaluate(() => window.__fakeLive.sessionCount);
+        const sessions = await providerSessionCount(page);
         const probe = await page.evaluate(() => window.__emmiVoiceProbe?.());
         recorder.observe(`after 70 s: provider sessions opened=${sessions}; voice state=${probe?.state}; socket=${probe?.socket}`);
         recorder.session.rotation = { sessions, state: probe?.state, socket: probe?.socket };
@@ -396,7 +398,7 @@ export const SCENARIOS = [
       { speak: { text: "¿Y a qué hora?", model: describe(`const f = (view?.onScreen || []).find(x => x.Hora); return f ? \`A las \${f.Hora}.\` : "No veo la hora.";`), timeoutMs: 30000 } },
       { silence: { ms: 60000, label: "past the old two-minute hard stop" } },
       { custom: async ({ page, recorder }) => {
-        const sessions = await page.evaluate(() => window.__fakeLive.sessionCount);
+        const sessions = await providerSessionCount(page);
         const probe = await page.evaluate(() => window.__emmiVoiceProbe?.());
         recorder.observe(`after 130 s: provider sessions opened=${sessions}; voice state=${probe?.state}; socket=${probe?.socket}; error=${probe?.error}`);
         recorder.session.rotation_after_hard_stop = { sessions, state: probe?.state, socket: probe?.socket, error: probe?.error };

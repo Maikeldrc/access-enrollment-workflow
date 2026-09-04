@@ -810,7 +810,7 @@ What was checked so that the conversational changes did not weaken safety:
   on the pristine baseline as well, §29).
 - **Privacy**: date of birth and ZIP are typed, never spoken (S17); companion sees date/time/place
   only (S06/S20); nothing new is logged in the audit trail beyond telemetry event names.
-- **Unit suite**: 1375 passed, 1 failed (59 files; 17 tests added) — the same pre-existing time-zone failure, nothing else.
+- **Unit suite**: 1376 passed, 1 failed (60 files; 18 tests added) — the same pre-existing time-zone failure, nothing else.
 
 No safety rule was relaxed; the only text that mentions 911 less often is the first-miss recovery
 line, which previously said it for every unheard word.
@@ -843,7 +843,7 @@ probe or harness session). Where the cause could only be confirmed against the r
 
 Scope rule followed: every change is in the voice path or in a deterministic piece the voice path
 depends on; no refactor beyond that; no change to clinical safety rules. Unit suite after changes:
-1375 passed, 1 failed (59 files; 17 tests added) — the same pre-existing time-zone failure, nothing else.
+1376 passed, 1 failed (60 files; 18 tests added) — the same pre-existing time-zone failure, nothing else.
 
 | Change | Files | Fixes | Verified by |
 |---|---|---|---|
@@ -863,6 +863,8 @@ depends on; no refactor beyond that; no change to clinical safety rules. Unit su
 | C15 Language requests must be addressed to EMMI (hábleme en…, can we switch to…, pale kreyòl avè m); mentions of someone else's language are ignored; short real words after an interruption ("ya", "vale", "dale", "bien", "eh"…) are speech | `transcript.js` | RC14, RC1 (fragment rule) | `tests/emmiTranscript.test.js`; harness S17 ("¿Ya?"), S20 |
 | C16 Failed booking: the pending item is the failure itself, and EMMI may offer "Choose another ride" as well as "Try again"; every barrier step whose screen has a back control (pickup, needs, time, options, review, cancel confirmation, guide, contacts) now exposes it as a NAVIGATE action labelled by where it leads, so "me equivoqué", "quiero volver a las opciones" and "mejor no" can be honoured | `appointmentViewContext.js` | RC15, and the baseline's `barrier-back` refusals (S03 turn 17, S05 turn 9) | `tests/emmiViewContext.test.js`; harness S03, S05, S22 |
 | C17 Prompt: voice exists in English and Spanish only; a spoken request for Kreyòl is answered in the active language with the text alternative | `systemPrompt.js` | RC16 (mitigation) | Not verifiable without the provider — flagged |
+| C19 The dev server mounts `/api/emmi/tts`, which only existed as a Vercel function: in local development every screen narration and every spoken app notice answered 404 and fell back to the browser voice, so nobody developing voice locally heard what a patient hears. A test now asserts that every `api/emmi/*` function is mounted on the dev server | `vite.config.js`, `tests/devApiRoutes.test.js` | Found by the `PROVIDER=real` smoke run | `tests/devApiRoutes.test.js`; `POST /api/emmi/tts` on the dev server answers 503 `gemini_not_configured` (honest) instead of 404 |
+| C20 Harness real mode hardened: scenario steps that reconfigure the scripted double no-op and are recorded as NOT SIMULATED under `PROVIDER=real`; every page probe tolerates a destroyed page so one failure cannot discard a whole transcript; a preflight names a missing `GEMINI_API_KEY` before the first utterance instead of failing mid-conversation | `harness/voice-harness.mjs`, `harness/run-sessions.mjs`, `harness/scenarios*.mjs` | Real-provider run blockers | Smoke run of S13 in both modes |
 | C18 Screen narrations shortened to their own budgets in English and Spanish (every objective's four sentences tightened, tested phrases kept; the welcome with a physician referral 80/88 → 50/53 words); Kreyòl texts untouched | `src/emmi/narrative.js` | RC11 | `tests/emmiNarrative.test.js`; measured: 0 of 28 screens over budget per language (was 19 EN / 18 ES) |
 | C13 Experimental, off by default: `EMMI_VOICE_CONTEXT_ON_SPEECH_START` pushes the staged view as realtime text the moment the patient starts speaking | `liveClient.pushContextOnSpeechStart`, `config.js`, `vite.config.js` | RC2 | Requires a real-provider check before enabling — flagged |
 
@@ -941,7 +943,7 @@ Application layer, measured on the harness; the model-layer column is unchanged 
 
 | Suite | Before (pristine main) | After (fixed branch) |
 |---|---|---|
-| Unit (`vitest`, 59 files) | 1358 passed, 1 failed (58 files) — the failure is `tests/appointmentSupport.test.js` "counts back from the visit for each slot", a time-zone-dependent reminder test that fails on this UTC machine before any change | 1375 passed, 1 failed (59 files; 17 tests added) — the same pre-existing time-zone failure, nothing else |
+| Unit (`vitest`, 59 files) | 1358 passed, 1 failed (58 files) — the failure is `tests/appointmentSupport.test.js` "counts back from the visit for each slot", a time-zone-dependent reminder test that fails on this UTC machine before any change | 1376 passed, 1 failed (60 files; 18 tests added) — the same pre-existing time-zone failure, nothing else |
 | e2e subset (`emmi-view-context`, `appointments-emmi`, `emmiAudioPipeline`, `emmi-conversation`) | 77 passed, 4 failed, 14 skipped (95). The four failures are the date-keyed simulator cases (`emmi-view-context` "selected is never reported as done" and "refuses to book, cancel or send without the patient confirming in that turn"; `appointments-emmi` "a time that could not be held" and "a visit this office will not book directly"). | 76 passed, 5 failed, 14 skipped (95): the same four, plus `appointments-emmi` "a request that is waiting for the office is never described as confirmed", which is time-of-day dependent — it passed on the pristine checkout at 05:30 UTC, failed three times in a row on the same pristine checkout at 12:00 UTC (the simulated office response becomes due and the request is confirmed before the question is asked), and was flaky in isolation on the audit branch. Not caused by this branch. Two further specs (`emmi-guidance`, `emmi-presentation`) were run after the narration change: the same four guidance cases fail on both checkouts because they expect "Voice guidance is on" after a rejected token while both builds report VOICE_SESSION_FAILED in this environment (probe on both servers); the narration content cases pass. |
 
 ## 30. Remaining Issues
@@ -1043,7 +1045,10 @@ identity fields are typed, and no action is reported done before its state says 
 9. Give the chat router the last assistant proposal so "mejor no" can retract it.
 10. Fix the simulator's slot formatting to the clinic's time zone; the failing time-zone unit test
     and the four e2e cases will follow.
-11. Keep the harness in CI in `PROVIDER=fake` mode for the application-layer guarantees this audit
+11. Nothing else in `api/` is missing from the dev server (the new test enforces it), but check the
+    same drift for any future serverless function: a route that exists only in production is a
+    silent 404 for everyone developing against it.
+12. Keep the harness in CI in `PROVIDER=fake` mode for the application-layer guarantees this audit
     established: no guard suppression of natural speech, no English recovery lines in Spanish
     sessions, background work settled before "Listo", session survives a stall, rotation before
     expiry.

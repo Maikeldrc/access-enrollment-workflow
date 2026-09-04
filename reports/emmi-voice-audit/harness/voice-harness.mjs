@@ -105,8 +105,8 @@ export async function launchHarness({ locale = "es-US", headless = true } = {}) 
 
 /* ------------------------------------------------------------------------------ helpers --- */
 export const settle = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-export const voiceProbe = page => page.evaluate(() => window.__emmiVoiceProbe?.() || null);
-export const threadProbe = page => page.evaluate(() => window.__emmiThreadProbe?.() || []);
+export const voiceProbe = page => page.evaluate(() => window.__emmiVoiceProbe?.() || null).catch(() => null);
+export const threadProbe = page => page.evaluate(() => window.__emmiThreadProbe?.() || []).catch(() => []);
 
 // PROVIDER=real: the patient's words are synthesized by the app's own TTS route and cached on disk,
 // so every run of a scenario feeds Gemini Live the same audio.
@@ -116,16 +116,38 @@ export async function synthesizePatientLine(page, text, locale) {
   const file = join(TTS_CACHE, `${key}.pcm`);
   if (existsSync(file)) return readFileSync(file).toString("base64");
   const response = await page.request.post(`${BASE}/api/emmi/tts`, { data: { text, locale, harness: true }, headers: { "content-type": "application/json" }, timeout: 60000 });
-  if (!response.ok()) throw new Error(`tts ${response.status()} for "${text.slice(0, 40)}"`);
+  if (!response.ok()) {
+    const detail = await response.text().catch(() => "");
+    // The one failure worth naming: PROVIDER=real needs a key on the dev server for both the patient
+    // voice (this route) and the Live session; without it nothing about the model can be measured.
+    if (response.status() === 503 && detail.includes("gemini_not_configured")) {
+      throw new Error(`PROVIDER=real needs GEMINI_API_KEY on the server at ${BASE} (POST /api/emmi/tts answered 503 gemini_not_configured). Put it in .env.local and restart the dev server.`);
+    }
+    throw new Error(`tts ${response.status()} for "${text.slice(0, 40)}" — ${detail.slice(0, 120)}`);
+  }
   const body = await response.body();
   if (!body.length) throw new Error(`tts returned no audio for "${text.slice(0, 40)}"`);
   mkdirSync(TTS_CACHE, { recursive: true });
   writeFileSync(file, body);
   return body.toString("base64");
 }
-export const viewProbe = page => page.evaluate(() => window.__emmiViewProbe?.() || null);
-export const providerLog = page => page.evaluate(() => window.__harness?.providerLog?.() || []);
-export const voiceEvents = page => page.evaluate(() => window.__harness?.voiceEvents?.() || (() => { try { return JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1") || "[]").flatMap(entry => entry?.voiceEvents || []); } catch { return []; } })());
+export const viewProbe = page => page.evaluate(() => window.__emmiViewProbe?.() || null).catch(() => null);
+export const providerLog = page => page.evaluate(() => window.__harness?.providerLog?.() || []).catch(() => []);
+
+// Scenario steps that reconfigure the scripted double. In PROVIDER=real there is no double: the
+// step becomes a no-op and the session records that the condition could not be simulated.
+export async function setProviderOption(page, recorder, options, note = "") {
+  if (PROVIDER === "fake") {
+    await page.evaluate(patch => Object.assign(window.__fakeLive.options, patch), options);
+    if (note) recorder?.observe?.(note);
+    return true;
+  }
+  recorder?.observe?.(`NOT SIMULATED in ${PROVIDER} mode: ${JSON.stringify(options)}${note ? ` (${note})` : ""}`);
+  return false;
+}
+export const providerSessionCount = page => page.evaluate(() => window.__fakeLive?.sessionCount ?? null);
+export const providerSetupCount = page => page.evaluate(() => window.__fakeLive?.log?.filter(e => e.type === "setup").length ?? null);
+export const voiceEvents = page => page.evaluate(() => window.__harness?.voiceEvents?.() || (() => { try { return JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1") || "[]").flatMap(entry => entry?.voiceEvents || []); } catch { return []; } })()).catch(() => []);
 const perfNow = page => page.evaluate(() => performance.now());
 const isoToPerf = (page, timeOrigin) => iso => Math.round(new Date(iso).getTime() - timeOrigin);
 export const press = async (page, selector, timeout = 15000) => { const control = page.locator(selector).first(); await control.waitFor({ state: "visible", timeout }); await control.click(); await settle(page); };
@@ -141,6 +163,16 @@ export async function openApp(page, { seed = null, url = `${BASE}/?scenario=acce
   await page.reload();
   await page.waitForSelector("#screen-content", { state: "visible", timeout: 30000 });
   await settle(page);
+}
+
+// PROVIDER=real without a key produces a session full of "voice unavailable" and no measurements.
+// Better to say so before the first utterance than to write 24 empty transcripts.
+export async function assertRealProviderReady() {
+  if (PROVIDER === "fake") return true;
+  const response = await fetch(`${BASE}/api/emmi/tts`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "ok", locale: "EN", harness: true }) }).catch(error => ({ ok: false, status: 0, text: async () => String(error) }));
+  if (response.ok) return true;
+  const detail = await response.text?.().catch(() => "") || "";
+  throw new Error(`PROVIDER=real cannot reach a configured server at ${BASE}: POST /api/emmi/tts answered ${response.status}${detail ? ` (${detail.slice(0, 120)})` : ""}. Start the dev server with GEMINI_API_KEY set (.env.local) and pass BASE_URL if it is not the default.`);
 }
 
 export async function startVoice(page, { timeoutMs = 20000 } = {}) {

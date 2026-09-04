@@ -3,7 +3,7 @@
 //   PROVIDER=fake|real  OUT_DIR=...  TTS_WPS=...
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { launchHarness, openApp, startVoice, SessionRecorder, appointment, waitForIdle, BASE, PROVIDER, viewProbe } from "./voice-harness.mjs";
+import { launchHarness, openApp, startVoice, SessionRecorder, appointment, waitForIdle, assertRealProviderReady, BASE, PROVIDER, viewProbe } from "./voice-harness.mjs";
 import { SCENARIOS as CORE_SCENARIOS } from "./scenarios.mjs";
 import { LONG_SCENARIOS } from "./scenarios-long.mjs";
 
@@ -14,6 +14,7 @@ const OUT = process.env.OUT_DIR || join(HERE, "..", "transcripts");
 const wanted = process.argv.slice(2);
 // Scenarios that need a specially configured dev server (requiresEnv) only run when named explicitly.
 const selected = wanted.length ? SCENARIOS.filter(s => wanted.includes(s.id)) : SCENARIOS.filter(s => !s.requiresEnv);
+await assertRealProviderReady();
 const results = [];
 for (const scenario of selected) {
   const harness = await launchHarness({ locale: scenario.language === "en" ? "en-US" : "es-US" });
@@ -21,7 +22,8 @@ for (const scenario of selected) {
   const recorder = new SessionRecorder(page, { sessionId: scenario.id, profile: scenario.profile, language: scenario.language, flow: scenario.flow, notes: scenario.notes || "", ttsRequests: harness.ttsRequests });
   try {
     await openApp(page, { seed: scenario.seed ? scenario.seed(appointment) : null, url: scenario.url ? `${BASE}${scenario.url}` : undefined, careCircle: scenario.careCircle || null });
-    if (scenario.fake) await page.evaluate(options => Object.assign(window.__fakeLive.options, options), scenario.fake);
+    if (scenario.fake && PROVIDER === "fake") await page.evaluate(options => Object.assign(window.__fakeLive.options, options), scenario.fake);
+    else if (scenario.fake) recorder.observe(`provider-double options ignored in ${PROVIDER} mode: ${JSON.stringify(scenario.fake)}`);
     await recorder.begin();
     if (scenario.before) await scenario.before({ page, recorder });
     const start = await startVoice(page);

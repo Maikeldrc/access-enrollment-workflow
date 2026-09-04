@@ -3,7 +3,7 @@
 // says, written as what a compliant model should do with the tools it has; nothing in it is
 // evidence about the real model's wording. Patient utterances are what a real patient says.
 import { P, describe, act, seedVisit, ES, EN } from "./scenarios.mjs";
-import { viewProbe, press } from "./voice-harness.mjs";
+import { viewProbe, press, setProviderOption, providerSessionCount } from "./voice-harness.mjs";
 
 const HT = "ht";
 const pv = actionId => ({ name: "performViewAction", args: { actionId } });
@@ -255,9 +255,9 @@ export const LONG_SCENARIOS = [
       { silence: { ms: 5000, label: "the patient tries" } },
       { speak: { text: "Sí.", model: { text: "Bien. Cuando termine, dígame 'ya' y reviso de nuevo." } } },
       { silence: { ms: 5000, label: "the patient tries" } },
-      { custom: async ({ page, recorder }) => { await page.evaluate(() => { window.__fakeLive.options.transcribe = false; }); recorder.observe("provider set to return no transcript for the next turn"); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { transcribe: false }, "provider set to return no transcript for the next turn"); } },
       { speak: { text: "(inaudible)", model: { text: "" }, notes: "no transcript; the app's recovery is measured", timeoutMs: 20000 } },
-      { custom: async ({ page }) => { await page.evaluate(() => { window.__fakeLive.options.transcribe = true; }); } },
+      { custom: async ({ page, recorder }) => { await setProviderOption(page, recorder, { transcribe: true }); } },
       { speak: { text: "Ya.", model: act({ actionId: "barrier-video-recheck" }, `return "Revisando de nuevo.";`) } },
       { silence: { ms: 3000, label: "recheck" } },
       { speak: { text: "¿Sirve?", model: describe(`const p = view?.stillPending || []; return p.length ? \`Todavía falta: \${p[0]}.\` : "Sí, todo funcionó. Está lista para la visita.";`) } },
@@ -318,7 +318,7 @@ export const LONG_SCENARIOS = [
       { speak: { text: "Mwen pa gen transpò.", model: chain([pv("appointment-open-barrier"), opt(2), pv("barrier-accept")], `const home = (view?.choices || [])[0]; return home ? \`Podemos buscarle transporte. ¿Le recogemos en su casa, \${home.detail}?\` : "¿Dónde le recogemos?";`), expect: { viewId: "PICKUP" } } },
       { speak: { text: "Pale kreyòl avè m, tanpri.", model: { text: "Lo siento, por ahora la guía por voz solo está disponible en español y en inglés. Puede escribirme en criollo en el chat." }, timeoutMs: 30000, notes: "explicit request for a language voice does not support: no rebuild, the session must stay alive" } },
       { silence: { ms: 3000, label: "after the request" } },
-      { custom: async ({ page, recorder }) => { const lang = await page.evaluate(() => document.documentElement.lang); const sessions = await page.evaluate(() => window.__fakeLive.sessionCount); const probe = await page.evaluate(() => window.__emmiVoiceProbe?.()); recorder.observe(`after the Kreyòl request: html lang=${lang}; provider sessions opened=${sessions}; voice state=${probe?.state}; socket=${probe?.socket}`); recorder.session.language_switch = { lang, sessions, state: probe?.state }; } },
+      { custom: async ({ page, recorder }) => { const lang = await page.evaluate(() => document.documentElement.lang); const sessions = await providerSessionCount(page); const probe = await page.evaluate(() => window.__emmiVoiceProbe?.()); recorder.observe(`after the Kreyòl request: html lang=${lang}; provider sessions opened=${sessions}; voice state=${probe?.state}; socket=${probe?.socket}`); recorder.session.language_switch = { lang, sessions, state: probe?.state }; } },
       { speak: { text: "Wi.", model: act({ actionId: "barrier-pickup-home" }, `return "¿Necesita alguna ayuda especial para viajar?";`), expect: { viewId: "NEEDS" } } },
       { speak: { text: "Non, mèsi.", model: chain([opt(1), pv("barrier-needs-continue")], P.whatHere), expect: { viewId: "TIME" } } },
       { speak: { text: "Gracias.", model: { text: "De nada." } } }
