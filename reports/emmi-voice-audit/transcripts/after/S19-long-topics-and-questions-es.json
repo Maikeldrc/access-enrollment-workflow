@@ -1,0 +1,5689 @@
+{
+  "session_id": "S19-long-topics-and-questions-es",
+  "patient_profile": "B (habla mucho, información desordenada)",
+  "language": "es",
+  "flow": "long: visit topics interleaved with general questions, persona questions, a silence, and reads of known data",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "20 spoken turns. Topic switching and return, persona consistency ('¿eres una persona?'), repetition requests, references ('el segundo', 'el de la rodilla'), '¿sigues ahí?' after a silence.",
+  "startedAt": "2026-09-04T01:20:09.145Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Oye, ¿tú eres una persona de verdad o una máquina?",
+      "recognized_text": "Oye, ¿tú eres una persona de verdad o una máquina?",
+      "EMMI_response": "Soy EMMI, la asistente virtual de ITERA. No soy una persona, pero estoy aquí para ayudarle con su cuidado.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@159",
+          "EMMI_THINKING@5125",
+          "EMMI_SPEAKING@5715",
+          "LISTENING@13730"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 41840,
+        "speech_ended_at": 45686,
+        "provider_speech_end_detected_at": 46942,
+        "provider_vad_window_ms": 1256,
+        "provider_first_chunk_at": 47502,
+        "app_first_audio_at": 47509,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 45686,
+        "T2_first_audible_response": 47509,
+        "T3_response_complete": 55496,
+        "response_start_latency_ms": 1823,
+        "response_completion_latency_ms": 9810,
+        "app_overhead_first_chunk_to_audible_ms": 7,
+        "local_speech_end_detected_ms_after_T1": 1285,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Y cómo te llamas?",
+      "recognized_text": "¿Y cómo te llamas?",
+      "EMMI_response": "EMMI.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@149",
+          "EMMI_THINKING@2817",
+          "EMMI_SPEAKING@3416",
+          "LISTENING@4001"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 57018,
+        "speech_ended_at": 58556,
+        "provider_speech_end_detected_at": 59782,
+        "provider_vad_window_ms": 1226,
+        "provider_first_chunk_at": 60337,
+        "app_first_audio_at": 60342,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 58556,
+        "T2_first_audible_response": 60342,
+        "T3_response_complete": 60938,
+        "response_start_latency_ms": 1786,
+        "response_completion_latency_ms": 2382,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1255,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Bueno, EMMI, ¿con quién es mi cita?",
+      "recognized_text": "Bueno, EMMI, ¿con quién es mi cita?",
+      "EMMI_response": "Con Dr. Fresner Lee.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@199",
+          "EMMI_THINKING@3967",
+          "EMMI_SPEAKING@4550",
+          "LISTENING@6229"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_CONFIRMED",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Cita confirmada",
+            "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "La cita está confirmada"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "the app sent no screen context to the provider before it answered this spoken turn"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 62502,
+        "speech_ended_at": 65194,
+        "provider_speech_end_detected_at": 66442,
+        "provider_vad_window_ms": 1248,
+        "provider_first_chunk_at": 67007,
+        "app_first_audio_at": 67014,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 65194,
+        "T2_first_audible_response": 67014,
+        "T3_response_complete": 68691,
+        "response_start_latency_ms": 1820,
+        "response_completion_latency_ms": 3497,
+        "app_overhead_first_chunk_to_audible_ms": 7,
+        "local_speech_end_detected_ms_after_T1": 1258,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Y qué día?",
+      "recognized_text": "¿Y qué día?",
+      "EMMI_response": "El lunes, 7 de septiembre.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@164",
+          "EMMI_THINKING@2439",
+          "EMMI_SPEAKING@3027",
+          "LISTENING@5136"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_CONFIRMED",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Cita confirmada",
+            "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "La cita está confirmada"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 70272,
+        "speech_ended_at": 71426,
+        "provider_speech_end_detected_at": 72682,
+        "provider_vad_window_ms": 1256,
+        "provider_first_chunk_at": 73243,
+        "app_first_audio_at": 73247,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 71426,
+        "T2_first_audible_response": 73247,
+        "T3_response_complete": 75328,
+        "response_start_latency_ms": 1821,
+        "response_completion_latency_ms": 3902,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1266,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Me lo repites?",
+      "recognized_text": "¿Me lo repites?",
+      "EMMI_response": "El lunes, 7 de septiembre.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@174",
+          "EMMI_THINKING@2436",
+          "EMMI_SPEAKING@3021",
+          "LISTENING@5092"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_CONFIRMED",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Cita confirmada",
+            "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "La cita está confirmada"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 76943,
+        "speech_ended_at": 78097,
+        "provider_speech_end_detected_at": 79342,
+        "provider_vad_window_ms": 1245,
+        "provider_first_chunk_at": 79907,
+        "app_first_audio_at": 79913,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 78097,
+        "T2_first_audible_response": 79913,
+        "T3_response_complete": 81996,
+        "response_start_latency_ms": 1816,
+        "response_completion_latency_ms": 3899,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1264,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 7,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Quiero anotar cosas para preguntarle. Primero, que me duele la rodilla cuando subo escaleras.",
+      "recognized_text": "Quiero anotar cosas para preguntarle. Primero, que me duele la rodilla cuando subo escaleras.",
+      "EMMI_response": "Anotado: dolor de rodilla al subir escaleras. ¿Algo más?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@150",
+          "EMMI_THINKING@6674",
+          "TOOL_RUNNING@7273",
+          "EMMI_SPEAKING@7361",
+          "LISTENING@11101"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-open-prep"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "appointment-open-prep",
+              "label": "Preparar temas para la visita",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "APPOINTMENT_TOPICS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Lo que quiero conversar",
+              "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [
+                "Todavía no hay nada anotado"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-add-prep-topic",
+                  "label": "Agregar un tema a la lista de la cita",
+                  "kind": "INPUT",
+                  "effect": "Lo guarda en la lista de esta cita",
+                  "acceptsText": true,
+                  "textIsFor": "El tema en las palabras del paciente"
+                },
+                {
+                  "id": "appointment-open-brief",
+                  "label": "Ver mi lista",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ],
+              "notes": [
+                "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-add-prep-topic",
+            "text": "Dolor de rodilla al subir escaleras"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "appointment-add-prep-topic",
+              "label": "Agregar un tema a la lista de la cita",
+              "kind": "INPUT"
+            },
+            "currentView": {
+              "viewId": "APPOINTMENT_TOPICS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Lo que quiero conversar",
+              "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "0",
+                  "label": "Dolor de rodilla al subir escaleras",
+                  "detail": "",
+                  "selected": false,
+                  "kind": "TOPIC"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Dolor de rodilla al subir escaleras"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-add-prep-topic",
+                  "label": "Agregar un tema a la lista de la cita",
+                  "kind": "INPUT",
+                  "effect": "Lo guarda en la lista de esta cita",
+                  "acceptsText": true,
+                  "textIsFor": "El tema en las palabras del paciente"
+                },
+                {
+                  "id": "appointment-open-brief",
+                  "label": "Ver mi lista",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ],
+              "notes": [
+                "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "APPOINTMENT_CONFIRMED → APPOINTMENT_TOPICS",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 83591,
+        "speech_ended_at": 88976,
+        "provider_speech_end_detected_at": 90202,
+        "provider_vad_window_ms": 1226,
+        "provider_first_chunk_at": 90872,
+        "app_first_audio_at": 90877,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 88976,
+        "T2_first_audible_response": 90877,
+        "T3_response_complete": 94628,
+        "response_start_latency_ms": 1901,
+        "response_completion_latency_ms": 5652,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1255,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 8,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Sí, que a veces se me olvidan las pastillas.",
+      "recognized_text": "Sí, que a veces se me olvidan las pastillas.",
+      "EMMI_response": "Listo. Su lista tiene 2: Dolor de rodilla al subir escaleras; A veces olvido las pastillas.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@154",
+          "EMMI_THINKING@4692",
+          "EMMI_SPEAKING@5292",
+          "LISTENING@12069"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "ADD",
+            "value": "A veces olvido las pastillas"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Dolor de rodilla al subir escaleras",
+              "A veces olvido las pastillas"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 96249,
+        "speech_ended_at": 99711,
+        "provider_speech_end_detected_at": 100882,
+        "provider_vad_window_ms": 1171,
+        "provider_first_chunk_at": 101448,
+        "app_first_audio_at": 101451,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 99711,
+        "T2_first_audible_response": 101451,
+        "T3_response_complete": 108195,
+        "response_start_latency_ms": 1740,
+        "response_completion_latency_ms": 8484,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1200,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Por cierto, ¿qué es eso de ACCESS que me mandaron?",
+      "recognized_text": "Por cierto, ¿qué es eso de ACCESS que me mandaron?",
+      "EMMI_response": "ACCESS es una opción de cuidado de Medicare que le da apoyo adicional entre visitas. Sus médicos siguen siendo los mismos.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@158",
+          "EMMI_THINKING@5118",
+          "EMMI_SPEAKING@5635",
+          "LISTENING@14495"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "topic switch",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 109885,
+        "speech_ended_at": 113731,
+        "provider_speech_end_detected_at": 114922,
+        "provider_vad_window_ms": 1191,
+        "provider_first_chunk_at": 115480,
+        "app_first_audio_at": 115484,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 113731,
+        "T2_first_audible_response": 115484,
+        "T3_response_complete": 124342,
+        "response_start_latency_ms": 1753,
+        "response_completion_latency_ms": 10611,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1205,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 10,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "¿Y cuánto me cuesta?",
+      "recognized_text": "¿Y cuánto me cuesta?",
+      "EMMI_response": "No puedo confirmar el monto ahora mismo; su equipo de cuidado sí puede.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@244",
+          "EMMI_THINKING@2841",
+          "EMMI_SPEAKING@3338",
+          "LISTENING@8862"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "getExpectedAccessCost",
+          "args": {
+            "patientId": "DEMO-P001",
+            "accessTrack": "ECKM"
+          },
+          "result": {
+            "error": "tool_unavailable"
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 125965,
+        "speech_ended_at": 127503,
+        "provider_speech_end_detected_at": 128722,
+        "provider_vad_window_ms": 1219,
+        "provider_first_chunk_at": 129285,
+        "app_first_audio_at": 129288,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 127503,
+        "T2_first_audible_response": 129288,
+        "T3_response_complete": 134745,
+        "response_start_latency_ms": 1785,
+        "response_completion_latency_ms": 7242,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1250,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 11,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Ok. Volviendo a la lista, ¿cuántos hay?",
+      "recognized_text": "Ok. Volviendo a la lista, ¿cuántos hay?",
+      "EMMI_response": "Listo. Su lista tiene 2: Dolor de rodilla al subir escaleras; A veces olvido las pastillas.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@190",
+          "EMMI_THINKING@4030",
+          "EMMI_SPEAKING@4629",
+          "LISTENING@11346"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "LIST"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Dolor de rodilla al subir escaleras",
+              "A veces olvido las pastillas"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "return to the task",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 136336,
+        "speech_ended_at": 139028,
+        "provider_speech_end_detected_at": 140302,
+        "provider_vad_window_ms": 1274,
+        "provider_first_chunk_at": 140869,
+        "app_first_audio_at": 140873,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 139028,
+        "T2_first_audible_response": 140873,
+        "T3_response_complete": 147598,
+        "response_start_latency_ms": 1845,
+        "response_completion_latency_ms": 8570,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1286,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 12,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "El segundo cámbialo por 'se me olvidan las pastillas de la presión por la noche'.",
+      "recognized_text": "El segundo cámbialo por 'se me olvidan las pastillas de la presión por la noche'.",
+      "EMMI_response": "Listo. Su lista tiene 2: Dolor de rodilla al subir escaleras; Se me olvidan las pastillas de la presión por la noche.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@151",
+          "EMMI_THINKING@7103",
+          "EMMI_SPEAKING@7700",
+          "LISTENING@16953"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "UPDATE",
+            "index": 1,
+            "value": "Se me olvidan las pastillas de la presión por la noche"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Dolor de rodilla al subir escaleras",
+              "Se me olvidan las pastillas de la presión por la noche"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 149285,
+        "speech_ended_at": 155054,
+        "provider_speech_end_detected_at": 156322,
+        "provider_vad_window_ms": 1268,
+        "provider_first_chunk_at": 156890,
+        "app_first_audio_at": 156894,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 155054,
+        "T2_first_audible_response": 156894,
+        "T3_response_complete": 166205,
+        "response_start_latency_ms": 1840,
+        "response_completion_latency_ms": 11151,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1278,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 13,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Y agrega que quiero saber si puedo caminar más.",
+      "recognized_text": "Y agrega que quiero saber si puedo caminar más.",
+      "EMMI_response": "Listo. Su lista tiene 3: Dolor de rodilla al subir escaleras; Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@163",
+          "EMMI_THINKING@4787",
+          "EMMI_SPEAKING@5295",
+          "LISTENING@15930"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "ADD",
+            "value": "¿Puedo caminar más?"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Dolor de rodilla al subir escaleras",
+              "Se me olvidan las pastillas de la presión por la noche",
+              "¿Puedo caminar más?"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 167878,
+        "speech_ended_at": 171340,
+        "provider_speech_end_detected_at": 172582,
+        "provider_vad_window_ms": 1242,
+        "provider_first_chunk_at": 173148,
+        "app_first_audio_at": 173152,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 171340,
+        "T2_first_audible_response": 173152,
+        "T3_response_complete": 183778,
+        "response_start_latency_ms": 1812,
+        "response_completion_latency_ms": 12438,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1263,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 14,
+      "kind": "silence",
+      "label": "the patient thinks",
+      "silence_ms": 6000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 15,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "¿Sigues ahí?",
+      "recognized_text": "¿Sigues ahí?",
+      "EMMI_response": "Sí, aquí estoy.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@164",
+          "EMMI_THINKING@2002",
+          "EMMI_SPEAKING@2584",
+          "LISTENING@3837"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 191593,
+        "speech_ended_at": 192362,
+        "provider_speech_end_detected_at": 193582,
+        "provider_vad_window_ms": 1220,
+        "provider_first_chunk_at": 194139,
+        "app_first_audio_at": 194142,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 192362,
+        "T2_first_audible_response": 194142,
+        "T3_response_complete": 195396,
+        "response_start_latency_ms": 1780,
+        "response_completion_latency_ms": 3034,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1229,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 16,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Quita el de la rodilla.",
+      "recognized_text": "Quita el de la rodilla.",
+      "EMMI_response": "Listo. Su lista tiene 2: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@158",
+          "EMMI_THINKING@3246",
+          "EMMI_SPEAKING@3833",
+          "LISTENING@11848"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "REMOVE",
+            "target": "rodilla"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Se me olvidan las pastillas de la presión por la noche",
+              "¿Puedo caminar más?"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 197048,
+        "speech_ended_at": 198971,
+        "provider_speech_end_detected_at": 200242,
+        "provider_vad_window_ms": 1271,
+        "provider_first_chunk_at": 200815,
+        "app_first_audio_at": 200819,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 198971,
+        "T2_first_audible_response": 200819,
+        "T3_response_complete": 208832,
+        "response_start_latency_ms": 1848,
+        "response_completion_latency_ms": 9861,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1290,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 17,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "No, no, déjalo. Ponlo otra vez.",
+      "recognized_text": "No, no, déjalo. Ponlo otra vez.",
+      "EMMI_response": "Listo. Su lista tiene 3: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?; Dolor de rodilla al subir escaleras.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@266",
+          "EMMI_THINKING@3627",
+          "EMMI_SPEAKING@4209",
+          "LISTENING@14831"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "ADD",
+            "value": "Dolor de rodilla al subir escaleras"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Se me olvidan las pastillas de la presión por la noche",
+              "¿Puedo caminar más?",
+              "Dolor de rodilla al subir escaleras"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "correction",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 210563,
+        "speech_ended_at": 212871,
+        "provider_speech_end_detected_at": 214162,
+        "provider_vad_window_ms": 1291,
+        "provider_first_chunk_at": 214731,
+        "app_first_audio_at": 214734,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 212871,
+        "T2_first_audible_response": 214734,
+        "T3_response_complete": 225311,
+        "response_start_latency_ms": 1863,
+        "response_completion_latency_ms": 12440,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1302,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 18,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Léeme toda la lista.",
+      "recognized_text": "Léeme toda la lista.",
+      "EMMI_response": "Listo. Su lista tiene 3: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?; Dolor de rodilla al subir escaleras.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@244",
+          "EMMI_THINKING@2826",
+          "EMMI_SPEAKING@3409",
+          "LISTENING@13965"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "manageAppointmentTopics",
+          "args": {
+            "appointmentId": "appt-1",
+            "operation": "LIST"
+          },
+          "result": {
+            "success": true,
+            "status": "SAVED",
+            "appointmentId": "appt-1",
+            "topics": [
+              "Se me olvidan las pastillas de la presión por la noche",
+              "¿Puedo caminar más?",
+              "Dolor de rodilla al subir escaleras"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 226976,
+        "speech_ended_at": 228514,
+        "provider_speech_end_detected_at": 229762,
+        "provider_vad_window_ms": 1248,
+        "provider_first_chunk_at": 230332,
+        "app_first_audio_at": 230336,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 228514,
+        "T2_first_audible_response": 230336,
+        "T3_response_complete": 240895,
+        "response_start_latency_ms": 1822,
+        "response_completion_latency_ms": 12381,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1259,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 19,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "¿A qué hora era la cita?",
+      "recognized_text": "¿A qué hora era la cita?",
+      "EMMI_response": "A las 10:30 a. m..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@160",
+          "EMMI_THINKING@3582",
+          "EMMI_SPEAKING@4169",
+          "LISTENING@6261"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_TOPICS",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Lo que quiero conversar",
+            "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "0",
+                "label": "Dolor de rodilla al subir escaleras",
+                "detail": "",
+                "selected": false,
+                "kind": "TOPIC"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Dolor de rodilla al subir escaleras"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-add-prep-topic",
+                "label": "Agregar un tema a la lista de la cita",
+                "kind": "INPUT",
+                "effect": "Lo guarda en la lista de esta cita",
+                "acceptsText": true,
+                "textIsFor": "El tema en las palabras del paciente"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "notes": [
+              "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "known data, asked again late in the conversation",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 242612,
+        "speech_ended_at": 244920,
+        "provider_speech_end_detected_at": 246142,
+        "provider_vad_window_ms": 1222,
+        "provider_first_chunk_at": 246708,
+        "app_first_audio_at": 246711,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 244920,
+        "T2_first_audible_response": 246711,
+        "T3_response_complete": 248798,
+        "response_start_latency_ms": 1791,
+        "response_completion_latency_ms": 3878,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1251,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 20,
+      "kind": "speech",
+      "screen": "APPOINTMENT_TOPICS",
+      "patient_utterance": "Perfecto. Eso es todo, gracias EMMI.",
+      "recognized_text": "Perfecto. Eso es todo, gracias EMMI.",
+      "EMMI_response": "Con gusto. La lista queda guardada para su cita.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "choices": [
+            "Dolor de rodilla al subir escaleras"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@153",
+          "EMMI_THINKING@3592",
+          "EMMI_SPEAKING@4186",
+          "LISTENING@7969"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "task": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dolor de rodilla al subir escaleras"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 250487,
+        "speech_ended_at": 252795,
+        "provider_speech_end_detected_at": 254062,
+        "provider_vad_window_ms": 1267,
+        "provider_first_chunk_at": 254622,
+        "app_first_audio_at": 254625,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 252795,
+        "T2_first_audible_response": 254625,
+        "T3_response_complete": 258378,
+        "response_start_latency_ms": 1830,
+        "response_completion_latency_ms": 5583,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1298,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T01:20:13.268Z",
+      "text": "voice start: state EMMI_SPEAKING, socket true, error \"\", 993 ms after tap"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788484812536,
+      "words": 88,
+      "seconds": 36.66666666666667,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas. ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos. Participar es su decisión, y le e",
+      "locale": "ES"
+    },
+    {
+      "at": 1788484850607,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    }
+  ],
+  "finishedAt": "2026-09-04T01:24:29.742Z",
+  "state_transitions": [
+    {
+      "t": 1941,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 2792,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 39375,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 40177,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 40268,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 41033,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 41999,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 46965,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 47555,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 55570,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 57167,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 59835,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 60434,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 61019,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 62701,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 66469,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 67052,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 68731,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 70436,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 72711,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 73299,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 75408,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 77117,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 79379,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 79964,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 82035,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 83741,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 90265,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 90864,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 90952,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 94692,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 96403,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 100941,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 101541,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 108318,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 110043,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 115003,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 115520,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 124380,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 126209,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 128806,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 129303,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 134827,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 136526,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 140366,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 140965,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 147682,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 149436,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 156388,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 156985,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 166238,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 168041,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 172665,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 173173,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 183808,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 191757,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 193595,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 194177,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 195430,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 197206,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 200294,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 200881,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 208896,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 210829,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 214190,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 214772,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 225394,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 227220,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 229802,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 230385,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 240941,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 242772,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 246194,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 246781,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 248873,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 250640,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 254079,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 254673,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 258456,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 163473,
+      "at": 1788484973942,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 28
+    },
+    {
+      "t": 163717,
+      "at": 1788484974186,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 29
+    },
+    {
+      "t": 163962,
+      "at": 1788484974431,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 30
+    },
+    {
+      "t": 164207,
+      "at": 1788484974675,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 31
+    },
+    {
+      "t": 164451,
+      "at": 1788484974920,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 32
+    },
+    {
+      "t": 164696,
+      "at": 1788484975164,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 33
+    },
+    {
+      "t": 164939,
+      "at": 1788484975408,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 34
+    },
+    {
+      "t": 165184,
+      "at": 1788484975653,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 35
+    },
+    {
+      "t": 165428,
+      "at": 1788484975897,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 36
+    },
+    {
+      "t": 165673,
+      "at": 1788484976142,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 37
+    },
+    {
+      "t": 165918,
+      "at": 1788484976386,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 38
+    },
+    {
+      "t": 166162,
+      "at": 1788484976631,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne",
+      "chunk": 39
+    },
+    {
+      "t": 166163,
+      "at": 1788484976632,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne"
+    },
+    {
+      "t": 166163,
+      "at": 1788484976632,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9rsem_tmne"
+    },
+    {
+      "t": 166163,
+      "at": 1788484976632,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9rsem_tmne"
+    },
+    {
+      "t": 167931,
+      "at": 1788484978400,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 172582,
+      "at": 1788484983051,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3410,
+      "speechLastAt": 171341
+    },
+    {
+      "t": 172582,
+      "at": 1788484983051,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Y agrega que quiero saber si puedo caminar más."
+    },
+    {
+      "t": 172582,
+      "at": 1788484983051,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Y agrega que quiero saber si puedo caminar más."
+    },
+    {
+      "t": 172588,
+      "at": 1788484983057,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9s4y9_twur",
+      "source": "audio",
+      "transcript": "Y agrega que quiero saber si puedo caminar más.",
+      "kind": "reply"
+    },
+    {
+      "t": 173138,
+      "at": 1788484983607,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "manageAppointmentTopics",
+      "args": {
+        "appointmentId": "appt-1",
+        "operation": "ADD",
+        "value": "¿Puedo caminar más?"
+      }
+    },
+    {
+      "t": 173138,
+      "at": 1788484983607,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "manageAppointmentTopics"
+    },
+    {
+      "t": 173143,
+      "at": 1788484983612,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_trjwd7\",\"name\":\"manageAppointmentTopics\",\"response\":{\"result\":{\"success\":true,\"status\":\"SAVED\",\"appointmentId\":\"appt-1\",\"topics\":[\"Dolor de rodilla al subir escaleras\",\"Se me olvidan las pastillas de la presión por la noche\",\"¿Puedo caminar más?\"]}}}]"
+    },
+    {
+      "t": 173148,
+      "at": 1788484983617,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "Listo. Su lista tiene 3: Dolor de rodilla al subir escaleras; Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?.",
+      "seconds": 10.42,
+      "chunks": 44
+    },
+    {
+      "t": 173149,
+      "at": 1788484983618,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 1
+    },
+    {
+      "t": 173155,
+      "at": 1788484983624,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "Listo."
+    },
+    {
+      "t": 173279,
+      "at": 1788484983748,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 2
+    },
+    {
+      "t": 173282,
+      "at": 1788484983751,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "Su"
+    },
+    {
+      "t": 173528,
+      "at": 1788484983996,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 3
+    },
+    {
+      "t": 173531,
+      "at": 1788484984000,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "lista"
+    },
+    {
+      "t": 173777,
+      "at": 1788484984246,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 4
+    },
+    {
+      "t": 173779,
+      "at": 1788484984248,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "tiene"
+    },
+    {
+      "t": 174024,
+      "at": 1788484984493,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 5
+    },
+    {
+      "t": 174027,
+      "at": 1788484984496,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "3:"
+    },
+    {
+      "t": 174273,
+      "at": 1788484984742,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 6
+    },
+    {
+      "t": 174276,
+      "at": 1788484984745,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "Dolor"
+    },
+    {
+      "t": 174526,
+      "at": 1788484984995,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 7
+    },
+    {
+      "t": 174529,
+      "at": 1788484984997,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "de"
+    },
+    {
+      "t": 174774,
+      "at": 1788484985243,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 8
+    },
+    {
+      "t": 174776,
+      "at": 1788484985245,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "rodilla"
+    },
+    {
+      "t": 175021,
+      "at": 1788484985490,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 9
+    },
+    {
+      "t": 175024,
+      "at": 1788484985493,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "al"
+    },
+    {
+      "t": 175269,
+      "at": 1788484985738,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 10
+    },
+    {
+      "t": 175274,
+      "at": 1788484985743,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "subir"
+    },
+    {
+      "t": 175547,
+      "at": 1788484986016,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 11
+    },
+    {
+      "t": 175551,
+      "at": 1788484986020,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "escaleras;"
+    },
+    {
+      "t": 175799,
+      "at": 1788484986267,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 12
+    },
+    {
+      "t": 175802,
+      "at": 1788484986270,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "Se"
+    },
+    {
+      "t": 176047,
+      "at": 1788484986516,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 13
+    },
+    {
+      "t": 176050,
+      "at": 1788484986518,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "me"
+    },
+    {
+      "t": 176294,
+      "at": 1788484986763,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 14
+    },
+    {
+      "t": 176296,
+      "at": 1788484986765,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "olvidan"
+    },
+    {
+      "t": 176541,
+      "at": 1788484987010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 15
+    },
+    {
+      "t": 176543,
+      "at": 1788484987012,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "las"
+    },
+    {
+      "t": 176787,
+      "at": 1788484987256,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 16
+    },
+    {
+      "t": 176790,
+      "at": 1788484987259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "pastillas"
+    },
+    {
+      "t": 177034,
+      "at": 1788484987503,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 17
+    },
+    {
+      "t": 177037,
+      "at": 1788484987506,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "de"
+    },
+    {
+      "t": 177282,
+      "at": 1788484987751,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 18
+    },
+    {
+      "t": 177284,
+      "at": 1788484987753,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "la"
+    },
+    {
+      "t": 177533,
+      "at": 1788484988002,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 19
+    },
+    {
+      "t": 177541,
+      "at": 1788484988010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "presión"
+    },
+    {
+      "t": 177788,
+      "at": 1788484988257,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 20
+    },
+    {
+      "t": 177790,
+      "at": 1788484988259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "por"
+    },
+    {
+      "t": 178035,
+      "at": 1788484988504,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 21
+    },
+    {
+      "t": 178038,
+      "at": 1788484988507,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "la"
+    },
+    {
+      "t": 178283,
+      "at": 1788484988751,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 22
+    },
+    {
+      "t": 178285,
+      "at": 1788484988754,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "noche;"
+    },
+    {
+      "t": 178529,
+      "at": 1788484988998,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 23
+    },
+    {
+      "t": 178532,
+      "at": 1788484989001,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "¿Puedo"
+    },
+    {
+      "t": 178776,
+      "at": 1788484989245,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 24
+    },
+    {
+      "t": 178779,
+      "at": 1788484989248,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "caminar"
+    },
+    {
+      "t": 179024,
+      "at": 1788484989492,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 25
+    },
+    {
+      "t": 179026,
+      "at": 1788484989495,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "text": "más?."
+    },
+    {
+      "t": 179270,
+      "at": 1788484989739,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 26
+    },
+    {
+      "t": 179515,
+      "at": 1788484989983,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 27
+    },
+    {
+      "t": 179760,
+      "at": 1788484990229,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 28
+    },
+    {
+      "t": 180005,
+      "at": 1788484990474,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 29
+    },
+    {
+      "t": 180249,
+      "at": 1788484990718,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 30
+    },
+    {
+      "t": 180496,
+      "at": 1788484990965,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 31
+    },
+    {
+      "t": 180742,
+      "at": 1788484991211,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 32
+    },
+    {
+      "t": 180986,
+      "at": 1788484991455,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 33
+    },
+    {
+      "t": 181230,
+      "at": 1788484991699,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 34
+    },
+    {
+      "t": 181474,
+      "at": 1788484991943,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 35
+    },
+    {
+      "t": 181718,
+      "at": 1788484992187,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 36
+    },
+    {
+      "t": 181962,
+      "at": 1788484992431,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 37
+    },
+    {
+      "t": 182206,
+      "at": 1788484992675,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 38
+    },
+    {
+      "t": 182451,
+      "at": 1788484992920,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 39
+    },
+    {
+      "t": 182696,
+      "at": 1788484993164,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 40
+    },
+    {
+      "t": 182939,
+      "at": 1788484993408,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 41
+    },
+    {
+      "t": 183184,
+      "at": 1788484993653,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 42
+    },
+    {
+      "t": 183428,
+      "at": 1788484993897,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 43
+    },
+    {
+      "t": 183672,
+      "at": 1788484994141,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur",
+      "chunk": 44
+    },
+    {
+      "t": 183674,
+      "at": 1788484994142,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur"
+    },
+    {
+      "t": 183674,
+      "at": 1788484994143,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9s4y9_twur"
+    },
+    {
+      "t": 183674,
+      "at": 1788484994143,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9s4y9_twur"
+    },
+    {
+      "t": 191661,
+      "at": 1788485002130,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 193582,
+      "at": 1788485004051,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 720,
+      "speechLastAt": 192381
+    },
+    {
+      "t": 193582,
+      "at": 1788485004051,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Sigues ahí?"
+    },
+    {
+      "t": 193582,
+      "at": 1788485004051,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Sigues ahí?"
+    },
+    {
+      "t": 193588,
+      "at": 1788485004057,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9sl5l_houd",
+      "source": "audio",
+      "transcript": "¿Sigues ahí?",
+      "kind": "reply"
+    },
+    {
+      "t": 194139,
+      "at": 1788485004607,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9sl5l_houd",
+      "text": "Sí, aquí estoy.",
+      "seconds": 1.25,
+      "chunks": 6
+    },
+    {
+      "t": 194140,
+      "at": 1788485004609,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 1
+    },
+    {
+      "t": 194146,
+      "at": 1788485004614,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "text": "Sí,"
+    },
+    {
+      "t": 194270,
+      "at": 1788485004738,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 2
+    },
+    {
+      "t": 194274,
+      "at": 1788485004743,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "text": "aquí"
+    },
+    {
+      "t": 194519,
+      "at": 1788485004987,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 3
+    },
+    {
+      "t": 194523,
+      "at": 1788485004991,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "text": "estoy."
+    },
+    {
+      "t": 194768,
+      "at": 1788485005236,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 4
+    },
+    {
+      "t": 195014,
+      "at": 1788485005483,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 5
+    },
+    {
+      "t": 195260,
+      "at": 1788485005729,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd",
+      "chunk": 6
+    },
+    {
+      "t": 195262,
+      "at": 1788485005730,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd"
+    },
+    {
+      "t": 195262,
+      "at": 1788485005731,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sl5l_houd"
+    },
+    {
+      "t": 195262,
+      "at": 1788485005731,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9sl5l_houd"
+    },
+    {
+      "t": 197101,
+      "at": 1788485007570,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 200242,
+      "at": 1788485010711,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1910,
+      "speechLastAt": 199011
+    },
+    {
+      "t": 200242,
+      "at": 1788485010711,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Quita el de la rodilla."
+    },
+    {
+      "t": 200242,
+      "at": 1788485010711,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Quita el de la rodilla."
+    },
+    {
+      "t": 200250,
+      "at": 1788485010719,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "source": "audio",
+      "transcript": "Quita el de la rodilla.",
+      "kind": "reply"
+    },
+    {
+      "t": 200800,
+      "at": 1788485011269,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "manageAppointmentTopics",
+      "args": {
+        "appointmentId": "appt-1",
+        "operation": "REMOVE",
+        "target": "rodilla"
+      }
+    },
+    {
+      "t": 200800,
+      "at": 1788485011269,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "manageAppointmentTopics"
+    },
+    {
+      "t": 200810,
+      "at": 1788485011279,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_vswher\",\"name\":\"manageAppointmentTopics\",\"response\":{\"result\":{\"success\":true,\"status\":\"SAVED\",\"appointmentId\":\"appt-1\",\"topics\":[\"Se me olvidan las pastillas de la presión por la noche\",\"¿Puedo caminar más?\"]}}}]"
+    },
+    {
+      "t": 200815,
+      "at": 1788485011284,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "Listo. Su lista tiene 2: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?.",
+      "seconds": 7.92,
+      "chunks": 33
+    },
+    {
+      "t": 200818,
+      "at": 1788485011287,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 1
+    },
+    {
+      "t": 200822,
+      "at": 1788485011291,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "Listo."
+    },
+    {
+      "t": 200946,
+      "at": 1788485011414,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 2
+    },
+    {
+      "t": 200948,
+      "at": 1788485011417,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "Su"
+    },
+    {
+      "t": 201193,
+      "at": 1788485011662,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 3
+    },
+    {
+      "t": 201197,
+      "at": 1788485011666,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "lista"
+    },
+    {
+      "t": 201444,
+      "at": 1788485011913,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 4
+    },
+    {
+      "t": 201447,
+      "at": 1788485011916,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "tiene"
+    },
+    {
+      "t": 201694,
+      "at": 1788485012163,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 5
+    },
+    {
+      "t": 201696,
+      "at": 1788485012165,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "2:"
+    },
+    {
+      "t": 201941,
+      "at": 1788485012410,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 6
+    },
+    {
+      "t": 201943,
+      "at": 1788485012412,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "Se"
+    },
+    {
+      "t": 202188,
+      "at": 1788485012657,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 7
+    },
+    {
+      "t": 202190,
+      "at": 1788485012659,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "me"
+    },
+    {
+      "t": 202435,
+      "at": 1788485012904,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 8
+    },
+    {
+      "t": 202439,
+      "at": 1788485012907,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "olvidan"
+    },
+    {
+      "t": 202683,
+      "at": 1788485013152,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 9
+    },
+    {
+      "t": 202686,
+      "at": 1788485013155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "las"
+    },
+    {
+      "t": 202932,
+      "at": 1788485013401,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 10
+    },
+    {
+      "t": 202937,
+      "at": 1788485013405,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "pastillas"
+    },
+    {
+      "t": 203182,
+      "at": 1788485013651,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 11
+    },
+    {
+      "t": 203185,
+      "at": 1788485013654,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "de"
+    },
+    {
+      "t": 203431,
+      "at": 1788485013900,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 12
+    },
+    {
+      "t": 203433,
+      "at": 1788485013902,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "la"
+    },
+    {
+      "t": 203680,
+      "at": 1788485014149,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 13
+    },
+    {
+      "t": 203684,
+      "at": 1788485014152,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "presión"
+    },
+    {
+      "t": 203930,
+      "at": 1788485014399,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 14
+    },
+    {
+      "t": 203933,
+      "at": 1788485014402,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "por"
+    },
+    {
+      "t": 204179,
+      "at": 1788485014648,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 15
+    },
+    {
+      "t": 204181,
+      "at": 1788485014650,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "la"
+    },
+    {
+      "t": 204427,
+      "at": 1788485014896,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 16
+    },
+    {
+      "t": 204430,
+      "at": 1788485014898,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "noche;"
+    },
+    {
+      "t": 204675,
+      "at": 1788485015144,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 17
+    },
+    {
+      "t": 204678,
+      "at": 1788485015146,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "¿Puedo"
+    },
+    {
+      "t": 204922,
+      "at": 1788485015391,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 18
+    },
+    {
+      "t": 204925,
+      "at": 1788485015394,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "caminar"
+    },
+    {
+      "t": 205171,
+      "at": 1788485015639,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 19
+    },
+    {
+      "t": 205174,
+      "at": 1788485015643,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "text": "más?."
+    },
+    {
+      "t": 205419,
+      "at": 1788485015888,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 20
+    },
+    {
+      "t": 205663,
+      "at": 1788485016132,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 21
+    },
+    {
+      "t": 205908,
+      "at": 1788485016377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 22
+    },
+    {
+      "t": 206153,
+      "at": 1788485016621,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 23
+    },
+    {
+      "t": 206397,
+      "at": 1788485016866,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 24
+    },
+    {
+      "t": 206642,
+      "at": 1788485017111,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 25
+    },
+    {
+      "t": 206887,
+      "at": 1788485017355,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 26
+    },
+    {
+      "t": 207131,
+      "at": 1788485017600,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 27
+    },
+    {
+      "t": 207375,
+      "at": 1788485017844,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 28
+    },
+    {
+      "t": 207620,
+      "at": 1788485018089,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 29
+    },
+    {
+      "t": 207865,
+      "at": 1788485018333,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 30
+    },
+    {
+      "t": 208109,
+      "at": 1788485018577,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 31
+    },
+    {
+      "t": 208353,
+      "at": 1788485018822,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 32
+    },
+    {
+      "t": 208597,
+      "at": 1788485019066,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5",
+      "chunk": 33
+    },
+    {
+      "t": 208599,
+      "at": 1788485019068,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5"
+    },
+    {
+      "t": 208599,
+      "at": 1788485019068,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9sqan_r8k5"
+    },
+    {
+      "t": 208599,
+      "at": 1788485019068,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9sqan_r8k5"
+    },
+    {
+      "t": 210641,
+      "at": 1788485021110,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 214162,
+      "at": 1788485024631,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2282,
+      "speechLastAt": 212923
+    },
+    {
+      "t": 214162,
+      "at": 1788485024631,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "No, no, déjalo. Ponlo otra vez."
+    },
+    {
+      "t": 214162,
+      "at": 1788485024631,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "No, no, déjalo. Ponlo otra vez."
+    },
+    {
+      "t": 214170,
+      "at": 1788485024639,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9t11b_yy24",
+      "source": "audio",
+      "transcript": "No, no, déjalo. Ponlo otra vez.",
+      "kind": "reply"
+    },
+    {
+      "t": 214721,
+      "at": 1788485025189,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "manageAppointmentTopics",
+      "args": {
+        "appointmentId": "appt-1",
+        "operation": "ADD",
+        "value": "Dolor de rodilla al subir escaleras"
+      }
+    },
+    {
+      "t": 214721,
+      "at": 1788485025189,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "manageAppointmentTopics"
+    },
+    {
+      "t": 214726,
+      "at": 1788485025195,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_pw7dr9\",\"name\":\"manageAppointmentTopics\",\"response\":{\"result\":{\"success\":true,\"status\":\"SAVED\",\"appointmentId\":\"appt-1\",\"topics\":[\"Se me olvidan las pastillas de la presión por la noche\",\"¿Puedo caminar más?\",\"Dolor de rodilla al subir escaleras\"]}}}]"
+    },
+    {
+      "t": 214731,
+      "at": 1788485025199,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "Listo. Su lista tiene 3: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?; Dolor de rodilla al subir escaleras.",
+      "seconds": 10.42,
+      "chunks": 44
+    },
+    {
+      "t": 214732,
+      "at": 1788485025201,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 1
+    },
+    {
+      "t": 214735,
+      "at": 1788485025204,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "Listo."
+    },
+    {
+      "t": 214859,
+      "at": 1788485025328,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 2
+    },
+    {
+      "t": 214862,
+      "at": 1788485025330,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "Su"
+    },
+    {
+      "t": 215106,
+      "at": 1788485025575,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 3
+    },
+    {
+      "t": 215110,
+      "at": 1788485025579,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "lista"
+    },
+    {
+      "t": 215356,
+      "at": 1788485025825,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 4
+    },
+    {
+      "t": 215360,
+      "at": 1788485025829,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "tiene"
+    },
+    {
+      "t": 215606,
+      "at": 1788485026075,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 5
+    },
+    {
+      "t": 215609,
+      "at": 1788485026077,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "3:"
+    },
+    {
+      "t": 215854,
+      "at": 1788485026323,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 6
+    },
+    {
+      "t": 215857,
+      "at": 1788485026325,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "Se"
+    },
+    {
+      "t": 216102,
+      "at": 1788485026571,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 7
+    },
+    {
+      "t": 216105,
+      "at": 1788485026573,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "me"
+    },
+    {
+      "t": 216350,
+      "at": 1788485026819,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 8
+    },
+    {
+      "t": 216353,
+      "at": 1788485026822,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "olvidan"
+    },
+    {
+      "t": 216599,
+      "at": 1788485027067,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 9
+    },
+    {
+      "t": 216601,
+      "at": 1788485027070,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "las"
+    },
+    {
+      "t": 216847,
+      "at": 1788485027315,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 10
+    },
+    {
+      "t": 216849,
+      "at": 1788485027318,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "pastillas"
+    },
+    {
+      "t": 217095,
+      "at": 1788485027564,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 11
+    },
+    {
+      "t": 217097,
+      "at": 1788485027566,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "de"
+    },
+    {
+      "t": 217342,
+      "at": 1788485027811,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 12
+    },
+    {
+      "t": 217345,
+      "at": 1788485027814,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "la"
+    },
+    {
+      "t": 217589,
+      "at": 1788485028058,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 13
+    },
+    {
+      "t": 217592,
+      "at": 1788485028061,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "presión"
+    },
+    {
+      "t": 217837,
+      "at": 1788485028305,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 14
+    },
+    {
+      "t": 217839,
+      "at": 1788485028308,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "por"
+    },
+    {
+      "t": 218085,
+      "at": 1788485028553,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 15
+    },
+    {
+      "t": 218087,
+      "at": 1788485028556,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "la"
+    },
+    {
+      "t": 218333,
+      "at": 1788485028802,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 16
+    },
+    {
+      "t": 218335,
+      "at": 1788485028804,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "noche;"
+    },
+    {
+      "t": 218581,
+      "at": 1788485029050,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 17
+    },
+    {
+      "t": 218584,
+      "at": 1788485029052,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "¿Puedo"
+    },
+    {
+      "t": 218829,
+      "at": 1788485029298,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 18
+    },
+    {
+      "t": 218831,
+      "at": 1788485029300,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "caminar"
+    },
+    {
+      "t": 219076,
+      "at": 1788485029544,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 19
+    },
+    {
+      "t": 219078,
+      "at": 1788485029547,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "más?;"
+    },
+    {
+      "t": 219324,
+      "at": 1788485029793,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 20
+    },
+    {
+      "t": 219327,
+      "at": 1788485029795,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "Dolor"
+    },
+    {
+      "t": 219571,
+      "at": 1788485030040,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 21
+    },
+    {
+      "t": 219574,
+      "at": 1788485030043,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "de"
+    },
+    {
+      "t": 219819,
+      "at": 1788485030288,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 22
+    },
+    {
+      "t": 219821,
+      "at": 1788485030290,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "rodilla"
+    },
+    {
+      "t": 220066,
+      "at": 1788485030535,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 23
+    },
+    {
+      "t": 220069,
+      "at": 1788485030538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "al"
+    },
+    {
+      "t": 220314,
+      "at": 1788485030783,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 24
+    },
+    {
+      "t": 220317,
+      "at": 1788485030785,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "subir"
+    },
+    {
+      "t": 220561,
+      "at": 1788485031030,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 25
+    },
+    {
+      "t": 220564,
+      "at": 1788485031032,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "text": "escaleras."
+    },
+    {
+      "t": 220809,
+      "at": 1788485031278,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 26
+    },
+    {
+      "t": 221053,
+      "at": 1788485031522,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 27
+    },
+    {
+      "t": 221297,
+      "at": 1788485031766,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 28
+    },
+    {
+      "t": 221541,
+      "at": 1788485032010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 29
+    },
+    {
+      "t": 221785,
+      "at": 1788485032254,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 30
+    },
+    {
+      "t": 222029,
+      "at": 1788485032498,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 31
+    },
+    {
+      "t": 222273,
+      "at": 1788485032742,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 32
+    },
+    {
+      "t": 222518,
+      "at": 1788485032987,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 33
+    },
+    {
+      "t": 222762,
+      "at": 1788485033231,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 34
+    },
+    {
+      "t": 223007,
+      "at": 1788485033476,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 35
+    },
+    {
+      "t": 223252,
+      "at": 1788485033721,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 36
+    },
+    {
+      "t": 223496,
+      "at": 1788485033965,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 37
+    },
+    {
+      "t": 223741,
+      "at": 1788485034210,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 38
+    },
+    {
+      "t": 223985,
+      "at": 1788485034454,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 39
+    },
+    {
+      "t": 224230,
+      "at": 1788485034699,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 40
+    },
+    {
+      "t": 224476,
+      "at": 1788485034945,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 41
+    },
+    {
+      "t": 224722,
+      "at": 1788485035191,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 42
+    },
+    {
+      "t": 224966,
+      "at": 1788485035435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 43
+    },
+    {
+      "t": 225211,
+      "at": 1788485035680,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24",
+      "chunk": 44
+    },
+    {
+      "t": 225213,
+      "at": 1788485035681,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24"
+    },
+    {
+      "t": 225213,
+      "at": 1788485035682,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9t11b_yy24"
+    },
+    {
+      "t": 225213,
+      "at": 1788485035682,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9t11b_yy24"
+    },
+    {
+      "t": 227101,
+      "at": 1788485037570,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 229762,
+      "at": 1788485040231,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1440,
+      "speechLastAt": 228541
+    },
+    {
+      "t": 229762,
+      "at": 1788485040231,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Léeme toda la lista."
+    },
+    {
+      "t": 229762,
+      "at": 1788485040231,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Léeme toda la lista."
+    },
+    {
+      "t": 229770,
+      "at": 1788485040239,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "source": "audio",
+      "transcript": "Léeme toda la lista.",
+      "kind": "reply"
+    },
+    {
+      "t": 230321,
+      "at": 1788485040789,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "manageAppointmentTopics",
+      "args": {
+        "appointmentId": "appt-1",
+        "operation": "LIST"
+      }
+    },
+    {
+      "t": 230321,
+      "at": 1788485040789,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "manageAppointmentTopics"
+    },
+    {
+      "t": 230327,
+      "at": 1788485040796,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_g7umyw\",\"name\":\"manageAppointmentTopics\",\"response\":{\"result\":{\"success\":true,\"status\":\"SAVED\",\"appointmentId\":\"appt-1\",\"topics\":[\"Se me olvidan las pastillas de la presión por la noche\",\"¿Puedo caminar más?\",\"Dolor de rodilla al subir escaleras\"]}}}]"
+    },
+    {
+      "t": 230332,
+      "at": 1788485040801,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "Listo. Su lista tiene 3: Se me olvidan las pastillas de la presión por la noche; ¿Puedo caminar más?; Dolor de rodilla al subir escaleras.",
+      "seconds": 10.42,
+      "chunks": 44
+    },
+    {
+      "t": 230333,
+      "at": 1788485040802,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 1
+    },
+    {
+      "t": 230338,
+      "at": 1788485040807,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "Listo."
+    },
+    {
+      "t": 230463,
+      "at": 1788485040932,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 2
+    },
+    {
+      "t": 230466,
+      "at": 1788485040935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "Su"
+    },
+    {
+      "t": 230711,
+      "at": 1788485041179,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 3
+    },
+    {
+      "t": 230713,
+      "at": 1788485041182,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "lista"
+    },
+    {
+      "t": 230958,
+      "at": 1788485041426,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 4
+    },
+    {
+      "t": 230960,
+      "at": 1788485041429,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "tiene"
+    },
+    {
+      "t": 231205,
+      "at": 1788485041674,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 5
+    },
+    {
+      "t": 231208,
+      "at": 1788485041677,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "3:"
+    },
+    {
+      "t": 231453,
+      "at": 1788485041922,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 6
+    },
+    {
+      "t": 231456,
+      "at": 1788485041924,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "Se"
+    },
+    {
+      "t": 231701,
+      "at": 1788485042170,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 7
+    },
+    {
+      "t": 231703,
+      "at": 1788485042172,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "me"
+    },
+    {
+      "t": 231948,
+      "at": 1788485042417,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 8
+    },
+    {
+      "t": 231951,
+      "at": 1788485042420,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "olvidan"
+    },
+    {
+      "t": 232196,
+      "at": 1788485042664,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 9
+    },
+    {
+      "t": 232198,
+      "at": 1788485042667,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "las"
+    },
+    {
+      "t": 232443,
+      "at": 1788485042912,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 10
+    },
+    {
+      "t": 232446,
+      "at": 1788485042915,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "pastillas"
+    },
+    {
+      "t": 232690,
+      "at": 1788485043159,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 11
+    },
+    {
+      "t": 232693,
+      "at": 1788485043162,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "de"
+    },
+    {
+      "t": 232938,
+      "at": 1788485043406,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 12
+    },
+    {
+      "t": 232940,
+      "at": 1788485043409,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "la"
+    },
+    {
+      "t": 233185,
+      "at": 1788485043654,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 13
+    },
+    {
+      "t": 233188,
+      "at": 1788485043657,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "presión"
+    },
+    {
+      "t": 233433,
+      "at": 1788485043902,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 14
+    },
+    {
+      "t": 233436,
+      "at": 1788485043904,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "por"
+    },
+    {
+      "t": 233680,
+      "at": 1788485044149,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 15
+    },
+    {
+      "t": 233683,
+      "at": 1788485044151,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "la"
+    },
+    {
+      "t": 233928,
+      "at": 1788485044396,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 16
+    },
+    {
+      "t": 233930,
+      "at": 1788485044399,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "noche;"
+    },
+    {
+      "t": 234176,
+      "at": 1788485044644,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 17
+    },
+    {
+      "t": 234178,
+      "at": 1788485044647,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "¿Puedo"
+    },
+    {
+      "t": 234424,
+      "at": 1788485044892,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 18
+    },
+    {
+      "t": 234428,
+      "at": 1788485044896,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "caminar"
+    },
+    {
+      "t": 234673,
+      "at": 1788485045142,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 19
+    },
+    {
+      "t": 234676,
+      "at": 1788485045145,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "más?;"
+    },
+    {
+      "t": 234921,
+      "at": 1788485045390,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 20
+    },
+    {
+      "t": 234925,
+      "at": 1788485045394,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "Dolor"
+    },
+    {
+      "t": 235170,
+      "at": 1788485045639,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 21
+    },
+    {
+      "t": 235173,
+      "at": 1788485045642,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "de"
+    },
+    {
+      "t": 235419,
+      "at": 1788485045888,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 22
+    },
+    {
+      "t": 235422,
+      "at": 1788485045891,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "rodilla"
+    },
+    {
+      "t": 235667,
+      "at": 1788485046136,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 23
+    },
+    {
+      "t": 235670,
+      "at": 1788485046139,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "al"
+    },
+    {
+      "t": 235916,
+      "at": 1788485046385,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 24
+    },
+    {
+      "t": 235918,
+      "at": 1788485046387,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "subir"
+    },
+    {
+      "t": 236163,
+      "at": 1788485046632,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 25
+    },
+    {
+      "t": 236166,
+      "at": 1788485046634,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "text": "escaleras."
+    },
+    {
+      "t": 236411,
+      "at": 1788485046879,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 26
+    },
+    {
+      "t": 236655,
+      "at": 1788485047123,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 27
+    },
+    {
+      "t": 236899,
+      "at": 1788485047368,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 28
+    },
+    {
+      "t": 237143,
+      "at": 1788485047611,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 29
+    },
+    {
+      "t": 237386,
+      "at": 1788485047855,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 30
+    },
+    {
+      "t": 237631,
+      "at": 1788485048100,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 31
+    },
+    {
+      "t": 237875,
+      "at": 1788485048344,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 32
+    },
+    {
+      "t": 238119,
+      "at": 1788485048588,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 33
+    },
+    {
+      "t": 238363,
+      "at": 1788485048832,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 34
+    },
+    {
+      "t": 238608,
+      "at": 1788485049077,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 35
+    },
+    {
+      "t": 238852,
+      "at": 1788485049320,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 36
+    },
+    {
+      "t": 239095,
+      "at": 1788485049564,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 37
+    },
+    {
+      "t": 239339,
+      "at": 1788485049808,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 38
+    },
+    {
+      "t": 239583,
+      "at": 1788485050052,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 39
+    },
+    {
+      "t": 239827,
+      "at": 1788485050296,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 40
+    },
+    {
+      "t": 240071,
+      "at": 1788485050540,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 41
+    },
+    {
+      "t": 240315,
+      "at": 1788485050784,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 42
+    },
+    {
+      "t": 240559,
+      "at": 1788485051028,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 43
+    },
+    {
+      "t": 240802,
+      "at": 1788485051271,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0",
+      "chunk": 44
+    },
+    {
+      "t": 240804,
+      "at": 1788485051273,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0"
+    },
+    {
+      "t": 240804,
+      "at": 1788485051273,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9td2n_hbt0"
+    },
+    {
+      "t": 240804,
+      "at": 1788485051273,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9td2n_hbt0"
+    },
+    {
+      "t": 242681,
+      "at": 1788485053150,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 246142,
+      "at": 1788485056611,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2260,
+      "speechLastAt": 244941
+    },
+    {
+      "t": 246142,
+      "at": 1788485056611,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿A qué hora era la cita?"
+    },
+    {
+      "t": 246142,
+      "at": 1788485056611,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿A qué hora era la cita?"
+    },
+    {
+      "t": 246149,
+      "at": 1788485056618,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9tppm_crs5",
+      "source": "audio",
+      "transcript": "¿A qué hora era la cita?",
+      "kind": "reply"
+    },
+    {
+      "t": 246699,
+      "at": 1788485057168,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 246700,
+      "at": 1788485057168,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 246703,
+      "at": 1788485057172,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_23heke\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"APPOINTMENT_TOPICS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Lo que quiero conversar\",\"whatThePatientMustDoHere\":\"Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"0\",\"label\":\"Dolor de rodilla al subir escaleras\",\"detail\":\"\",\"selected\":false,\"kind\":\"TOPIC\"}],\"selected\":null,\"alreadyDone\":[\"Dolor de rodilla al subir escaleras\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-add-prep-topic\",\"label\":\"Agregar un tema a la lista de la cita\",\"kind\":\"INPUT\",\"effect\":\"Lo guarda en la lista de esta cita\",\"acceptsText\":true,\"textIsFor\":\"El tema en las palabras del paciente\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}],\"notes\":[\"Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci\"]}}}]"
+    },
+    {
+      "t": 246708,
+      "at": 1788485057177,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "A las 10:30 a. m..",
+      "seconds": 2.08,
+      "chunks": 9
+    },
+    {
+      "t": 246709,
+      "at": 1788485057178,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 1
+    },
+    {
+      "t": 246714,
+      "at": 1788485057182,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "A"
+    },
+    {
+      "t": 246837,
+      "at": 1788485057306,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 2
+    },
+    {
+      "t": 246840,
+      "at": 1788485057309,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "las"
+    },
+    {
+      "t": 247086,
+      "at": 1788485057555,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 3
+    },
+    {
+      "t": 247089,
+      "at": 1788485057558,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "10:30"
+    },
+    {
+      "t": 247333,
+      "at": 1788485057802,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 4
+    },
+    {
+      "t": 247336,
+      "at": 1788485057805,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "a."
+    },
+    {
+      "t": 247581,
+      "at": 1788485058050,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 5
+    },
+    {
+      "t": 247584,
+      "at": 1788485058053,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "text": "m.."
+    },
+    {
+      "t": 247829,
+      "at": 1788485058298,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 6
+    },
+    {
+      "t": 248073,
+      "at": 1788485058542,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 7
+    },
+    {
+      "t": 248318,
+      "at": 1788485058787,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 8
+    },
+    {
+      "t": 248562,
+      "at": 1788485059031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5",
+      "chunk": 9
+    },
+    {
+      "t": 248564,
+      "at": 1788485059033,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5"
+    },
+    {
+      "t": 248564,
+      "at": 1788485059033,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tppm_crs5"
+    },
+    {
+      "t": 248564,
+      "at": 1788485059033,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9tppm_crs5"
+    },
+    {
+      "t": 250561,
+      "at": 1788485061030,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 254062,
+      "at": 1788485064531,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2250,
+      "speechLastAt": 252811
+    },
+    {
+      "t": 254062,
+      "at": 1788485064531,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Perfecto. Eso es todo, gracias EMMI."
+    },
+    {
+      "t": 254062,
+      "at": 1788485064531,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Perfecto. Eso es todo, gracias EMMI."
+    },
+    {
+      "t": 254072,
+      "at": 1788485064541,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "source": "audio",
+      "transcript": "Perfecto. Eso es todo, gracias EMMI.",
+      "kind": "reply"
+    },
+    {
+      "t": 254622,
+      "at": 1788485065091,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "Con gusto. La lista queda guardada para su cita.",
+      "seconds": 3.75,
+      "chunks": 16
+    },
+    {
+      "t": 254624,
+      "at": 1788485065093,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 1
+    },
+    {
+      "t": 254630,
+      "at": 1788485065099,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "Con"
+    },
+    {
+      "t": 254756,
+      "at": 1788485065225,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 2
+    },
+    {
+      "t": 254759,
+      "at": 1788485065227,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "gusto."
+    },
+    {
+      "t": 255005,
+      "at": 1788485065473,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 3
+    },
+    {
+      "t": 255007,
+      "at": 1788485065476,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "La"
+    },
+    {
+      "t": 255252,
+      "at": 1788485065721,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 4
+    },
+    {
+      "t": 255255,
+      "at": 1788485065724,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "lista"
+    },
+    {
+      "t": 255500,
+      "at": 1788485065969,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 5
+    },
+    {
+      "t": 255505,
+      "at": 1788485065974,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "queda"
+    },
+    {
+      "t": 255751,
+      "at": 1788485066220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 6
+    },
+    {
+      "t": 255753,
+      "at": 1788485066222,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "guardada"
+    },
+    {
+      "t": 255999,
+      "at": 1788485066468,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 7
+    },
+    {
+      "t": 256001,
+      "at": 1788485066470,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "para"
+    },
+    {
+      "t": 256247,
+      "at": 1788485066716,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 8
+    },
+    {
+      "t": 256251,
+      "at": 1788485066719,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "su"
+    },
+    {
+      "t": 256496,
+      "at": 1788485066964,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 9
+    },
+    {
+      "t": 256498,
+      "at": 1788485066967,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "text": "cita."
+    },
+    {
+      "t": 256743,
+      "at": 1788485067212,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 10
+    },
+    {
+      "t": 256987,
+      "at": 1788485067456,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 11
+    },
+    {
+      "t": 257231,
+      "at": 1788485067700,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 12
+    },
+    {
+      "t": 257476,
+      "at": 1788485067944,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 13
+    },
+    {
+      "t": 257720,
+      "at": 1788485068188,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 14
+    },
+    {
+      "t": 257964,
+      "at": 1788485068433,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 15
+    },
+    {
+      "t": 258208,
+      "at": 1788485068677,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug",
+      "chunk": 16
+    },
+    {
+      "t": 258210,
+      "at": 1788485068679,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug"
+    },
+    {
+      "t": 258210,
+      "at": 1788485068679,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9tvtp_cwug"
+    },
+    {
+      "t": 258210,
+      "at": 1788485068679,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9tvtp_cwug"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 18,
+    "total_turns": 20,
+    "response_start_p50_ms": 1820,
+    "response_start_p95_ms": 1901,
+    "response_start_avg_ms": 1815,
+    "app_overhead_p50_ms": 4,
+    "barge_ins": 0,
+    "barge_in_stop_p50_ms": null,
+    "barge_in_stop_max_ms": -1,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 4: the app sent no screen context to the provider before it answered this spoken turn"
+    ]
+  }
+}

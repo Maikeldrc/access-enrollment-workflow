@@ -1,0 +1,2477 @@
+{
+  "startedAt": "2026-09-03T23:39:49.410Z",
+  "base": "http://127.0.0.1:5173",
+  "sections": {
+    "voice_start_without_provider": {
+      "ok": true,
+      "welcomeCardText": "Voice guidance is unavailable\nEMMI voice is temporarily unavailable. You can continue by typing.\n\nAsk EMMI\nRepeat\nTurn voice off",
+      "guideText": "",
+      "stateTimeline": [
+        {
+          "t": 427,
+          "state": "DISCONNECTED",
+          "active": false,
+          "error": "VOICE_PROVIDER_ERROR",
+          "socket": false,
+          "contextVersion": 1
+        }
+      ],
+      "voiceEventTypes": [
+        "EMMI_CONVERSATION_CONTEXT_UPDATED",
+        "EMMI_UNEXPECTED_GREETING",
+        "EMMI_VOICE_ERROR"
+      ],
+      "voiceErrorEvents": [
+        {
+          "timestamp": "2026-09-03T23:39:53.503Z",
+          "type": "EMMI_VOICE_ERROR",
+          "errorCode": "VOICE_PROVIDER_ERROR",
+          "locale": "EN",
+          "resolvedLanguage": "English",
+          "speechLocale": "en",
+          "voiceId": "Sulafat",
+          "provider": "gemini-live",
+          "model": "gemini-3.1-flash-live-preview",
+          "capability": "SUPPORTED"
+        }
+      ],
+      "durationMs": 37914
+    },
+    "transportation_views_es": {
+      "ok": true,
+      "steps": {
+        "APPOINTMENT_DETAIL": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Cita confirmada",
+          "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "La cita está confirmada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "appointment-open-prep",
+              "label": "Preparar temas para la visita",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-open-brief",
+              "label": "Ver mi lista de temas",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-open-barrier",
+              "label": "Algo lo dificulta",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-open-reminder",
+              "label": "Recordármelo en la aplicación",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-open-share",
+              "label": "Compartir con mi Círculo de cuidado",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-get-directions",
+              "label": "Cómo llegar",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-request-reschedule",
+              "label": "Cambiar la hora",
+              "kind": "CONFIRM"
+            },
+            {
+              "id": "appointment-request-cancel",
+              "label": "Cancelar la cita",
+              "kind": "DESTRUCTIVE"
+            },
+            {
+              "id": "appointment-back",
+              "label": "Volver a Mi cuidado",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "BARRIER_CHECK": {
+          "viewId": "APPOINTMENT_PRE_VISIT_CHECK",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "¿Hay algo que pueda dificultar llegar a esta visita?",
+          "whatThePatientMustDoHere": "Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.",
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "ALL_SET",
+              "label": "Todo listo",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 2,
+              "id": "TRANSPORTATION",
+              "label": "Transporte",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 3,
+              "id": "CAREGIVER_AVAILABILITY",
+              "label": "Necesito acompañante",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 4,
+              "id": "TIME_CONFLICT",
+              "label": "Necesito cambiar la hora",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 5,
+              "id": "OTHER",
+              "label": "Otra cosa",
+              "detail": "",
+              "selected": false
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "appointment-back",
+              "label": "Volver a Mi cuidado",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "OFFER": {
+          "viewId": "BARRIER_TRANSPORTATION_OFFER",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Decida si quiere que busque un viaje para esta cita.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "OFFER",
+            "stepNumber": 1,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-accept",
+              "label": "Sí, buscar transporte",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "barrier-decline",
+              "label": "No por ahora",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "PICKUP": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "PICKUP",
+            "stepNumber": 2,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "HOME",
+              "label": "Casa",
+              "detail": "123 Oak Avenue, Apt 4B · Miami, FL 33176",
+              "selected": true
+            }
+          ],
+          "selected": {
+            "id": "HOME",
+            "label": "Casa",
+            "detail": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+          },
+          "alreadyDone": [],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-pickup-home",
+              "label": "Usar la dirección de casa",
+              "kind": "SELECT"
+            },
+            {
+              "id": "barrier-pickup-other",
+              "label": "Usar otra dirección",
+              "kind": "INPUT"
+            }
+          ]
+        },
+        "NEEDS": {
+          "viewId": "BARRIER_TRANSPORTATION_NEEDS",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Elija la ayuda especial que necesite para el viaje y continúe.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "NEEDS",
+            "stepNumber": 3,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "NONE",
+              "label": "No, ninguna",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 2,
+              "id": "CANE_WALKER",
+              "label": "Uso bastón o andador",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 3,
+              "id": "WHEELCHAIR",
+              "label": "Uso silla de ruedas",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 4,
+              "id": "COMPANION_RIDING",
+              "label": "Viajará alguien conmigo",
+              "detail": "",
+              "selected": false
+            },
+            {
+              "n": 5,
+              "id": "HELP_IN_OUT",
+              "label": "Necesito ayuda para entrar o salir del vehículo",
+              "detail": "",
+              "selected": false
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Dirección de recogida confirmada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-needs-continue",
+              "label": "Continuar",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "TIME": {
+          "viewId": "BARRIER_TRANSPORTATION_TIME",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Revise la hora de recogida sugerida y busque vehículos, o elija otra hora.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "TIME",
+            "stepNumber": 4,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-time-accept",
+              "label": "Buscar vehículos",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "barrier-time-change",
+              "label": "Elegir otra hora de recogida",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "SEARCHING": {
+          "viewId": "BARRIER_TRANSPORTATION_SEARCHING",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Estoy buscando vehículos. Todavía no hay nada reservado.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "SEARCHING",
+            "stepNumber": 5,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true
+        },
+        "OPTIONS": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "OPTIONS",
+            "stepNumber": 6,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "STANDARD_1788702300000",
+              "label": "UberX",
+              "detail": "Vehículo estándar · $27.95 · 9:45 a. m.",
+              "selected": false,
+              "pickupTime": "9:45 a. m.",
+              "arrivesAbout": "10:10 a. m.",
+              "estimatedCost": "$27.95",
+              "estimatedCostValue": 27.95,
+              "seats": 3,
+              "wheelchairAccessible": "false"
+            },
+            {
+              "n": 2,
+              "id": "EXTRA_ROOM_1788702000000",
+              "label": "UberXL",
+              "detail": "Más espacio · $41.68 · 9:40 a. m.",
+              "selected": false,
+              "pickupTime": "9:40 a. m.",
+              "arrivesAbout": "10:06 a. m.",
+              "estimatedCost": "$41.68",
+              "estimatedCostValue": 41.68,
+              "seats": 5,
+              "wheelchairAccessible": "false"
+            },
+            {
+              "n": 3,
+              "id": "ACCESSIBLE_1788701700000",
+              "label": "Uber WAV",
+              "detail": "Accesible en silla de ruedas · $33.00 · 9:35 a. m.",
+              "selected": false,
+              "pickupTime": "9:35 a. m.",
+              "arrivesAbout": "9:59 a. m.",
+              "estimatedCost": "$33.00",
+              "estimatedCostValue": 33,
+              "seats": 2,
+              "wheelchairAccessible": "true"
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true
+        },
+        "REVIEW": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "REVIEW",
+            "stepNumber": 7,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "selected": {
+            "id": "EXTRA_ROOM_1788702000000",
+            "label": "UberXL",
+            "detail": "Más espacio · $41.68 · 9:40 a. m."
+          },
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-reserve-confirm",
+              "label": "Reservar este viaje",
+              "kind": "CONFIRM",
+              "effect": "Esto reserva el viaje"
+            }
+          ],
+          "notes": [
+            "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+          ]
+        },
+        "BOOKED": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "RETURN_OFFER",
+            "stepNumber": null,
+            "totalSteps": null
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            },
+            {
+              "Viaje reservado": "UberXL · UB-42450"
+            }
+          ],
+          "selected": {
+            "id": "EXTRA_ROOM_1788702000000",
+            "label": "UberXL",
+            "detail": "Más espacio · $41.68 · 9:40 a. m."
+          },
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ],
+          "stillPending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-return-yes",
+              "label": "Sí, coordinar el regreso",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "barrier-return-no",
+              "label": "No",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "barrier-close",
+              "label": "Volver a mi cita",
+              "kind": "NAVIGATE"
+            }
+          ]
+        }
+      },
+      "optionsOnScreen": [
+        "UberX\nRecogida\n9:45 a. m.\nLlega alrededor de\n10:10 a. m.\nCosto estimado\n$27.95\nVehículo estándar · Hasta 3 personas",
+        "UberXL\nRecogida\n9:40 a. m.\nLlega alrededor de\n10:06 a. m.\nCosto estimado\n$41.68\nMás espacio · Hasta 5 personas",
+        "Uber WAV\nRecogida\n9:35 a. m.\nLlega alrededor de\n9:59 a. m.\nCosto estimado\n$33.00\nAccesible en silla de ruedas · Hasta 2 personas"
+      ],
+      "searchMs": 1592,
+      "attempts": 1,
+      "byRoom": {
+        "n": 2,
+        "id": "EXTRA_ROOM_1788702000000",
+        "label": "UberXL",
+        "detail": "Más espacio · $41.68 · 9:40 a. m.",
+        "selected": false,
+        "pickupTime": "9:40 a. m.",
+        "arrivesAbout": "10:06 a. m.",
+        "estimatedCost": "$41.68",
+        "estimatedCostValue": 41.68,
+        "seats": 5,
+        "wheelchairAccessible": "false"
+      },
+      "cheapest": {
+        "n": 1,
+        "id": "STANDARD_1788702300000",
+        "label": "UberX",
+        "detail": "Vehículo estándar · $27.95 · 9:45 a. m.",
+        "selected": false,
+        "pickupTime": "9:45 a. m.",
+        "arrivesAbout": "10:10 a. m.",
+        "estimatedCost": "$27.95",
+        "estimatedCostValue": 27.95,
+        "seats": 3,
+        "wheelchairAccessible": "false"
+      },
+      "selectUnknown": {
+        "success": false,
+        "status": "UNKNOWN_ACTION",
+        "availableChoices": [
+          {
+            "n": 1,
+            "id": "STANDARD_1788702300000",
+            "label": "UberX"
+          },
+          {
+            "n": 2,
+            "id": "EXTRA_ROOM_1788702000000",
+            "label": "UberXL"
+          },
+          {
+            "n": 3,
+            "id": "ACCESSIBLE_1788701700000",
+            "label": "Uber WAV"
+          }
+        ],
+        "availableActions": [],
+        "currentView": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "OPTIONS",
+            "stepNumber": 6,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "STANDARD_1788702300000",
+              "label": "UberX",
+              "detail": "Vehículo estándar · $27.95 · 9:45 a. m.",
+              "selected": false,
+              "pickupTime": "9:45 a. m.",
+              "arrivesAbout": "10:10 a. m.",
+              "estimatedCost": "$27.95",
+              "estimatedCostValue": 27.95,
+              "seats": 3,
+              "wheelchairAccessible": "false"
+            },
+            {
+              "n": 2,
+              "id": "EXTRA_ROOM_1788702000000",
+              "label": "UberXL",
+              "detail": "Más espacio · $41.68 · 9:40 a. m.",
+              "selected": false,
+              "pickupTime": "9:40 a. m.",
+              "arrivesAbout": "10:06 a. m.",
+              "estimatedCost": "$41.68",
+              "estimatedCostValue": 41.68,
+              "seats": 5,
+              "wheelchairAccessible": "false"
+            },
+            {
+              "n": 3,
+              "id": "ACCESSIBLE_1788701700000",
+              "label": "Uber WAV",
+              "detail": "Accesible en silla de ruedas · $33.00 · 9:35 a. m.",
+              "selected": false,
+              "pickupTime": "9:35 a. m.",
+              "arrivesAbout": "9:59 a. m.",
+              "estimatedCost": "$33.00",
+              "estimatedCostValue": 33,
+              "seats": 2,
+              "wheelchairAccessible": "true"
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true
+        }
+      },
+      "selectSecond": {
+        "success": true,
+        "status": "PERFORMED",
+        "performed": {
+          "id": "EXTRA_ROOM_1788702000000",
+          "label": "UberXL",
+          "kind": "SELECT"
+        },
+        "currentView": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "REVIEW",
+            "stepNumber": 7,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "selected": {
+            "id": "EXTRA_ROOM_1788702000000",
+            "label": "UberXL",
+            "detail": "Más espacio · $41.68 · 9:40 a. m."
+          },
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-reserve-confirm",
+              "label": "Reservar este viaje",
+              "kind": "CONFIRM",
+              "effect": "Esto reserva el viaje"
+            }
+          ],
+          "notes": [
+            "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+          ]
+        }
+      },
+      "bookWithoutConfirmation": {
+        "success": false,
+        "status": "CONFIRMATION_REQUIRED",
+        "actionLabel": "Reservar este viaje",
+        "effect": "Esto reserva el viaje",
+        "note": "Ask the patient to confirm in their own words, then call again with confirmed true."
+      },
+      "bookConfirmed": {
+        "success": true,
+        "status": "PERFORMED",
+        "performed": {
+          "id": "barrier-reserve-confirm",
+          "label": "Reservar este viaje",
+          "kind": "CONFIRM"
+        },
+        "currentView": {
+          "viewId": "BARRIER_TRANSPORTATION_BOOKING",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Coordinar transporte para la cita",
+          "whatThePatientMustDoHere": "Estoy reservando el viaje ahora.",
+          "flow": {
+            "id": "TRANSPORTATION",
+            "name": "Coordinar transporte para la cita",
+            "step": "BOOKING",
+            "stepNumber": 8,
+            "totalSteps": 9
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            },
+            {
+              "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+            },
+            {
+              "Hora de recogida": "9:45 a. m."
+            }
+          ],
+          "selected": {
+            "id": "EXTRA_ROOM_1788702000000",
+            "label": "UberXL",
+            "detail": "Más espacio · $41.68 · 9:40 a. m."
+          },
+          "alreadyDone": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ],
+          "stillPending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "youMayPressTheseYourself": true,
+          "notes": [
+            "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+          ]
+        }
+      },
+      "bookMs": 1321,
+      "transportationTool": {
+        "ok": true,
+        "result": {
+          "success": true,
+          "status": "CONFIRMED",
+          "appointmentId": "appt-1",
+          "reservations": [
+            {
+              "reservationId": "UB-42450",
+              "tripType": "OUTBOUND",
+              "status": "CONFIRMED",
+              "serviceName": "UberXL",
+              "pickupAt": "2026-09-06T13:40:00.000Z",
+              "pickupLabel": "9:40 a. m.",
+              "estimatedArrivalAt": "2026-09-06T14:06:00.000Z",
+              "estimatedArrivalLabel": "10:06 a. m.",
+              "estimatedCost": "$41.68",
+              "pickupAddress": "123 Oak Avenue, Apt 4B · Miami, FL 33176",
+              "destinationName": "Fresner Medical Group",
+              "destinationAddress": "800 Ponce de Leon Blvd, Coral Gables, FL 33134"
+            }
+          ]
+        }
+      },
+      "durationMs": 4558
+    },
+    "chat_on_transportation_es": {
+      "ok": true,
+      "turns": [
+        {
+          "question": "¿Qué hago aquí?",
+          "answer": "EMMI\n\nEMMI no es un servicio de emergencias. Si usted está teniendo una emergencia médica, llame al 911 o busque atención de emergencia ahora mismo; no espere una respuesta aquí ni use esta aplicación en lugar de conseguir ayuda. Cuando usted describe síntomas urgentes, EMMI aplica reglas de seguridad fijas y le da esa instrucción — no decide por su cuenta qué tan grave es lo que usted tiene.",
+          "latencyMs": 749
+        },
+        {
+          "question": "¿Qué opciones tengo?",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 730
+        },
+        {
+          "question": "¿Cuál tiene más espacio?",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1216
+        },
+        {
+          "question": "¿Cuál es la más barata?",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1211
+        },
+        {
+          "question": "Pon la primera",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1216
+        },
+        {
+          "question": "¿Ya está reservado?",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1232
+        },
+        {
+          "question": "Por cierto, ¿qué es ACCESS?",
+          "answer": "EMMI\n\nACCESS es una opción de cuidado de Medicare que brinda apoyo adicional entre sus visitas médicas. Según sus necesidades, puede incluir seguimiento de su salud, un plan de cuidado, apoyo con sus medicamentos o mediciones desde casa. Sus médicos habituales continúan formando parte de su cuidado y participar es voluntario.",
+          "latencyMs": 1221
+        },
+        {
+          "question": "Bueno, volvamos al transporte",
+          "answer": "EMMI\n\nNo veo transporte confirmado registrado para esta cita.\n\nAbrir mis citas",
+          "latencyMs": 1216
+        },
+        {
+          "question": "No entendí",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1218
+        },
+        {
+          "question": "Repítemelo",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 1217
+        }
+      ],
+      "durationMs": 14900
+    },
+    "topics_tool_es": {
+      "ok": true,
+      "prepView": {
+        "viewId": "APPOINTMENT_TOPICS",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Lo que quiero conversar",
+        "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [
+          "Todavía no hay nada anotado"
+        ],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "appointment-add-prep-topic",
+            "label": "Agregar un tema a la lista de la cita",
+            "kind": "INPUT",
+            "effect": "Lo guarda en la lista de esta cita",
+            "acceptsText": true,
+            "textIsFor": "El tema en las palabras del paciente"
+          },
+          {
+            "id": "appointment-open-brief",
+            "label": "Ver mi lista",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-back",
+            "label": "Volver a Mi cuidado",
+            "kind": "NAVIGATE"
+          }
+        ],
+        "notes": [
+          "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+        ]
+      },
+      "ops": [
+        {
+          "label": "add mareos",
+          "args": {
+            "operation": "ADD",
+            "value": "Mis mareos"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos"
+              ]
+            }
+          }
+        },
+        {
+          "label": "detail on 'eso' (anaphora to last topic)",
+          "args": {
+            "operation": "UPDATE_DETAIL",
+            "target": "eso",
+            "detail": "sobre todo por la mañana"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": false,
+              "status": "TOPIC_NOT_FOUND"
+            }
+          }
+        },
+        {
+          "label": "add rodilla",
+          "args": {
+            "operation": "ADD",
+            "value": "Dolor de rodilla"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos",
+                "Dolor de rodilla"
+              ]
+            }
+          }
+        },
+        {
+          "label": "list",
+          "args": {
+            "operation": "LIST"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos",
+                "Dolor de rodilla"
+              ]
+            }
+          }
+        },
+        {
+          "label": "read first",
+          "args": {
+            "operation": "READ_ITEM",
+            "index": 0
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos",
+                "Dolor de rodilla"
+              ],
+              "item": "Mis mareos"
+            }
+          }
+        },
+        {
+          "label": "remove last ('quita el último')",
+          "args": {
+            "operation": "REMOVE",
+            "index": -1
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos"
+              ]
+            }
+          }
+        },
+        {
+          "label": "remove ambiguous target",
+          "args": {
+            "operation": "REMOVE",
+            "target": "lo de la rodilla"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": false,
+              "status": "TOPIC_NOT_FOUND"
+            }
+          }
+        },
+        {
+          "label": "list after",
+          "args": {
+            "operation": "LIST"
+          },
+          "result": {
+            "ok": true,
+            "result": {
+              "success": true,
+              "status": "SAVED",
+              "appointmentId": "appt-1",
+              "topics": [
+                "Mis mareos"
+              ]
+            }
+          }
+        }
+      ],
+      "addViaAction": {
+        "success": true,
+        "status": "PERFORMED",
+        "performed": {
+          "id": "appointment-add-prep-topic",
+          "label": "Agregar un tema a la lista de la cita",
+          "kind": "INPUT"
+        },
+        "currentView": {
+          "viewId": "APPOINTMENT_TOPICS",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Lo que quiero conversar",
+          "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "choices": [
+            {
+              "n": 1,
+              "id": "0",
+              "label": "Mis mareos",
+              "detail": "",
+              "selected": false,
+              "kind": "TOPIC"
+            },
+            {
+              "n": 2,
+              "id": "1",
+              "label": "Preguntar por la presión alta por la noche",
+              "detail": "",
+              "selected": false,
+              "kind": "TOPIC"
+            }
+          ],
+          "selected": null,
+          "alreadyDone": [
+            "Mis mareos",
+            "Preguntar por la presión alta por la noche"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "appointment-add-prep-topic",
+              "label": "Agregar un tema a la lista de la cita",
+              "kind": "INPUT",
+              "effect": "Lo guarda en la lista de esta cita",
+              "acceptsText": true,
+              "textIsFor": "El tema en las palabras del paciente"
+            },
+            {
+              "id": "appointment-open-brief",
+              "label": "Ver mi lista",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "appointment-back",
+              "label": "Volver a Mi cuidado",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+          ]
+        }
+      },
+      "afterView": {
+        "viewId": "APPOINTMENT_TOPICS",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Lo que quiero conversar",
+        "whatThePatientMustDoHere": "Agregue lo que quiera conversar en esta visita. Puedo agregar un tema si me dice cuál es.",
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "choices": [
+          {
+            "n": 1,
+            "id": "0",
+            "label": "Mis mareos",
+            "detail": "",
+            "selected": false,
+            "kind": "TOPIC"
+          },
+          {
+            "n": 2,
+            "id": "1",
+            "label": "Preguntar por la presión alta por la noche",
+            "detail": "",
+            "selected": false,
+            "kind": "TOPIC"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [
+          "Mis mareos",
+          "Preguntar por la presión alta por la noche"
+        ],
+        "stillPending": [],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "appointment-add-prep-topic",
+            "label": "Agregar un tema a la lista de la cita",
+            "kind": "INPUT",
+            "effect": "Lo guarda en la lista de esta cita",
+            "acceptsText": true,
+            "textIsFor": "El tema en las palabras del paciente"
+          },
+          {
+            "id": "appointment-open-brief",
+            "label": "Ver mi lista",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-back",
+            "label": "Volver a Mi cuidado",
+            "kind": "NAVIGATE"
+          }
+        ],
+        "notes": [
+          "Anotar un tema aquí registra una pregunta para el profesional clínico. No es una acción clínica, no cambia ningún registro y no da consejo. Si el paciente menci"
+        ]
+      },
+      "durationMs": 1365
+    },
+    "reschedule_views_es": {
+      "ok": true,
+      "offer": {
+        "viewId": "BARRIER_RESCHEDULE_OFFER",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Cambiar la hora de la cita",
+        "whatThePatientMustDoHere": "Decida si debo buscar otros horarios para esta cita.",
+        "flow": {
+          "id": "RESCHEDULE",
+          "name": "Cambiar la hora de la cita",
+          "step": "OFFER",
+          "stepNumber": 1,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-reschedule-start",
+            "label": "Buscar otros horarios",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "barrier-decline",
+            "label": "No por ahora",
+            "kind": "NAVIGATE"
+          }
+        ]
+      },
+      "slots": {
+        "viewId": "BARRIER_RESCHEDULE_SLOTS",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Cambiar la hora de la cita",
+        "whatThePatientMustDoHere": "Elija un nuevo horario. Elegirlo todavía no cambia la cita.",
+        "flow": {
+          "id": "RESCHEDULE",
+          "name": "Cambiar la hora de la cita",
+          "step": "SLOTS",
+          "stepNumber": 3,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "choices": [
+          {
+            "n": 1,
+            "id": "apt|dr-fresner|1788532200000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "viernes, 4 de septiembre · 10:30 a. m.",
+            "detail": "",
+            "selected": false,
+            "date": "viernes, 4 de septiembre",
+            "time": "10:30 a. m.",
+            "startAt": "2026-09-04T14:30:00.000Z"
+          },
+          {
+            "n": 2,
+            "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "lunes, 7 de septiembre · 10:45 a. m.",
+            "detail": "",
+            "selected": false,
+            "date": "lunes, 7 de septiembre",
+            "time": "10:45 a. m.",
+            "startAt": "2026-09-07T14:45:00.000Z"
+          },
+          {
+            "n": 3,
+            "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "miércoles, 9 de septiembre · 2:45 p. m.",
+            "detail": "",
+            "selected": false,
+            "date": "miércoles, 9 de septiembre",
+            "time": "2:45 p. m.",
+            "startAt": "2026-09-09T18:45:00.000Z"
+          },
+          {
+            "n": 4,
+            "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "jueves, 10 de septiembre · 5:15 a. m.",
+            "detail": "",
+            "selected": false,
+            "date": "jueves, 10 de septiembre",
+            "time": "5:15 a. m.",
+            "startAt": "2026-09-10T09:15:00.000Z"
+          },
+          {
+            "n": 5,
+            "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "lunes, 14 de septiembre · 12:15 p. m.",
+            "detail": "",
+            "selected": false,
+            "date": "lunes, 14 de septiembre",
+            "time": "12:15 p. m.",
+            "startAt": "2026-09-14T16:15:00.000Z"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": true
+      },
+      "selectFirst": {
+        "success": true,
+        "status": "PERFORMED",
+        "performed": {
+          "id": "apt|dr-fresner|1788532200000|30|IN_PERSON|1788480946801|OPEN",
+          "label": "viernes, 4 de septiembre · 10:30 a. m.",
+          "kind": "SELECT"
+        },
+        "currentView": {
+          "viewId": "BARRIER_RESCHEDULE_REVIEW",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Cambiar la hora de la cita",
+          "whatThePatientMustDoHere": "Compare la hora anterior con la nueva. Solo cambia cuando confirme.",
+          "flow": {
+            "id": "RESCHEDULE",
+            "name": "Cambiar la hora de la cita",
+            "step": "REVIEW",
+            "stepNumber": 4,
+            "totalSteps": 6
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "selected": {
+            "id": "apt|dr-fresner|1788532200000|30|IN_PERSON|1788480946801|OPEN",
+            "label": "viernes, 4 de septiembre · 10:30 a. m.",
+            "detail": ""
+          },
+          "alreadyDone": [],
+          "stillPending": [
+            "Hay un nuevo horario elegido pero la cita todavía NO ha cambiado"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-reschedule-confirm",
+              "label": "Confirmar el cambio",
+              "kind": "CONFIRM",
+              "effect": "Esto cambia la cita"
+            }
+          ],
+          "notes": [
+            "Hay un horario seleccionado. La cita todavía NO ha cambiado."
+          ]
+        }
+      },
+      "review": {
+        "viewId": "BARRIER_RESCHEDULE_REVIEW",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Cambiar la hora de la cita",
+        "whatThePatientMustDoHere": "Compare la hora anterior con la nueva. Solo cambia cuando confirme.",
+        "flow": {
+          "id": "RESCHEDULE",
+          "name": "Cambiar la hora de la cita",
+          "step": "REVIEW",
+          "stepNumber": 4,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": {
+          "id": "apt|dr-fresner|1788532200000|30|IN_PERSON|1788480946801|OPEN",
+          "label": "viernes, 4 de septiembre · 10:30 a. m.",
+          "detail": ""
+        },
+        "alreadyDone": [],
+        "stillPending": [
+          "Hay un nuevo horario elegido pero la cita todavía NO ha cambiado"
+        ],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-reschedule-confirm",
+            "label": "Confirmar el cambio",
+            "kind": "CONFIRM",
+            "effect": "Esto cambia la cita"
+          }
+        ],
+        "notes": [
+          "Hay un horario seleccionado. La cita todavía NO ha cambiado."
+        ]
+      },
+      "confirmWithout": {
+        "success": false,
+        "status": "CONFIRMATION_REQUIRED",
+        "actionLabel": "Confirmar el cambio",
+        "effect": "Esto cambia la cita",
+        "note": "Ask the patient to confirm in their own words, then call again with confirmed true."
+      },
+      "durationMs": 3151
+    },
+    "companion_views_es": {
+      "ok": true,
+      "offer": {
+        "viewId": "BARRIER_COMPANION_OFFER",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Pedir a alguien que acompañe a la cita",
+        "whatThePatientMustDoHere": "Diga si hay alguien que normalmente le acompaña.",
+        "flow": {
+          "id": "COMPANION",
+          "name": "Pedir a alguien que acompañe a la cita",
+          "step": "OFFER",
+          "stepNumber": 1,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-companion-answer",
+            "label": "Responder sí o no",
+            "kind": "SELECT"
+          },
+          {
+            "id": "barrier-close",
+            "label": "Volver a mi cita",
+            "kind": "NAVIGATE"
+          }
+        ]
+      },
+      "contacts": {
+        "viewId": "BARRIER_COMPANION_CONTACTS",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Pedir a alguien que acompañe a la cita",
+        "whatThePatientMustDoHere": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+        "flow": {
+          "id": "COMPANION",
+          "name": "Pedir a alguien que acompañe a la cita",
+          "step": "CONTACTS",
+          "stepNumber": 2,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "choices": [
+          {
+            "n": 1,
+            "id": "demo-maria",
+            "label": "Maria",
+            "detail": "Hija",
+            "selected": false,
+            "relationship": "Hija"
+          },
+          {
+            "n": 2,
+            "id": "demo-carlos",
+            "label": "Carlos",
+            "detail": "Hijo",
+            "selected": false,
+            "relationship": "Hijo"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-companion-new",
+            "label": "Otra persona",
+            "kind": "INPUT"
+          }
+        ]
+      },
+      "selectFirst": {
+        "success": true,
+        "status": "PERFORMED",
+        "performed": {
+          "id": "demo-maria",
+          "label": "Maria",
+          "kind": "SELECT"
+        },
+        "currentView": {
+          "viewId": "BARRIER_COMPANION_REVIEW",
+          "screen": "APPOINTMENT_DETAIL",
+          "title": "Pedir a alguien que acompañe a la cita",
+          "whatThePatientMustDoHere": "Revise a quién se le preguntará. El mensaje sale solo cuando lo envíe.",
+          "flow": {
+            "id": "COMPANION",
+            "name": "Pedir a alguien que acompañe a la cita",
+            "step": "REVIEW",
+            "stepNumber": 3,
+            "totalSteps": 6
+          },
+          "onScreen": [
+            {
+              "Doctor": "Dr. Fresner Lee"
+            },
+            {
+              "Fecha": "domingo, 6 de septiembre"
+            },
+            {
+              "Hora": "10:30 a. m."
+            },
+            {
+              "Dónde": "Fresner Medical Group"
+            }
+          ],
+          "selected": {
+            "id": "demo-maria",
+            "label": "Maria",
+            "detail": "Hija"
+          },
+          "alreadyDone": [],
+          "stillPending": [
+            "Maria está elegida pero la invitación todavía NO se ha enviado"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "barrier-companion-send",
+              "label": "Enviar la invitación",
+              "kind": "CONFIRM",
+              "effect": "Esto envía el mensaje"
+            }
+          ]
+        }
+      },
+      "review": {
+        "viewId": "BARRIER_COMPANION_REVIEW",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Pedir a alguien que acompañe a la cita",
+        "whatThePatientMustDoHere": "Revise a quién se le preguntará. El mensaje sale solo cuando lo envíe.",
+        "flow": {
+          "id": "COMPANION",
+          "name": "Pedir a alguien que acompañe a la cita",
+          "step": "REVIEW",
+          "stepNumber": 3,
+          "totalSteps": 6
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": {
+          "id": "demo-maria",
+          "label": "Maria",
+          "detail": "Hija"
+        },
+        "alreadyDone": [],
+        "stillPending": [
+          "Maria está elegida pero la invitación todavía NO se ha enviado"
+        ],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-companion-send",
+            "label": "Enviar la invitación",
+            "kind": "CONFIRM",
+            "effect": "Esto envía el mensaje"
+          }
+        ]
+      },
+      "sendWithout": {
+        "success": false,
+        "status": "CONFIRMATION_REQUIRED",
+        "actionLabel": "Enviar la invitación",
+        "effect": "Esto envía el mensaje",
+        "note": "Ask the patient to confirm in their own words, then call again with confirmed true."
+      },
+      "careCircle": {
+        "ok": true,
+        "result": {
+          "allowed": false,
+          "reason": "PERMISSION_NOT_GRANTED",
+          "members": []
+        }
+      },
+      "durationMs": 1475
+    },
+    "video_visit_views_es": {
+      "ok": true,
+      "offer": {
+        "viewId": "BARRIER_VIDEO_VISIT_OFFER",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Preparar el dispositivo para la visita por video",
+        "whatThePatientMustDoHere": "Decida si debo comprobar que su teléfono está listo para la visita por video.",
+        "flow": {
+          "id": "VIDEO_VISIT",
+          "name": "Preparar el dispositivo para la visita por video",
+          "step": "OFFER",
+          "stepNumber": 1,
+          "totalSteps": 3
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-video-start",
+            "label": "Revisar mi dispositivo",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "barrier-decline",
+            "label": "No por ahora",
+            "kind": "NAVIGATE"
+          }
+        ]
+      },
+      "result": {
+        "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+        "screen": "APPOINTMENT_DETAIL",
+        "title": "Preparar el dispositivo para la visita por video",
+        "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+        "flow": {
+          "id": "VIDEO_VISIT",
+          "name": "Preparar el dispositivo para la visita por video",
+          "step": "ISSUES",
+          "stepNumber": null,
+          "totalSteps": null
+        },
+        "onScreen": [
+          {
+            "Doctor": "Dr. Fresner Lee"
+          },
+          {
+            "Fecha": "domingo, 6 de septiembre"
+          },
+          {
+            "Hora": "10:30 a. m."
+          },
+          {
+            "Dónde": "Fresner Medical Group"
+          }
+        ],
+        "choices": [
+          {
+            "n": 1,
+            "id": "MICROPHONE",
+            "label": "Micrófono",
+            "detail": "Funciona",
+            "selected": false,
+            "passed": "true"
+          },
+          {
+            "n": 2,
+            "id": "CAMERA",
+            "label": "Cámara",
+            "detail": "No pude detectar su cámara.",
+            "selected": false,
+            "passed": "false"
+          },
+          {
+            "n": 3,
+            "id": "CONNECTION",
+            "label": "Conexión a internet",
+            "detail": "Buena conexión",
+            "selected": false,
+            "passed": "true"
+          },
+          {
+            "n": 4,
+            "id": "APPOINTMENT_LINK",
+            "label": "Enlace de la cita",
+            "detail": "Disponible",
+            "selected": false,
+            "passed": "true"
+          }
+        ],
+        "selected": null,
+        "alreadyDone": [
+          "Micrófono: Funciona",
+          "Conexión a internet: Buena conexión",
+          "Enlace de la cita: Disponible"
+        ],
+        "stillPending": [
+          "Cámara: No pude detectar su cámara."
+        ],
+        "youMayPressTheseYourself": true,
+        "availableActions": [
+          {
+            "id": "barrier-video-guide",
+            "label": "Guíeme paso a paso",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "barrier-close",
+            "label": "Volver a mi cita",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "barrier-escalate",
+            "label": "Pedir ayuda al equipo de cuidado",
+            "kind": "CONFIRM",
+            "effect": "Abre una tarea para el equipo de cuidado"
+          }
+        ]
+      },
+      "durationMs": 4022
+    },
+    "enrollment_views_es": {
+      "ok": true,
+      "lang": "es",
+      "screens": {
+        "INVITATION": {
+          "viewId": "SCREEN_INVITATION",
+          "screen": "INVITATION",
+          "title": "Una forma más inteligente de cuidar su salud",
+          "whatThePatientMustDoHere": "Cuidado mediante el modeloACCESS de Medicare",
+          "selected": null,
+          "alreadyDone": [],
+          "stillPending": [],
+          "youMayPressTheseYourself": false,
+          "availableActions": [
+            {
+              "id": "language",
+              "label": "ES",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "repeat-emmi-guidance",
+              "label": "Repetir",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "disable-emmi-guidance",
+              "label": "Desactivar guía por voz",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "next",
+              "label": "Comience su recorrido de cuidado",
+              "kind": "NAVIGATE"
+            }
+          ]
+        },
+        "DECISION_MAKER": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "screen": "DECISION_MAKER",
+          "title": "Le ayudaremos a elegir quién debe completar este proceso.",
+          "whatThePatientMustDoHere": "Elija la opción que le describe: para usted mismo, alguien que le ayuda, o un representante personal autorizado para tomar decisiones médicas.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "back",
+              "label": "Atrás",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "IDENTITY_VERIFICATION": {
+          "viewId": "ENROLLMENT_IDENTITY_VERIFICATION",
+          "screen": "IDENTITY_VERIFICATION",
+          "title": "Esta verificación ayuda a proteger su información.",
+          "whatThePatientMustDoHere": "Ingrese su fecha de nacimiento y su código postal, y luego elija Continuar.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "back",
+              "label": "Atrás",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "CARE_RECOMMENDATION": {
+          "viewId": "ENROLLMENT_CARE_RECOMMENDATION",
+          "screen": "CARE_RECOMMENDATION",
+          "title": "Este es el apoyo disponible entre visitas al médico.",
+          "whatThePatientMustDoHere": "Échele un vistazo y continúe cuando esté listo.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "back",
+              "label": "Atrás",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "ACCESS_PRE_ELIGIBILITY_NOTICE": {
+          "viewId": "ENROLLMENT_ACCESS_PRE_ELIGIBILITY_NOTICE",
+          "screen": "ACCESS_PRE_ELIGIBILITY_NOTICE",
+          "title": "Esta verificación no cambia sus beneficios de Medicare.",
+          "whatThePatientMustDoHere": "Revise el aviso y confirme cuando esté listo para que verifiquemos.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada"
+          ],
+          "stillPending": [],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "back",
+              "label": "Atrás",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "ACCESS_ELIGIBILITY_RESULT": {
+          "viewId": "ENROLLMENT_ACCESS_ELIGIBILITY_RESULT",
+          "screen": "ACCESS_ELIGIBILITY_RESULT",
+          "title": "Ser elegible no significa que ya esté inscrito.",
+          "whatThePatientMustDoHere": "Revise el resultado. Si esta pantalla indica que puede continuar, elija Continuar para revisar la información que necesita antes de decidir si desea inscribirse.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada",
+            "Puede continuar"
+          ],
+          "stillPending": [
+            "Poder continuar NO es estar inscrito: todavía hay una decisión que tomar"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "DISCLOSURE": {
+          "viewId": "ENROLLMENT_ACCESS_ELIGIBILITY_RESULT",
+          "screen": "ACCESS_ELIGIBILITY_RESULT",
+          "title": "Ser elegible no significa que ya esté inscrito.",
+          "whatThePatientMustDoHere": "Revise el resultado. Si esta pantalla indica que puede continuar, elija Continuar para revisar la información que necesita antes de decidir si desea inscribirse.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada",
+            "Puede continuar"
+          ],
+          "stillPending": [
+            "Poder continuar NO es estar inscrito: todavía hay una decisión que tomar"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "CONSENT_REVIEW": {
+          "viewId": "ENROLLMENT_CONSENT_REVIEW",
+          "screen": "CONSENT_REVIEW",
+          "title": "Inscribirse es su decisión. Tómese su tiempo aquí.",
+          "whatThePatientMustDoHere": "Revise la información y, si decide continuar, marque las casillas y siga adelante.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada",
+            "Puede continuar"
+          ],
+          "stillPending": [
+            "Poder continuar NO es estar inscrito: todavía hay una decisión que tomar"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "back",
+              "label": "Atrás",
+              "kind": "NAVIGATE"
+            },
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        },
+        "ENROLLMENT_CONFIRMED": {
+          "viewId": "ENROLLMENT_ENROLLMENT_CONFIRMED",
+          "screen": "ENROLLMENT_CONFIRMED",
+          "title": "¡Felicidades y bienvenido a su cuidado con ITERA! Su inscripción está completa y me alegra acompañarle mientras comienza",
+          "whatThePatientMustDoHere": "El siguiente paso nos ayuda a conocer mejor su salud para poder personalizar su cuidado.",
+          "selected": null,
+          "alreadyDone": [
+            "Su identidad fue verificada",
+            "Puede continuar"
+          ],
+          "stillPending": [
+            "Poder continuar NO es estar inscrito: todavía hay una decisión que tomar"
+          ],
+          "youMayPressTheseYourself": true,
+          "availableActions": [
+            {
+              "id": "help",
+              "label": "Preguntar a EMMI",
+              "kind": "NAVIGATE"
+            }
+          ],
+          "notes": [
+            "Puede explicar el consentimiento, la identidad y la autoridad, pero nunca marcar una casilla, consentir, firmar, inscribir ni atestiguar autoridad por nadie."
+          ]
+        }
+      },
+      "systemContextChars": 7696,
+      "systemContextKeys": [
+        "patientId",
+        "firstName",
+        "lastName",
+        "dob",
+        "zip",
+        "phone",
+        "locale",
+        "program",
+        "accessTrack",
+        "condition",
+        "enrollmentSource",
+        "physicianDisplayName",
+        "completionRole",
+        "careCircle",
+        "eligibilityStatus",
+        "enrollmentStatus",
+        "assignedDeviceId",
+        "deviceStatus",
+        "integrationStatus",
+        "bpBaselineStatus",
+        "secondaryCoverageStatus",
+        "sessionId",
+        "languageName",
+        "speechLanguage",
+        "modelLanguageInstruction",
+        "nextBestAction",
+        "referralOrigin",
+        "currentStage",
+        "currentScreen",
+        "routeScreen",
+        "currentConditions",
+        "canContinue",
+        "enrollmentComplete",
+        "bpBaselineRequiredReadings",
+        "bpBaselineReadingCount",
+        "bpBaselineRemainingReadings",
+        "deviceVerificationStatus",
+        "firstTransmissionVerified",
+        "deviceFulfillmentStatus",
+        "deviceFulfillmentRequestedAt",
+        "deviceShipmentStatus",
+        "deviceDeliveryDate",
+        "careCircleStatus",
+        "supportRole",
+        "completedByRepresentative",
+        "careTeam",
+        "supportPersonName",
+        "supportInviteStatus",
+        "deviceScenario",
+        "goalFlowStep",
+        "patientGoals",
+        "appointmentPrep",
+        "appointmentSupport",
+        "accessGoalBaselines",
+        "activeGoal",
+        "medications",
+        "view",
+        "emmiConversation"
+      ],
+      "durationMs": 33905
+    },
+    "my_care_and_goals_es": {
+      "ok": true,
+      "myCare": {
+        "viewId": "SCREEN_MY_CARE",
+        "screen": "MY_CARE",
+        "title": "Mi cuidado",
+        "whatThePatientMustDoHere": "Su inscripción está completa. Continúe cuando esté listo.",
+        "selected": null,
+        "alreadyDone": [],
+        "stillPending": [],
+        "youMayPressTheseYourself": false,
+        "availableActions": [
+          {
+            "id": "help",
+            "label": "Preguntar a EMMI",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "open-emmi-voice-options",
+            "label": "Opciones de voz",
+            "kind": "SELECT"
+          },
+          {
+            "id": "resume-next-flow",
+            "label": "Continuar configurando su cuidado",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-open",
+            "label": "Ver la cita",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-open-brief",
+            "label": "Ver mi lista",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-open-list",
+            "label": "Ver todas las citas",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "appointment-ask-emmi",
+            "label": "Preguntar a EMMI",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "open-my-care-team",
+            "label": "Mi equipo de cuidadoVea quién está apoyando su cuidado›",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "open-my-goals",
+            "label": "Mis metasElija lo que le importa›",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "open-my-medications",
+            "label": "Mis medicamentosNada registrado todavía›",
+            "kind": "NAVIGATE"
+          },
+          {
+            "id": "open-my-care-circle",
+            "label": "Mi Círculo de cuidadoInvite o administre a alguien de confianza›",
+            "kind": "NAVIGATE"
+          }
+        ]
+      },
+      "goalsTool": {
+        "ok": true,
+        "result": {
+          "goals": [],
+          "activeGoal": null
+        }
+      },
+      "careTeam": {
+        "ok": true,
+        "result": {
+          "physicianDisplayName": "Dr. Fresner Lee",
+          "enrollmentSource": "Physician Referral",
+          "members": [
+            {
+              "id": "dr-fresner",
+              "displayName": "Dr. Fresner Lee",
+              "professionalType": "PRIMARY_CARE",
+              "specialty": "Primary Care",
+              "practiceName": "Fresner Medical Group",
+              "photoUrl": "/assets/doctor-portrait-v2.png",
+              "source": "REFERRING_PROVIDER",
+              "verified": true,
+              "roleLabel": "Médico de atención primaria"
+            },
+            {
+              "id": "itera-care-manager",
+              "displayName": "Alicia Ramírez, RN",
+              "professionalType": "CARE_MANAGER",
+              "specialty": "",
+              "practiceName": "ITERA HEALTH",
+              "photoUrl": "/images/Care%20Team/care-manager-alicia-v2.png",
+              "source": "PROGRAM",
+              "verified": true,
+              "roleLabel": "Coordinador de cuidado"
+            },
+            {
+              "id": "dr-martinez-cardiology",
+              "displayName": "Dr. Pedro Martinez-Clark",
+              "professionalType": "SPECIALIST",
+              "specialty": "Cardiology",
+              "practiceName": "Coral Gables Cardiology",
+              "photoUrl": "/images/Care%20Team/Martinez-Clark-Pedro.jpg",
+              "source": "CARE_RECORD",
+              "verified": false,
+              "roleLabel": "Cardiólogo"
+            }
+          ]
+        }
+      },
+      "upcoming": {
+        "ok": true,
+        "result": {
+          "appointments": [
+            {
+              "id": "appt-1",
+              "patientStatus": "Cita confirmada",
+              "nextStep": "",
+              "providerDisplayName": "Dr. Fresner Lee",
+              "specialty": "",
+              "scheduledAt": "2026-09-06T14:30:00.000Z",
+              "modality": "IN_PERSON"
+            }
+          ],
+          "requests": []
+        }
+      },
+      "next": {
+        "ok": true,
+        "result": {
+          "label": "Continuar",
+          "route": "INVITATION",
+          "actionType": "CONTINUE_CURRENT_JOURNEY"
+        }
+      },
+      "systemContextChars": 8072,
+      "chat": [
+        {
+          "question": "¿Qué hago ahora?",
+          "answer": "EMMI\n\nEMMI no es un servicio de emergencias. Si usted está teniendo una emergencia médica, llame al 911 o busque atención de emergencia ahora mismo; no espere una respuesta aquí ni use esta aplicación en lugar de conseguir ayuda. Cuando usted describe síntomas urgentes, EMMI aplica reglas de seguridad fijas y le da esa instrucción — no decide por su cuenta qué tan grave es lo que usted tiene.",
+          "latencyMs": 769
+        },
+        {
+          "question": "No tengo cómo llegar a la cita",
+          "answer": "EMMI\n\nNo tengo suficiente información aprobada para responder eso con seguridad. Puedo ayudarle a comunicarse con su equipo de atención.",
+          "latencyMs": 731
+        },
+        {
+          "question": "Quiero cambiar mi cita al jueves",
+          "answer": "EMMI\n\nCambiemos su cita con Dr. Fresner Lee. Le mostraré los horarios realmente disponibles, y nada cambia hasta que elija uno y lo confirme.\n\nCambiar esta cita",
+          "latencyMs": 740
+        },
+        {
+          "question": "Mejor no quiero cambiarla",
+          "answer": "EMMI\n\nCambiemos su cita con Dr. Fresner Lee. Le mostraré los horarios realmente disponibles, y nada cambia hasta que elija uno y lo confirme.\n\nCambiar esta cita",
+          "latencyMs": 1227
+        },
+        {
+          "question": "También tengo dolor fuerte en el pecho ahora",
+          "answer": "EMMI\n\nEsto puede requerir atención médica urgente. Llame al 911 o busque atención de emergencia ahora.\n\nLlamar al 911",
+          "latencyMs": 734
+        }
+      ],
+      "durationMs": 5496
+    }
+  },
+  "consoleIssues": [
+    "warning: [EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: INVITATION}",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "warning: [EMMI_RESPONSE_GENERATION_FAILED] {turnId: emmi_turn_mtm64eci, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: ¿Qué hago aquí?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64exb, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: ¿Qué opciones tengo?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64fhz, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: ¿Cuál tiene más espacio?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64gg1, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: ¿Cuál es la más barata?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64he0, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: Pon la primera, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64icf, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: ¿Ya está reservado?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64l74, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: No entendí, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm64m58, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: APPOINTMENT_DETAIL, retrievalQuery: Repítemelo, intent: OTHER}",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "warning: [EMMI_RESPONSE_GENERATION_FAILED] {turnId: emmi_turn_mtm66gvr, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: MY_CARE, retrievalQuery: ¿Qué hago ahora?, intent: OTHER}",
+    "warning: [EMMI_EMPTY_GROUNDED_CONTEXT] {turnId: emmi_turn_mtm66hh6, conversationSessionId: emmi_conversation_mtm648wr_ozr6bc, screenId: MY_CARE, retrievalQuery: No tengo cómo llegar a la cita, intent: OTHER}"
+  ],
+  "finishedAt": "2026-09-03T23:45:53.761Z",
+  "rerunAt": "2026-09-03T23:45:44.689Z"
+}

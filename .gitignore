@@ -8,3 +8,4 @@ e2e-full.log
 enr.log
 enr2.log
 .vercel
+.cache/

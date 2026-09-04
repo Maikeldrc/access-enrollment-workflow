@@ -1,3 +1,5 @@
+import { EMMI_END_OF_SPEECH_SILENCE_MS } from "./voiceTurnConfig.js";
+
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 
 // The provider VAD remains authoritative. This lightweight local detector exists only to
@@ -13,7 +15,8 @@ export class EmmiBargeInManager {
     startFrames = 3,
     minimumOutputStartRms = 0.045,
     outputStartFrames = 3,
-    silenceDurationMs = 750
+    // The same window the provider is locked to, so the local end-of-speech never runs ahead of it.
+    silenceDurationMs = EMMI_END_OF_SPEECH_SILENCE_MS
   } = {}) {
     this.onSpeechStart = onSpeechStart;
     this.onSpeechEnd = onSpeechEnd;

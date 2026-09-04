@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_GUIDANCE_START_TIMEOUT_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
+import { EMMI_AUDIO_PIPELINE_VERSION, EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_LATE_TRANSCRIPT_GRACE_MS, EMMI_GUIDANCE_START_TIMEOUT_MS, EMMI_MIC_FRAME_SIZE, EMMI_PROVIDER_SAMPLE_RATE, EmmiLiveClient, pcm16, resample, supportsAudioWorklet } from "../src/emmi/liveClient.js";
 
 // The worklet runs on the audio thread and cannot be imported here, so its accumulator is
 // reproduced exactly: this is the part of the migration that decides the packet cadence.
@@ -34,7 +34,8 @@ describe("EMMI audio pipeline", () => {
     expect(EMMI_PROVIDER_SAMPLE_RATE).toBe(16000);
     expect(EMMI_MIC_FRAME_SIZE).toBe(1024);
     expect(EMMI_AUDIO_PIPELINE_VERSION).toBe("emmi-audio-v4");
-    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(750);
+    // One number for the provider (locked by the token), the client and the local detector.
+    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
     expect(EMMI_GUIDANCE_START_TIMEOUT_MS).toBe(3500);
   });
 
@@ -497,17 +498,21 @@ describe("EMMI audio pipeline", () => {
     expect(client.state).toBe("EMMI_THINKING");
   });
 
-  it("speaks a safe recovery when a barge-in produces no transcript", () => {
+  it("asks for a repeat in EMMI's own voice when a barge-in produces no transcript, without mentioning 911 the first time", async () => {
     vi.useFakeTimers();
     const states = [];
     const telemetry = [];
+    const transcripts = [];
     const client = new EmmiLiveClient({
       getContext: () => ({ locale: "EN" }),
       onState: (state, detail) => states.push({ state, detail }),
+      onTranscript: (role, text) => transcripts.push({ role, text }),
       onVoiceTelemetry: type => telemetry.push(type),
       transcriptWaitTimeoutMs: 50
     });
-    client.session = { sendClientContent: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn() };
+    client.requestNarrationAudio = vi.fn().mockImplementation(async (text, locale, signal, onChunk) => { onChunk("AQIDBA=="); return { data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" }; });
+    client.playAudio = vi.fn((data, turn) => { turn.firstAudioReceivedAt = performance.now(); return true; });
     client.awaitingPatientResponse = true;
     client.state = "USER_SPEAKING";
 
@@ -515,11 +520,24 @@ describe("EMMI audio pipeline", () => {
     vi.advanceTimersByTime(50);
 
     expect(client.awaitingPatientResponse).toBe(false);
-    expect(states.at(-1).state).toBe("EMMI_THINKING");
-    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
-      turns: expect.stringContaining("If this may be a medical emergency, call 911 now")
-    }));
+    // Nothing goes to the model: the recovery is spoken through the narration route.
+    expect(client.session.sendClientContent).not.toHaveBeenCalled();
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith("Sorry, I didn't catch that. Could you say it again?", "EN", expect.any(AbortSignal), expect.any(Function));
     expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
+    expect(telemetry).toContain("EMMI_LOCAL_NOTICE");
+    vi.useRealTimers();
+    await vi.waitFor(() => expect(client.state).toBe("LISTENING"));
+    expect(transcripts).toEqual([{ role: "assistant", text: "Sorry, I didn't catch that. Could you say it again?" }]);
+    expect(client.activeTurn).toBeNull();
+
+    // The second miss in a row is the one that reminds the patient about emergencies.
+    vi.useFakeTimers();
+    client.awaitingPatientResponse = true;
+    client.state = "USER_SPEAKING";
+    client.handlePatientSpeechEnd({ source: "local_vad", durationMs: 400 });
+    vi.advanceTimersByTime(50);
+    expect(client.requestNarrationAudio).toHaveBeenLastCalledWith(expect.stringContaining("call 911"), "EN", expect.any(AbortSignal), expect.any(Function));
     vi.useRealTimers();
   });
 
@@ -583,7 +601,7 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED");
   });
 
-  it("tracks ordinary speech while listening and asks safely for a repeat if ASR returns no transcript", () => {
+  it("tracks ordinary speech while listening and asks for a repeat in Spanish if ASR returns no transcript", () => {
     vi.useFakeTimers();
     const states = [];
     const telemetry = [];
@@ -593,7 +611,8 @@ describe("EMMI audio pipeline", () => {
       onVoiceTelemetry: type => telemetry.push(type),
       transcriptWaitTimeoutMs: 50
     });
-    client.session = { sendClientContent: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn() };
+    client.requestNarrationAudio = vi.fn().mockImplementation(() => new Promise(() => {}));
     client.state = "LISTENING";
 
     expect(client.handlePatientSpeechStart({ source: "local_vad", detectedAt: 10 })).toBe(false);
@@ -604,33 +623,47 @@ describe("EMMI audio pipeline", () => {
 
     expect(client.awaitingPatientResponse).toBe(false);
     expect(states.at(-1).state).toBe("EMMI_THINKING");
-    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
-      turns: expect.stringContaining("Please say it again")
-    }));
+    expect(client.session.sendClientContent).not.toHaveBeenCalled();
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith("Perdón, no le entendí bien. ¿Me lo puede repetir?", "ES", expect.any(AbortSignal), expect.any(Function));
+    expect(client.activeTurn).toMatchObject({ priority: "LOCAL_NOTICE", localNotice: true });
     expect(telemetry).toContain("EMMI_MISSING_TRANSCRIPT_RECOVERED");
     vi.useRealTimers();
   });
 
-  it("turns a stalled provider turn into a recoverable timeout instead of permanent Thinking", () => {
+  it("releases a stalled provider turn, apologises in EMMI's own voice and keeps the session", async () => {
     vi.useFakeTimers();
     const errors = [];
     const states = [];
     const telemetry = [];
     const client = new EmmiLiveClient({
-      getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      getContext: () => ({ locale: "ES", currentScreen: "INVITATION" }),
       onError: code => errors.push(code),
       onState: state => states.push(state),
       onVoiceTelemetry: type => telemetry.push(type),
       turnStallTimeoutMs: 75
     });
-    client.session = { sendClientContent: vi.fn(), close: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn(), close: vi.fn() };
+    client.requestNarrationAudio = vi.fn().mockImplementation(async (text, locale, signal, onChunk) => { onChunk("AQIDBA=="); return { data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" }; });
+    client.playAudio = vi.fn((data, turn) => { turn.firstAudioReceivedAt = performance.now(); return true; });
 
     expect(client.sendText("Explain ACCESS", { id: "welcome" })).toBe(true);
     vi.advanceTimersByTime(75);
 
-    expect(errors).toEqual(["VOICE_RESPONSE_TIMEOUT"]);
+    // First stall: the turn is released, the patient hears an apology, the socket stays open.
+    expect(errors).toEqual([]);
     expect(telemetry).toContain("EMMI_VOICE_TURN_TIMEOUT");
-    expect(client.activeTurn).toBeNull();
+    expect(telemetry).toContain("EMMI_VOICE_TURN_RELEASED");
+    expect(client.session).not.toBeNull();
+    expect(client.session.close).not.toHaveBeenCalled();
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith("Perdón, me tardé demasiado. ¿Me lo repite?", "ES", expect.any(AbortSignal), expect.any(Function));
+    vi.useRealTimers();
+    await vi.waitFor(() => expect(client.state).toBe("LISTENING"));
+
+    // A second stall in a row is a dead socket: the old behaviour applies.
+    vi.useFakeTimers();
+    expect(client.sendText("Explain ACCESS again", { id: "welcome-2" })).toBe(true);
+    vi.advanceTimersByTime(75);
+    expect(errors).toEqual(["VOICE_RESPONSE_TIMEOUT"]);
     expect(states.at(-1)).toBe("DISCONNECTED");
     vi.useRealTimers();
   });
@@ -744,21 +777,28 @@ describe("EMMI audio pipeline", () => {
     expect(telemetry).toContain("EMMI_DUPLICATE_PROVIDER_INTERRUPTION_IGNORED");
   });
 
-  it("asks for clarification when ASR reports an unexpected language", async () => {
+  it("treats speech in another supported language as a language signal, never as an unusable transcript", async () => {
     const telemetry = [];
+    const transcripts = [];
     const client = new EmmiLiveClient({
       getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, metadata }),
       onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
     });
-    client.session = { sendClientContent: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn() };
 
     await client.handleMessage({ serverContent: { inputTranscription: { text: "Necesito ayuda con mi presión y mi médico." } } });
 
-    expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
-    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
-      turns: expect.stringContaining("TRUSTED ASR SAFETY OVERRIDE"),
-      turnComplete: false
-    }));
+    expect(telemetry).not.toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
+    expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_LANGUAGE_SIGNAL", details: expect.objectContaining({ detectedLanguage: "es" }) }));
+    expect(transcripts).toContainEqual(expect.objectContaining({ role: "user", metadata: expect.objectContaining({ transcriptReliability: "RELIABLE", languageSwitchCandidate: "es" }) }));
+    // Nothing is appended to the model's turn: the answer is allowed to play.
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    expect(client.session.sendClientContent).not.toHaveBeenCalled();
+    expect(client.activeTurn.unreliableInput).toBeUndefined();
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "Prefiero hablar en español, por favor." } } });
+    expect(transcripts.at(-1).metadata).toMatchObject({ languageRequest: "es" });
   });
 
   it("marks a low-information interruption fragment so the UI cannot treat it as patient intent", async () => {
@@ -769,7 +809,7 @@ describe("EMMI audio pipeline", () => {
       onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, final, metadata }),
       onVoiceTelemetry: (type, details) => telemetry.push({ type, details })
     });
-    client.session = { sendClientContent: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn() };
     client.currentInterruption = { source: "local_vad", previousGenerationId: 3 };
 
     await client.handleMessage({ serverContent: { inputTranscription: { text: "ball" } } });
@@ -783,28 +823,33 @@ describe("EMMI audio pipeline", () => {
       })
     }));
     expect(telemetry).toContainEqual(expect.objectContaining({ type: "EMMI_ASR_CLARIFICATION_REQUIRED" }));
-    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
-      turns: expect.stringContaining("Please say it again"),
-      turnComplete: false
-    }));
+    expect(client.activeTurn.unreliableInput).toBe(true);
   });
 
-  it("suppresses answers and tool execution for an unreliable ordinary voice fragment", async () => {
+  it("suppresses answers and tool execution only for a transcript in a script EMMI does not speak, then asks again in her own voice", async () => {
     const transcripts = [];
     const executeTool = vi.fn();
     const client = new EmmiLiveClient({
       getContext: () => ({ locale: "EN", currentScreen: "INVITATION" }),
       executeTool,
-      onTranscript: (role, text) => transcripts.push({ role, text })
+      onTranscript: (role, text, final, metadata) => transcripts.push({ role, text, metadata })
     });
-    client.session = { sendClientContent: vi.fn(), sendToolResponse: vi.fn() };
+    client.session = { sendClientContent: vi.fn(), sendRealtimeInput: vi.fn(), sendToolResponse: vi.fn() };
+    client.requestNarrationAudio = vi.fn().mockImplementation(() => new Promise(() => {}));
 
+    // An ordinary low-evidence fragment is patient speech and is answered.
     await client.handleMessage({ serverContent: { inputTranscription: { text: "Chinese small lantern" } } });
+    expect(client.activeTurn.unreliableInput).toBeUndefined();
+    expect(transcripts.at(-1).metadata).toMatchObject({ transcriptReliability: "RELIABLE", transcriptConfidence: "LOW" });
+    client.activeTurn = null;
+    client.activeAudioGenerationId = 0;
+
+    await client.handleMessage({ serverContent: { inputTranscription: { text: "喂，艾米。" } } });
     await client.handleMessage({ serverContent: { outputTranscription: { text: "Participation is voluntary." } } });
     await client.handleMessage({ toolCall: { functionCalls: [{ id: "unsafe", name: "startRefillReview", args: { medicationId: "this program" } }] } });
 
     expect(client.activeTurn.unreliableInput).toBe(true);
-    expect(transcripts).toEqual([expect.objectContaining({ role: "user", text: "Chinese small lantern" })]);
+    expect(transcripts.at(-1).metadata).toMatchObject({ transcriptReliability: "CLARIFICATION_REQUIRED", transcriptReliabilityReason: "unsupported_script" });
     expect(executeTool).not.toHaveBeenCalled();
     expect(client.session.sendToolResponse).toHaveBeenCalledWith({
       functionResponses: [expect.objectContaining({ response: { error: "unreliable_voice_input" } })]
@@ -812,10 +857,57 @@ describe("EMMI audio pipeline", () => {
 
     await client.handleMessage({ serverContent: { turnComplete: true } });
 
-    expect(client.session.sendClientContent).toHaveBeenCalledWith(expect.objectContaining({
-      turns: expect.stringContaining("Please say it again"),
-      turnComplete: true
-    }));
-    expect(client.activeTurn.priority).toBe("CRITICAL_SAFETY");
+    // The suppressed answer is replaced by EMMI's own spoken request to repeat, not by a model turn.
+    expect(client.session.sendClientContent).not.toHaveBeenCalled();
+    expect(client.session.sendRealtimeInput).not.toHaveBeenCalled();
+    expect(client.requestNarrationAudio).toHaveBeenCalledWith("Sorry, I didn't catch that. Could you say it again?", "EN", expect.any(AbortSignal), expect.any(Function));
+    expect(client.activeTurn).toMatchObject({ priority: "LOCAL_NOTICE" });
+  });
+
+});
+
+describe("EMMI end of speech while a response is awaited", () => {
+  it("keeps the local detector running so a turn the provider never transcribes still ends with a notice", async () => {
+    vi.useFakeTimers();
+    const states = [];
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "ES" }), onState: state => states.push(state) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.inputContext = { sampleRate: 16000 };
+    client.state = "USER_SPEAKING";
+    client.awaitingPatientResponse = true;
+    client.bargeIn.speechActive = true;
+    client.transcriptWaitTimeoutMs = 5000;
+    client.requestNarrationAudio = vi.fn().mockImplementation(async (text, locale, signal, onChunk) => { onChunk("AQIDBA=="); return { data: "AQIDBA==", mimeType: "audio/pcm;rate=24000" }; });
+    client.playAudio = vi.fn((data, turn) => { turn.firstAudioReceivedAt = performance.now(); client.sources.set({ stop: vi.fn() }, { metadata: turn }); return true; });
+    const observe = vi.spyOn(client.bargeIn, "observeFrame").mockImplementation(() => { client.bargeIn.speechActive = false; client.bargeIn.onSpeechEnd({ source: "local_vad", detectedAt: performance.now(), durationMs: 900 }); return "SPEECH_ENDED"; });
+    client.handleMicFrame(new Float32Array(1024));
+    expect(client.session.sendRealtimeInput).toHaveBeenCalled();
+    expect(observe).toHaveBeenCalledWith(expect.objectContaining({ outputActive: false }));
+    // Local end of speech: visible thinking state and a bounded wait for the transcript.
+    expect(client.state).toBe("EMMI_THINKING");
+    expect(client.patientTranscriptTimer).toBeTruthy();
+    vi.advanceTimersByTime(5000);
+    await vi.waitFor(() => expect(client.requestNarrationAudio).toHaveBeenCalledWith("Perdón, no le entendí bien. ¿Me lo puede repetir?", "ES", expect.any(AbortSignal), expect.any(Function)));
+    expect(client.awaitingPatientResponse).toBe(false);
+    vi.useRealTimers();
+  });
+});
+
+describe("EMMI late output transcript", () => {
+  it("joins a transcript piece that arrives after the reply drained to that reply, and drops it once the patient speaks", () => {
+    const transcripts = [];
+    const client = new EmmiLiveClient({ getContext: () => ({ locale: "ES", currentScreen: "MY_CARE" }), onTranscript: (role, text, final, turn) => transcripts.push({ role, text, generationId: turn?.generationId, voiceComplete: turn?.voiceComplete }) });
+    client.session = { sendRealtimeInput: vi.fn() };
+    client.state = "LISTENING";
+    client.recentTurn = { id: "reply", generationId: 7, priority: "PATIENT_RESPONSE", completedAt: performance.now() - 900 };
+    client.handleMessage({ serverContent: { outputTranscription: { text: "equipo." } } });
+    expect(transcripts).toEqual([{ role: "assistant", text: "equipo.", generationId: 7, voiceComplete: true }]);
+    client.recentTurn = { id: "reply", generationId: 7, priority: "PATIENT_RESPONSE", completedAt: performance.now() - EMMI_LATE_TRANSCRIPT_GRACE_MS - 1 };
+    client.handleMessage({ serverContent: { outputTranscription: { text: "too late" } } });
+    expect(transcripts).toHaveLength(1);
+    client.recentTurn = { id: "reply", generationId: 7, priority: "PATIENT_RESPONSE", completedAt: performance.now() };
+    client.handlePatientSpeechStart({ source: "local_vad", detectedAt: performance.now() });
+    client.handleMessage({ serverContent: { outputTranscription: { text: "after the patient started" } } });
+    expect(transcripts).toHaveLength(1);
   });
 });

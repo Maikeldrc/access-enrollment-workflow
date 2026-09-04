@@ -4,6 +4,7 @@ import { defineConfig, loadEnv } from "vite";
 import { handleEmmiLiveToken } from "./server/emmiLiveToken.js";
 import { handleEmmiKnowledge } from "./server/emmiKnowledge.js";
 import { handleEmmiChat } from "./server/emmiChat.js";
+import { handleEmmiTts } from "./server/emmiTts.js";
 
 const asBoolean = (value, fallback) => value == null ? fallback : String(value).toLowerCase() === "true";
 
@@ -24,6 +25,7 @@ export default defineConfig(({ mode }) => {
     enableText: asBoolean(env.EMMI_ENABLE_TEXT, true),
     enableTools: asBoolean(env.EMMI_ENABLE_TOOLS, true),
     sessionMaxMinutes: Math.max(1, Math.min(12, Number(env.EMMI_SESSION_MAX_MINUTES) || 12)),
+    voiceContextOnSpeechStart: asBoolean(env.EMMI_VOICE_CONTEXT_ON_SPEECH_START, false),
     model: env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview"
   };
   return {
@@ -36,6 +38,10 @@ export default defineConfig(({ mode }) => {
         // Knowledge retrieval stays server side: the Markdown is never bundled or served statically.
         server.middlewares.use("/api/emmi/knowledge", (req, res) => handleEmmiKnowledge(req, res));
         server.middlewares.use("/api/emmi/chat", (req, res) => handleEmmiChat(req, res, env));
+        // Screen narration. Without this the route only exists as a Vercel function, so every
+        // narration and every spoken app notice 404s in development and falls back to the browser
+        // voice — which is not what a patient hears in production.
+        server.middlewares.use("/api/emmi/tts", (req, res) => handleEmmiTts(req, res, env));
       }
     }]
   };
