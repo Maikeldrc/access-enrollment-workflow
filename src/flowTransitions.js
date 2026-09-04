@@ -123,16 +123,32 @@ export function resolveGettingStartedEntryRoute({ pathway, journey = [], savedRe
 // Care setup is a resumable checklist, so its next route comes from the answers that were actually
 // saved rather than from the last screen the patient happened to visit. This also keeps the My Care
 // CTA from reopening an earlier activation step after the patient has already reached the checklist.
+// Where "continue setting up your care" goes, and it is two different places on purpose.
+//
+// The button already says which situation the patient is in — "Continue setting up your care"
+// before they have started, "Continue where you left off" once they have — and the destination now
+// follows the label. Somebody returning after days who never started sees the checklist: what is
+// done, what is left, and how much of it there is. Somebody mid-way is put back to work, because
+// they know where they were and a hub is a tap between them and it.
+//
+// The hub only exists on the journeys that have one. ACCESS has no ONBOARDING screen, so there is
+// nothing to send an ACCESS patient back to and they always resume at the next section.
 export function resolveCareSetupResumeRoute({
   pathway = "",
   medicationsReviewStatus = "NOT_STARTED",
   carePreferencesStatus = "NOT_STARTED",
-  goalsStatus = "NOT_STARTED"
+  goalsStatus = "NOT_STARTED",
+  flowStatus = "",
+  hasSetupHub = false
 } = {}) {
   if (pathway === "ACCESS") return medicationsReviewStatus === "COMPLETED" ? "ONBOARDING_COMPLETE" : "MEDICATIONS_REVIEW";
-  return [
+  const nextSection = [
     [medicationsReviewStatus, "MEDICATIONS_REVIEW"],
     [carePreferencesStatus, "CARE_PREFERENCES"],
     [goalsStatus, "GOALS"]
   ].find(([status]) => status !== "COMPLETED")?.[1] || "ONBOARDING_COMPLETE";
+  // Nothing left to do outranks everything: a finished setup goes to its own completion screen,
+  // never back to a checklist of ticks.
+  if (nextSection === "ONBOARDING_COMPLETE") return nextSection;
+  return hasSetupHub && flowStatus !== FLOW_STATUS.IN_PROGRESS ? "ONBOARDING" : nextSection;
 }

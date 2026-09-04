@@ -127,6 +127,13 @@ export function journeyFor(s) {
 }
 export function progressFor(s) {
   const journey = journeyFor(s);
+  // The goals screens are shared: enrollment walks through them once, and a patient who taps "add
+  // another goal" months later walks through them again. Only the origin tells the two apart, and
+  // without it the second one puts "Getting started" above the head of somebody who finished
+  // getting started long ago — and a progress bar counting them back through enrollment.
+  if (s.screen === "GOALS" && s.goalFlowOrigin === "MY_GOALS") {
+    return { stage: "YOUR_CARE", label: PROGRESS_STAGE_LABELS.YOUR_CARE, current: 1, total: 1, percent: 100 };
+  }
   if (s.screen === "ENROLLMENT_CONFIRMED") {
     const stage = PROGRESS_STAGE_BY_SCREEN[s.screen];
     return { stage, label: PROGRESS_STAGE_LABELS[stage], current: 1, total: 1, percent: 100 };

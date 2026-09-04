@@ -175,3 +175,55 @@ now says so explicitly rather than letting the model fill the gap.
 | Whether a patient with only Part A, or only Part B, qualifies | C03, C04 | Medicare states the requirement as "Original Medicare" and publishes no rule for a partial holding. |
 | What to bring to a visit, arrival time, lateness | L08, L12, L13 | Practice-level, not model-level. |
 | How the EMMI conversation itself is stored, and who can read it back | F03, F04, PH16 | ITERA data-handling policy; not established anywhere in the product. |
+
+---
+
+## 11. Follow-up research, 2026-09-02 — the three items left to CMS
+
+Requested after nine of the twelve internal policies were settled. Fetching CMS PDFs directly is
+blocked (403 to automated clients, and the ACCESS RFA serves as a download rather than a page), so
+these were read in a browser from the primary pages themselves.
+
+### The three published reasons a person may not be able to use ACCESS
+
+**Confirmed, verbatim:** *"You don't meet the eligibility requirements for the condition you want
+support for."* / *"You're in a Medicare Advantage Plan."* / *"You're part of a small, randomly
+selected, control group … If you're randomly assigned to this group, you won't be able to use this
+care option for 12 months."*
+**Source:** Medicare.gov, "Support for chronic health conditions" (ACCESS), accessed 2026-09-02.
+
+### 8. Hospice, nursing home, assisted living — STILL UNCONFIRMED
+
+Not among the three published reasons, and absence from a list is not permission.
+
+**A correction worth recording:** a search index summarised the ACCESS RFA as excluding beneficiaries
+in PACE or the Medicare hospice benefit. A second search showed that exclusion belongs to the **GUIDE**
+model, not ACCESS. It was very nearly carried into the knowledge base as an ACCESS fact. It is not
+one, and it is not stated anywhere in this product.
+
+**Still needs:** the ACCESS RFA read directly, or confirmation from CMS. EMMI continues to say it
+cannot confirm and offers the care team.
+
+### 9. Part A only, or Part A and Part B — STILL UNCONFIRMED
+
+Medicare.gov states the requirement as *"Anyone with Original Medicare who has one or more of these
+conditions"* and publishes no rule for a partial holding. Original Medicare is Part A and Part B
+together (finding 10 above). EMMI states that, and offers to check the patient's own coverage
+instead of ruling them out — which is as far as the published material goes.
+
+### 10. Re-joining after declining — CONFIRMED, and now shipped
+
+**Confirmed:** sign-up is *"you'll contact them directly to sign up. You can sign up with a care
+organization yourself, without a referral."* Participation is not locked: *"you don't have to keep
+using this care option. You can cancel or switch organizations after your first 90 days."* The
+official worked example shows the same person signing up later for a second condition.
+**Source:** Medicare.gov, "Support for chronic health conditions" (ACCESS), accessed 2026-09-02.
+**KB change:** `programs/access-eligibility.md`, all three languages.
+
+### Bonus confirmation for the device decision
+
+**Confirmed:** *"As part of your care, a vendor may give or loan you medical equipment related to your
+condition (like a blood pressure monitor…). You may need to return the items later, but you won't
+have to pay to use them."* ITERA's choice of the loan basis is consistent with Medicare's own
+patient-facing wording.
+**Source:** Medicare.gov, "Support for chronic health conditions" (ACCESS), accessed 2026-09-02.

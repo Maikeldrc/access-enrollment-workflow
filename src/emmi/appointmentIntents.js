@@ -220,6 +220,13 @@ const CONTEXTUAL_STATUS = [
 const CONTEXTUAL_RESCHEDULE = [
   /\b(can i |could i |i want to |i need to )?(move|change|reschedule|push|shift) it\b/i,
   /\b(another|a different) (time|day)\b/i,
+  // "I also need to change the time" names no appointment, so it reads as a reschedule only while
+  // one is already in context. Outside that it stays ambiguous — and the reading and clinical
+  // guards at the top of the classifier still take precedence over all of this, so "change the time
+  // of my readings" never reaches here.
+  /\b(move|change|reschedule|push|shift)\s+(the|my)\s+(time|hour|day|date|slot)\b/i,
+  /\bcambiar\s+(la|mi)\s+(hora|fecha)\b/i,
+  /\bchanje\s+(l[eè]|jou)\s+(a|an)\b/i,
   /\b(puedo )?(mover|cambiar|reprogramar)la\b/i,
   /\botra (hora|fecha)\b/i,
   /\b(ka m )?(chanje|deplase) li\b/i

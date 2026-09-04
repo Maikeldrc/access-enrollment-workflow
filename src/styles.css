@@ -669,8 +669,86 @@ p { margin:0; }
 .goal-manage>div { display:grid;gap:8px;padding:0 0 14px; }
 .goal-manage button { min-height:48px;padding:10px 12px;border:1px solid var(--border-default);border-radius:12px;color:var(--primary-700);background:var(--surface-primary);font:inherit;font-size:16px;font-weight:700;text-align:left;cursor:pointer; }
 
+/* Adding a goal: a chooser, not another list of finished goals. Each row is a full-width target
+   and the type never shrinks, because this screen is reached most often by the patients who found
+   the smallest tap hardest. */
+.goal-choice-list { display:grid;gap:10px;width:100%; }
+.goal-choice-card { display:grid;grid-template-columns:44px minmax(0,1fr) 22px;gap:12px;align-items:center;width:100%;min-width:0;min-height:64px;padding:14px 15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary);font:inherit;text-align:left;cursor:pointer; }
+.goal-choice-card:hover { border-color:var(--primary-500);background:var(--primary-50); }
+.goal-choice-card:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+.goal-choice-card>span { display:grid;gap:3px;min-width:0; }
+.goal-choice-card strong { font-size:18px;font-weight:700;line-height:1.35;overflow-wrap:anywhere; }
+.goal-choice-card small { color:var(--text-secondary);font-size:16px;line-height:1.45;overflow-wrap:anywhere; }
+.goal-choice-card>.icon:last-child { width:22px;height:22px;border-radius:0;color:var(--primary-600);background:transparent; }
+.goal-choice-own { border-color:var(--primary-300);background:var(--primary-50); }
+.goal-choice-own img { width:44px;height:44px;border-radius:13px;object-fit:cover; }
+
+/* One question with EMMI's face next to it, so the box reads as a conversation rather than a form
+   field somebody has to fill in correctly. */
+.personal-goal-prompt { display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;align-items:center;margin:6px 0 14px;padding:14px 15px;border:1px solid var(--primary-300);border-radius:16px;background:var(--primary-50); }
+.personal-goal-prompt img { width:48px;height:48px;border-radius:14px;object-fit:cover; }
+.personal-goal-prompt p { margin:0;color:var(--text-primary);font-size:18px;font-weight:600;line-height:1.45;overflow-wrap:anywhere; }
+.personal-goal-field textarea { min-height:104px;resize:vertical; }
+.personal-goal-starters { margin:18px 0 6px; }
+.personal-goal-starters h2 { margin:0 0 10px;color:var(--text-muted);font-size:16px;font-weight:800;letter-spacing:.06em;line-height:1.3;text-transform:uppercase; }
+.personal-goal-starter-list { display:grid;gap:9px; }
+.personal-goal-starter { display:grid;grid-template-columns:40px minmax(0,1fr);gap:11px;align-items:center;width:100%;min-width:0;min-height:56px;padding:11px 13px;border:1px solid var(--border-default);border-radius:14px;background:var(--surface-primary);color:var(--text-primary);font:inherit;font-size:17px;font-weight:600;line-height:1.4;text-align:left;cursor:pointer;overflow-wrap:anywhere; }
+.personal-goal-starter .goal-icon { width:40px;height:40px; }
+.personal-goal-starter:hover { border-color:var(--primary-500);background:var(--primary-50); }
+.personal-goal-starter:focus-visible { outline:3px solid var(--focus-ring);outline-offset:2px; }
+
+/* The goal and the step, in two visibly separate boxes. This is the product principle rendered:
+   a patient who can see that they are two fields does not need it explained that they are two
+   different things. */
+.personal-goal-confirm { display:grid;gap:14px;width:100%;margin:4px 0 0; }
+.personal-goal-box { display:grid;gap:8px;width:100%;min-width:0;padding:15px;border:1px solid var(--border-default);border-radius:16px;background:var(--surface-primary); }
+.personal-goal-box .field { margin:0; }
+.personal-goal-box fieldset { margin:2px 0 0;padding:0;border:0; }
+.personal-goal-box legend { margin-bottom:8px;color:var(--text-secondary);font-size:16px;font-weight:700; }
+.personal-goal-box-eyebrow { display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:15px;font-weight:800;letter-spacing:.05em;line-height:1.3;text-transform:uppercase; }
+.personal-goal-box-eyebrow .icon { flex:0 0 22px;width:22px;height:22px;border-radius:0;color:var(--primary-600);background:transparent; }
+.personal-goal-box-eyebrow .icon svg { width:19px;height:19px; }
+.personal-goal-box-goal { border-color:var(--primary-300);background:var(--primary-50); }
+/* The optional question about the care plan. Quieter than the two boxes above it, because it is
+   optional and answering "it stands on its own" has to feel like a real answer. */
+.personal-goal-box-link { background:var(--surface-secondary); }
+.personal-goal-box-link .choice-list { display:grid;gap:9px; }
+.personal-goal-box-link .choice-card { min-height:60px; }
+.goal-contribution-line { display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;color:var(--text-secondary);font-size:1rem;line-height:1.5; }
+.goal-contribution-line>.icon { flex:0 0 20px;width:20px;height:20px;border-radius:0;color:var(--primary-600);background:transparent; }
+.goal-contribution-line>.icon svg { width:18px;height:18px; }
+.goal-contribution-line strong { color:var(--text-primary);overflow-wrap:anywhere; }
+.goal-contribution-line .goal-inline-link { min-height:44px;margin:0;font-size:1rem; }
+/* The proposal has to be readable in full before it can be accepted, so these wrap rather than
+   scrolling a sentence sideways out of a one-line box. */
+.personal-goal-box textarea,#goal-title-form textarea,#goal-action-form textarea { min-height:0;resize:vertical;overflow-wrap:anywhere; }
+.personal-goal-box-goal textarea { font-size:18px;font-weight:600; }
+.personal-goal-note { margin:0;color:var(--text-secondary);font-size:16px;line-height:1.45; }
+.personal-goal-clinical-note,.goal-action-warning { display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;margin:0;padding:13px 14px;border-radius:14px; }
+.personal-goal-clinical-note p,.goal-action-warning p { margin:0;font-size:16px;line-height:1.5; }
+.personal-goal-clinical-note .icon,.goal-action-warning .icon { width:26px;height:26px;border-radius:8px; }
+.goal-action-warning { border:1px solid #f0d9a8;background:#fff8e9; }
+
+/* A goal the patient wrote says so on the card. The chip is a label, not a badge to be proud of:
+   quiet, and readable at 384px without shrinking the title next to it. */
+.goal-card-kind { display:inline-flex;align-items:center;gap:7px;justify-self:start;padding:5px 10px;border-radius:999px;color:var(--primary-700);background:var(--primary-50);font-size:15px;font-weight:800;letter-spacing:.03em; }
+.goal-card-kind .icon { flex:0 0 18px;width:18px;height:18px;border-radius:0;color:inherit;background:transparent; }
+.goal-card-kind .icon svg { width:16px;height:16px; }
+
+/* Changing or removing one step, without leaving the plan. The controls sit under the step they
+   belong to and stay well clear of the "yes, I did" button above them. */
+.goal-action-manage { grid-column:1/-1;display:flex;flex-wrap:wrap;gap:14px;margin-top:2px;padding-top:8px;border-top:1px solid var(--border-default); }
+.goal-action-manage .goal-inline-link { min-height:44px;margin:0;font-size:16px; }
+
+/* Who the goal belongs to, and what that means for what can be changed. */
+.goal-ownership { margin:16px 0; }
+.goal-ownership-personal { border-color:var(--primary-300);background:var(--primary-50); }
+.goal-ownership-personal>.icon { color:var(--primary-700);background:var(--surface-primary); }
+.goal-ownership-plan>.icon { color:var(--primary-600);background:var(--primary-50); }
+.goal-manage-destructive { color:var(--danger-700,#a1231d) !important;border-color:#e8c4c1 !important; }
+
 @media (max-width:430px) {
-  .goals-screen,.goals-screen form,.goals-screen fieldset,.goal-group,.goal-card,.goal-plan-summary { min-width:0;max-width:100%; }
+  .goals-screen,.goals-screen form,.goals-screen fieldset,.goal-group,.goal-card,.goal-plan-summary,.goal-choice-card,.personal-goal-box { min-width:0;max-width:100%; }
   .goal-priority-form .choice-card,.goal-plan-form .check-row { grid-template-columns:auto auto minmax(0,1fr); }
   .goal-priority-form .choice-card strong,.goal-list .check-row>span:last-child,.goal-action-options .check-row>span:last-child { overflow-wrap:anywhere; }
   .goal-action-row { grid-template-columns:minmax(0,1fr); }
