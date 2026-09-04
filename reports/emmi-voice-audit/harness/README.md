@@ -37,6 +37,13 @@ node reports/emmi-voice-audit/harness/summarise-sessions.mjs reports/emmi-voice-
 `S15-session-rotation-es` needs a dev server started with `EMMI_SESSION_MAX_MINUTES=2` and
 `BASE_URL` pointing at it; it only runs when named explicitly.
 
+Scenarios live in `scenarios.mjs` (S01–S15) and `scenarios-long.mjs` (S16–S24, the long 15–20-turn
+conversations); `run-sessions.mjs` runs both lists in order. The scripted double keeps its reply
+queue across provider reconnects (language switch, session rotation) and hands the app a fresh fake
+microphone stream on every `getUserMedia` call, because the app stops the tracks of a stream it
+releases. Do not edit `src/` while sessions are running against a Vite dev server: the page reload
+Vite triggers ends the session in progress.
+
 `baseline-probes.mjs` is the non-conversational probe set (views, tools, action gate, chat path)
 and writes `evidence/baseline-probes.json`.
 

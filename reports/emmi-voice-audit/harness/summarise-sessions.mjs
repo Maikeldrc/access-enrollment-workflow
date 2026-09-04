@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { classifyLatency } from "./voice-harness.mjs";
 
 const dir = process.argv[2];
-const files = readdirSync(dir).filter(name => name.endsWith(".json")).sort();
+const files = readdirSync(dir).filter(name => name.endsWith(".json") && name !== "SUMMARY.json").sort();
 const sessions = files.map(name => JSON.parse(readFileSync(join(dir, name), "utf8")));
 const percentile = (values, p) => { if (!values.length) return null; const sorted = [...values].sort((a, b) => a - b); return sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)]; };
 const speech = sessions.flatMap(s => s.turns.filter(t => t.kind === "speech").map(t => ({ ...t, session: s.session_id })));

@@ -293,24 +293,65 @@ path since:
 ## 7. Harness sessions (application layer, simulated provider)
 
 The per-session tables live in `transcripts/baseline/*.md`; the aggregate is
-`transcripts/baseline/SUMMARY.md`. The numbers that matter and what they mean:
+`transcripts/baseline/SUMMARY.md`. 24 sessions (S01–S24, including the three
+that need special conditions: S13 lagging transcript, S14 spoken language switch, S15 token
+expiry), 282 spoken patient turns, 364 recorded turns,
+9 sessions with 15 or more spoken turns. The double's model delay is fixed at 550 ms and
+its speech rate at 2.4 words/s.
 
-- **Response start (T2−T1)**: p50 **≈1.83 s**, p95 **≈1.93 s** with the double's model delay fixed at
-  550 ms. Decomposition: provider end-of-speech window ≈ 1.24 s (locked 1200 ms) + simulated model
-  0.55 s + tool round trips (~30 ms each) + **application overhead 3–7 ms** from first chunk to audible.
-  The application adds nothing measurable; the floor is the VAD window. With a real model (TTFB
-  typically 0.4–1.0 s) the expected band is NOTICEABLE DELAY (1.6–2.3 s).
-- **Local speech-end detection**: ≈1.25 s after T1 (the 750 ms local window plus buffering) — the
-  UI flips to "Pensando…" at about the same time the provider closes the turn here, but the two
-  windows are still independent settings.
-- **Context before answer**: 0 / N spoken turns.
-- **Barge-in**: see SUMMARY (stop latency from patient speech start, app-registered interruptions).
-- **Action integrity**: S01/S03/S08 turn "Sí" after "¿Confirma?" → tool result still pending.
-- **Silences**: no spontaneous speech from EMMI during 12 s of silence (correct).
-- **Provider without transcript / provider stall**: see S09 — the recovery text the app sends and the
-  20 s disconnect.
-
-(Exact values are inserted from SUMMARY.json in the final report.)
+- **Response start (T2−T1)**: p50 **1815 ms**, p95 **5342 ms**, mean
+  2266 ms, max 11681 ms (NOTICEABLE DELAY at the median).
+  Decomposition of an ordinary turn: provider end-of-speech window 1234 ms (locked 1200 ms)
+  + simulated model 550 ms + tool round trips (~30 ms each) + **application overhead
+  4 ms** from first chunk to audible. The application adds nothing measurable
+  on a direct answer; the floor is the VAD window. The p95 and the maximum are the turns that went
+  through a *second* generation (guard or recovery path), all of them 3–7 s and all of them in English.
+- **Local speech-end detection**: 1249 ms after T1 at the median — "Pensando…" appears
+  when the provider closes the turn, but the two windows are independent settings (750 vs 1200).
+- **Context before answer**: 42/282 spoken turns, every one of them an
+  app-initiated text turn (recovery prompt), none a spoken turn. Navigation taps that pushed the new
+  screen to the provider: 0 of 40.
+- **Transcript guard**: 42 natural turns discarded, 43 tool calls blocked with
+  `unreliable_voice_input`, 42 English "I didn't hear that clearly… call 911" lines heard in Spanish
+  sessions. The discarded turns:
+  - S02-transport-by-hand-es: "Pon la primera."
+  - S03-interruptions-es: "Para.", "Mejor la primera."
+  - S04-topics-memory-es: "No, me equivoqué. Ponlo otra vez.", "Cambia ese por 'mareos al levantarme'."
+  - S05-reschedule-change-of-mind-es: "La del jueves.", "Mejor no quiero cambiarla."
+  - S07-spanglish-and-language-es: "Yo uso walker para caminar.", "Quiero un Uber X", "Mi doctor dijo que no", "Pon la primera del jueves", "180 sobre 120 y me siento mareado.", "Can we switch to English please?"
+  - S08-safety-mid-task-es: "Ninguna ayuda. Busca ya."
+  - S10-enrollment-en: "I'm doing it myself."
+  - S11-long-mixed-es: "Viene mi hija conmigo."
+  - S12-video-visit-es: "Ya lo hice. Revisa otra vez."
+  - S14-spoken-language-switch: "Prefiero hablar en español. Hable conmigo en español ahora.", "¿A qué hora es mi cita?"
+  - S16-long-confused-transport-es: "No, me recoge mi hija."
+  - S17-long-enrollment-journey-es: "Lo hago yo misma.", "¿Ya?"
+  - S18-long-multi-intent-reschedule-es: "No, mejor por la tarde.", "Léeme la cita nueva.", "Ok, listo, bye."
+  - S19-long-topics-and-questions-es: "Quita el de la rodilla.", "No, no, déjalo. Ponlo otra vez.", "Léeme toda la lista."
+  - S20-long-spanglish-companion-and-ride-es: "Okay, send it a María.", "Book that one."
+  - S21-long-elderly-video-visit-es: "La visita… por video… no sé."
+  - S22-long-change-of-mind-en: "Yes, my home address.", "No, nothing special.", "Go ahead and search.", "Yes, book it.", "Hmm. Actually, cancel it.", "Yes, cancel it.", "Just book the cheapest one.", "Still nothing? Then the big one instead."
+  - S23-creole-sample-ht: "Ki lè randevou mwen an?", "Mwen pa gen transpò.", "Pale kreyòl avè m, tanpri."
+- **Barge-in**: 6 interruptions issued while EMMI was audible, 6
+  registered by the app; stop latency from patient speech start p50 179 ms, max
+  301 ms; the provider saw the interruption 153 ms after speech start
+  (median). "Para." after an interruption was discarded by the guard (S03 turn 16).
+- **Action integrity**: after "Sí" to the booking question the tool result still said "elegido pero NO
+  reservado" in S01, S02, S03, S08, S11, S16, S20 and S22 — the result was returned before the
+  background booking finished.
+- **Silences**: no spontaneous speech from EMMI during 6–12 s of silence (S09, S19, S21) — correct.
+- **Provider without transcript / provider stall** (S09, S21): the client stayed in USER_SPEAKING with
+  no recovery; a stalled provider raised `VOICE_RESPONSE_TIMEOUT` after 20 s and disconnected
+  (S09: "¿Sigues ahí?" unanswered).
+- **Token expiry** (S15, two-minute limit): the session hard-stopped at two minutes; "¿Dónde es?"
+  after the stop got no answer.
+- **Spoken language switch** (S07 turn 8, S14): both requests were discarded by the guard and answered
+  with the English 911 line; no switch happened.
+- **Lagging transcript** (S13): the last transcript piece delivered after `turnComplete` was lost from
+  the visible bubble.
+- **Kreyòl** (S23): voice cannot be started in a Kreyòl session (VOICE_UNAVAILABLE_FOR_LOCALE); the
+  baseline sample therefore runs as a Spanish session with Kreyòl speech, where the guard discarded the
+  Kreyòl turns as an unexpected language.
 
 ## 8. Baseline scores (1–5)
 
