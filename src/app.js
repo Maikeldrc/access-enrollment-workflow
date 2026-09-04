@@ -5043,6 +5043,8 @@ if (!import.meta.env.PROD) {
   };
   globalThis.__emmiActionProbe = params => performEmmiViewAction(params || {});
   // Whether a live session is open, which is what decides whether a screen change is pushed.
+  // The visible thread, for the voice harness in real-provider mode (no scripted double to read).
+  globalThis.__emmiThreadProbe = () => (state.assistantMessages || []).map(m => ({ role: m.role, text: m.text, voice: Boolean(m.voice), voiceComplete: Boolean(m.voiceComplete), guidance: Boolean(m.guidance), generationId: m.generationId || 0, intent: m.intent || "" }));
   globalThis.__emmiVoiceProbe = () => ({ state: state.assistantVoiceState, active: Boolean(emmiLive?.isActive()), error: state.assistantVoiceError || "", socket: Boolean(emmiLive?.session), contextVersion: emmiLive?.activeContextVersion ?? null, clientState: emmiLive?.state || "", sources: emmiLive?.sources?.size ?? null, speechActive: Boolean(emmiLive?.bargeIn?.speechActive), awaitingPatientResponse: Boolean(emmiLive?.awaitingPatientResponse), activeTurn: emmiLive?.activeTurn?.id || "", echoProbeActive: Boolean(emmiLive?.echoProbeActive), micPreroll: emmiLive?.micPreroll?.length ?? null, muted: Boolean(emmiLive?.muted), missedTranscripts: emmiLive?.missedTranscripts ?? null });
   // Ask the live session a question as the patient, and read back what EMMI answered. The words go
   // in as a patient turn on the same session, against the same context a spoken question would

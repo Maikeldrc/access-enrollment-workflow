@@ -13,8 +13,9 @@
 //   real   (PROVIDER=real) — no double is installed; the app talks to Gemini Live through its own
 //           token route. Requires GEMINI_API_KEY on the dev server. Replies are then genuine.
 import { chromium } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { getEmmiVoiceIdentity } from "../../../src/emmi/voiceIdentity.js";
 
@@ -70,6 +71,7 @@ export async function launchHarness({ locale = "es-US", headless = true } = {}) 
   const issues = [];
   page.on("pageerror", error => issues.push({ type: "pageerror", text: String(error) }));
   page.on("console", message => { if (["error", "warning"].includes(message.type())) issues.push({ type: message.type(), text: message.text().slice(0, 300) }); });
+  const ttsRequests = [];
   if (PROVIDER === "fake") {
     await page.addInitScript({ path: join(HERE, "fake-provider.js") });
     let tokens = 0;
@@ -88,13 +90,39 @@ export async function launchHarness({ locale = "es-US", headless = true } = {}) 
       await route.fulfill({ status: 200, headers: { "content-type": "audio/pcm;rate=24000", "cache-control": "no-store" }, body: pcmBuffer(seconds) });
     });
   }
-  const ttsRequests = [];
+  if (PROVIDER !== "fake") {
+    await page.addInitScript({ path: join(HERE, "real-mic.js") });
+    page.on("request", request => {
+      if (!request.url().includes("/api/emmi/tts") || request.method() !== "POST") return;
+      let body = {}; try { body = JSON.parse(request.postData() || "{}"); } catch {}
+      if (body.harness) return;
+      const text = String(body.text || "");
+      ttsRequests.push({ at: Date.now(), words: text.split(/\s+/).filter(Boolean).length, seconds: null, text: text.slice(0, 400), locale: body.locale });
+    });
+  }
   return { browser, context, page, issues, ttsRequests };
 }
 
 /* ------------------------------------------------------------------------------ helpers --- */
 export const settle = page => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 export const voiceProbe = page => page.evaluate(() => window.__emmiVoiceProbe?.() || null);
+export const threadProbe = page => page.evaluate(() => window.__emmiThreadProbe?.() || []);
+
+// PROVIDER=real: the patient's words are synthesized by the app's own TTS route and cached on disk,
+// so every run of a scenario feeds Gemini Live the same audio.
+const TTS_CACHE = join(HERE, "..", "..", "..", ".cache", "emmi-voice-audit-tts");
+export async function synthesizePatientLine(page, text, locale) {
+  const key = createHash("sha1").update(`${locale}\n${text}`).digest("hex");
+  const file = join(TTS_CACHE, `${key}.pcm`);
+  if (existsSync(file)) return readFileSync(file).toString("base64");
+  const response = await page.request.post(`${BASE}/api/emmi/tts`, { data: { text, locale, harness: true }, headers: { "content-type": "application/json" }, timeout: 60000 });
+  if (!response.ok()) throw new Error(`tts ${response.status()} for "${text.slice(0, 40)}"`);
+  const body = await response.body();
+  if (!body.length) throw new Error(`tts returned no audio for "${text.slice(0, 40)}"`);
+  mkdirSync(TTS_CACHE, { recursive: true });
+  writeFileSync(file, body);
+  return body.toString("base64");
+}
 export const viewProbe = page => page.evaluate(() => window.__emmiViewProbe?.() || null);
 export const providerLog = page => page.evaluate(() => window.__harness?.providerLog?.() || []);
 export const voiceEvents = page => page.evaluate(() => window.__harness?.voiceEvents?.() || (() => { try { return JSON.parse(sessionStorage.getItem("itera.emmi.prototype.audit.v1") || "[]").flatMap(entry => entry?.voiceEvents || []); } catch { return []; } })());
@@ -182,8 +210,8 @@ export class SessionRecorder {
   stopStateSampler() { clearTimeout(this.stateSampler); this.stateSampler = null; }
   observe(text, detail = {}) { this.session.observations.push({ at: new Date().toISOString(), text, ...detail }); }
   async snapshot() {
-    const [log, events, view, probe, t] = await Promise.all([providerLog(this.page), voiceEvents(this.page), viewProbe(this.page), voiceProbe(this.page), perfNow(this.page)]);
-    return { log, events, view, probe, t: Math.round(t) };
+    const [log, events, view, probe, t, thread] = await Promise.all([providerLog(this.page), voiceEvents(this.page), viewProbe(this.page), voiceProbe(this.page), perfNow(this.page), threadProbe(this.page)]);
+    return { log, events, view, probe, t: Math.round(t), thread };
   }
   // A spoken patient turn: declare what the "ASR" hears and what the "model" answers, inject the
   // audio, then wait for EMMI to finish and measure everything the app made observable.
@@ -205,7 +233,12 @@ export class SessionRecorder {
       if (!idle.idle) turn.problem_detected.push(`EMMI was not idle before the patient spoke (state ${idle.probe?.state})`);
     }
     const wallStart = Date.now();
-    const speech = await page.evaluate(opts => window.__patientSpeak(opts), { durationMs: durationMs || Math.max(700, Math.round(text.split(/\s+/).length / 2.6 * 1000)), transcript: text, id: `t${this.turnIndex}` });
+    let speech;
+    if (PROVIDER === "fake") speech = await page.evaluate(opts => window.__patientSpeak(opts), { durationMs: durationMs || Math.max(700, Math.round(text.split(/\s+/).length / 2.6 * 1000)), transcript: text, id: `t${this.turnIndex}` });
+    else {
+      const pcmBase64 = await synthesizePatientLine(page, text, this.session.language === "en" ? "EN" : "ES");
+      speech = await page.evaluate(opts => window.__patientSpeakPcm(opts), { pcmBase64, sampleRate: 24000, transcript: text, id: `t${this.turnIndex}` });
+    }
     turn.timing = { speech_started_at: speech.startedAt, speech_ended_at: speech.endsAt };
     // Let the injected audio finish, then wait for the reply to drain — or, when the next step is
     // going to interrupt this reply, only until it has started playing.
@@ -261,6 +294,15 @@ export class SessionRecorder {
     turn.recognized_text = asr?.text ?? (asr ? "" : null);
     turn.transcript_note = asr?.type === "input_transcription_withheld" ? "provider returned no transcript (simulated)" : "";
     turn.EMMI_response = allFirstAudio.map(e => e.text).join(" ‖ ") || (generations.length ? "(empty generation)" : null);
+    if (PROVIDER !== "fake") {
+      // No double to read: the provider's transcripts are what the app put in the visible thread.
+      const fresh = (after.thread || []).slice((before.thread || []).length);
+      const heard = fresh.filter(m => m.role === "user").map(m => m.text).join(" ");
+      const said = fresh.filter(m => m.role === "assistant" && !m.guidance).map(m => m.text).join(" ");
+      turn.recognized_text = heard || null;
+      turn.EMMI_response = said || null;
+      turn.transcript_note = heard ? "" : "no input transcription reached the thread";
+    }
     turn.EMMI_response_kinds = generations.map(e => e.kind);
     const t1 = speech.endsAt;
     const t2 = appFirstAudio ? Number(appFirstAudio.firstAudioReceivedAt) + Number(appFirstAudio.scheduledPlaybackDelayMs || 0) : null;

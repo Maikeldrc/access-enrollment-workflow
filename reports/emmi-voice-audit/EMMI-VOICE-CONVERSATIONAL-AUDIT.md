@@ -5,6 +5,75 @@ Baseline commit `70d4399` · Companion documents: `baseline.md`, `transcripts/ba
 
 ---
 
+## Resumen ejecutivo y veredicto (español)
+
+**Qué se auditó.** La experiencia de voz de EMMI: una sesión de Gemini Live (`gemini-3.1-flash-live-preview`)
+envuelta en una capa de aplicación (captura de micrófono por AudioWorklet, detector local de
+interrupciones, narración de pantallas por una ruta TTS aparte, descriptores de vista por pantalla,
+36 herramientas y una compuerta de confirmación para reservar, enviar, cambiar o cancelar). Se
+ejecutaron 24 conversaciones guionizadas como paciente real (282 turnos hablados,
+9 conversaciones largas de 15–20 turnos, perfiles A–H, español principal, inglés,
+Spanglish y una muestra en kreyòl) en la aplicación real en Chromium, primero sobre el commit base
+y después sobre la rama corregida.
+
+**Qué no se pudo probar.** Ningún turno pasó por Gemini Live real: este entorno no tiene
+`GEMINI_API_KEY` y la política de salida bloquea el despliegue en Vercel. El proveedor fue un doble
+guionizado instalado en la página; todo lo demás (captura, SDK y protocolo, interrupciones,
+reproducción, herramientas, pantallas) fue real. Ningún resultado de este informe es una respuesta
+inventada del modelo; la calidad del modelo real se cita solo desde las sesiones de producción del
+2026-08-30. El harness ya soporta `PROVIDER=real` (voz del paciente sintetizada por la propia ruta TTS)
+para cerrar esa brecha en cuanto haya clave.
+
+**Hallazgos principales (línea base).**
+1. El guardián de fiabilidad de transcripción descartaba frases normales en español, inglés y
+   Spanglish y toda petición de cambiar de idioma: 42 de 282 turnos descartados,
+   44 llamadas a herramientas bloqueadas, 42 veces la frase en
+   inglés "I didn't hear that clearly… call 911" dentro de sesiones en español; tareas enteras se
+   caían (S08, S18, S20, S22). **P1.**
+2. Un turno sin transcripción dejaba al cliente congelado en USER_SPEAKING; un proveedor que no
+   respondía desconectaba la sesión a los 20 s; las sesiones se cortaban a los 12 minutos. **P1/P2.**
+3. Un turno hablado no lleva la pantalla actual al modelo (el canal silencioso se retiró porque
+   Gemini 3.1 lo rechaza); el modelo depende de `describeCurrentView`. **P1.**
+4. Las acciones en segundo plano (reservar, enviar, cambiar) se reportaban antes de terminar; una
+   reserva fallida decía que faltaba la confirmación del paciente. **P2.**
+5. Las pantallas de revisión no exponían la opción de volver ("me equivoqué", "mejor no"); las
+   referencias a temas ("eso", "el último") fallaban. **P3.**
+6. Las narraciones de enrollment excedían su propio presupuesto de segundos en 19 de 28 pantallas
+   por idioma (bienvenida con referido médico: 80/88 palabras ≈ 32–38 s frente a 12–22 s). **P2.**
+
+**Cambios (18, todos en la capa de aplicación, con pruebas unitarias: 1375 passed, 1 failed (59 files; 17 tests added) — the same pre-existing time-zone failure, nothing else).** Guardián
+reescrito (solo se descarta un alfabeto no soportado o un fragmento suelto tras una interrupción; el
+idioma es una señal; las peticiones deben dirigirse a EMMI); recuperación en la voz y el idioma del
+paciente por la ruta de narración; el detector local sigue activo mientras EMMI espera respuesta;
+turnos estancados liberados; cola tardía de transcripción unida a su respuesta; una sola ventana de
+fin de habla; rotación silenciosa de sesión antes de vencer el token; cambio de idioma hablado que
+reconstruye la sesión; `performViewAction` espera el trabajo en segundo plano y devuelve la vista
+asentada; estados de fallo y controles de "volver" expuestos en los descriptores; referencias a
+temas; ruteo del chat; sección de voz y regla honesta de frescura de vista en el prompt; envío
+experimental de contexto al empezar a hablar (apagado); narraciones acortadas a su presupuesto.
+
+**Regresión (mismas 24 conversaciones sobre la rama corregida).** 0 frases
+descartadas (antes 42), 0 herramientas bloqueadas (antes
+44), 0 frases de recuperación en inglés (antes
+42), 0 sesiones perdidas (antes 1); inicio de respuesta p95
+2633 ms (antes 5347 ms) con la mediana sin cambio en 1819 ms porque es la ventana
+bloqueada de 1,2 s más los 550 ms fijos del doble; parada por interrupción p50 162 ms;
+cada "Sí" respondido desde el estado real; rotación, cambio de idioma, falta de transcripción y
+estancamiento conservan la sesión. Puntuación global de la capa de aplicación: 2,3 → 3,6 sobre 5.
+
+**Veredicto: NOT READY** para uso con pacientes por voz. La capa de aplicación ya no rompe
+conversaciones normales, pero nada de esto se escuchó a través de Gemini Live: el reconocimiento de
+voz real con adultos mayores, el corte de frases en pausas, la disciplina de `describeCurrentView`,
+la frase "Listo" solo cuando la herramienta lo confirma y la interrupción con eco acústico siguen
+sin verificar, y las últimas sesiones reales (2026-08-30) mostraban exactamente esos fallos.
+Pasa a **READY WITH CONDITIONS** con: (1) una corrida real de las 24 conversaciones sin hallazgos P1,
+(2) la prueba de interrupción en un teléfono real, (3) una decisión sobre el envío de contexto al
+hablar basada en esa corrida. Para **READY**, además: revisión de producto/clínica de las
+narraciones acortadas, ajuste de la ventana de fin de habla con grabaciones reales y corrección de
+la zona horaria de los horarios. Los detalles están en las secciones 30 a 32.
+
+---
+
 ## 1. Executive Summary
 
 EMMI Voice is a Gemini Live session (`gemini-3.1-flash-live-preview`) wrapped in a substantial
@@ -381,10 +450,12 @@ persona" are not in `choices`), so on those screens EMMI can explain but cannot 
 by number — unchanged, listed in §30.
 
 **Narration.** The deterministic narration engine covers enrollment screens only, in EN/ES, and falls
-back to English for Kreyòl (verified: `buildNarration({locale:"HT"})` returns the English text). Its
-texts exceed their own budgets (welcome ES 88 words ≈ 38 s against 12–22 s). Outside enrollment
-(appointment, transportation, My Care) nothing is narrated on arrival, so a patient who taps into a
-new screen hears silence unless they ask. Unchanged (product decision), §30.
+back to English for Kreyòl (verified: `buildNarration({locale:"HT"})` returns the English text). At
+baseline its texts exceeded their own budgets on 19 of 28 screens in English and 18 in Spanish (the
+welcome with a physician referral: 80 EN / 88 ES words ≈ 32–38 s against 12–22 s); after C18 every
+screen fits in both languages (welcome 50 / 53 words). Outside enrollment (appointment,
+transportation, My Care) nothing is narrated on arrival, so a patient who taps into a new screen
+hears silence unless they ask. Unchanged (product decision), §30.
 
 **Regression.** Unchanged by design on the spoken path: 0 of 282 spoken turns had a screen update
 sent first (C13 stays off), and every screen answer in the transcripts came from a
@@ -589,8 +660,9 @@ completing → identity typed → what care includes → eligibility notice and 
 **Regression.** S10 and S17 on the fixed build: "Lo hago yo misma." and "¿Ya?" — both discarded at baseline — are
 answered; the barge-in on the welcome narration stops it in 162 ms (S10); the identity
 fields are typed; the eligibility check and consent are performed by the patient and the enrolled
-state is read back correctly. Narration length and the missing enrollment `choices` are unchanged
-(§30).
+state is read back correctly. The enrollment narrations were shortened to their budgets after these runs (C18: the welcome
+with a physician referral 80/88 → 50/53 words, 0 of 28 screens over budget in EN/ES); the missing
+enrollment `choices` are unchanged (§30).
 
 ## 20. My Care
 
@@ -791,10 +863,11 @@ depends on; no refactor beyond that; no change to clinical safety rules. Unit su
 | C15 Language requests must be addressed to EMMI (hábleme en…, can we switch to…, pale kreyòl avè m); mentions of someone else's language are ignored; short real words after an interruption ("ya", "vale", "dale", "bien", "eh"…) are speech | `transcript.js` | RC14, RC1 (fragment rule) | `tests/emmiTranscript.test.js`; harness S17 ("¿Ya?"), S20 |
 | C16 Failed booking: the pending item is the failure itself, and EMMI may offer "Choose another ride" as well as "Try again"; every barrier step whose screen has a back control (pickup, needs, time, options, review, cancel confirmation, guide, contacts) now exposes it as a NAVIGATE action labelled by where it leads, so "me equivoqué", "quiero volver a las opciones" and "mejor no" can be honoured | `appointmentViewContext.js` | RC15, and the baseline's `barrier-back` refusals (S03 turn 17, S05 turn 9) | `tests/emmiViewContext.test.js`; harness S03, S05, S22 |
 | C17 Prompt: voice exists in English and Spanish only; a spoken request for Kreyòl is answered in the active language with the text alternative | `systemPrompt.js` | RC16 (mitigation) | Not verifiable without the provider — flagged |
+| C18 Screen narrations shortened to their own budgets in English and Spanish (every objective's four sentences tightened, tested phrases kept; the welcome with a physician referral 80/88 → 50/53 words); Kreyòl texts untouched | `src/emmi/narrative.js` | RC11 | `tests/emmiNarrative.test.js`; measured: 0 of 28 screens over budget per language (was 19 EN / 18 ES) |
 | C13 Experimental, off by default: `EMMI_VOICE_CONTEXT_ON_SPEECH_START` pushes the staged view as realtime text the moment the patient starts speaking | `liveClient.pushContextOnSpeechStart`, `config.js`, `vite.config.js` | RC2 | Requires a real-provider check before enabling — flagged |
 
-Not changed, deliberately: the narration texts (RC11) — their length is a product decision that
-should be made with the numbers in `baseline.md` §4.8 in hand; the 1200 ms window value itself
+Not changed, deliberately: narration on screens outside enrollment and in Kreyòl (RC11, second half)
+— adding spoken arrival lines is a product decision; the 1200 ms window value itself
 (retuning it blind would trade splitting for speed with no way to measure either); the chat
 retraction case ("Mejor no quiero cambiarla") which needs conversation state the text router does
 not carry; the enrollment describers' lack of choices.
@@ -855,8 +928,8 @@ Application layer, measured on the harness; the model-layer column is unchanged 
 | Context retention | 2 | 4 | Topic and option references resolve; sessions no longer lost; rotation keeps the resumption handle. |
 | Turn-taking | 2 | 3 | One window everywhere and the state machine always leaves USER_SPEAKING; the 1.2 s floor and provider-side splitting remain. |
 | Latency | 2 | 3 | Tail cut (second generations gone), median unchanged by construction; real TTFB unknown. |
-| Naturalness | 2 | 3 | Recovery in EMMI's voice and language, one-word and Spanglish turns accepted; narrations still long. |
-| Conciseness | 2 | 2 | Narrations untouched; the prompt's voice rules are unverified. |
+| Naturalness | 2 | 3 | Recovery in EMMI's voice and language, one-word and Spanglish turns accepted; narrations shortened. |
+| Conciseness | 2 | 3 | Enrollment narrations now within their 12–25 s budgets (EN/ES); the prompt's voice rules for replies are unverified. |
 | Clarity | 3 | 4 | Settled results, failure states with a way forward, spoken confirmations. |
 | Action accuracy | 3 | 4 | Reported when done, refused when unknown, gate intact, back controls available. |
 | UI awareness | 3 | 3 | Rich descriptors and `describeCurrentView` rule; still no push on spoken turns; hub and enrollment gaps. |
@@ -869,7 +942,7 @@ Application layer, measured on the harness; the model-layer column is unchanged 
 | Suite | Before (pristine main) | After (fixed branch) |
 |---|---|---|
 | Unit (`vitest`, 59 files) | 1358 passed, 1 failed (58 files) — the failure is `tests/appointmentSupport.test.js` "counts back from the visit for each slot", a time-zone-dependent reminder test that fails on this UTC machine before any change | 1375 passed, 1 failed (59 files; 17 tests added) — the same pre-existing time-zone failure, nothing else |
-| e2e subset (`emmi-view-context`, `appointments-emmi`, `emmiAudioPipeline`, `emmi-conversation`) | (pending) | (pending) |
+| e2e subset (`emmi-view-context`, `appointments-emmi`, `emmiAudioPipeline`, `emmi-conversation`) | 77 passed, 4 failed, 14 skipped (95). The four failures are the date-keyed simulator cases (`emmi-view-context` "selected is never reported as done" and "refuses to book, cancel or send without the patient confirming in that turn"; `appointments-emmi` "a time that could not be held" and "a visit this office will not book directly"). | 76 passed, 5 failed, 14 skipped (95): the same four, plus `appointments-emmi` "a request that is waiting for the office is never described as confirmed", which is time-of-day dependent — it passed on the pristine checkout at 05:30 UTC, failed three times in a row on the same pristine checkout at 12:00 UTC (the simulated office response becomes due and the request is confirmed before the question is asked), and was flaky in isolation on the audit branch. Not caused by this branch. |
 
 ## 30. Remaining Issues
 
@@ -904,10 +977,10 @@ identity fields are typed, and no action is reported done before its state says 
 4. *End-of-speech window of 1200 ms (open by design).* It is now one constant everywhere and the
    visible state matches it, but it is still the largest term in every turn. Tuning it requires the
    real provider (§31.2).
-5. *Narration length and coverage (open, product decision).* Enrollment narrations run 20–38 s
-   against 12–22 s budgets; appointment, transportation, goals and My Care screens have no
-   arrival narration; Kreyòl narration falls back to English. The numbers are in `baseline.md`
-   §4.8; the texts were not rewritten because that is content, not code.
+5. *Narration coverage (open, product decision).* The enrollment narrations now fit their own
+   budgets in English and Spanish (C18), but appointment, transportation, goals and My Care screens
+   still have no arrival narration, and Kreyòl narration falls back to English. The shortened texts
+   need a product/clinical review before release.
 
 **P3**
 
@@ -958,9 +1031,9 @@ identity fields are typed, and no action is reported done before its state says 
 
 **31.3 Product content**
 
-6. Rewrite the enrollment narrations to their budgets (welcome ≤ 22 s) and add a one-sentence
-   arrival line for appointment, transportation and My Care screens; add Kreyòl narration or state
-   in the UI that voice guidance is in English/Spanish only.
+6. Review the shortened enrollment narrations (C18) with product and clinical owners, add a
+   one-sentence arrival line for appointment, transportation and My Care screens, and add Kreyòl
+   narration or state in the UI that voice guidance is in English/Spanish only.
 7. Review the recovery and confirmation lines in `transcript.js` (`LINES`) with Spanish- and
    Kreyòl-speaking clinicians.
 
@@ -1003,6 +1076,6 @@ problems may remain.
 2. Barge-in first-word retention confirmed on a phone (§31.1.3).
 3. A decision on `EMMI_VOICE_CONTEXT_ON_SPEECH_START` backed by that run.
 
-**Conditions for READY**, additionally: narrations within budget on the screens patients hear most
-(§31.3), the end-of-speech window tuned against real recordings (§31.2), and the time-zone
+**Conditions for READY**, additionally: the shortened narrations reviewed by product and clinical
+owners (§31.3), the end-of-speech window tuned against real recordings (§31.2), and the time-zone
 formatting fixed so spoken times are correct.
