@@ -6,7 +6,7 @@
   "provider": "fake",
   "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
   "notes": "The patient asks to move the visit, picks 'la del jueves', then decides not to change it.",
-  "startedAt": "2026-09-04T00:14:35.962Z",
+  "startedAt": "2026-09-04T05:00:31.527Z",
   "turns": [
     {
       "turn": 1,
@@ -53,12 +53,15 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@150",
-          "EMMI_THINKING@3746",
-          "TOOL_RUNNING@4327",
-          "EMMI_SPEAKING@4411",
-          "LISTENING@12417"
+          "USER_SPEAKING@149",
+          "EMMI_THINKING@3645",
+          "TOOL_RUNNING@4175",
+          "EMMI_SPEAKING@4261",
+          "LISTENING@12195"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -266,26 +269,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 41373,
-        "speech_ended_at": 43681,
-        "provider_speech_end_detected_at": 45076,
-        "provider_vad_window_ms": 1395,
-        "provider_first_chunk_at": 45713,
-        "app_first_audio_at": 45724,
+        "speech_started_at": 41637,
+        "speech_ended_at": 43945,
+        "provider_speech_end_detected_at": 45203,
+        "provider_vad_window_ms": 1258,
+        "provider_first_chunk_at": 45838,
+        "app_first_audio_at": 45845,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 43681,
-        "T2_first_audible_response": 45724,
-        "T3_response_complete": 53711,
-        "response_start_latency_ms": 2043,
-        "response_completion_latency_ms": 10030,
-        "app_overhead_first_chunk_to_audible_ms": 11,
-        "local_speech_end_detected_ms_after_T1": 1405,
+        "T1_patient_speech_end": 43945,
+        "T2_first_audible_response": 45845,
+        "T3_response_complete": 53805,
+        "response_start_latency_ms": 1900,
+        "response_completion_latency_ms": 9860,
+        "app_overhead_first_chunk_to_audible_ms": 7,
+        "local_speech_end_detected_ms_after_T1": 1268,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 3,
@@ -295,6 +299,7 @@
       "conversation_context": {
         "provider_generations": [],
         "app_text_turns": [],
+        "app_spoke_itself": [],
         "app_events": [],
         "state_before": "LISTENING",
         "state_after": "LISTENING"
@@ -333,11 +338,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@159",
-          "EMMI_THINKING@2413",
-          "EMMI_SPEAKING@2996",
-          "LISTENING@15199"
+          "USER_SPEAKING@168",
+          "EMMI_THINKING@2431",
+          "EMMI_SPEAKING@3022",
+          "LISTENING@15255"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -382,7 +390,7 @@
             "choices": [
               {
                 "n": 1,
-                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 7 de septiembre · 10:45 a. m.",
                 "detail": "",
                 "selected": false,
@@ -392,7 +400,7 @@
               },
               {
                 "n": 2,
-                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "miércoles, 9 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -402,7 +410,7 @@
               },
               {
                 "n": 3,
-                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "jueves, 10 de septiembre · 5:15 a. m.",
                 "detail": "",
                 "selected": false,
@@ -412,7 +420,7 @@
               },
               {
                 "n": 4,
-                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 14 de septiembre · 12:15 p. m.",
                 "detail": "",
                 "selected": false,
@@ -422,7 +430,7 @@
               },
               {
                 "n": 5,
-                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "martes, 15 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -445,26 +453,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 57751,
-        "speech_ended_at": 58905,
-        "provider_speech_end_detected_at": 60136,
-        "provider_vad_window_ms": 1231,
-        "provider_first_chunk_at": 60698,
-        "app_first_audio_at": 60702,
+        "speech_started_at": 57857,
+        "speech_ended_at": 59011,
+        "provider_speech_end_detected_at": 60263,
+        "provider_vad_window_ms": 1252,
+        "provider_first_chunk_at": 60831,
+        "app_first_audio_at": 60836,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 58905,
-        "T2_first_audible_response": 60702,
-        "T3_response_complete": 72930,
-        "response_start_latency_ms": 1797,
-        "response_completion_latency_ms": 14025,
-        "app_overhead_first_chunk_to_audible_ms": 4,
-        "local_speech_end_detected_ms_after_T1": 1244,
+        "T1_patient_speech_end": 59011,
+        "T2_first_audible_response": 60836,
+        "T3_response_complete": 73075,
+        "response_start_latency_ms": 1825,
+        "response_completion_latency_ms": 14064,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1272,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 5,
@@ -497,11 +506,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@266",
-          "EMMI_THINKING@2871",
-          "EMMI_SPEAKING@3455",
-          "LISTENING@8855"
+          "USER_SPEAKING@231",
+          "EMMI_THINKING@2837",
+          "EMMI_SPEAKING@3423",
+          "LISTENING@8871"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -521,26 +533,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 74525,
-        "speech_ended_at": 76063,
-        "provider_speech_end_detected_at": 77356,
-        "provider_vad_window_ms": 1293,
-        "provider_first_chunk_at": 77912,
-        "app_first_audio_at": 77916,
+        "speech_started_at": 74684,
+        "speech_ended_at": 76222,
+        "provider_speech_end_detected_at": 77484,
+        "provider_vad_window_ms": 1262,
+        "provider_first_chunk_at": 78040,
+        "app_first_audio_at": 78044,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 76063,
-        "T2_first_audible_response": 77916,
-        "T3_response_complete": 83333,
-        "response_start_latency_ms": 1853,
-        "response_completion_latency_ms": 7270,
+        "T1_patient_speech_end": 76222,
+        "T2_first_audible_response": 78044,
+        "T3_response_complete": 83468,
+        "response_start_latency_ms": 1822,
+        "response_completion_latency_ms": 7246,
         "app_overhead_first_chunk_to_audible_ms": 4,
-        "local_speech_end_detected_ms_after_T1": 1302,
+        "local_speech_end_detected_ms_after_T1": 1281,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 6,
@@ -573,11 +586,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@169",
-          "EMMI_THINKING@3191",
-          "EMMI_SPEAKING@3776",
-          "LISTENING@14701"
+          "USER_SPEAKING@171",
+          "EMMI_THINKING@3184",
+          "EMMI_SPEAKING@3768",
+          "LISTENING@14783"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -622,7 +638,7 @@
             "choices": [
               {
                 "n": 1,
-                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 7 de septiembre · 10:45 a. m.",
                 "detail": "",
                 "selected": false,
@@ -632,7 +648,7 @@
               },
               {
                 "n": 2,
-                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "miércoles, 9 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -642,7 +658,7 @@
               },
               {
                 "n": 3,
-                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "jueves, 10 de septiembre · 5:15 a. m.",
                 "detail": "",
                 "selected": false,
@@ -652,7 +668,7 @@
               },
               {
                 "n": 4,
-                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 14 de septiembre · 12:15 p. m.",
                 "detail": "",
                 "selected": false,
@@ -662,7 +678,7 @@
               },
               {
                 "n": 5,
-                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "martes, 15 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -685,26 +701,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 84890,
-        "speech_ended_at": 86813,
-        "provider_speech_end_detected_at": 88036,
-        "provider_vad_window_ms": 1223,
-        "provider_first_chunk_at": 88599,
-        "app_first_audio_at": 88603,
+        "speech_started_at": 85075,
+        "speech_ended_at": 86998,
+        "provider_speech_end_detected_at": 88223,
+        "provider_vad_window_ms": 1225,
+        "provider_first_chunk_at": 88789,
+        "app_first_audio_at": 88794,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 86813,
-        "T2_first_audible_response": 88603,
-        "T3_response_complete": 99561,
-        "response_start_latency_ms": 1790,
-        "response_completion_latency_ms": 12748,
-        "app_overhead_first_chunk_to_audible_ms": 4,
-        "local_speech_end_detected_ms_after_T1": 1234,
+        "T1_patient_speech_end": 86998,
+        "T2_first_audible_response": 88794,
+        "T3_response_complete": 99796,
+        "response_start_latency_ms": 1796,
+        "response_completion_latency_ms": 12798,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1240,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 7,
@@ -748,12 +765,15 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 9,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@165",
-          "EMMI_THINKING@2412",
-          "LISTENING@4990",
-          "EMMI_SPEAKING@5577",
-          "LISTENING@14508"
+          "USER_SPEAKING@169",
+          "EMMI_THINKING@2430",
+          "LISTENING@4802",
+          "EMMI_SPEAKING@5389",
+          "LISTENING@14218"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -776,27 +796,27 @@
       ],
       "navigation_result": "same view",
       "problem_detected": [
-        "response start 4350 ms"
+        "response start 4181 ms"
       ],
       "severity": "P2",
       "notes": "",
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 101123,
-        "speech_ended_at": 102277,
-        "provider_speech_end_detected_at": 103516,
-        "provider_vad_window_ms": 1239,
-        "provider_first_chunk_at": 104077,
-        "app_first_audio_at": 106627,
+        "speech_started_at": 101440,
+        "speech_ended_at": 102594,
+        "provider_speech_end_detected_at": 103824,
+        "provider_vad_window_ms": 1230,
+        "provider_first_chunk_at": 104386,
+        "app_first_audio_at": 106775,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 102277,
-        "T2_first_audible_response": 106627,
-        "T3_response_complete": 115577,
-        "response_start_latency_ms": 4350,
-        "response_completion_latency_ms": 13300,
-        "app_overhead_first_chunk_to_audible_ms": 2550,
-        "local_speech_end_detected_ms_after_T1": 1246,
+        "T1_patient_speech_end": 102594,
+        "T2_first_audible_response": 106775,
+        "T3_response_complete": 115621,
+        "response_start_latency_ms": 4181,
+        "response_completion_latency_ms": 13027,
+        "app_overhead_first_chunk_to_audible_ms": 2389,
+        "local_speech_end_detected_ms_after_T1": 1257,
         "perceived": "VERY POOR"
       },
       "transcript_note": "",
@@ -804,7 +824,8 @@
         "recovery",
         "reply",
         "recovery"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 8,
@@ -837,12 +858,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@168",
-          "EMMI_THINKING@2000",
-          "TOOL_RUNNING@2538",
-          "EMMI_SPEAKING@2623",
-          "LISTENING@9747"
+          "USER_SPEAKING@154",
+          "EMMI_THINKING@1980",
+          "EMMI_SPEAKING@2591",
+          "LISTENING@9691"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -889,7 +912,7 @@
             "choices": [
               {
                 "n": 1,
-                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 7 de septiembre · 10:45 a. m.",
                 "detail": "",
                 "selected": false,
@@ -899,7 +922,7 @@
               },
               {
                 "n": 2,
-                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1788979500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "miércoles, 9 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -909,7 +932,7 @@
               },
               {
                 "n": 3,
-                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "jueves, 10 de septiembre · 5:15 a. m.",
                 "detail": "",
                 "selected": false,
@@ -919,7 +942,7 @@
               },
               {
                 "n": 4,
-                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789402500000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "lunes, 14 de septiembre · 12:15 p. m.",
                 "detail": "",
                 "selected": false,
@@ -929,7 +952,7 @@
               },
               {
                 "n": 5,
-                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789497900000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "martes, 15 de septiembre · 2:45 p. m.",
                 "detail": "",
                 "selected": false,
@@ -953,7 +976,7 @@
             "success": true,
             "status": "PERFORMED",
             "performed": {
-              "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+              "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
               "label": "jueves, 10 de septiembre · 5:15 a. m.",
               "kind": "SELECT"
             },
@@ -984,7 +1007,7 @@
                 }
               ],
               "selected": {
-                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+                "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
                 "label": "jueves, 10 de septiembre · 5:15 a. m.",
                 "detail": ""
               },
@@ -1015,26 +1038,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 117254,
-        "speech_ended_at": 117954,
-        "provider_speech_end_detected_at": 119176,
-        "provider_vad_window_ms": 1222,
-        "provider_first_chunk_at": 119783,
-        "app_first_audio_at": 119786,
+        "speech_started_at": 117266,
+        "speech_ended_at": 117966,
+        "provider_speech_end_detected_at": 119183,
+        "provider_vad_window_ms": 1217,
+        "provider_first_chunk_at": 119780,
+        "app_first_audio_at": 119785,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 117954,
-        "T2_first_audible_response": 119786,
-        "T3_response_complete": 126965,
-        "response_start_latency_ms": 1832,
-        "response_completion_latency_ms": 9011,
-        "app_overhead_first_chunk_to_audible_ms": 3,
-        "local_speech_end_detected_ms_after_T1": 1252,
+        "T1_patient_speech_end": 117966,
+        "T2_first_audible_response": 119785,
+        "T3_response_complete": 126928,
+        "response_start_latency_ms": 1819,
+        "response_completion_latency_ms": 8962,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1227,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 9,
@@ -1042,7 +1066,7 @@
       "screen": "BARRIER_RESCHEDULE_REVIEW",
       "patient_utterance": "Mejor no quiero cambiarla.",
       "recognized_text": "Mejor no quiero cambiarla.",
-      "EMMI_response": "De acuerdo, su cita se queda como estaba: . ‖ I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
+      "EMMI_response": "De acuerdo, no cambio nada. Su cita sigue como estaba: . ‖ I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
       "EMMI_response_source": "scripted double",
       "conversation_context": {
         "view_before": {
@@ -1072,18 +1096,23 @@
           "EMMI_INVALID_TRANSCRIPT_DISCARDED",
           "EMMI_INVALID_TRANSCRIPT_DISCARDED",
           "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
+          "EMMI_INVALID_TRANSCRIPT_DISCARDED",
           "EMMI_UNRELIABLE_RESPONSE_SUPPRESSED"
         ],
         "provider_generations": 3,
         "generations_cancelled": [],
-        "stale_audio_chunks_discarded": 16,
+        "stale_audio_chunks_discarded": 20,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@169",
-          "EMMI_THINKING@2844",
-          "LISTENING@6955",
-          "EMMI_SPEAKING@7540",
-          "LISTENING@16383"
+          "USER_SPEAKING@164",
+          "EMMI_THINKING@2838",
+          "LISTENING@7938",
+          "EMMI_SPEAKING@8519",
+          "LISTENING@17366"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -1101,7 +1130,7 @@
         {
           "name": "performViewAction",
           "args": {
-            "actionId": "barrier-close"
+            "actionId": "barrier-back"
           },
           "result": {
             "error": "unreliable_voice_input"
@@ -1110,27 +1139,27 @@
       ],
       "navigation_result": "same view",
       "problem_detected": [
-        "response start 5925 ms"
+        "response start 6907 ms"
       ],
       "severity": "P2",
-      "notes": "",
+      "notes": "retraction on the review screen: nothing may be confirmed, and EMMI must be able to step back",
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 128559,
-        "speech_ended_at": 130097,
-        "provider_speech_end_detected_at": 131356,
-        "provider_vad_window_ms": 1259,
-        "provider_first_chunk_at": 131919,
-        "app_first_audio_at": 136022,
+        "speech_started_at": 128558,
+        "speech_ended_at": 130096,
+        "provider_speech_end_detected_at": 131363,
+        "provider_vad_window_ms": 1267,
+        "provider_first_chunk_at": 131927,
+        "app_first_audio_at": 137003,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 130097,
-        "T2_first_audible_response": 136022,
-        "T3_response_complete": 144879,
-        "response_start_latency_ms": 5925,
-        "response_completion_latency_ms": 14782,
-        "app_overhead_first_chunk_to_audible_ms": 4103,
-        "local_speech_end_detected_ms_after_T1": 1268,
+        "T1_patient_speech_end": 130096,
+        "T2_first_audible_response": 137003,
+        "T3_response_complete": 145867,
+        "response_start_latency_ms": 6907,
+        "response_completion_latency_ms": 15771,
+        "app_overhead_first_chunk_to_audible_ms": 5076,
+        "local_speech_end_detected_ms_after_T1": 1288,
         "perceived": "VERY POOR"
       },
       "transcript_note": "",
@@ -1138,7 +1167,8 @@
         "recovery",
         "reply",
         "recovery"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 10,
@@ -1167,11 +1197,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@165",
-          "EMMI_THINKING@3205",
-          "EMMI_SPEAKING@3850",
-          "LISTENING@11425"
+          "USER_SPEAKING@163",
+          "EMMI_THINKING@3168",
+          "EMMI_SPEAKING@3755",
+          "LISTENING@11353"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -1216,7 +1249,7 @@
               }
             ],
             "selected": {
-              "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN",
+              "id": "apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN",
               "label": "jueves, 10 de septiembre · 5:15 a. m.",
               "detail": ""
             },
@@ -1246,26 +1279,27 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 146541,
-        "speech_ended_at": 148464,
-        "provider_speech_end_detected_at": 149716,
-        "provider_vad_window_ms": 1252,
-        "provider_first_chunk_at": 150287,
-        "app_first_audio_at": 150290,
+        "speech_started_at": 147542,
+        "speech_ended_at": 149465,
+        "provider_speech_end_detected_at": 150683,
+        "provider_vad_window_ms": 1218,
+        "provider_first_chunk_at": 151252,
+        "app_first_audio_at": 151255,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 148464,
-        "T2_first_audible_response": 150290,
-        "T3_response_complete": 157893,
-        "response_start_latency_ms": 1826,
-        "response_completion_latency_ms": 9429,
+        "T1_patient_speech_end": 149465,
+        "T2_first_audible_response": 151255,
+        "T3_response_complete": 158840,
+        "response_start_latency_ms": 1790,
+        "response_completion_latency_ms": 9375,
         "app_overhead_first_chunk_to_audible_ms": 3,
-        "local_speech_end_detected_ms_after_T1": 1270,
+        "local_speech_end_detected_ms_after_T1": 1240,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     },
     {
       "turn": 11,
@@ -1294,11 +1328,14 @@
         "generations_cancelled": [],
         "stale_audio_chunks_discarded": 0,
         "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
         "states": [
-          "USER_SPEAKING@252",
-          "EMMI_THINKING@2851",
-          "EMMI_SPEAKING@3363",
-          "LISTENING@5030"
+          "USER_SPEAKING@250",
+          "EMMI_THINKING@2832",
+          "EMMI_SPEAKING@3413",
+          "LISTENING@5095"
         ],
         "final_state": "LISTENING",
         "view_after": {
@@ -1320,32 +1357,33 @@
       "intent": "",
       "bargeIn": false,
       "timing": {
-        "speech_started_at": 159650,
-        "speech_ended_at": 161188,
-        "provider_speech_end_detected_at": 162436,
-        "provider_vad_window_ms": 1248,
-        "provider_first_chunk_at": 162993,
-        "app_first_audio_at": 162997,
+        "speech_started_at": 160511,
+        "speech_ended_at": 162049,
+        "provider_speech_end_detected_at": 163283,
+        "provider_vad_window_ms": 1234,
+        "provider_first_chunk_at": 163842,
+        "app_first_audio_at": 163846,
         "app_scheduled_playback_delay_ms": 0,
-        "T1_patient_speech_end": 161188,
-        "T2_first_audible_response": 162997,
-        "T3_response_complete": 164661,
-        "response_start_latency_ms": 1809,
-        "response_completion_latency_ms": 3473,
+        "T1_patient_speech_end": 162049,
+        "T2_first_audible_response": 163846,
+        "T3_response_complete": 165518,
+        "response_start_latency_ms": 1797,
+        "response_completion_latency_ms": 3469,
         "app_overhead_first_chunk_to_audible_ms": 4,
-        "local_speech_end_detected_ms_after_T1": 1256,
+        "local_speech_end_detected_ms_after_T1": 1244,
         "perceived": "NOTICEABLE DELAY"
       },
       "transcript_note": "",
       "EMMI_response_kinds": [
         "reply"
-      ]
+      ],
+      "app_spoke_itself": []
     }
   ],
   "observations": [
     {
-      "at": "2026-09-04T00:14:39.059Z",
-      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 901 ms after tap"
+      "at": "2026-09-04T05:00:35.303Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 1017 ms after tap"
     }
   ],
   "console_issues": [
@@ -1360,776 +1398,723 @@
   ],
   "tts_requests": [
     {
-      "at": 1788480878411,
+      "at": 1788498034593,
       "words": 88,
       "seconds": 36.66666666666667,
       "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas. ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos. Participar es su decisión, y le e",
       "locale": "ES"
     },
     {
-      "at": 1788480916443,
+      "at": 1788498072635,
       "words": 2,
       "seconds": 0.8333333333333334,
       "text": "[object Object]",
       "locale": "ES"
     }
   ],
-  "finishedAt": "2026-09-04T00:17:22.319Z",
+  "finishedAt": "2026-09-04T05:03:19.028Z",
   "state_transitions": [
     {
-      "t": 1545,
+      "t": 1780,
       "state": "CONNECTING",
       "error": ""
     },
     {
-      "t": 2314,
+      "t": 2157,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 2402,
+      "t": 2678,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 38945,
+      "t": 39241,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 39758,
+      "t": 40022,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 39842,
+      "t": 40107,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 40598,
+      "t": 40863,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 41523,
+      "t": 41786,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 45119,
+      "t": 45282,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 45700,
+      "t": 45812,
       "state": "TOOL_RUNNING",
       "error": ""
     },
     {
-      "t": 45784,
+      "t": 45898,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 53790,
+      "t": 53832,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 57910,
+      "t": 58025,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 60164,
+      "t": 60288,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 60747,
+      "t": 60879,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 72950,
+      "t": 73112,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 74791,
+      "t": 74915,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 77396,
+      "t": 77521,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 77980,
+      "t": 78107,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 83380,
+      "t": 83555,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 85059,
+      "t": 85246,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 88081,
+      "t": 88259,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 88666,
+      "t": 88843,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 99591,
+      "t": 99858,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 101288,
+      "t": 101609,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 103535,
+      "t": 103870,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 106113,
+      "t": 106242,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 106700,
+      "t": 106829,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 115631,
+      "t": 115658,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 117422,
+      "t": 117420,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 119254,
+      "t": 119246,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 119792,
-      "state": "TOOL_RUNNING",
-      "error": ""
-    },
-    {
-      "t": 119877,
+      "t": 119857,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 127001,
+      "t": 126957,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 128728,
+      "t": 128722,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 131403,
+      "t": 131396,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 135514,
+      "t": 136496,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 136099,
+      "t": 137077,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 144942,
+      "t": 145924,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 146706,
+      "t": 147705,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 149746,
+      "t": 150710,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 150391,
+      "t": 151297,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 157966,
+      "t": 158895,
       "state": "LISTENING",
       "error": ""
     },
     {
-      "t": 159902,
+      "t": 160761,
       "state": "USER_SPEAKING",
       "error": ""
     },
     {
-      "t": 162501,
+      "t": 163343,
       "state": "EMMI_THINKING",
       "error": ""
     },
     {
-      "t": 163013,
+      "t": 163924,
       "state": "EMMI_SPEAKING",
       "error": ""
     },
     {
-      "t": 164680,
+      "t": 165606,
       "state": "LISTENING",
       "error": ""
     }
   ],
   "provider_log_tail": [
     {
-      "t": 90205,
-      "at": 1788480966946,
+      "t": 91156,
+      "at": 1788498123800,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "chunk": 8
-    },
-    {
-      "t": 90208,
-      "at": 1788480966949,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "text": "10:45"
-    },
-    {
-      "t": 90452,
-      "at": 1788480967192,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "chunk": 9
-    },
-    {
-      "t": 90454,
-      "at": 1788480967195,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "text": "a."
-    },
-    {
-      "t": 90698,
-      "at": 1788480967438,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "chunk": 10
-    },
-    {
-      "t": 90700,
-      "at": 1788480967441,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
-      "text": "m.;"
-    },
-    {
-      "t": 90943,
-      "at": 1788480967684,
-      "dir": "out",
-      "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 11
     },
     {
-      "t": 90946,
-      "at": 1788480967686,
+      "t": 91159,
+      "at": 1788498123803,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "miércoles,"
     },
     {
-      "t": 91190,
-      "at": 1788480967930,
+      "t": 91403,
+      "at": 1788498124047,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 12
     },
     {
-      "t": 91192,
-      "at": 1788480967932,
+      "t": 91405,
+      "at": 1788498124050,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "9"
     },
     {
-      "t": 91435,
-      "at": 1788480968176,
+      "t": 91650,
+      "at": 1788498124294,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 13
     },
     {
-      "t": 91438,
-      "at": 1788480968178,
+      "t": 91654,
+      "at": 1788498124298,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "de"
     },
     {
-      "t": 91682,
-      "at": 1788480968422,
+      "t": 91898,
+      "at": 1788498124543,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 14
     },
     {
-      "t": 91684,
-      "at": 1788480968424,
+      "t": 91901,
+      "at": 1788498124545,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "septiembre"
     },
     {
-      "t": 91927,
-      "at": 1788480968668,
+      "t": 92145,
+      "at": 1788498124789,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 15
     },
     {
-      "t": 91930,
-      "at": 1788480968671,
+      "t": 92148,
+      "at": 1788498124792,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "·"
     },
     {
-      "t": 92175,
-      "at": 1788480968915,
+      "t": 92392,
+      "at": 1788498125036,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 16
     },
     {
-      "t": 92179,
-      "at": 1788480968920,
+      "t": 92396,
+      "at": 1788498125041,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "2:45"
     },
     {
-      "t": 92425,
-      "at": 1788480969165,
+      "t": 92641,
+      "at": 1788498125286,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 17
     },
     {
-      "t": 92429,
-      "at": 1788480969169,
+      "t": 92645,
+      "at": 1788498125290,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "p."
     },
     {
-      "t": 92673,
-      "at": 1788480969414,
+      "t": 92889,
+      "at": 1788498125534,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 18
     },
     {
-      "t": 92676,
-      "at": 1788480969416,
+      "t": 92892,
+      "at": 1788498125536,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "m.;"
     },
     {
-      "t": 92919,
-      "at": 1788480969659,
+      "t": 93135,
+      "at": 1788498125780,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 19
     },
     {
-      "t": 92922,
-      "at": 1788480969662,
+      "t": 93138,
+      "at": 1788498125782,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "jueves,"
     },
     {
-      "t": 93166,
-      "at": 1788480969906,
+      "t": 93381,
+      "at": 1788498126026,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 20
     },
     {
-      "t": 93168,
-      "at": 1788480969908,
+      "t": 93384,
+      "at": 1788498126029,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "10"
     },
     {
-      "t": 93411,
-      "at": 1788480970152,
+      "t": 93628,
+      "at": 1788498126273,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 21
     },
     {
-      "t": 93414,
-      "at": 1788480970154,
+      "t": 93631,
+      "at": 1788498126276,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "de"
     },
     {
-      "t": 93657,
-      "at": 1788480970398,
+      "t": 93876,
+      "at": 1788498126520,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 22
     },
     {
-      "t": 93660,
-      "at": 1788480970400,
+      "t": 93878,
+      "at": 1788498126523,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "septiembre"
     },
     {
-      "t": 93903,
-      "at": 1788480970643,
+      "t": 94122,
+      "at": 1788498126766,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 23
     },
     {
-      "t": 93905,
-      "at": 1788480970646,
+      "t": 94124,
+      "at": 1788498126769,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "·"
     },
     {
-      "t": 94149,
-      "at": 1788480970890,
+      "t": 94369,
+      "at": 1788498127013,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 24
     },
     {
-      "t": 94152,
-      "at": 1788480970892,
+      "t": 94372,
+      "at": 1788498127016,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "5:15"
     },
     {
-      "t": 94395,
-      "at": 1788480971135,
+      "t": 94615,
+      "at": 1788498127260,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 25
     },
     {
-      "t": 94398,
-      "at": 1788480971139,
+      "t": 94618,
+      "at": 1788498127262,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "a."
     },
     {
-      "t": 94642,
-      "at": 1788480971382,
+      "t": 94862,
+      "at": 1788498127506,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 26
     },
     {
-      "t": 94644,
-      "at": 1788480971385,
+      "t": 94865,
+      "at": 1788498127509,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "text": "m.."
     },
     {
-      "t": 94888,
-      "at": 1788480971628,
+      "t": 95110,
+      "at": 1788498127755,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 27
     },
     {
-      "t": 95132,
-      "at": 1788480971872,
+      "t": 95355,
+      "at": 1788498127999,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 28
     },
     {
-      "t": 95376,
-      "at": 1788480972116,
+      "t": 95599,
+      "at": 1788498128244,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 29
     },
     {
-      "t": 95620,
-      "at": 1788480972360,
+      "t": 95846,
+      "at": 1788498128490,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 30
     },
     {
-      "t": 95864,
-      "at": 1788480972604,
+      "t": 96090,
+      "at": 1788498128735,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 31
     },
     {
-      "t": 96109,
-      "at": 1788480972850,
+      "t": 96334,
+      "at": 1788498128979,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 32
     },
     {
-      "t": 96354,
-      "at": 1788480973095,
+      "t": 96579,
+      "at": 1788498129223,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 33
     },
     {
-      "t": 96598,
-      "at": 1788480973339,
+      "t": 96823,
+      "at": 1788498129468,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 34
     },
     {
-      "t": 96843,
-      "at": 1788480973583,
+      "t": 97067,
+      "at": 1788498129711,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 35
     },
     {
-      "t": 97087,
-      "at": 1788480973827,
+      "t": 97311,
+      "at": 1788498129956,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 36
     },
     {
-      "t": 97330,
-      "at": 1788480974071,
+      "t": 97557,
+      "at": 1788498130202,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 37
     },
     {
-      "t": 97575,
-      "at": 1788480974315,
+      "t": 97807,
+      "at": 1788498130452,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 38
     },
     {
-      "t": 97819,
-      "at": 1788480974559,
+      "t": 98052,
+      "at": 1788498130696,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 39
     },
     {
-      "t": 98062,
-      "at": 1788480974803,
+      "t": 98296,
+      "at": 1788498130940,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 40
     },
     {
-      "t": 98306,
-      "at": 1788480975047,
+      "t": 98540,
+      "at": 1788498131184,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 41
     },
     {
-      "t": 98550,
-      "at": 1788480975291,
+      "t": 98785,
+      "at": 1788498131429,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 42
     },
     {
-      "t": 98795,
-      "at": 1788480975535,
+      "t": 99029,
+      "at": 1788498131674,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 43
     },
     {
-      "t": 99040,
-      "at": 1788480975780,
+      "t": 99274,
+      "at": 1788498131918,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 44
     },
     {
-      "t": 99283,
-      "at": 1788480976024,
+      "t": 99518,
+      "at": 1788498132162,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 45
     },
     {
-      "t": 99526,
-      "at": 1788480976266,
+      "t": 99761,
+      "at": 1788498132406,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g",
+      "generationId": "gen_mtmhlq5l_euzg",
       "chunk": 46
     },
     {
-      "t": 99527,
-      "at": 1788480976268,
+      "t": 99763,
+      "at": 1788498132407,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g"
+      "generationId": "gen_mtmhlq5l_euzg"
     },
     {
-      "t": 99528,
-      "at": 1788480976268,
+      "t": 99763,
+      "at": 1788498132407,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7e0fh_hn2g"
+      "generationId": "gen_mtmhlq5l_euzg"
     },
     {
-      "t": 99528,
-      "at": 1788480976268,
+      "t": 99763,
+      "at": 1788498132407,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7e0fh_hn2g"
+      "generationId": "gen_mtmhlq5l_euzg"
     },
     {
-      "t": 101216,
-      "at": 1788480977957,
+      "t": 101523,
+      "at": 1788498134168,
       "dir": "vad",
       "type": "speech_start",
       "generating": false
     },
     {
-      "t": 103516,
-      "at": 1788480980256,
+      "t": 103824,
+      "at": 1788498136468,
       "dir": "vad",
       "type": "speech_end",
       "durationMs": 1070,
-      "speechLastAt": 102286
+      "speechLastAt": 102594
     },
     {
-      "t": 103516,
-      "at": 1788480980256,
+      "t": 103824,
+      "at": 1788498136468,
       "dir": "asr",
       "type": "input_transcription",
       "text": "La del jueves."
     },
     {
-      "t": 103516,
-      "at": 1788480980256,
+      "t": 103824,
+      "at": 1788498136468,
       "dir": "out",
       "type": "serverContent",
       "text": "La del jueves."
     },
     {
-      "t": 103520,
-      "at": 1788480980261,
+      "t": 103829,
+      "at": 1788498136473,
       "dir": "in",
       "type": "text",
       "text": "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
@@ -2138,769 +2123,769 @@
       "recovery": true
     },
     {
-      "t": 103521,
-      "at": 1788480980261,
+      "t": 103829,
+      "at": 1788498136474,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7ecdh_aslb",
+      "generationId": "gen_mtmhm26y_64ny",
       "source": "text",
       "transcript": "",
       "kind": "recovery"
     },
     {
-      "t": 103521,
-      "at": 1788480980261,
+      "t": 103830,
+      "at": 1788498136474,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "source": "audio",
       "transcript": "La del jueves.",
       "kind": "reply"
     },
     {
-      "t": 104071,
-      "at": 1788480980811,
+      "t": 104380,
+      "at": 1788498137024,
       "dir": "model",
       "type": "tool_call",
       "name": "describeCurrentView",
       "args": {}
     },
     {
-      "t": 104071,
-      "at": 1788480980811,
+      "t": 104380,
+      "at": 1788498137024,
       "dir": "out",
       "type": "toolCall",
       "name": "describeCurrentView"
     },
     {
-      "t": 104072,
-      "at": 1788480980812,
+      "t": 104381,
+      "at": 1788498137026,
       "dir": "in",
       "type": "toolResponse",
-      "responses": "[{\"id\":\"call_co6rsl\",\"name\":\"describeCurrentView\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+      "responses": "[{\"id\":\"call_8fyqiv\",\"name\":\"describeCurrentView\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
     },
     {
-      "t": 104077,
-      "at": 1788480980817,
+      "t": 104386,
+      "at": 1788498137030,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "No veo ninguna el jueves.",
       "seconds": 2.08,
       "chunks": 9
     },
     {
-      "t": 104078,
-      "at": 1788480980818,
+      "t": 104388,
+      "at": 1788498137032,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 1
     },
     {
-      "t": 104080,
-      "at": 1788480980820,
+      "t": 104389,
+      "at": 1788498137034,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "No"
     },
     {
-      "t": 104202,
-      "at": 1788480980943,
+      "t": 104512,
+      "at": 1788498137156,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 2
     },
     {
-      "t": 104204,
-      "at": 1788480980945,
+      "t": 104514,
+      "at": 1788498137158,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "veo"
     },
     {
-      "t": 104447,
-      "at": 1788480981187,
+      "t": 104756,
+      "at": 1788498137401,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 3
     },
     {
-      "t": 104448,
-      "at": 1788480981189,
+      "t": 104757,
+      "at": 1788498137402,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "ninguna"
     },
     {
-      "t": 104847,
-      "at": 1788480981587,
+      "t": 105000,
+      "at": 1788498137644,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 4
     },
     {
-      "t": 104849,
-      "at": 1788480981590,
+      "t": 105001,
+      "at": 1788498137646,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "el"
     },
     {
-      "t": 105092,
-      "at": 1788480981832,
+      "t": 105243,
+      "at": 1788498137888,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 5
     },
     {
-      "t": 105093,
-      "at": 1788480981834,
+      "t": 105245,
+      "at": 1788498137889,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "text": "jueves."
     },
     {
-      "t": 105336,
-      "at": 1788480982076,
+      "t": 105487,
+      "at": 1788498138132,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 6
     },
     {
-      "t": 105579,
-      "at": 1788480982319,
+      "t": 105730,
+      "at": 1788498138375,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 7
     },
     {
-      "t": 105822,
-      "at": 1788480982562,
+      "t": 105974,
+      "at": 1788498138618,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 8
     },
     {
-      "t": 106066,
-      "at": 1788480982806,
+      "t": 106216,
+      "at": 1788498138861,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh",
+      "generationId": "gen_mtmhm26y_3thn",
       "chunk": 9
     },
     {
-      "t": 106068,
-      "at": 1788480982809,
+      "t": 106218,
+      "at": 1788498138862,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh"
+      "generationId": "gen_mtmhm26y_3thn"
     },
     {
-      "t": 106073,
-      "at": 1788480982813,
+      "t": 106220,
+      "at": 1788498138865,
       "dir": "in",
       "type": "text",
-      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Ok. ¿Qué horarios me dijiste?\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"BARRIER_RESCHEDULE_SLOTS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Elija un nuevo horario. Elegirlo todavía no cambia la cita.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"SLOTS\",\"stepNumber\":3,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time\":\"10:45 a. m.\",\"startAt\":\"2026-09-07T14:45:00.000Z\"},{\"n\":2,\"id\":\"apt|dr-fresner|1788979500000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"miércoles, 9 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"miércoles, 9 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-09T18:45:00.000Z\"},{\"n\":3,\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"jueves, 10 de septiembre\",\"time\":\"5:15 a. m.\",\"startAt\":\"2026-09-10T09:15:00.000Z\"},{\"n\":4,\"id\":\"apt|dr-fresner|1789402500000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"lunes, 14 de septiembre · 12:15 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 14 de septiembre\",\"time\":\"12:15 p. m.\",\"startAt\":\"2026-09-14T16:15:00.000Z\"},{\"n\":5,\"id\":\"apt|dr-fresner|1789497900000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"martes, 15 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"martes, 15 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-15T18:45:00.000Z\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Ok. ¿Qué horarios me dijiste?\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"BARRIER_RESCHEDULE_SLOTS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Elija un nuevo horario. Elegirlo todavía no cambia la cita.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"SLOTS\",\"stepNumber\":3,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time\":\"10:45 a. m.\",\"startAt\":\"2026-09-07T14:45:00.000Z\"},{\"n\":2,\"id\":\"apt|dr-fresner|1788979500000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"miércoles, 9 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"miércoles, 9 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-09T18:45:00.000Z\"},{\"n\":3,\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"jueves, 10 de septiembre\",\"time\":\"5:15 a. m.\",\"startAt\":\"2026-09-10T09:15:00.000Z\"},{\"n\":4,\"id\":\"apt|dr-fresner|1789402500000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"lunes, 14 de septiembre · 12:15 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 14 de septiembre\",\"time\":\"12:15 p. m.\",\"startAt\":\"2026-09-14T16:15:00.000Z\"},{\"n\":5,\"id\":\"apt|dr-fresner|1789497900000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"martes, 15 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"martes, 15 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-15T18:45:00.000Z\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
       "contextEnvelope": true,
       "narration": false,
       "recovery": true
     },
     {
-      "t": 106073,
-      "at": 1788480982813,
+      "t": 106221,
+      "at": 1788498138865,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "source": "text",
-      "transcript": ",\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time",
+      "transcript": ",\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time",
       "kind": "recovery"
     },
     {
-      "t": 106076,
-      "at": 1788480982816,
+      "t": 106222,
+      "at": 1788498138867,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7ecdh_sweh"
+      "generationId": "gen_mtmhm26y_3thn"
     },
     {
-      "t": 106079,
-      "at": 1788480982819,
+      "t": 106224,
+      "at": 1788498138868,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7ecdh_sweh"
+      "generationId": "gen_mtmhm26y_3thn"
     },
     {
-      "t": 106623,
-      "at": 1788480983364,
+      "t": 106771,
+      "at": 1788498139415,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
       "seconds": 8.75,
       "chunks": 37
     },
     {
-      "t": 106624,
-      "at": 1788480983365,
+      "t": 106772,
+      "at": 1788498139417,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 1
     },
     {
-      "t": 106630,
-      "at": 1788480983371,
+      "t": 106778,
+      "at": 1788498139423,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "I’m"
     },
     {
-      "t": 106757,
-      "at": 1788480983497,
+      "t": 106902,
+      "at": 1788498139547,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 2
     },
     {
-      "t": 106763,
-      "at": 1788480983504,
+      "t": 106906,
+      "at": 1788498139550,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "sorry,"
     },
     {
-      "t": 107008,
-      "at": 1788480983748,
+      "t": 107150,
+      "at": 1788498139794,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 3
     },
     {
-      "t": 107013,
-      "at": 1788480983754,
+      "t": 107153,
+      "at": 1788498139798,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "I"
     },
     {
-      "t": 107264,
-      "at": 1788480984004,
+      "t": 107398,
+      "at": 1788498140043,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 4
     },
     {
-      "t": 107270,
-      "at": 1788480984010,
+      "t": 107402,
+      "at": 1788498140046,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "didn’t"
     },
     {
-      "t": 107521,
-      "at": 1788480984261,
+      "t": 107646,
+      "at": 1788498140291,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 5
     },
     {
-      "t": 107524,
-      "at": 1788480984265,
+      "t": 107649,
+      "at": 1788498140293,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "hear"
     },
     {
-      "t": 107770,
-      "at": 1788480984510,
+      "t": 107893,
+      "at": 1788498140538,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 6
     },
     {
-      "t": 107773,
-      "at": 1788480984513,
+      "t": 107896,
+      "at": 1788498140541,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "that"
     },
     {
-      "t": 108018,
-      "at": 1788480984759,
+      "t": 108140,
+      "at": 1788498140785,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 7
     },
     {
-      "t": 108021,
-      "at": 1788480984762,
+      "t": 108143,
+      "at": 1788498140787,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "clearly."
     },
     {
-      "t": 108267,
-      "at": 1788480985007,
+      "t": 108387,
+      "at": 1788498141031,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 8
     },
     {
-      "t": 108270,
-      "at": 1788480985010,
+      "t": 108390,
+      "at": 1788498141034,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "Please"
     },
     {
-      "t": 108518,
-      "at": 1788480985259,
+      "t": 108634,
+      "at": 1788498141278,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 9
     },
     {
-      "t": 108522,
-      "at": 1788480985262,
+      "t": 108636,
+      "at": 1788498141281,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "say"
     },
     {
-      "t": 108770,
-      "at": 1788480985511,
+      "t": 108880,
+      "at": 1788498141525,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 10
     },
     {
-      "t": 108774,
-      "at": 1788480985514,
+      "t": 108883,
+      "at": 1788498141528,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "it"
     },
     {
-      "t": 109019,
-      "at": 1788480985759,
+      "t": 109127,
+      "at": 1788498141772,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 11
     },
     {
-      "t": 109023,
-      "at": 1788480985763,
+      "t": 109129,
+      "at": 1788498141774,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "again."
     },
     {
-      "t": 109268,
-      "at": 1788480986008,
+      "t": 109373,
+      "at": 1788498142018,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 12
     },
     {
-      "t": 109271,
-      "at": 1788480986012,
+      "t": 109377,
+      "at": 1788498142021,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "If"
     },
     {
-      "t": 109519,
-      "at": 1788480986259,
+      "t": 109621,
+      "at": 1788498142266,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 13
     },
     {
-      "t": 109522,
-      "at": 1788480986262,
+      "t": 109624,
+      "at": 1788498142268,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "this"
     },
     {
-      "t": 109769,
-      "at": 1788480986510,
+      "t": 109868,
+      "at": 1788498142512,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 14
     },
     {
-      "t": 109773,
-      "at": 1788480986514,
+      "t": 109870,
+      "at": 1788498142515,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "may"
     },
     {
-      "t": 110020,
-      "at": 1788480986760,
+      "t": 110114,
+      "at": 1788498142758,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 15
     },
     {
-      "t": 110022,
-      "at": 1788480986763,
+      "t": 110116,
+      "at": 1788498142761,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "be"
     },
     {
-      "t": 110276,
-      "at": 1788480987016,
+      "t": 110362,
+      "at": 1788498143006,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 16
     },
     {
-      "t": 110280,
-      "at": 1788480987020,
+      "t": 110371,
+      "at": 1788498143015,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "a"
     },
     {
-      "t": 110525,
-      "at": 1788480987265,
+      "t": 110616,
+      "at": 1788498143260,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 17
     },
     {
-      "t": 110529,
-      "at": 1788480987269,
+      "t": 110618,
+      "at": 1788498143262,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "medical"
     },
     {
-      "t": 110775,
-      "at": 1788480987516,
+      "t": 110863,
+      "at": 1788498143507,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 18
     },
     {
-      "t": 110780,
-      "at": 1788480987521,
+      "t": 110865,
+      "at": 1788498143510,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "emergency,"
     },
     {
-      "t": 111026,
-      "at": 1788480987766,
+      "t": 111109,
+      "at": 1788498143754,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 19
     },
     {
-      "t": 111028,
-      "at": 1788480987768,
+      "t": 111112,
+      "at": 1788498143756,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "call"
     },
     {
-      "t": 111278,
-      "at": 1788480988018,
+      "t": 111356,
+      "at": 1788498144001,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 20
     },
     {
-      "t": 111281,
-      "at": 1788480988021,
+      "t": 111359,
+      "at": 1788498144003,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "911"
     },
     {
-      "t": 111536,
-      "at": 1788480988277,
+      "t": 111603,
+      "at": 1788498144247,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 21
     },
     {
-      "t": 111539,
-      "at": 1788480988279,
+      "t": 111606,
+      "at": 1788498144250,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "text": "now."
     },
     {
-      "t": 111787,
-      "at": 1788480988527,
+      "t": 111850,
+      "at": 1788498144494,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 22
     },
     {
-      "t": 112031,
-      "at": 1788480988772,
+      "t": 112094,
+      "at": 1788498144738,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 23
     },
     {
-      "t": 112276,
-      "at": 1788480989016,
+      "t": 112338,
+      "at": 1788498144982,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 24
     },
     {
-      "t": 112521,
-      "at": 1788480989261,
+      "t": 112582,
+      "at": 1788498145226,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 25
     },
     {
-      "t": 112766,
-      "at": 1788480989506,
+      "t": 112826,
+      "at": 1788498145470,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 26
     },
     {
-      "t": 113010,
-      "at": 1788480989751,
+      "t": 113070,
+      "at": 1788498145714,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 27
     },
     {
-      "t": 113254,
-      "at": 1788480989994,
+      "t": 113314,
+      "at": 1788498145958,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 28
     },
     {
-      "t": 113499,
-      "at": 1788480990240,
+      "t": 113558,
+      "at": 1788498146202,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 29
     },
     {
-      "t": 113744,
-      "at": 1788480990485,
+      "t": 113802,
+      "at": 1788498146447,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 30
     },
     {
-      "t": 113989,
-      "at": 1788480990729,
+      "t": 114046,
+      "at": 1788498146691,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 31
     },
     {
-      "t": 114234,
-      "at": 1788480990974,
+      "t": 114290,
+      "at": 1788498146935,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 32
     },
     {
-      "t": 114478,
-      "at": 1788480991218,
+      "t": 114534,
+      "at": 1788498147179,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 33
     },
     {
-      "t": 114723,
-      "at": 1788480991463,
+      "t": 114778,
+      "at": 1788498147423,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 34
     },
     {
-      "t": 114969,
-      "at": 1788480991709,
+      "t": 115023,
+      "at": 1788498147667,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 35
     },
     {
-      "t": 115214,
-      "at": 1788480991955,
+      "t": 115266,
+      "at": 1788498147911,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 36
     },
     {
-      "t": 115458,
-      "at": 1788480992199,
+      "t": 115510,
+      "at": 1788498148155,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579",
+      "generationId": "gen_mtmhm41d_8yo9",
       "chunk": 37
     },
     {
-      "t": 115460,
-      "at": 1788480992201,
+      "t": 115512,
+      "at": 1788498148156,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579"
+      "generationId": "gen_mtmhm41d_8yo9"
     },
     {
-      "t": 115460,
-      "at": 1788480992201,
+      "t": 115512,
+      "at": 1788498148156,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eecd_0579"
+      "generationId": "gen_mtmhm41d_8yo9"
     },
     {
-      "t": 115460,
-      "at": 1788480992201,
+      "t": 115512,
+      "at": 1788498148157,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7eecd_0579"
+      "generationId": "gen_mtmhm41d_8yo9"
     },
     {
-      "t": 117316,
-      "at": 1788480994056,
+      "t": 117333,
+      "at": 1788498149978,
       "dir": "vad",
       "type": "speech_start",
       "generating": false
     },
     {
-      "t": 119176,
-      "at": 1788480995917,
+      "t": 119183,
+      "at": 1788498151828,
       "dir": "vad",
       "type": "speech_end",
-      "durationMs": 610,
-      "speechLastAt": 117926
+      "durationMs": 600,
+      "speechLastAt": 117933
     },
     {
-      "t": 119176,
-      "at": 1788480995917,
+      "t": 119183,
+      "at": 1788498151828,
       "dir": "asr",
       "type": "input_transcription",
       "text": "Esa."
     },
     {
-      "t": 119176,
-      "at": 1788480995917,
+      "t": 119183,
+      "at": 1788498151828,
       "dir": "out",
       "type": "serverContent",
       "text": "Esa."
     },
     {
-      "t": 119182,
-      "at": 1788480995922,
+      "t": 119189,
+      "at": 1788498151833,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "source": "audio",
       "transcript": "Esa.",
       "kind": "reply"
     },
     {
-      "t": 119732,
-      "at": 1788480996473,
+      "t": 119739,
+      "at": 1788498152384,
       "dir": "model",
       "type": "tool_call",
       "name": "describeCurrentView",
       "args": {}
     },
     {
-      "t": 119733,
-      "at": 1788480996473,
+      "t": 119739,
+      "at": 1788498152384,
       "dir": "out",
       "type": "toolCall",
       "name": "describeCurrentView"
     },
     {
-      "t": 119738,
-      "at": 1788480996478,
+      "t": 119743,
+      "at": 1788498152388,
       "dir": "in",
       "type": "toolResponse",
-      "responses": "[{\"id\":\"call_ha0kbi\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_RESCHEDULE_SLOTS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Elija un nuevo horario. Elegirlo todavía no cambia la cita.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"SLOTS\",\"stepNumber\":3,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time\":\"10:45 a. m.\",\"startAt\":\"2026-09-07T14:45:00.000Z\"},{\"n\":2,\"id\":\"apt|dr-fresner|1788979500000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"miércoles, 9 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"miércoles, 9 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-09T18:45:00.000Z\"},{\"n\":3,\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"jueves, 10 de septiembre\",\"time\":\"5:15 a. m.\",\"startAt\":\"2026-09-10T09:15:00.000Z\"},{\"n\":4,\"id\":\"apt|dr-fresner|1789402500000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"lunes, 14 de septiembre · 12:15 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 14 de septiembre\",\"time\":\"12:15 p. m.\",\"startAt\":\"2026-09-14T16:15:00.000Z\"},{\"n\":5,\"id\":\"apt|dr-fresner|1789497900000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"martes, 15 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"martes, 15 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-15T18:45:00.000Z\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true}}}]"
+      "responses": "[{\"id\":\"call_1rjpb9\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_RESCHEDULE_SLOTS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Elija un nuevo horario. Elegirlo todavía no cambia la cita.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"SLOTS\",\"stepNumber\":3,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"apt|dr-fresner|1788792300000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"lunes, 7 de septiembre · 10:45 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 7 de septiembre\",\"time\":\"10:45 a. m.\",\"startAt\":\"2026-09-07T14:45:00.000Z\"},{\"n\":2,\"id\":\"apt|dr-fresner|1788979500000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"miércoles, 9 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"miércoles, 9 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-09T18:45:00.000Z\"},{\"n\":3,\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"jueves, 10 de septiembre\",\"time\":\"5:15 a. m.\",\"startAt\":\"2026-09-10T09:15:00.000Z\"},{\"n\":4,\"id\":\"apt|dr-fresner|1789402500000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"lunes, 14 de septiembre · 12:15 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"lunes, 14 de septiembre\",\"time\":\"12:15 p. m.\",\"startAt\":\"2026-09-14T16:15:00.000Z\"},{\"n\":5,\"id\":\"apt|dr-fresner|1789497900000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"martes, 15 de septiembre · 2:45 p. m.\",\"detail\":\"\",\"selected\":false,\"date\":\"martes, 15 de septiembre\",\"time\":\"2:45 p. m.\",\"startAt\":\"2026-09-15T18:45:00.000Z\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true}}}]"
     },
     {
-      "t": 119744,
-      "at": 1788480996484,
+      "t": 119750,
+      "at": 1788498152395,
       "dir": "model",
       "type": "tool_call",
       "name": "performViewAction",
@@ -2909,458 +2894,458 @@
       }
     },
     {
-      "t": 119744,
-      "at": 1788480996484,
+      "t": 119750,
+      "at": 1788498152395,
       "dir": "out",
       "type": "toolCall",
       "name": "performViewAction"
     },
     {
-      "t": 119780,
-      "at": 1788480996520,
+      "t": 119778,
+      "at": 1788498152422,
       "dir": "in",
       "type": "toolResponse",
-      "responses": "[{\"id\":\"call_yse6y9\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}}}]"
+      "responses": "[{\"id\":\"call_qe5as0\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}}}]"
     },
     {
-      "t": 119783,
-      "at": 1788480996523,
+      "t": 119780,
+      "at": 1788498152425,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "Elegí jueves, 10 de septiembre · 5:15 a. m.. La cita todavía no cambia hasta que confirme.",
       "seconds": 7.08,
       "chunks": 30
     },
     {
-      "t": 119784,
-      "at": 1788480996524,
+      "t": 119782,
+      "at": 1788498152426,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 1
     },
     {
-      "t": 119789,
-      "at": 1788480996529,
+      "t": 119790,
+      "at": 1788498152434,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "Elegí"
     },
     {
-      "t": 119915,
-      "at": 1788480996656,
+      "t": 119914,
+      "at": 1788498152559,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 2
     },
     {
-      "t": 119919,
-      "at": 1788480996660,
+      "t": 119917,
+      "at": 1788498152562,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "jueves,"
     },
     {
-      "t": 120167,
-      "at": 1788480996908,
+      "t": 120162,
+      "at": 1788498152806,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 3
     },
     {
-      "t": 120170,
-      "at": 1788480996910,
+      "t": 120165,
+      "at": 1788498152809,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "10"
     },
     {
-      "t": 120414,
-      "at": 1788480997154,
+      "t": 120411,
+      "at": 1788498153055,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 4
     },
     {
-      "t": 120418,
-      "at": 1788480997158,
+      "t": 120415,
+      "at": 1788498153060,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "de"
     },
     {
-      "t": 120662,
-      "at": 1788480997403,
+      "t": 120661,
+      "at": 1788498153305,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 5
     },
     {
-      "t": 120665,
-      "at": 1788480997406,
+      "t": 120663,
+      "at": 1788498153308,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "septiembre"
     },
     {
-      "t": 120911,
-      "at": 1788480997651,
+      "t": 120907,
+      "at": 1788498153552,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 6
     },
     {
-      "t": 120914,
-      "at": 1788480997654,
+      "t": 120909,
+      "at": 1788498153554,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "·"
     },
     {
-      "t": 121160,
-      "at": 1788480997900,
+      "t": 121153,
+      "at": 1788498153798,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 7
     },
     {
-      "t": 121163,
-      "at": 1788480997903,
+      "t": 121156,
+      "at": 1788498153801,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "5:15"
     },
     {
-      "t": 121409,
-      "at": 1788480998150,
+      "t": 121400,
+      "at": 1788498154045,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 8
     },
     {
-      "t": 121413,
-      "at": 1788480998153,
+      "t": 121403,
+      "at": 1788498154048,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "a."
     },
     {
-      "t": 121659,
-      "at": 1788480998399,
+      "t": 121648,
+      "at": 1788498154292,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 9
     },
     {
-      "t": 121662,
-      "at": 1788480998402,
+      "t": 121650,
+      "at": 1788498154295,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "m.."
     },
     {
-      "t": 121908,
-      "at": 1788480998648,
+      "t": 121894,
+      "at": 1788498154538,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 10
     },
     {
-      "t": 121912,
-      "at": 1788480998653,
+      "t": 121897,
+      "at": 1788498154541,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "La"
     },
     {
-      "t": 122159,
-      "at": 1788480998899,
+      "t": 122142,
+      "at": 1788498154787,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 11
     },
     {
-      "t": 122162,
-      "at": 1788480998902,
+      "t": 122145,
+      "at": 1788498154789,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "cita"
     },
     {
-      "t": 122407,
-      "at": 1788480999148,
+      "t": 122390,
+      "at": 1788498155034,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 12
     },
     {
-      "t": 122411,
-      "at": 1788480999151,
+      "t": 122393,
+      "at": 1788498155038,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "todavía"
     },
     {
-      "t": 122657,
-      "at": 1788480999397,
+      "t": 122638,
+      "at": 1788498155282,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 13
     },
     {
-      "t": 122659,
-      "at": 1788480999400,
+      "t": 122640,
+      "at": 1788498155285,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "no"
     },
     {
-      "t": 122908,
-      "at": 1788480999648,
+      "t": 122884,
+      "at": 1788498155529,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 14
     },
     {
-      "t": 122911,
-      "at": 1788480999651,
+      "t": 122887,
+      "at": 1788498155531,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "cambia"
     },
     {
-      "t": 123155,
-      "at": 1788480999896,
+      "t": 123132,
+      "at": 1788498155776,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 15
     },
     {
-      "t": 123160,
-      "at": 1788480999900,
+      "t": 123134,
+      "at": 1788498155779,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "hasta"
     },
     {
-      "t": 123404,
-      "at": 1788481000144,
+      "t": 123379,
+      "at": 1788498156023,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 16
     },
     {
-      "t": 123409,
-      "at": 1788481000150,
+      "t": 123382,
+      "at": 1788498156026,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "que"
     },
     {
-      "t": 123657,
-      "at": 1788481000397,
+      "t": 123626,
+      "at": 1788498156270,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 17
     },
     {
-      "t": 123659,
-      "at": 1788481000400,
+      "t": 123628,
+      "at": 1788498156273,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "text": "confirme."
     },
     {
-      "t": 123905,
-      "at": 1788481000646,
+      "t": 123873,
+      "at": 1788498156518,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 18
     },
     {
-      "t": 124149,
-      "at": 1788481000890,
+      "t": 124117,
+      "at": 1788498156762,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 19
     },
     {
-      "t": 124394,
-      "at": 1788481001135,
+      "t": 124361,
+      "at": 1788498157006,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 20
     },
     {
-      "t": 124638,
-      "at": 1788481001378,
+      "t": 124606,
+      "at": 1788498157250,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 21
     },
     {
-      "t": 124883,
-      "at": 1788481001623,
+      "t": 124850,
+      "at": 1788498157494,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 22
     },
     {
-      "t": 125128,
-      "at": 1788481001868,
+      "t": 125094,
+      "at": 1788498157738,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 23
     },
     {
-      "t": 125372,
-      "at": 1788481002112,
+      "t": 125338,
+      "at": 1788498157983,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 24
     },
     {
-      "t": 125617,
-      "at": 1788481002358,
+      "t": 125582,
+      "at": 1788498158226,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 25
     },
     {
-      "t": 125862,
-      "at": 1788481002602,
+      "t": 125826,
+      "at": 1788498158470,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 26
     },
     {
-      "t": 126106,
-      "at": 1788481002847,
+      "t": 126070,
+      "at": 1788498158714,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 27
     },
     {
-      "t": 126351,
-      "at": 1788481003091,
+      "t": 126314,
+      "at": 1788498158958,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 28
     },
     {
-      "t": 126596,
-      "at": 1788481003336,
+      "t": 126558,
+      "at": 1788498159203,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 29
     },
     {
-      "t": 126839,
-      "at": 1788481003579,
+      "t": 126802,
+      "at": 1788498159446,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh",
+      "generationId": "gen_mtmhme1l_6er2",
       "chunk": 30
     },
     {
-      "t": 126841,
-      "at": 1788481003581,
+      "t": 126804,
+      "at": 1788498159449,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh"
+      "generationId": "gen_mtmhme1l_6er2"
     },
     {
-      "t": 126841,
-      "at": 1788481003581,
+      "t": 126804,
+      "at": 1788498159449,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7eogi_z0oh"
+      "generationId": "gen_mtmhme1l_6er2"
     },
     {
-      "t": 126841,
-      "at": 1788481003581,
+      "t": 126804,
+      "at": 1788498159449,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7eogi_z0oh"
+      "generationId": "gen_mtmhme1l_6er2"
     },
     {
-      "t": 128606,
-      "at": 1788481005347,
+      "t": 128623,
+      "at": 1788498161268,
       "dir": "vad",
       "type": "speech_start",
       "generating": false
     },
     {
-      "t": 131356,
-      "at": 1788481008096,
+      "t": 131363,
+      "at": 1788498164008,
       "dir": "vad",
       "type": "speech_end",
-      "durationMs": 1490,
-      "speechLastAt": 130096
+      "durationMs": 1480,
+      "speechLastAt": 130103
     },
     {
-      "t": 131356,
-      "at": 1788481008096,
+      "t": 131363,
+      "at": 1788498164008,
       "dir": "asr",
       "type": "input_transcription",
       "text": "Mejor no quiero cambiarla."
     },
     {
-      "t": 131356,
-      "at": 1788481008096,
+      "t": 131363,
+      "at": 1788498164008,
       "dir": "out",
       "type": "serverContent",
       "text": "Mejor no quiero cambiarla."
     },
     {
-      "t": 131362,
-      "at": 1788481008102,
+      "t": 131370,
+      "at": 1788498164015,
       "dir": "in",
       "type": "text",
       "text": "[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
@@ -3369,1460 +3354,1508 @@
       "recovery": true
     },
     {
-      "t": 131362,
-      "at": 1788481008103,
+      "t": 131371,
+      "at": 1788498164015,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7exuv_sdnq",
+      "generationId": "gen_mtmhmnfz_fzla",
       "source": "text",
       "transcript": "",
       "kind": "recovery"
     },
     {
-      "t": 131363,
-      "at": 1788481008103,
+      "t": 131371,
+      "at": 1788498164015,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "source": "audio",
       "transcript": "Mejor no quiero cambiarla.",
       "kind": "reply"
     },
     {
-      "t": 131913,
-      "at": 1788481008653,
+      "t": 131921,
+      "at": 1788498164566,
       "dir": "model",
       "type": "tool_call",
       "name": "performViewAction",
       "args": {
-        "actionId": "barrier-close"
+        "actionId": "barrier-back"
       }
     },
     {
-      "t": 131913,
-      "at": 1788481008653,
+      "t": 131921,
+      "at": 1788498164566,
       "dir": "out",
       "type": "toolCall",
       "name": "performViewAction"
     },
     {
-      "t": 131914,
-      "at": 1788481008654,
+      "t": 131922,
+      "at": 1788498164567,
       "dir": "in",
       "type": "toolResponse",
-      "responses": "[{\"id\":\"call_h05imv\",\"name\":\"performViewAction\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
+      "responses": "[{\"id\":\"call_661uzg\",\"name\":\"performViewAction\",\"response\":{\"error\":\"unreliable_voice_input\"}}]"
     },
     {
-      "t": 131919,
-      "at": 1788481008659,
+      "t": 131927,
+      "at": 1788498164572,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "De acuerdo, su cita se queda como estaba: .",
-      "seconds": 3.75,
-      "chunks": 16
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "De acuerdo, no cambio nada. Su cita sigue como estaba: .",
+      "seconds": 4.58,
+      "chunks": 20
     },
     {
-      "t": 131921,
-      "at": 1788481008661,
+      "t": 131929,
+      "at": 1788498164573,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 1
     },
     {
-      "t": 131923,
-      "at": 1788481008663,
+      "t": 131931,
+      "at": 1788498164575,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "text": "De"
     },
     {
-      "t": 132046,
-      "at": 1788481008786,
+      "t": 132053,
+      "at": 1788498164698,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 2
     },
     {
-      "t": 132047,
-      "at": 1788481008788,
+      "t": 132055,
+      "at": 1788498164700,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "text": "acuerdo,"
     },
     {
-      "t": 132290,
-      "at": 1788481009030,
+      "t": 132298,
+      "at": 1788498164942,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 3
     },
     {
-      "t": 132291,
-      "at": 1788481009032,
+      "t": 132299,
+      "at": 1788498164944,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "su"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "no"
     },
     {
-      "t": 132534,
-      "at": 1788481009274,
+      "t": 132542,
+      "at": 1788498165186,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 4
     },
     {
-      "t": 132535,
-      "at": 1788481009276,
+      "t": 132544,
+      "at": 1788498165188,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "cita"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "cambio"
     },
     {
-      "t": 132779,
-      "at": 1788481009520,
+      "t": 132786,
+      "at": 1788498165431,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 5
     },
     {
-      "t": 132781,
-      "at": 1788481009521,
+      "t": 132788,
+      "at": 1788498165432,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "se"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "nada."
     },
     {
-      "t": 133024,
-      "at": 1788481009764,
+      "t": 133031,
+      "at": 1788498165675,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 6
     },
     {
-      "t": 133025,
-      "at": 1788481009765,
+      "t": 133032,
+      "at": 1788498165677,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "queda"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "Su"
     },
     {
-      "t": 133268,
-      "at": 1788481010008,
+      "t": 133276,
+      "at": 1788498165920,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 7
     },
     {
-      "t": 133269,
-      "at": 1788481010010,
+      "t": 133277,
+      "at": 1788498165921,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "como"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "cita"
     },
     {
-      "t": 133512,
-      "at": 1788481010252,
+      "t": 133520,
+      "at": 1788498166164,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 8
     },
     {
-      "t": 133513,
-      "at": 1788481010254,
+      "t": 133521,
+      "at": 1788498166166,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "estaba:"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "sigue"
     },
     {
-      "t": 133757,
-      "at": 1788481010497,
+      "t": 133765,
+      "at": 1788498166409,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 9
     },
     {
-      "t": 133759,
-      "at": 1788481010500,
+      "t": 133766,
+      "at": 1788498166411,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
-      "text": "."
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "como"
     },
     {
-      "t": 134002,
-      "at": 1788481010742,
+      "t": 134009,
+      "at": 1788498166653,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 10
     },
     {
-      "t": 134246,
-      "at": 1788481010987,
+      "t": 134011,
+      "at": 1788498166656,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "estaba:"
+    },
+    {
+      "t": 134255,
+      "at": 1788498166899,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 11
     },
     {
-      "t": 134491,
-      "at": 1788481011231,
+      "t": 134256,
+      "at": 1788498166901,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "text": "."
+    },
+    {
+      "t": 134499,
+      "at": 1788498167144,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 12
     },
     {
-      "t": 134735,
-      "at": 1788481011475,
+      "t": 134742,
+      "at": 1788498167387,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 13
     },
     {
-      "t": 134978,
-      "at": 1788481011718,
+      "t": 134985,
+      "at": 1788498167630,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 14
     },
     {
-      "t": 135221,
-      "at": 1788481011961,
+      "t": 135228,
+      "at": 1788498167873,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 15
     },
     {
-      "t": 135463,
-      "at": 1788481012204,
+      "t": 135471,
+      "at": 1788498168116,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl",
+      "generationId": "gen_mtmhmnfz_d3b4",
       "chunk": 16
     },
     {
-      "t": 135465,
-      "at": 1788481012206,
+      "t": 135715,
+      "at": 1788498168359,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl"
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "chunk": 17
     },
     {
-      "t": 135469,
-      "at": 1788481012209,
+      "t": 135958,
+      "at": 1788498168602,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "chunk": 18
+    },
+    {
+      "t": 136201,
+      "at": 1788498168846,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "chunk": 19
+    },
+    {
+      "t": 136443,
+      "at": 1788498169088,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4",
+      "chunk": 20
+    },
+    {
+      "t": 136445,
+      "at": 1788498169089,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtmhmnfz_d3b4"
+    },
+    {
+      "t": 136448,
+      "at": 1788498169093,
       "dir": "in",
       "type": "text",
-      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Esa.\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
+      "text": "[TRUSTED LIVE CONTEXT UPDATE — do not read aloud: {\"conversationMode\":\"CONTINUATION\",\"greetingAllowed\":false,\"currentScreen\":\"APPOINTMENT_DETAIL\",\"previousScreen\":\"MY_CARE\",\"currentStage\":\"YOUR_CARE\",\"currentGoal\":null,\"lastUserIntent\":\"Esa.\",\"nextBestAction\":{\"label\":\"Continuar\",\"route\":\"INVITATION\",\"actionType\":\"CONTINUE_CURRENT_JOURNEY\"},\"view\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}]\n[TRUSTED ASR SAFETY OVERRIDE — do not read this instruction aloud: The voice transcript is unreliable; the active conversation language is es. Do not infer or execute the patient's apparent intent, and do not answer it. Say only: \"I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.\"]",
       "contextEnvelope": true,
       "narration": false,
       "recovery": true
     },
     {
-      "t": 135469,
-      "at": 1788481012209,
+      "t": 136449,
+      "at": 1788498169093,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "source": "text",
-      "transcript": ",\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario ele",
+      "transcript": ",\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario ele",
       "kind": "recovery"
     },
     {
-      "t": 135471,
-      "at": 1788481012211,
+      "t": 136451,
+      "at": 1788498169096,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7exuv_lozl"
+      "generationId": "gen_mtmhmnfz_d3b4"
     },
     {
-      "t": 135473,
-      "at": 1788481012213,
+      "t": 136453,
+      "at": 1788498169098,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7exuv_lozl"
+      "generationId": "gen_mtmhmnfz_d3b4"
     },
     {
-      "t": 136019,
-      "at": 1788481012759,
+      "t": 136999,
+      "at": 1788498169643,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "I’m sorry, I didn’t hear that clearly. Please say it again. If this may be a medical emergency, call 911 now.",
       "seconds": 8.75,
       "chunks": 37
     },
     {
-      "t": 136020,
-      "at": 1788481012761,
+      "t": 137000,
+      "at": 1788498169645,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 1
     },
     {
-      "t": 136025,
-      "at": 1788481012766,
+      "t": 137007,
+      "at": 1788498169651,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "I’m"
     },
     {
-      "t": 136149,
-      "at": 1788481012889,
+      "t": 137132,
+      "at": 1788498169777,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 2
     },
     {
-      "t": 136152,
-      "at": 1788481012893,
+      "t": 137138,
+      "at": 1788498169782,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "sorry,"
     },
     {
-      "t": 136397,
-      "at": 1788481013137,
+      "t": 137387,
+      "at": 1788498170031,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 3
     },
     {
-      "t": 136399,
-      "at": 1788481013140,
+      "t": 137391,
+      "at": 1788498170035,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "I"
     },
     {
-      "t": 136644,
-      "at": 1788481013384,
+      "t": 137637,
+      "at": 1788498170282,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 4
     },
     {
-      "t": 136647,
-      "at": 1788481013387,
+      "t": 137640,
+      "at": 1788498170285,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "didn’t"
     },
     {
-      "t": 136891,
-      "at": 1788481013632,
+      "t": 137884,
+      "at": 1788498170529,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 5
     },
     {
-      "t": 136894,
-      "at": 1788481013634,
+      "t": 137887,
+      "at": 1788498170531,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "hear"
     },
     {
-      "t": 137138,
-      "at": 1788481013878,
+      "t": 138131,
+      "at": 1788498170776,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 6
     },
     {
-      "t": 137141,
-      "at": 1788481013881,
+      "t": 138134,
+      "at": 1788498170778,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "that"
     },
     {
-      "t": 137385,
-      "at": 1788481014125,
+      "t": 138378,
+      "at": 1788498171023,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 7
     },
     {
-      "t": 137387,
-      "at": 1788481014128,
+      "t": 138382,
+      "at": 1788498171026,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "clearly."
     },
     {
-      "t": 137632,
-      "at": 1788481014372,
+      "t": 138628,
+      "at": 1788498171272,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 8
     },
     {
-      "t": 137634,
-      "at": 1788481014375,
+      "t": 138631,
+      "at": 1788498171275,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "Please"
     },
     {
-      "t": 137879,
-      "at": 1788481014619,
+      "t": 138875,
+      "at": 1788498171520,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 9
     },
     {
-      "t": 137881,
-      "at": 1788481014622,
+      "t": 138879,
+      "at": 1788498171524,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "say"
     },
     {
-      "t": 138125,
-      "at": 1788481014866,
+      "t": 139124,
+      "at": 1788498171769,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 10
     },
     {
-      "t": 138128,
-      "at": 1788481014868,
+      "t": 139127,
+      "at": 1788498171772,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "it"
     },
     {
-      "t": 138372,
-      "at": 1788481015112,
+      "t": 139372,
+      "at": 1788498172016,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 11
     },
     {
-      "t": 138375,
-      "at": 1788481015115,
+      "t": 139374,
+      "at": 1788498172019,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "again."
     },
     {
-      "t": 138619,
-      "at": 1788481015360,
+      "t": 139618,
+      "at": 1788498172263,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 12
     },
     {
-      "t": 138623,
-      "at": 1788481015363,
+      "t": 139620,
+      "at": 1788498172265,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "If"
     },
     {
-      "t": 138869,
-      "at": 1788481015610,
+      "t": 139864,
+      "at": 1788498172509,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 13
     },
     {
-      "t": 138873,
-      "at": 1788481015613,
+      "t": 139867,
+      "at": 1788498172511,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "this"
     },
     {
-      "t": 139118,
-      "at": 1788481015858,
+      "t": 140112,
+      "at": 1788498172756,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 14
     },
     {
-      "t": 139121,
-      "at": 1788481015862,
+      "t": 140115,
+      "at": 1788498172759,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "may"
     },
     {
-      "t": 139367,
-      "at": 1788481016108,
+      "t": 140361,
+      "at": 1788498173006,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 15
     },
     {
-      "t": 139370,
-      "at": 1788481016110,
+      "t": 140364,
+      "at": 1788498173009,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "be"
     },
     {
-      "t": 139614,
-      "at": 1788481016355,
+      "t": 140609,
+      "at": 1788498173254,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 16
     },
     {
-      "t": 139617,
-      "at": 1788481016357,
+      "t": 140612,
+      "at": 1788498173257,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "a"
     },
     {
-      "t": 139862,
-      "at": 1788481016602,
+      "t": 140857,
+      "at": 1788498173502,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 17
     },
     {
-      "t": 139865,
-      "at": 1788481016605,
+      "t": 140860,
+      "at": 1788498173504,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "medical"
     },
     {
-      "t": 140109,
-      "at": 1788481016849,
+      "t": 141103,
+      "at": 1788498173748,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 18
     },
     {
-      "t": 140111,
-      "at": 1788481016852,
+      "t": 141106,
+      "at": 1788498173750,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "emergency,"
     },
     {
-      "t": 140355,
-      "at": 1788481017096,
+      "t": 141351,
+      "at": 1788498173996,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 19
     },
     {
-      "t": 140358,
-      "at": 1788481017098,
+      "t": 141355,
+      "at": 1788498174000,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "call"
     },
     {
-      "t": 140603,
-      "at": 1788481017343,
+      "t": 141600,
+      "at": 1788498174245,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 20
     },
     {
-      "t": 140606,
-      "at": 1788481017347,
+      "t": 141603,
+      "at": 1788498174247,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "911"
     },
     {
-      "t": 140851,
-      "at": 1788481017592,
+      "t": 141847,
+      "at": 1788498174492,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 21
     },
     {
-      "t": 140854,
-      "at": 1788481017595,
+      "t": 141851,
+      "at": 1788498174496,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "text": "now."
     },
     {
-      "t": 141100,
-      "at": 1788481017841,
+      "t": 142096,
+      "at": 1788498174741,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 22
     },
     {
-      "t": 141345,
-      "at": 1788481018086,
+      "t": 142340,
+      "at": 1788498174984,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 23
     },
     {
-      "t": 141589,
-      "at": 1788481018330,
+      "t": 142585,
+      "at": 1788498175229,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 24
     },
     {
-      "t": 141833,
-      "at": 1788481018574,
+      "t": 142830,
+      "at": 1788498175475,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 25
     },
     {
-      "t": 142077,
-      "at": 1788481018818,
+      "t": 143074,
+      "at": 1788498175718,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 26
     },
     {
-      "t": 142323,
-      "at": 1788481019063,
+      "t": 143318,
+      "at": 1788498175963,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 27
     },
     {
-      "t": 142568,
-      "at": 1788481019309,
+      "t": 143562,
+      "at": 1788498176207,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 28
     },
     {
-      "t": 142812,
-      "at": 1788481019553,
+      "t": 143806,
+      "at": 1788498176451,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 29
     },
     {
-      "t": 143057,
-      "at": 1788481019797,
+      "t": 144050,
+      "at": 1788498176695,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 30
     },
     {
-      "t": 143301,
-      "at": 1788481020041,
+      "t": 144295,
+      "at": 1788498176939,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 31
     },
     {
-      "t": 143548,
-      "at": 1788481020289,
+      "t": 144539,
+      "at": 1788498177183,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 32
     },
     {
-      "t": 143793,
-      "at": 1788481020534,
+      "t": 144783,
+      "at": 1788498177428,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 33
     },
     {
-      "t": 144037,
-      "at": 1788481020778,
+      "t": 145027,
+      "at": 1788498177672,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 34
     },
     {
-      "t": 144281,
-      "at": 1788481021022,
+      "t": 145271,
+      "at": 1788498177916,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 35
     },
     {
-      "t": 144525,
-      "at": 1788481021265,
+      "t": 145517,
+      "at": 1788498178162,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 36
     },
     {
-      "t": 144769,
-      "at": 1788481021510,
+      "t": 145762,
+      "at": 1788498178406,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj",
+      "generationId": "gen_mtmhmrd1_hjeg",
       "chunk": 37
     },
     {
-      "t": 144771,
-      "at": 1788481021511,
+      "t": 145764,
+      "at": 1788498178408,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj"
+      "generationId": "gen_mtmhmrd1_hjeg"
     },
     {
-      "t": 144771,
-      "at": 1788481021511,
+      "t": 145764,
+      "at": 1788498178408,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7f10x_wvxj"
+      "generationId": "gen_mtmhmrd1_hjeg"
     },
     {
-      "t": 144771,
-      "at": 1788481021511,
+      "t": 145764,
+      "at": 1788498178408,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7f10x_wvxj"
+      "generationId": "gen_mtmhmrd1_hjeg"
     },
     {
-      "t": 146592,
-      "at": 1788481023333,
+      "t": 147594,
+      "at": 1788498180238,
       "dir": "vad",
       "type": "speech_start",
       "generating": false
     },
     {
-      "t": 149716,
-      "at": 1788481026456,
+      "t": 150683,
+      "at": 1788498183328,
       "dir": "vad",
       "type": "speech_end",
-      "durationMs": 1904,
-      "speechLastAt": 148496
+      "durationMs": 1880,
+      "speechLastAt": 149473
     },
     {
-      "t": 149716,
-      "at": 1788481026456,
+      "t": 150684,
+      "at": 1788498183328,
       "dir": "asr",
       "type": "input_transcription",
       "text": "¿Seguro que no cambió nada?"
     },
     {
-      "t": 149716,
-      "at": 1788481026456,
+      "t": 150684,
+      "at": 1788498183328,
       "dir": "out",
       "type": "serverContent",
       "text": "¿Seguro que no cambió nada?"
     },
     {
-      "t": 149728,
-      "at": 1788481026468,
+      "t": 150692,
+      "at": 1788498183337,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "source": "audio",
       "transcript": "¿Seguro que no cambió nada?",
       "kind": "reply"
     },
     {
-      "t": 150278,
-      "at": 1788481027018,
+      "t": 151242,
+      "at": 1788498183887,
       "dir": "model",
       "type": "tool_call",
       "name": "describeCurrentView",
       "args": {}
     },
     {
-      "t": 150278,
-      "at": 1788481027018,
+      "t": 151242,
+      "at": 1788498183887,
       "dir": "out",
       "type": "toolCall",
       "name": "describeCurrentView"
     },
     {
-      "t": 150282,
-      "at": 1788481027022,
+      "t": 151247,
+      "at": 1788498183891,
       "dir": "in",
       "type": "toolResponse",
-      "responses": "[{\"id\":\"call_ons8en\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788482722428|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}}]"
+      "responses": "[{\"id\":\"call_bg2f87\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_RESCHEDULE_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cambiar la hora de la cita\",\"whatThePatientMustDoHere\":\"Compare la hora anterior con la nueva. Solo cambia cuando confirme.\",\"flow\":{\"id\":\"RESCHEDULE\",\"name\":\"Cambiar la hora de la cita\",\"step\":\"REVIEW\",\"stepNumber\":4,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":{\"id\":\"apt|dr-fresner|1789031700000|30|IN_PERSON|1788499878455|OPEN\",\"label\":\"jueves, 10 de septiembre · 5:15 a. m.\",\"detail\":\"\"},\"alreadyDone\":[],\"stillPending\":[\"Hay un nuevo horario elegido pero la cita todavía NO ha cambiado\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reschedule-confirm\",\"label\":\"Confirmar el cambio\",\"kind\":\"CONFIRM\",\"effect\":\"Esto cambia la cita\"}],\"notes\":[\"Hay un horario seleccionado. La cita todavía NO ha cambiado.\"]}}}]"
     },
     {
-      "t": 150287,
-      "at": 1788481027027,
+      "t": 151252,
+      "at": 1788498183896,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Seguro. Doctor: Dr. Fresner Lee, Fecha: lunes, 7 de septiembre, Hora: 10:30 a. m., Dónde: Fresner Medical Group.",
       "seconds": 7.5,
       "chunks": 32
     },
     {
-      "t": 150288,
-      "at": 1788481027028,
+      "t": 151253,
+      "at": 1788498183897,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 1
     },
     {
-      "t": 150291,
-      "at": 1788481027032,
+      "t": 151256,
+      "at": 1788498183901,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Seguro."
     },
     {
-      "t": 150419,
-      "at": 1788481027160,
+      "t": 151381,
+      "at": 1788498184025,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 2
     },
     {
-      "t": 150423,
-      "at": 1788481027163,
+      "t": 151385,
+      "at": 1788498184030,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Doctor:"
     },
     {
-      "t": 150677,
-      "at": 1788481027417,
+      "t": 151629,
+      "at": 1788498184274,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 3
     },
     {
-      "t": 150683,
-      "at": 1788481027424,
+      "t": 151632,
+      "at": 1788498184276,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Dr."
     },
     {
-      "t": 150928,
-      "at": 1788481027669,
+      "t": 151883,
+      "at": 1788498184527,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 4
     },
     {
-      "t": 150931,
-      "at": 1788481027671,
+      "t": 151885,
+      "at": 1788498184530,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Fresner"
     },
     {
-      "t": 151175,
-      "at": 1788481027916,
+      "t": 152130,
+      "at": 1788498184775,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 5
     },
     {
-      "t": 151178,
-      "at": 1788481027919,
+      "t": 152133,
+      "at": 1788498184778,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Lee,"
     },
     {
-      "t": 151422,
-      "at": 1788481028163,
+      "t": 152378,
+      "at": 1788498185022,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 6
     },
     {
-      "t": 151425,
-      "at": 1788481028165,
+      "t": 152380,
+      "at": 1788498185025,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Fecha:"
     },
     {
-      "t": 151670,
-      "at": 1788481028410,
+      "t": 152627,
+      "at": 1788498185271,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 7
     },
     {
-      "t": 151672,
-      "at": 1788481028412,
+      "t": 152631,
+      "at": 1788498185275,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "lunes,"
     },
     {
-      "t": 151917,
-      "at": 1788481028657,
+      "t": 152875,
+      "at": 1788498185520,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 8
     },
     {
-      "t": 151919,
-      "at": 1788481028659,
+      "t": 152878,
+      "at": 1788498185522,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "7"
     },
     {
-      "t": 152163,
-      "at": 1788481028904,
+      "t": 153122,
+      "at": 1788498185767,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 9
     },
     {
-      "t": 152166,
-      "at": 1788481028906,
+      "t": 153125,
+      "at": 1788498185769,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "de"
     },
     {
-      "t": 152412,
-      "at": 1788481029152,
+      "t": 153371,
+      "at": 1788498186016,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 10
     },
     {
-      "t": 152416,
-      "at": 1788481029156,
+      "t": 153374,
+      "at": 1788498186019,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "septiembre,"
     },
     {
-      "t": 152662,
-      "at": 1788481029402,
+      "t": 153619,
+      "at": 1788498186263,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 11
     },
     {
-      "t": 152664,
-      "at": 1788481029405,
+      "t": 153621,
+      "at": 1788498186266,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Hora:"
     },
     {
-      "t": 152909,
-      "at": 1788481029649,
+      "t": 153866,
+      "at": 1788498186510,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 12
     },
     {
-      "t": 152911,
-      "at": 1788481029652,
+      "t": 153868,
+      "at": 1788498186512,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "10:30"
     },
     {
-      "t": 153156,
-      "at": 1788481029897,
+      "t": 154113,
+      "at": 1788498186757,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 13
     },
     {
-      "t": 153159,
-      "at": 1788481029900,
+      "t": 154115,
+      "at": 1788498186760,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "a."
     },
     {
-      "t": 153405,
-      "at": 1788481030145,
+      "t": 154360,
+      "at": 1788498187004,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 14
     },
     {
-      "t": 153408,
-      "at": 1788481030148,
+      "t": 154362,
+      "at": 1788498187007,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "m.,"
     },
     {
-      "t": 153653,
-      "at": 1788481030393,
+      "t": 154606,
+      "at": 1788498187251,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 15
     },
     {
-      "t": 153655,
-      "at": 1788481030395,
+      "t": 154609,
+      "at": 1788498187254,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Dónde:"
     },
     {
-      "t": 153902,
-      "at": 1788481030642,
+      "t": 154854,
+      "at": 1788498187499,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 16
     },
     {
-      "t": 153904,
-      "at": 1788481030644,
+      "t": 154857,
+      "at": 1788498187501,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Fresner"
     },
     {
-      "t": 154153,
-      "at": 1788481030893,
+      "t": 155102,
+      "at": 1788498187746,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 17
     },
     {
-      "t": 154155,
-      "at": 1788481030896,
+      "t": 155104,
+      "at": 1788498187749,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Medical"
     },
     {
-      "t": 154402,
-      "at": 1788481031143,
+      "t": 155349,
+      "at": 1788498187994,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 18
     },
     {
-      "t": 154405,
-      "at": 1788481031146,
+      "t": 155352,
+      "at": 1788498187996,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "text": "Group."
     },
     {
-      "t": 154652,
-      "at": 1788481031392,
+      "t": 155597,
+      "at": 1788498188241,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 19
     },
     {
-      "t": 154896,
-      "at": 1788481031636,
+      "t": 155841,
+      "at": 1788498188485,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 20
     },
     {
-      "t": 155140,
-      "at": 1788481031880,
+      "t": 156085,
+      "at": 1788498188730,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 21
     },
     {
-      "t": 155386,
-      "at": 1788481032126,
+      "t": 156329,
+      "at": 1788498188974,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 22
     },
     {
-      "t": 155631,
-      "at": 1788481032371,
+      "t": 156574,
+      "at": 1788498189219,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 23
     },
     {
-      "t": 155875,
-      "at": 1788481032615,
+      "t": 156819,
+      "at": 1788498189464,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 24
     },
     {
-      "t": 156119,
-      "at": 1788481032860,
+      "t": 157065,
+      "at": 1788498189709,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 25
     },
     {
-      "t": 156367,
-      "at": 1788481033107,
+      "t": 157309,
+      "at": 1788498189953,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 26
     },
     {
-      "t": 156611,
-      "at": 1788481033351,
+      "t": 157553,
+      "at": 1788498190198,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 27
     },
     {
-      "t": 156854,
-      "at": 1788481033595,
+      "t": 157797,
+      "at": 1788498190442,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 28
     },
     {
-      "t": 157105,
-      "at": 1788481033846,
+      "t": 158042,
+      "at": 1788498190687,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 29
     },
     {
-      "t": 157349,
-      "at": 1788481034090,
+      "t": 158286,
+      "at": 1788498190930,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 30
     },
     {
-      "t": 157595,
-      "at": 1788481034335,
+      "t": 158531,
+      "at": 1788498191175,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 31
     },
     {
-      "t": 157841,
-      "at": 1788481034581,
+      "t": 158774,
+      "at": 1788498191418,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py",
+      "generationId": "gen_mtmhn2co_bbzh",
       "chunk": 32
     },
     {
-      "t": 157842,
-      "at": 1788481034583,
+      "t": 158775,
+      "at": 1788498191420,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py"
+      "generationId": "gen_mtmhn2co_bbzh"
     },
     {
-      "t": 157843,
-      "at": 1788481034583,
+      "t": 158775,
+      "at": 1788498191420,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7fc10_t7py"
+      "generationId": "gen_mtmhn2co_bbzh"
     },
     {
-      "t": 157843,
-      "at": 1788481034583,
+      "t": 158775,
+      "at": 1788498191420,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7fc10_t7py"
+      "generationId": "gen_mtmhn2co_bbzh"
     },
     {
-      "t": 159696,
-      "at": 1788481036437,
+      "t": 160573,
+      "at": 1788498193218,
       "dir": "vad",
       "type": "speech_start",
       "generating": false
     },
     {
-      "t": 162436,
-      "at": 1788481039176,
+      "t": 163283,
+      "at": 1788498195928,
       "dir": "vad",
       "type": "speech_end",
-      "durationMs": 1510,
-      "speechLastAt": 161206
+      "durationMs": 1490,
+      "speechLastAt": 162063
     },
     {
-      "t": 162436,
-      "at": 1788481039176,
+      "t": 163283,
+      "at": 1788498195928,
       "dir": "asr",
       "type": "input_transcription",
       "text": "Gracias, eso es todo."
     },
     {
-      "t": 162436,
-      "at": 1788481039176,
+      "t": 163283,
+      "at": 1788498195928,
       "dir": "out",
       "type": "serverContent",
       "text": "Gracias, eso es todo."
     },
     {
-      "t": 162443,
-      "at": 1788481039183,
+      "t": 163291,
+      "at": 1788498195936,
       "dir": "model",
       "type": "generation_started",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "source": "audio",
       "transcript": "Gracias, eso es todo.",
       "kind": "reply"
     },
     {
-      "t": 162993,
-      "at": 1788481039733,
+      "t": 163842,
+      "at": 1788498196486,
       "dir": "model",
       "type": "first_audio",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "text": "Con gusto. Aquí estaré.",
       "seconds": 1.67,
       "chunks": 7
     },
     {
-      "t": 162995,
-      "at": 1788481039735,
+      "t": 163843,
+      "at": 1788498196488,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 1
     },
     {
-      "t": 163001,
-      "at": 1788481039741,
+      "t": 163849,
+      "at": 1788498196493,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "text": "Con"
     },
     {
-      "t": 163126,
-      "at": 1788481039866,
+      "t": 163973,
+      "at": 1788498196618,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 2
     },
     {
-      "t": 163129,
-      "at": 1788481039869,
+      "t": 163976,
+      "at": 1788498196621,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "text": "gusto."
     },
     {
-      "t": 163374,
-      "at": 1788481040114,
+      "t": 164221,
+      "at": 1788498196866,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 3
     },
     {
-      "t": 163376,
-      "at": 1788481040116,
+      "t": 164225,
+      "at": 1788498196869,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "text": "Aquí"
     },
     {
-      "t": 163621,
-      "at": 1788481040361,
+      "t": 164470,
+      "at": 1788498197115,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 4
     },
     {
-      "t": 163623,
-      "at": 1788481040364,
+      "t": 164473,
+      "at": 1788498197118,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "text": "estaré."
     },
     {
-      "t": 163868,
-      "at": 1788481040609,
+      "t": 164718,
+      "at": 1788498197362,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 5
     },
     {
-      "t": 164114,
-      "at": 1788481040854,
+      "t": 164962,
+      "at": 1788498197606,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 6
     },
     {
-      "t": 164358,
-      "at": 1788481041098,
+      "t": 165205,
+      "at": 1788498197850,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq",
+      "generationId": "gen_mtmhnc2o_pajg",
       "chunk": 7
     },
     {
-      "t": 164361,
-      "at": 1788481041101,
+      "t": 165208,
+      "at": 1788498197853,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq"
+      "generationId": "gen_mtmhnc2o_pajg"
     },
     {
-      "t": 164361,
-      "at": 1788481041101,
+      "t": 165208,
+      "at": 1788498197853,
       "dir": "out",
       "type": "serverContent",
-      "generationId": "gen_mtm7flu7_fpgq"
+      "generationId": "gen_mtmhnc2o_pajg"
     },
     {
-      "t": 164361,
-      "at": 1788481041101,
+      "t": 165208,
+      "at": 1788498197853,
       "dir": "model",
       "type": "generation_complete",
-      "generationId": "gen_mtm7flu7_fpgq"
+      "generationId": "gen_mtmhnc2o_pajg"
     }
   ],
   "summary": {
     "spoken_turns": 9,
     "total_turns": 11,
-    "response_start_p50_ms": 1832,
-    "response_start_p95_ms": 5925,
-    "response_start_avg_ms": 2581,
-    "app_overhead_p50_ms": 4,
+    "response_start_p50_ms": 1822,
+    "response_start_p95_ms": 6907,
+    "response_start_avg_ms": 2649,
+    "app_overhead_p50_ms": 5,
     "barge_ins": 0,
     "barge_in_stop_p50_ms": null,
     "barge_in_stop_max_ms": -1,
     "spoken_turns_with_context_before_answer": 2,
     "problems": [
-      "turn 7: response start 4350 ms",
-      "turn 9: response start 5925 ms"
+      "turn 7: response start 4181 ms",
+      "turn 9: response start 6907 ms"
     ]
   }
 }
