@@ -269,6 +269,39 @@ screen lists two demo contacts.
 - `nextBestAction` for an enrolled patient on MY_CARE is `Continuar → INVITATION`.
 - The socket URL built by the SDK contains a double slash (`googleapis.com//ws/`); harmless.
 
+### 4.14 A turn without a transcript freezes the client — P1
+
+When the provider never sends an input transcription for a spoken turn (S09 turn 4, S21 turn 15 on
+the harness; a real possibility with mumbled or very short speech), the client stays in
+USER_SPEAKING: once EMMI is waiting for an answer, `handleMicFrame` forwards frames to the provider
+and stops running the local detector, so the local end of speech that would arm the 5 s transcript
+watchdog never fires. The state advances only when the patient speaks again; with the 20 s turn
+watchdog the session then disconnects. Verified with a browser probe on the pristine build (8 s in
+USER_SPEAKING with no event) and in both harness sessions.
+
+### 4.15 Review screens expose no way back — P3
+
+The transport, companion and reschedule review screens have a "Change" / "Choose someone else" /
+"Choose another time" control (`barrier-back`), but the view descriptor lists only the confirm
+action, so "Me equivoqué. Quiero volver a las opciones" (S03 turn 17) and "Mejor no quiero
+cambiarla" (S05 turn 9) are refused with UNKNOWN_ACTION even when the guard lets them through.
+After a failed booking the descriptor also omitted "Choose another ride" and kept the pending item
+"needs your confirmation on the review screen" although the patient had confirmed.
+
+### 4.16 An English session is not safe from the guard either — P1
+
+S22 (English session, English patient): 8 of 21 sentences discarded ("Yes, my home address", "No,
+nothing special", "Go ahead and search", "Yes, book it", "Actually, cancel it", "Yes, cancel it",
+"Just book the cheapest one", "Still nothing? Then the big one instead"), so the ride was never
+booked. The guard's weak-evidence rule rejects ordinary English as readily as ordinary Spanish.
+
+### 4.17 Kreyòl: no voice — informational
+
+`emmiVoiceIsSupported` covers EN and ES; a Kreyòl UI shows "Voice guidance isn't available in this
+language yet" and the harness cannot start voice at all. Inside a Spanish session, Kreyòl speech is
+discarded by the guard as an unexpected language (S23 baseline turns 3–4) and a request for Kreyòl
+cannot be honoured. Narration has no Kreyòl text (`buildNarration({ locale: "HT" })` returns English).
+
 ## 5. Voice activation without a provider (real UX)
 
 Tap "Guía por voz" → 427 ms later state `DISCONNECTED`, error `VOICE_PROVIDER_ERROR`; the card reads
@@ -299,9 +332,9 @@ expiry), 282 spoken patient turns, 364 recorded turns,
 9 sessions with 15 or more spoken turns. The double's model delay is fixed at 550 ms and
 its speech rate at 2.4 words/s.
 
-- **Response start (T2−T1)**: p50 **1813 ms**, p95 **5342 ms**, mean
-  2268 ms, max 11681 ms (NOTICEABLE DELAY at the median).
-  Decomposition of an ordinary turn: provider end-of-speech window 1233 ms (locked 1200 ms)
+- **Response start (T2−T1)**: p50 **1814 ms**, p95 **5347 ms**, mean
+  2269 ms, max 11681 ms (NOTICEABLE DELAY at the median).
+  Decomposition of an ordinary turn: provider end-of-speech window 1234 ms (locked 1200 ms)
   + simulated model 550 ms + tool round trips (~30 ms each) + **application overhead
   4 ms** from first chunk to audible. The application adds nothing measurable
   on a direct answer; the floor is the VAD window. The p95 and the maximum are the turns that went
@@ -333,7 +366,7 @@ its speech rate at 2.4 words/s.
   - S22-long-change-of-mind-en: "Yes, my home address.", "No, nothing special.", "Go ahead and search.", "Yes, book it.", "Hmm. Actually, cancel it.", "Yes, cancel it.", "Just book the cheapest one.", "Still nothing? Then the big one instead."
   - S23-creole-sample-ht: "Ki lè randevou mwen an?", "Mwen pa gen transpò.", "Pale kreyòl avè m, tanpri."
 - **Barge-in**: 6 interruptions issued while EMMI was audible, 6
-  registered by the app; stop latency from patient speech start p50 179 ms, max
+  registered by the app; stop latency from patient speech start p50 183 ms, max
   301 ms; the provider saw the interruption 153 ms after speech start
   (median). "Para." after an interruption was discarded by the guard (S03 turn 16).
 - **Action integrity**: after "Sí" to the booking question the tool result still said "elegido pero NO

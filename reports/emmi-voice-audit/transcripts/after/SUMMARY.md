@@ -1,0 +1,396 @@
+# Session summary — reports/emmi-voice-audit/transcripts/after
+
+| session | profile | lang | turns | spoken | start p50 | start p95 | barge-ins (stop p50) | context before answer | problems |
+|---|---|---|---:|---:|---:|---:|---|---|---|
+| S01-transport-canonical-es | A (adulto mayor, responde muy poco) | es | 14 | 11 | 1857 | 2872 | 0 (-) | 0/11 | 3 |
+| S02-transport-by-hand-es | C (se confunde fácilmente) | es | 23 | 13 | 1800 | 2487 | 0 (-) | 0/13 | 6 |
+| S03-interruptions-es | E (interrumpe frecuentemente) | es | 22 | 12 | 1814 | 2566 | 4 (167) | 0/12 | 1 |
+| S04-topics-memory-es | B (habla mucho, información desordenada) | es | 13 | 12 | 1835 | 1893 | 0 (-) | 0/12 | 0 |
+| S05-reschedule-change-of-mind-es | D (cambia de opinión) | es | 11 | 9 | 1814 | 2891 | 0 (-) | 0/9 | 1 |
+| S06-companion-confirmations-es | G (hace muchas preguntas antes de decidir) | es | 11 | 9 | 1815 | 2584 | 0 (-) | 0/9 | 1 |
+| S07-spanglish-and-language-es | F (utiliza Spanglish) | es | 10 | 9 | 1784 | 1828 | 0 (-) | 0/9 | 0 |
+| S08-safety-mid-task-es | H (quiere completar todo rápido) | es | 11 | 8 | 1808 | 2763 | 0 (-) | 0/8 | 2 |
+| S09-silence-and-recovery-es | A (adulto mayor, responde muy poco) | es | 8 | 5 | 1838 | 21303 | 0 (-) | 0/5 | 3 |
+| S10-enrollment-en | G (asks many questions before deciding) | en | 9 | 8 | 1783 | 1829 | 1 (161) | 0/8 | 2 |
+| S11-long-mixed-es | B (habla mucho, información desordenada) | es | 28 | 24 | 1817 | 1856 | 0 (-) | 0/24 | 0 |
+| S12-video-visit-es | C (se confunde fácilmente) | es | 8 | 5 | 1860 | 2653 | 0 (-) | 0/5 | 2 |
+| S13-transcript-assembly-es | A (adulto mayor, responde muy poco) | es | 4 | 2 | 1773 | 1840 | 0 (-) | 0/2 | 0 |
+| S14-spoken-language-switch | F (utiliza Spanglish) | en | 6 | 4 | 1793 | 1836 | 0 (-) | 0/4 | 0 |
+| S15-session-rotation-es | G (hace muchas preguntas antes de decidir) | es | 6 | 3 | 1825 | 1834 | 0 (-) | 0/3 | 0 |
+| S16-long-confused-transport-es | C (se confunde fácilmente) | es | 23 | 20 | 1819 | 2570 | 0 (-) | 0/20 | 4 |
+| S17-long-enrollment-journey-es | G (hace muchas preguntas antes de decidir) | es | 21 | 17 | 1805 | 1866 | 0 (-) | 0/17 | 12 |
+| S18-long-multi-intent-reschedule-es | H (quiere completar todo rápido) | es | 20 | 16 | 1800 | 2907 | 0 (-) | 0/16 | 4 |
+| S19-long-topics-and-questions-es | B (habla mucho, información desordenada) | es | 20 | 18 | 1820 | 1901 | 0 (-) | 0/18 | 1 |
+| S20-long-spanglish-companion-and-ride-es | F (utiliza Spanglish) | es | 20 | 16 | 1836 | 2740 | 0 (-) | 0/16 | 4 |
+| S21-long-elderly-video-visit-es | A (adulto mayor, responde muy poco) | es | 21 | 15 | 1828 | 6323 | 0 (-) | 0/15 | 4 |
+| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1848 | 2699 | 1 (156) | 0/21 | 7 |
+| S23-creole-sample-ht | A (granmoun, reponn kout) | es | 9 | 7 | 1829 | 1871 | 0 (-) | 0/7 | 1 |
+| S24-long-my-care-hub-es | G (hace muchas preguntas antes de decidir) | es | 18 | 18 | 1796 | 1822 | 0 (-) | 0/18 | 3 |
+
+```json
+{
+  "sessions": 24,
+  "spoken_turns": 282,
+  "total_turns": 364,
+  "long_sessions_15_plus_turns": 11,
+  "long_sessions_15_plus_spoken_turns": 9,
+  "response_start": {
+    "p50": 1819,
+    "p95": 2633,
+    "min": 1402,
+    "max": 21303,
+    "avg": 1988,
+    "perceived_p50": "NOTICEABLE DELAY"
+  },
+  "provider_vad_window": {
+    "p50": 1240,
+    "p95": 1278
+  },
+  "app_overhead_first_chunk_to_audible": {
+    "p50": 4,
+    "p95": 8,
+    "max": 14
+  },
+  "local_speech_end_after_T1": {
+    "p50": 1228
+  },
+  "barge_ins": {
+    "count": 6,
+    "registered_by_app": 6,
+    "stop_p50": 162,
+    "stop_max": 278,
+    "provider_interrupt_p50": 136
+  },
+  "spoken_turns_with_context_before_answer": "0/282",
+  "navigation_taps": {
+    "count": 40,
+    "with_context_push": 0,
+    "with_tts_narration": 26
+  },
+  "turns_suppressed_by_transcript_guard": [
+    {
+      "session": "S09-silence-and-recovery-es",
+      "turn": 4,
+      "text": "(mumbled, unrecognisable)",
+      "events": [
+        "EMMI_MISSING_TRANSCRIPT_RECOVERED"
+      ]
+    },
+    {
+      "session": "S21-long-elderly-video-visit-es",
+      "turn": 15,
+      "text": "(inaudible)",
+      "events": [
+        "EMMI_MISSING_TRANSCRIPT_RECOVERED"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "session": "S01-transport-canonical-es",
+      "turn": 4,
+      "p": "response start 2872 ms"
+    },
+    {
+      "session": "S01-transport-canonical-es",
+      "turn": 6,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S01-transport-canonical-es",
+      "turn": 9,
+      "p": "response start 2735 ms"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 2,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 4,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 7,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 9,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 12,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S02-transport-by-hand-es",
+      "turn": 15,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S03-interruptions-es",
+      "turn": 20,
+      "p": "response start 2566 ms"
+    },
+    {
+      "session": "S05-reschedule-change-of-mind-es",
+      "turn": 2,
+      "p": "response start 2891 ms"
+    },
+    {
+      "session": "S06-companion-confirmations-es",
+      "turn": 6,
+      "p": "response start 2584 ms"
+    },
+    {
+      "session": "S08-safety-mid-task-es",
+      "turn": 6,
+      "p": "response start 2763 ms"
+    },
+    {
+      "session": "S08-safety-mid-task-es",
+      "turn": 9,
+      "p": "response start 2582 ms"
+    },
+    {
+      "session": "S09-silence-and-recovery-es",
+      "turn": 4,
+      "p": "response start 6297 ms"
+    },
+    {
+      "session": "S09-silence-and-recovery-es",
+      "turn": 6,
+      "p": "response start 21303 ms"
+    },
+    {
+      "session": "S09-silence-and-recovery-es",
+      "turn": 6,
+      "p": "app raised EMMI_VOICE_TURN_TIMEOUT"
+    },
+    {
+      "session": "S10-enrollment-en",
+      "turn": 4,
+      "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+    },
+    {
+      "session": "S10-enrollment-en",
+      "turn": 4,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S12-video-visit-es",
+      "turn": 2,
+      "p": "response start 2653 ms"
+    },
+    {
+      "session": "S12-video-visit-es",
+      "turn": 6,
+      "p": "response start 2524 ms"
+    },
+    {
+      "session": "S16-long-confused-transport-es",
+      "turn": 3,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S16-long-confused-transport-es",
+      "turn": 11,
+      "p": "response start 2633 ms"
+    },
+    {
+      "session": "S16-long-confused-transport-es",
+      "turn": 13,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S16-long-confused-transport-es",
+      "turn": 18,
+      "p": "response start 2570 ms"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 1,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 6,
+      "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 6,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 9,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 11,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 14,
+      "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 14,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 15,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 18,
+      "p": "EMMI was not idle before the patient spoke (state LISTENING)"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 18,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 20,
+      "p": "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)"
+    },
+    {
+      "session": "S17-long-enrollment-journey-es",
+      "turn": 20,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S18-long-multi-intent-reschedule-es",
+      "turn": 2,
+      "p": "response start 2907 ms"
+    },
+    {
+      "session": "S18-long-multi-intent-reschedule-es",
+      "turn": 5,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S18-long-multi-intent-reschedule-es",
+      "turn": 8,
+      "p": "response start 2533 ms"
+    },
+    {
+      "session": "S18-long-multi-intent-reschedule-es",
+      "turn": 14,
+      "p": "response start 2536 ms"
+    },
+    {
+      "session": "S19-long-topics-and-questions-es",
+      "turn": 4,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S20-long-spanglish-companion-and-ride-es",
+      "turn": 6,
+      "p": "response start 2540 ms"
+    },
+    {
+      "session": "S20-long-spanglish-companion-and-ride-es",
+      "turn": 13,
+      "p": "response start 2740 ms"
+    },
+    {
+      "session": "S20-long-spanglish-companion-and-ride-es",
+      "turn": 15,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S20-long-spanglish-companion-and-ride-es",
+      "turn": 17,
+      "p": "response start 2585 ms"
+    },
+    {
+      "session": "S21-long-elderly-video-visit-es",
+      "turn": 5,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S21-long-elderly-video-visit-es",
+      "turn": 7,
+      "p": "response start 2608 ms"
+    },
+    {
+      "session": "S21-long-elderly-video-visit-es",
+      "turn": 15,
+      "p": "response start 6323 ms"
+    },
+    {
+      "session": "S21-long-elderly-video-visit-es",
+      "turn": 16,
+      "p": "response start 2595 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 5,
+      "p": "response start 2699 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 7,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 9,
+      "p": "response start 2685 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 14,
+      "p": "response start 2751 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 19,
+      "p": "response start 2578 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 22,
+      "p": "response start 2514 ms"
+    },
+    {
+      "session": "S22-long-change-of-mind-en",
+      "turn": 25,
+      "p": "response start 2684 ms"
+    },
+    {
+      "session": "S23-creole-sample-ht",
+      "turn": 3,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S24-long-my-care-hub-es",
+      "turn": 1,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S24-long-my-care-hub-es",
+      "turn": 8,
+      "p": "the app sent no screen context to the provider before it answered this spoken turn"
+    },
+    {
+      "session": "S24-long-my-care-hub-es",
+      "turn": 9,
+      "p": "expected view APPOINTMENT, got SCREEN_MY_CARE"
+    }
+  ]
+}
+```

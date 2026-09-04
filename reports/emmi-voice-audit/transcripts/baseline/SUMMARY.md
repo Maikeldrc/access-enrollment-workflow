@@ -23,7 +23,7 @@
 | S19-long-topics-and-questions-es | B (habla mucho, información desordenada) | es | 20 | 18 | 1810 | 4733 | 0 (-) | 3/18 | 4 |
 | S20-long-spanglish-companion-and-ride-es | F (utiliza Spanglish) | es | 20 | 16 | 1832 | 7070 | 0 (-) | 2/16 | 4 |
 | S21-long-elderly-video-visit-es | A (adulto mayor, responde muy poco) | es | 21 | 15 | 1807 | 6841 | 0 (-) | 1/15 | 5 |
-| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1871 | 5890 | 1 (165) | 8/21 | 13 |
+| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1858 | 5901 | 1 (183) | 8/21 | 13 |
 | S23-creole-sample-ht | A (granmoun, reponn kout) | es | 9 | 7 | 1858 | 11681 | 0 (-) | 3/7 | 6 |
 | S24-long-my-care-hub-es | G (hace muchas preguntas antes de decidir) | es | 18 | 18 | 1795 | 1841 | 0 (-) | 0/18 | 3 |
 
@@ -35,20 +35,20 @@
   "long_sessions_15_plus_turns": 11,
   "long_sessions_15_plus_spoken_turns": 9,
   "response_start": {
-    "p50": 1813,
-    "p95": 5342,
+    "p50": 1814,
+    "p95": 5347,
     "min": 1719,
     "max": 11681,
-    "avg": 2268,
+    "avg": 2269,
     "perceived_p50": "NOTICEABLE DELAY"
   },
   "provider_vad_window": {
-    "p50": 1233,
-    "p95": 1273
+    "p50": 1234,
+    "p95": 1275
   },
   "app_overhead_first_chunk_to_audible": {
     "p50": 4,
-    "p95": 3596,
+    "p95": 3601,
     "max": 9946
   },
   "local_speech_end_after_T1": {
@@ -57,7 +57,7 @@
   "barge_ins": {
     "count": 6,
     "registered_by_app": 6,
-    "stop_p50": 179,
+    "stop_p50": 183,
     "stop_max": 301,
     "provider_interrupt_p50": 153
   },
@@ -1044,12 +1044,12 @@
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 3,
-      "p": "response start 5310 ms"
+      "p": "response start 5338 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 4,
-      "p": "response start 3718 ms"
+      "p": "response start 3701 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
@@ -1059,7 +1059,7 @@
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 5,
-      "p": "response start 3458 ms"
+      "p": "response start 3482 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
@@ -1074,37 +1074,37 @@
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 9,
-      "p": "response start 5890 ms"
+      "p": "response start 5901 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 12,
-      "p": "response start 4696 ms"
+      "p": "response start 4679 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 13,
-      "p": "response start 4196 ms"
+      "p": "response start 4231 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 18,
-      "p": "response start 6438 ms"
+      "p": "response start 6457 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 18,
-      "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_OPTIONS"
+      "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 24,
-      "p": "response start 5183 ms"
+      "p": "response start 5347 ms"
     },
     {
       "session": "S22-long-change-of-mind-en",
       "turn": 24,
-      "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_OPTIONS"
+      "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
     },
     {
       "session": "S23-creole-sample-ht",

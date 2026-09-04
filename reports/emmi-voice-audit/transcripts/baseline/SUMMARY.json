@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T05:11:32.138Z",
+  "generatedAt": "2026-09-04T05:31:39.606Z",
   "dir": "reports/emmi-voice-audit/transcripts/baseline",
   "summary": {
     "sessions": 24,
@@ -8,20 +8,20 @@
     "long_sessions_15_plus_turns": 11,
     "long_sessions_15_plus_spoken_turns": 9,
     "response_start": {
-      "p50": 1813,
-      "p95": 5342,
+      "p50": 1814,
+      "p95": 5347,
       "min": 1719,
       "max": 11681,
-      "avg": 2268,
+      "avg": 2269,
       "perceived_p50": "NOTICEABLE DELAY"
     },
     "provider_vad_window": {
-      "p50": 1233,
-      "p95": 1273
+      "p50": 1234,
+      "p95": 1275
     },
     "app_overhead_first_chunk_to_audible": {
       "p50": 4,
-      "p95": 3596,
+      "p95": 3601,
       "max": 9946
     },
     "local_speech_end_after_T1": {
@@ -30,7 +30,7 @@
     "barge_ins": {
       "count": 6,
       "registered_by_app": 6,
-      "stop_p50": 179,
+      "stop_p50": 183,
       "stop_max": 301,
       "provider_interrupt_p50": 153
     },
@@ -1017,12 +1017,12 @@
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 3,
-        "p": "response start 5310 ms"
+        "p": "response start 5338 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 4,
-        "p": "response start 3718 ms"
+        "p": "response start 3701 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
@@ -1032,7 +1032,7 @@
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 5,
-        "p": "response start 3458 ms"
+        "p": "response start 3482 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
@@ -1047,37 +1047,37 @@
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 9,
-        "p": "response start 5890 ms"
+        "p": "response start 5901 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 12,
-        "p": "response start 4696 ms"
+        "p": "response start 4679 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 13,
-        "p": "response start 4196 ms"
+        "p": "response start 4231 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 18,
-        "p": "response start 6438 ms"
+        "p": "response start 6457 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 18,
-        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_OPTIONS"
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 24,
-        "p": "response start 5183 ms"
+        "p": "response start 5347 ms"
       },
       {
         "session": "S22-long-change-of-mind-en",
         "turn": 24,
-        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_OPTIONS"
+        "p": "expected view REVIEW, got BARRIER_TRANSPORTATION_NEEDS"
       },
       {
         "session": "S23-creole-sample-ht",
@@ -1126,5 +1126,5 @@
       }
     ]
   },
-  "table": "| session | profile | lang | turns | spoken | start p50 | start p95 | barge-ins (stop p50) | context before answer | problems |\n|---|---|---|---:|---:|---:|---:|---|---|---|\n| S01-transport-canonical-es | A (adulto mayor, responde muy poco) | es | 14 | 11 | 1827 | 1905 | 0 (-) | 0/11 | 1 |\n| S02-transport-by-hand-es | C (se confunde fácilmente) | es | 23 | 13 | 1802 | 3439 | 0 (-) | 1/13 | 8 |\n| S03-interruptions-es | E (interrumpe frecuentemente) | es | 22 | 12 | 1793 | 3699 | 4 (187) | 2/12 | 2 |\n| S04-topics-memory-es | B (habla mucho, información desordenada) | es | 13 | 12 | 1815 | 4680 | 0 (-) | 2/12 | 2 |\n| S05-reschedule-change-of-mind-es | D (cambia de opinión) | es | 11 | 9 | 1822 | 6907 | 0 (-) | 2/9 | 2 |\n| S06-companion-confirmations-es | G (hace muchas preguntas antes de decidir) | es | 11 | 9 | 1815 | 1934 | 0 (-) | 0/9 | 0 |\n| S07-spanglish-and-language-es | F (utiliza Spanglish) | es | 10 | 9 | 5342 | 6889 | 0 (-) | 6/9 | 6 |\n| S08-safety-mid-task-es | H (quiere completar todo rápido) | es | 11 | 8 | 1848 | 3087 | 0 (-) | 1/8 | 1 |\n| S09-silence-and-recovery-es | A (adulto mayor, responde muy poco) | es | 8 | 5 | 1785 | 1813 | 0 (-) | 0/5 | 4 |\n| S10-enrollment-en | G (asks many questions before deciding) | en | 9 | 8 | 1790 | 4705 | 1 (177) | 1/8 | 3 |\n| S11-long-mixed-es | B (habla mucho, información desordenada) | es | 28 | 24 | 1797 | 1861 | 0 (-) | 1/24 | 1 |\n| S12-video-visit-es | C (se confunde fácilmente) | es | 8 | 5 | 1800 | 3457 | 0 (-) | 1/5 | 1 |\n| S13-transcript-assembly-es | A (adulto mayor, responde muy poco) | es | 4 | 2 | 1773 | 1777 | 0 (-) | 0/2 | 0 |\n| S14-spoken-language-switch | F (utiliza Spanglish) | en | 6 | 4 | 1820 | 3096 | 0 (-) | 2/4 | 2 |\n| S15-session-rotation-es | G (hace muchas preguntas antes de decidir) | es | 6 | 3 | 1785 | 1804 | 0 (-) | 0/3 | 0 |\n| S16-long-confused-transport-es | C (se confunde fácilmente) | es | 23 | 20 | 1809 | 1877 | 0 (-) | 1/20 | 3 |\n| S17-long-enrollment-journey-es | G (hace muchas preguntas antes de decidir) | es | 21 | 17 | 1796 | 6932 | 0 (-) | 2/17 | 13 |\n| S18-long-multi-intent-reschedule-es | H (quiere completar todo rápido) | es | 20 | 16 | 1836 | 5373 | 0 (-) | 3/16 | 3 |\n| S19-long-topics-and-questions-es | B (habla mucho, información desordenada) | es | 20 | 18 | 1810 | 4733 | 0 (-) | 3/18 | 4 |\n| S20-long-spanglish-companion-and-ride-es | F (utiliza Spanglish) | es | 20 | 16 | 1832 | 7070 | 0 (-) | 2/16 | 4 |\n| S21-long-elderly-video-visit-es | A (adulto mayor, responde muy poco) | es | 21 | 15 | 1807 | 6841 | 0 (-) | 1/15 | 5 |\n| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1871 | 5890 | 1 (165) | 8/21 | 13 |\n| S23-creole-sample-ht | A (granmoun, reponn kout) | es | 9 | 7 | 1858 | 11681 | 0 (-) | 3/7 | 6 |\n| S24-long-my-care-hub-es | G (hace muchas preguntas antes de decidir) | es | 18 | 18 | 1795 | 1841 | 0 (-) | 0/18 | 3 |"
+  "table": "| session | profile | lang | turns | spoken | start p50 | start p95 | barge-ins (stop p50) | context before answer | problems |\n|---|---|---|---:|---:|---:|---:|---|---|---|\n| S01-transport-canonical-es | A (adulto mayor, responde muy poco) | es | 14 | 11 | 1827 | 1905 | 0 (-) | 0/11 | 1 |\n| S02-transport-by-hand-es | C (se confunde fácilmente) | es | 23 | 13 | 1802 | 3439 | 0 (-) | 1/13 | 8 |\n| S03-interruptions-es | E (interrumpe frecuentemente) | es | 22 | 12 | 1793 | 3699 | 4 (187) | 2/12 | 2 |\n| S04-topics-memory-es | B (habla mucho, información desordenada) | es | 13 | 12 | 1815 | 4680 | 0 (-) | 2/12 | 2 |\n| S05-reschedule-change-of-mind-es | D (cambia de opinión) | es | 11 | 9 | 1822 | 6907 | 0 (-) | 2/9 | 2 |\n| S06-companion-confirmations-es | G (hace muchas preguntas antes de decidir) | es | 11 | 9 | 1815 | 1934 | 0 (-) | 0/9 | 0 |\n| S07-spanglish-and-language-es | F (utiliza Spanglish) | es | 10 | 9 | 5342 | 6889 | 0 (-) | 6/9 | 6 |\n| S08-safety-mid-task-es | H (quiere completar todo rápido) | es | 11 | 8 | 1848 | 3087 | 0 (-) | 1/8 | 1 |\n| S09-silence-and-recovery-es | A (adulto mayor, responde muy poco) | es | 8 | 5 | 1785 | 1813 | 0 (-) | 0/5 | 4 |\n| S10-enrollment-en | G (asks many questions before deciding) | en | 9 | 8 | 1790 | 4705 | 1 (177) | 1/8 | 3 |\n| S11-long-mixed-es | B (habla mucho, información desordenada) | es | 28 | 24 | 1797 | 1861 | 0 (-) | 1/24 | 1 |\n| S12-video-visit-es | C (se confunde fácilmente) | es | 8 | 5 | 1800 | 3457 | 0 (-) | 1/5 | 1 |\n| S13-transcript-assembly-es | A (adulto mayor, responde muy poco) | es | 4 | 2 | 1773 | 1777 | 0 (-) | 0/2 | 0 |\n| S14-spoken-language-switch | F (utiliza Spanglish) | en | 6 | 4 | 1820 | 3096 | 0 (-) | 2/4 | 2 |\n| S15-session-rotation-es | G (hace muchas preguntas antes de decidir) | es | 6 | 3 | 1785 | 1804 | 0 (-) | 0/3 | 0 |\n| S16-long-confused-transport-es | C (se confunde fácilmente) | es | 23 | 20 | 1809 | 1877 | 0 (-) | 1/20 | 3 |\n| S17-long-enrollment-journey-es | G (hace muchas preguntas antes de decidir) | es | 21 | 17 | 1796 | 6932 | 0 (-) | 2/17 | 13 |\n| S18-long-multi-intent-reschedule-es | H (quiere completar todo rápido) | es | 20 | 16 | 1836 | 5373 | 0 (-) | 3/16 | 3 |\n| S19-long-topics-and-questions-es | B (habla mucho, información desordenada) | es | 20 | 18 | 1810 | 4733 | 0 (-) | 3/18 | 4 |\n| S20-long-spanglish-companion-and-ride-es | F (utiliza Spanglish) | es | 20 | 16 | 1832 | 7070 | 0 (-) | 2/16 | 4 |\n| S21-long-elderly-video-visit-es | A (adulto mayor, responde muy poco) | es | 21 | 15 | 1807 | 6841 | 0 (-) | 1/15 | 5 |\n| S22-long-change-of-mind-en | D (changes their mind) | en | 28 | 21 | 1858 | 5901 | 1 (183) | 8/21 | 13 |\n| S23-creole-sample-ht | A (granmoun, reponn kout) | es | 9 | 7 | 1858 | 11681 | 0 (-) | 3/7 | 6 |\n| S24-long-my-care-hub-es | G (hace muchas preguntas antes de decidir) | es | 18 | 18 | 1795 | 1841 | 0 (-) | 0/18 | 3 |"
 }
