@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
     enableText: asBoolean(env.EMMI_ENABLE_TEXT, true),
     enableTools: asBoolean(env.EMMI_ENABLE_TOOLS, true),
     sessionMaxMinutes: Math.max(1, Math.min(12, Number(env.EMMI_SESSION_MAX_MINUTES) || 12)),
+    voiceContextOnSpeechStart: asBoolean(env.EMMI_VOICE_CONTEXT_ON_SPEECH_START, false),
     model: env.GEMINI_LIVE_MODEL || "gemini-3.1-flash-live-preview"
   };
   return {

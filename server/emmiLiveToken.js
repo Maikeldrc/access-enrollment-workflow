@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { getEmmiSpeechConfig, getEmmiVoiceIdentity } from "../src/emmi/voiceIdentity.js";
+import { EMMI_END_OF_SPEECH_SILENCE_MS, EMMI_START_OF_SPEECH_PREFIX_MS } from "../src/emmi/voiceTurnConfig.js";
 
 const DEFAULT_MODEL = "gemini-3.1-flash-live-preview";
 // A single patient can legitimately reconnect several times while changing voice settings, and
@@ -38,8 +39,10 @@ export const buildEmmiLiveTokenConfig = ({ model, expireTime, newSessionExpireTi
           disabled: false,
           startOfSpeechSensitivity: "START_SENSITIVITY_HIGH",
           endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
-          prefixPaddingMs: 300,
-          silenceDurationMs: 1200
+          // Locked for the session (lockAdditionalFields: []): the browser cannot override these,
+          // so they are read from the module the browser reads too.
+          prefixPaddingMs: EMMI_START_OF_SPEECH_PREFIX_MS,
+          silenceDurationMs: EMMI_END_OF_SPEECH_SILENCE_MS
         },
         activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
       },

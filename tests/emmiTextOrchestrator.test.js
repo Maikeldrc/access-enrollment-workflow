@@ -379,6 +379,21 @@ describe("Ask EMMI answer-first orchestration", () => {
     expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
   });
 
+  it("routes the words patients actually use for screen help, in Spanish and English", async () => {
+    for (const question of ["¿Qué hago aquí?", "¿Qué hago ahora?", "¿Y ahora?"]) {
+      const { orchestrator, executeTool } = harness();
+      const answer = await orchestrator.answer(question);
+      expect(answer.text, question).toBe("Esta pantalla explica el cuidado disponible.");
+      expect(answer.trace.intent, question).toBe("CURRENT_SCREEN_HELP");
+      expect(executeTool).not.toHaveBeenCalledWith("searchKnowledge", expect.anything());
+    }
+    for (const question of ["What now?", "What do I do here?"]) {
+      const { orchestrator } = harness({ locale: "EN" });
+      const answer = await orchestrator.answer(question);
+      expect(answer.trace.intent, question).toBe("CURRENT_SCREEN_HELP");
+    }
+  });
+
   it("uses the immediate assistant turn for repeat and simplify follow-ups", async () => {
     const conversation = { turns: [{ role: "assistant", text: "Your next step is ‘Start your care journey.’" }] };
     const repeat = await harness({ locale: "EN", conversation }).orchestrator.answer("Can you repeat that?");

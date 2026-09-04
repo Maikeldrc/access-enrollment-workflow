@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EmmiBargeInManager } from "../src/emmi/bargeInManager.js";
+import { EMMI_END_OF_SPEECH_SILENCE_MS } from "../src/emmi/voiceTurnConfig.js";
 
 describe("EMMI local barge-in detector", () => {
   it("requires sustained speech-like audio and ignores an isolated noisy frame", () => {
@@ -25,6 +26,11 @@ describe("EMMI local barge-in detector", () => {
     expect(ends).not.toHaveBeenCalled();
     expect(detector.observeFrame({ rms: 0.004, peak: 0.01, now: 951 })).toBe("SPEECH_ENDED");
     expect(ends).toHaveBeenCalledOnce();
+  });
+
+  it("ends local speech on the same window the provider is locked to", () => {
+    expect(new EmmiBargeInManager().silenceDurationMs).toBe(EMMI_END_OF_SPEECH_SILENCE_MS);
+    expect(EMMI_END_OF_SPEECH_SILENCE_MS).toBe(1200);
   });
 
   it("accepts the provider interruption event as authoritative speech activity", () => {
