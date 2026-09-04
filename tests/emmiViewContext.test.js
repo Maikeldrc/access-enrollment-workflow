@@ -126,6 +126,19 @@ describe("the floor — a screen with no describer", () => {
     expect(describeEmmiViewFromDom(null)).toBeNull();
   });
 
+  // The ACCESS welcome lays its copy out one span per visual line, so textContent ran the lines
+  // together and EMMI was told the screen said "el modeloACCESS de Medicare". The aria-label is
+  // the same words with the spaces a screen reader announces.
+  it("reads a heading laid out in lines the way a screen reader would", () => {
+    const root = dom(`
+      <h1 aria-label="Su médico recomienda cuidado ACCESS"><span>Su médico</span><span>recomienda</span><span>cuidado ACCESS</span></h1>
+      <p class="screen-lead" aria-label="Cuidado mediante el modelo ACCESS de Medicare"><span>Cuidado mediante el modelo</span><span>ACCESS de Medicare</span></p>
+    `);
+    const view = describeEmmiViewFromDom(root, { screenId: "INVITATION" });
+    expect(view.title).toBe("Su médico recomienda cuidado ACCESS");
+    expect(view.task).toBe("Cuidado mediante el modelo ACCESS de Medicare");
+  });
+
   it("guesses the kind of an unknown control conservatively", () => {
     expect(inferViewActionKind("appointment-confirm-cancel")).toBe(VIEW_ACTION_KINDS.DESTRUCTIVE);
     expect(inferViewActionKind("barrier-reserve-confirm")).toBe(VIEW_ACTION_KINDS.CONFIRM);
@@ -218,6 +231,8 @@ describe("the transportation flow, as EMMI reads it", () => {
     expect(view.selection).toBeTruthy();
     expect(view.completed.some(entry => entry.id === "RIDE_BOOKED")).toBe(false);
     expect(view.pending.some(entry => entry.id === "CONFIRM_BOOKING")).toBe(true);
+    // The review screen has a "Change" control; a spoken "me equivoqué" must be able to use it.
+    expect(view.actions.some(action => action.id === "barrier-back" && action.kind === "NAVIGATE")).toBe(true);
     expect(view.notes.join(" ")).toMatch(/NOT booked/i);
   });
 
@@ -236,6 +251,10 @@ describe("the transportation flow, as EMMI reads it", () => {
     const view = normalizeEmmiView(transportView("BOOKING_FAILED", { options: [rideOption()], selectedOptionId: "STANDARD_1" }));
     expect(view.completed.some(entry => entry.id === "RIDE_BOOKED")).toBe(false);
     expect(view.pending.some(entry => entry.id === "BOOKING_FAILED")).toBe(true);
+    // The patient did confirm; what failed is the provider. Saying "needs your confirmation" here
+    // sent EMMI back to ask for a confirmation that had already been given.
+    expect(view.pending.some(entry => entry.id === "CONFIRM_BOOKING")).toBe(false);
+    expect(view.actions.map(action => action.id)).toEqual(expect.arrayContaining(["barrier-retry", "barrier-back"]));
   });
 
   it("marks the booking control as needing confirmation and the choosing control as not", () => {

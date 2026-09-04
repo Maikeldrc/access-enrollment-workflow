@@ -217,6 +217,13 @@ export const viewControlSelector = element => {
 
 const controlLabel = element => String(element.textContent || element.getAttribute("aria-label") || "").replace(/\s+/g, " ").trim();
 
+// A line break in a layout is not a word break. Headings and leads that are laid out one span per
+// visual line concatenate in textContent with nothing between them — the ACCESS welcome came out as
+// "el modeloACCESS de Medicare" — while the authored aria-label carries the same words with the
+// spaces a screen reader announces. What EMMI is told a screen says should be what a screen reader
+// says, so prefer that label and normalise the whitespace either way.
+const elementText = element => String(element?.getAttribute?.("aria-label") || element?.textContent || "").replace(/\s+/g, " ").trim();
+
 // Every screen gets a descriptor even with no describer written for it: its heading, its lead, and
 // the controls it actually rendered. Criterion 19 in the brief — the solution has to keep working
 // for features nobody has thought of yet — is this function.
@@ -231,8 +238,8 @@ export function describeEmmiViewFromDom(root, { screenId = "", viewId = "", loca
     source: "DOM",
     viewId: viewId || `SCREEN_${screenId}`,
     screenId,
-    title: heading?.textContent || "",
-    task: lead?.textContent || "",
+    title: elementText(heading),
+    task: elementText(lead),
     actions: controls.map(element => ({
       id: element.getAttribute("data-action") || element.getAttribute("data-assistant-action") || "",
       label: controlLabel(element),
