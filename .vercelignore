@@ -1,0 +1,11 @@
+# Build-irrelevant material. Keeps the CLI upload to the app itself.
+qa-evidence
+qa-shots
+reports
+docs
+e2e
+tests
+.claude
+*.md
+playwright*.config.js
+vitest.config.js
