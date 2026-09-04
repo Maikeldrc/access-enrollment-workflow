@@ -5252,8 +5252,13 @@ if (!import.meta.env.PROD) {
     catch (error) { return { ok: false, error: String(error?.message || error) }; }
   };
   globalThis.__emmiActionProbe = params => performEmmiViewAction(params || {});
-  // Whether a live session is open, which is what decides whether a screen change is pushed.
-  globalThis.__emmiVoiceProbe = () => ({ state: state.assistantVoiceState, active: Boolean(emmiLive?.isActive()), error: state.assistantVoiceError || "", socket: Boolean(emmiLive?.session), contextVersion: emmiLive?.activeContextVersion ?? null });
+  // The conversation as the patient sees it, turn by turn. A voice audit reads what EMMI actually
+  // said from here rather than from the audio, because the audio is what it is measuring.
+  globalThis.__emmiThreadProbe = () => (state.assistantMessages || []).map(message => ({ role: message.role, text: message.text, voice: Boolean(message.voice), voiceComplete: Boolean(message.voiceComplete), guidance: Boolean(message.guidance), generationId: message.generationId || 0, intent: message.intent || "" }));
+  // Whether a live session is open, which is what decides whether a screen change is pushed. The
+  // fields after contextVersion are what a voice run needs to tell a silent turn from a dropped
+  // one; every one is optional-chained, so a client that does not track it reports null.
+  globalThis.__emmiVoiceProbe = () => ({ state: state.assistantVoiceState, active: Boolean(emmiLive?.isActive()), error: state.assistantVoiceError || "", socket: Boolean(emmiLive?.session), contextVersion: emmiLive?.activeContextVersion ?? null, clientState: emmiLive?.state || "", sources: emmiLive?.sources?.size ?? null, speechActive: Boolean(emmiLive?.bargeIn?.speechActive), awaitingPatientResponse: Boolean(emmiLive?.awaitingPatientResponse), activeTurn: emmiLive?.activeTurn?.id || "", echoProbeActive: Boolean(emmiLive?.echoProbeActive), micPreroll: emmiLive?.micPreroll?.length ?? null, muted: Boolean(emmiLive?.muted), missedTranscripts: emmiLive?.missedTranscripts ?? null });
   // Ask the live session a question as the patient, and read back what EMMI answered. The words go
   // in as a patient turn on the same session, against the same context a spoken question would
   // reach — which is what makes this a real test of the context rather than of the microphone.
