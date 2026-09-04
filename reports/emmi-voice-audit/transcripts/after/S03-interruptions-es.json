@@ -1,0 +1,4302 @@
+{
+  "session_id": "S03-interruptions-es",
+  "patient_profile": "E (interrumpe frecuentemente)",
+  "language": "es",
+  "flow": "transportation options with repeated barge-ins",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "EMMI is interrupted mid-sentence five times with short utterances. Measures stop latency and whether the new instruction is honoured.",
+  "startedAt": "2026-09-04T01:12:08.579Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "navigation",
+      "label": "Algo lo dificulta",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "navigation_result": "APPOINTMENT_CONFIRMED → APPOINTMENT_PRE_VISIT_CHECK",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 3,
+      "kind": "navigation",
+      "label": "Transporte",
+      "screen": "APPOINTMENT_PRE_VISIT_CHECK",
+      "navigation_result": "APPOINTMENT_PRE_VISIT_CHECK → BARRIER_TRANSPORTATION_OFFER",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 4,
+      "kind": "navigation",
+      "label": "Sí, buscar transporte",
+      "screen": "BARRIER_TRANSPORTATION_OFFER",
+      "navigation_result": "BARRIER_TRANSPORTATION_OFFER → BARRIER_TRANSPORTATION_PICKUP",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 5,
+      "kind": "navigation",
+      "label": "Casa",
+      "screen": "BARRIER_TRANSPORTATION_PICKUP",
+      "navigation_result": "BARRIER_TRANSPORTATION_PICKUP → BARRIER_TRANSPORTATION_NEEDS",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 6,
+      "kind": "navigation",
+      "label": "No, ninguna",
+      "screen": "BARRIER_TRANSPORTATION_NEEDS",
+      "navigation_result": "BARRIER_TRANSPORTATION_NEEDS → BARRIER_TRANSPORTATION_NEEDS",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 7,
+      "kind": "navigation",
+      "label": "Continuar",
+      "screen": "BARRIER_TRANSPORTATION_NEEDS",
+      "navigation_result": "BARRIER_TRANSPORTATION_NEEDS → BARRIER_TRANSPORTATION_TIME",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 8,
+      "kind": "navigation",
+      "label": "Buscar vehículos",
+      "screen": "BARRIER_TRANSPORTATION_TIME",
+      "navigation_result": "BARRIER_TRANSPORTATION_TIME → BARRIER_TRANSPORTATION_SEARCHING",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": false,
+        "context_updated_events": 0,
+        "state": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 9,
+      "kind": "silence",
+      "label": "search in progress",
+      "silence_ms": 2500,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 10,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "Explícame todas las opciones.",
+      "recognized_text": "Explícame todas las opciones.",
+      "EMMI_response": "Claro. Encontré tres opciones. La primera es UberX, un vehículo estándar por veintisiete dólares con noventa y cinco, que le recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, por cuarenta y un dólares con sesenta y ocho, y le recoge a las nueve cuarenta. La tercera es Uber WAV, accesible en silla de ruedas, por treinta y tres dólares, y le recoge a las nueve treinta y cinco. Todas llegan antes de las diez y diez.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@147",
+          "EMMI_THINKING@2811"
+        ],
+        "final_state": "EMMI_SPEAKING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "reply left playing for the next step to interrupt",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 47535,
+        "speech_ended_at": 49073,
+        "provider_speech_end_detected_at": 50310,
+        "provider_vad_window_ms": 1237,
+        "provider_first_chunk_at": 50866,
+        "app_first_audio_at": 50875,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 49073,
+        "T2_first_audible_response": 50875,
+        "T3_response_complete": null,
+        "response_start_latency_ms": 1802,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": 9,
+        "local_speech_end_detected_ms_after_T1": 1262,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 11,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "Espera.",
+      "recognized_text": "Espera.",
+      "EMMI_response": "Claro, dígame.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "barge_in_target_state": "EMMI_SPEAKING",
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [
+          "barge_in"
+        ],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@315",
+          "EMMI_THINKING@1983",
+          "EMMI_SPEAKING@2565",
+          "LISTENING@3395"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": true,
+      "timing": {
+        "speech_started_at": 52136,
+        "speech_ended_at": 52836,
+        "provider_speech_end_detected_at": 54090,
+        "provider_vad_window_ms": 1254,
+        "provider_first_chunk_at": 54643,
+        "app_first_audio_at": 54647,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 52836,
+        "T2_first_audible_response": 54647,
+        "T3_response_complete": 55473,
+        "response_start_latency_ms": 1811,
+        "response_completion_latency_ms": 2637,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1260,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "interruption": {
+        "emmi_was_speaking": true,
+        "app_detected_barge_in": true,
+        "app_source": "local_vad",
+        "stop_latency_from_speech_start_ms": 279,
+        "app_reported_interruption_latency_ms": 90,
+        "provider_interrupted_after_ms": 245,
+        "provider_speech_start_after_ms": 244,
+        "previous_generation_continued": false,
+        "chunks_played_after_interruption": 0
+      },
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 12,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "No, quiero otra cosa. ¿Cuál tiene más espacio?",
+      "recognized_text": "No, quiero otra cosa. ¿Cuál tiene más espacio?",
+      "EMMI_response": "UberXL tiene más espacio.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@218",
+          "EMMI_THINKING@4304",
+          "EMMI_SPEAKING@4886",
+          "LISTENING@6566"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Coordinar transporte para la cita",
+            "whatThePatientMustDoHere": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+            "flow": {
+              "id": "TRANSPORTATION",
+              "name": "Coordinar transporte para la cita",
+              "step": "OPTIONS",
+              "stepNumber": 6,
+              "totalSteps": 9
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              },
+              {
+                "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+              },
+              {
+                "Hora de recogida": "9:45 a. m."
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "STANDARD_1788788700000",
+                "label": "UberX",
+                "detail": "Vehículo estándar · $27.95 · 9:45 a. m.",
+                "selected": false,
+                "pickupTime": "9:45 a. m.",
+                "arrivesAbout": "10:10 a. m.",
+                "estimatedCost": "$27.95",
+                "estimatedCostValue": 27.95,
+                "seats": 3,
+                "wheelchairAccessible": "false"
+              },
+              {
+                "n": 2,
+                "id": "EXTRA_ROOM_1788788400000",
+                "label": "UberXL",
+                "detail": "Más espacio · $41.68 · 9:40 a. m.",
+                "selected": false,
+                "pickupTime": "9:40 a. m.",
+                "arrivesAbout": "10:06 a. m.",
+                "estimatedCost": "$41.68",
+                "estimatedCostValue": 41.68,
+                "seats": 5,
+                "wheelchairAccessible": "false"
+              },
+              {
+                "n": 3,
+                "id": "ACCESSIBLE_1788788100000",
+                "label": "Uber WAV",
+                "detail": "Accesible en silla de ruedas · $33.00 · 9:35 a. m.",
+                "selected": false,
+                "pickupTime": "9:35 a. m.",
+                "arrivesAbout": "9:59 a. m.",
+                "estimatedCost": "$33.00",
+                "estimatedCostValue": 33,
+                "seats": 2,
+                "wheelchairAccessible": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Dirección de recogida confirmada",
+              "Ayuda especial para el viaje respondida",
+              "Hora de recogida definida"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 57063,
+        "speech_ended_at": 60140,
+        "provider_speech_end_detected_at": 61350,
+        "provider_vad_window_ms": 1210,
+        "provider_first_chunk_at": 61914,
+        "app_first_audio_at": 61920,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 60140,
+        "T2_first_audible_response": 61920,
+        "T3_response_complete": 63586,
+        "response_start_latency_ms": 1780,
+        "response_completion_latency_ms": 3446,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1230,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 13,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "Explícame las tres otra vez, despacio.",
+      "recognized_text": "Explícame las tres otra vez, despacio.",
+      "EMMI_response": "Con gusto. La primera es UberX, vehículo estándar, veintisiete noventa y cinco, recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, cuarenta y uno sesenta y ocho, recoge a las nueve cuarenta. La tercera es Uber WAV, accesible, treinta y tres dólares, recoge a las nueve treinta y cinco.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@160",
+          "EMMI_THINKING@3578"
+        ],
+        "final_state": "EMMI_SPEAKING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "reply left playing for the next step to interrupt",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 65136,
+        "speech_ended_at": 67444,
+        "provider_speech_end_detected_at": 68670,
+        "provider_vad_window_ms": 1226,
+        "provider_first_chunk_at": 69224,
+        "app_first_audio_at": 69227,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 67444,
+        "T2_first_audible_response": 69227,
+        "T3_response_complete": null,
+        "response_start_latency_ms": 1783,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1234,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 14,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "Sí, ya entendí. La segunda.",
+      "recognized_text": "Sí, ya entendí. La segunda.",
+      "EMMI_response": "Seleccioné UberXL. Todavía falta confirmar la reserva.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "barge_in_target_state": "EMMI_SPEAKING",
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [
+          "barge_in"
+        ],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@171",
+          "EMMI_THINKING@3174",
+          "EMMI_SPEAKING@3766",
+          "LISTENING@6658"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "2"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "EXTRA_ROOM_1788788400000",
+              "label": "UberXL",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "REVIEW",
+                "stepNumber": 7,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "9:45 a. m."
+                }
+              ],
+              "selected": {
+                "id": "EXTRA_ROOM_1788788400000",
+                "label": "UberXL",
+                "detail": "Más espacio · $41.68 · 9:40 a. m."
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida"
+              ],
+              "stillPending": [
+                "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-reserve-confirm",
+                  "label": "Reservar este viaje",
+                  "kind": "CONFIRM",
+                  "effect": "Esto reserva el viaje"
+                }
+              ],
+              "notes": [
+                "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_OPTIONS → BARRIER_TRANSPORTATION_REVIEW",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": true,
+      "timing": {
+        "speech_started_at": 70807,
+        "speech_ended_at": 72730,
+        "provider_speech_end_detected_at": 73950,
+        "provider_vad_window_ms": 1220,
+        "provider_first_chunk_at": 74531,
+        "app_first_audio_at": 74535,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 72730,
+        "T2_first_audible_response": 74535,
+        "T3_response_complete": 77458,
+        "response_start_latency_ms": 1805,
+        "response_completion_latency_ms": 4728,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1235,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "interruption": {
+        "emmi_was_speaking": true,
+        "app_detected_barge_in": true,
+        "app_source": "local_vad",
+        "stop_latency_from_speech_start_ms": 158,
+        "app_reported_interruption_latency_ms": 80,
+        "provider_interrupted_after_ms": 125,
+        "provider_speech_start_after_ms": 125,
+        "previous_generation_continued": false,
+        "chunks_played_after_interruption": 0
+      },
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 15,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?",
+      "recognized_text": "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?",
+      "EMMI_response": "Puedo reservarla ahora. Antes de hacerlo: le recogería a las nueve cuarenta en su casa, y el costo estimado es cuarenta y un dólares con sesenta y ocho. ¿Confirma?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@167",
+          "EMMI_THINKING@6330",
+          "EMMI_SPEAKING@6833"
+        ],
+        "final_state": "EMMI_SPEAKING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "reply left playing for the next step to interrupt",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 79043,
+        "speech_ended_at": 84043,
+        "provider_speech_end_detected_at": 85290,
+        "provider_vad_window_ms": 1247,
+        "provider_first_chunk_at": 85845,
+        "app_first_audio_at": 85849,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 84043,
+        "T2_first_audible_response": 85849,
+        "T3_response_complete": null,
+        "response_start_latency_ms": 1806,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1272,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 16,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Para.",
+      "recognized_text": "Para.",
+      "EMMI_response": "De acuerdo, me detengo.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "barge_in_target_state": "EMMI_SPEAKING",
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [
+          "barge_in"
+        ],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@163",
+          "EMMI_THINKING@1987",
+          "EMMI_SPEAKING@2488",
+          "LISTENING@4149"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": true,
+      "timing": {
+        "speech_started_at": 86974,
+        "speech_ended_at": 87674,
+        "provider_speech_end_detected_at": 88890,
+        "provider_vad_window_ms": 1216,
+        "provider_first_chunk_at": 89444,
+        "app_first_audio_at": 89447,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 87674,
+        "T2_first_audible_response": 89447,
+        "T3_response_complete": 91110,
+        "response_start_latency_ms": 1773,
+        "response_completion_latency_ms": 3436,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1223,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "interruption": {
+        "emmi_was_speaking": true,
+        "app_detected_barge_in": true,
+        "app_source": "local_vad",
+        "stop_latency_from_speech_start_ms": 161,
+        "app_reported_interruption_latency_ms": 80,
+        "provider_interrupted_after_ms": 127,
+        "provider_speech_start_after_ms": 127,
+        "previous_generation_continued": false,
+        "chunks_played_after_interruption": 0
+      },
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 17,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Me equivoqué. Quiero volver a las opciones.",
+      "recognized_text": "Me equivoqué. Quiero volver a las opciones.",
+      "EMMI_response": "Aquí puede continuar.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@122",
+          "EMMI_THINKING@3988",
+          "EMMI_SPEAKING@4505",
+          "LISTENING@5814"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-back"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableActions": [
+              {
+                "id": "barrier-reserve-confirm",
+                "label": "Reservar este viaje",
+                "kind": "CONFIRM"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 92673,
+        "speech_ended_at": 95365,
+        "provider_speech_end_detected_at": 96570,
+        "provider_vad_window_ms": 1205,
+        "provider_first_chunk_at": 97133,
+        "app_first_audio_at": 97140,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 95365,
+        "T2_first_audible_response": 97140,
+        "T3_response_complete": 98431,
+        "response_start_latency_ms": 1775,
+        "response_completion_latency_ms": 3066,
+        "app_overhead_first_chunk_to_audible_ms": 7,
+        "local_speech_end_detected_ms_after_T1": 1222,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 18,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Mejor la primera.",
+      "recognized_text": "Mejor la primera.",
+      "EMMI_response": "Seleccioné UberXL. Todavía falta confirmar la reserva.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@188",
+          "EMMI_THINKING@2437",
+          "EMMI_SPEAKING@3030",
+          "LISTENING@5972"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "1"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableChoices": [],
+            "availableActions": [
+              {
+                "id": "barrier-reserve-confirm",
+                "label": "Reservar este viaje",
+                "kind": "CONFIRM"
+              }
+            ],
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "REVIEW",
+                "stepNumber": 7,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "9:45 a. m."
+                }
+              ],
+              "selected": {
+                "id": "EXTRA_ROOM_1788788400000",
+                "label": "UberXL",
+                "detail": "Más espacio · $41.68 · 9:40 a. m."
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida"
+              ],
+              "stillPending": [
+                "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-reserve-confirm",
+                  "label": "Reservar este viaje",
+                  "kind": "CONFIRM",
+                  "effect": "Esto reserva el viaje"
+                }
+              ],
+              "notes": [
+                "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 99974,
+        "speech_ended_at": 101128,
+        "provider_speech_end_detected_at": 102390,
+        "provider_vad_window_ms": 1262,
+        "provider_first_chunk_at": 102953,
+        "app_first_audio_at": 102956,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 101128,
+        "T2_first_audible_response": 102956,
+        "T3_response_complete": 105893,
+        "response_start_latency_ms": 1828,
+        "response_completion_latency_ms": 4765,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1278,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 19,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Ok, resérvala.",
+      "recognized_text": "Ok, resérvala.",
+      "EMMI_response": "Antes de reservar: UberX, le recoge a las nueve cuarenta y cinco, veintisiete noventa y cinco. ¿Confirma?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@169",
+          "EMMI_THINKING@2008"
+        ],
+        "final_state": "EMMI_SPEAKING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "reply left playing for the next step to interrupt",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 107450,
+        "speech_ended_at": 108219,
+        "provider_speech_end_detected_at": 109410,
+        "provider_vad_window_ms": 1191,
+        "provider_first_chunk_at": 109967,
+        "app_first_audio_at": 109970,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 108219,
+        "T2_first_audible_response": 109970,
+        "T3_response_complete": null,
+        "response_start_latency_ms": 1751,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1200,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 20,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Sí.",
+      "recognized_text": "Sí.",
+      "EMMI_response": "Listo. El viaje quedó reservado.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "barge_in_target_state": "EMMI_SPEAKING",
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [
+          "barge_in"
+        ],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@173",
+          "EMMI_THINKING@1942",
+          "TOOL_RUNNING@2534",
+          "EMMI_THINKING@3387",
+          "EMMI_SPEAKING@3470",
+          "LISTENING@5489"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "selected": "UberXL",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-reserve-confirm",
+            "confirmed": true
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-reserve-confirm",
+              "label": "Reservar este viaje",
+              "kind": "CONFIRM"
+            },
+            "backgroundWork": "COMPLETED",
+            "waitedMs": 867,
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "RETURN_OFFER",
+                "stepNumber": null,
+                "totalSteps": null
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "9:45 a. m."
+                },
+                {
+                  "Viaje reservado": "UberXL · UB-89388"
+                }
+              ],
+              "selected": {
+                "id": "EXTRA_ROOM_1788788400000",
+                "label": "UberXL",
+                "detail": "Más espacio · $41.68 · 9:40 a. m."
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida",
+                "Viaje reservado"
+              ],
+              "stillPending": [
+                "Si también quiere transporte de regreso"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-return-yes",
+                  "label": "Sí, coordinar el regreso",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-return-no",
+                  "label": "No",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-close",
+                  "label": "Volver a mi cita",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_REVIEW → BARRIER_TRANSPORTATION_RETURN_OFFER",
+      "problem_detected": [
+        "response start 2675 ms"
+      ],
+      "severity": "P2",
+      "notes": "",
+      "intent": "",
+      "bargeIn": true,
+      "timing": {
+        "speech_started_at": 110971,
+        "speech_ended_at": 111671,
+        "provider_speech_end_detected_at": 112890,
+        "provider_vad_window_ms": 1219,
+        "provider_first_chunk_at": 114343,
+        "app_first_audio_at": 114346,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 111671,
+        "T2_first_audible_response": 114346,
+        "T3_response_complete": 116426,
+        "response_start_latency_ms": 2675,
+        "response_completion_latency_ms": 4755,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1229,
+        "perceived": "POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "interruption": {
+        "emmi_was_speaking": true,
+        "app_detected_barge_in": true,
+        "app_source": "local_vad",
+        "stop_latency_from_speech_start_ms": 184,
+        "app_reported_interruption_latency_ms": 90,
+        "provider_interrupted_after_ms": 156,
+        "provider_speech_start_after_ms": 156,
+        "previous_generation_continued": false,
+        "chunks_played_after_interruption": 0
+      },
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 21,
+      "kind": "silence",
+      "label": "booking completes",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 22,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+      "patient_utterance": "¿Ya quedó?",
+      "recognized_text": "¿Ya quedó?",
+      "EMMI_response": "Sí, el viaje ya quedó reservado.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "choices": [],
+          "selected": "UberXL",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@166",
+          "EMMI_THINKING@2017",
+          "EMMI_SPEAKING@2600",
+          "LISTENING@5124"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "selected": "UberXL",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Coordinar transporte para la cita",
+            "whatThePatientMustDoHere": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+            "flow": {
+              "id": "TRANSPORTATION",
+              "name": "Coordinar transporte para la cita",
+              "step": "RETURN_OFFER",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "10:30 a. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              },
+              {
+                "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+              },
+              {
+                "Hora de recogida": "9:45 a. m."
+              },
+              {
+                "Viaje reservado": "UberXL · UB-89388"
+              }
+            ],
+            "selected": {
+              "id": "EXTRA_ROOM_1788788400000",
+              "label": "UberXL",
+              "detail": "Más espacio · $41.68 · 9:40 a. m."
+            },
+            "alreadyDone": [
+              "Dirección de recogida confirmada",
+              "Ayuda especial para el viaje respondida",
+              "Hora de recogida definida",
+              "Viaje reservado"
+            ],
+            "stillPending": [
+              "Si también quiere transporte de regreso"
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-return-yes",
+                "label": "Sí, coordinar el regreso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-return-no",
+                "label": "No",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 121143,
+        "speech_ended_at": 121912,
+        "provider_speech_end_detected_at": 123150,
+        "provider_vad_window_ms": 1238,
+        "provider_first_chunk_at": 123714,
+        "app_first_audio_at": 123719,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 121912,
+        "T2_first_audible_response": 123719,
+        "T3_response_complete": 126217,
+        "response_start_latency_ms": 1807,
+        "response_completion_latency_ms": 4305,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1253,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T01:12:13.097Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 1094 ms after tap"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788484332334,
+      "words": 88,
+      "seconds": 36.66666666666667,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas. ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos. Participar es su decisión, y le e",
+      "locale": "ES"
+    },
+    {
+      "at": 1788484370420,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    }
+  ],
+  "finishedAt": "2026-09-04T01:14:17.026Z",
+  "state_transitions": [
+    {
+      "t": 2171,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 3073,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 3160,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 39660,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 40431,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 41268,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 47682,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 50346,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 50930,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 52451,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 54119,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 54701,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 55531,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 57281,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 61367,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 61949,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 63629,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 65296,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 68714,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 69291,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 70978,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 73981,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 74573,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 77465,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 79210,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 85373,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 85876,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 87137,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 88961,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 89462,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 91123,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 92795,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 96661,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 97178,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 98487,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 100162,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 102411,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 103004,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 105946,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 107619,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 109458,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 110045,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 111144,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 112913,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 113505,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 114358,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 114441,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 116460,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 121309,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 123160,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 123743,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 126267,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 2199,
+      "at": 1788484332224,
+      "dir": "socket",
+      "type": "open",
+      "session": 1
+    },
+    {
+      "t": 2236,
+      "at": 1788484332261,
+      "dir": "in",
+      "type": "setup",
+      "session": 1,
+      "systemInstructionChars": 29846,
+      "toolCount": 44,
+      "realtimeInputConfig": {
+        "automaticActivityDetection": {
+          "disabled": false,
+          "startOfSpeechSensitivity": "START_SENSITIVITY_HIGH",
+          "endOfSpeechSensitivity": "END_SENSITIVITY_LOW",
+          "prefixPaddingMs": 300,
+          "silenceDurationMs": 1200
+        },
+        "activityHandling": "START_OF_ACTIVITY_INTERRUPTS"
+      },
+      "sessionResumption": {}
+    },
+    {
+      "t": 2279,
+      "at": 1788484332303,
+      "dir": "out",
+      "type": "setupComplete"
+    },
+    {
+      "t": 2279,
+      "at": 1788484332304,
+      "dir": "out",
+      "type": "sessionResumptionUpdate"
+    },
+    {
+      "t": 47566,
+      "at": 1788484377591,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 50310,
+      "at": 1788484380335,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1489,
+      "speechLastAt": 49055
+    },
+    {
+      "t": 50310,
+      "at": 1788484380335,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Explícame todas las opciones."
+    },
+    {
+      "t": 50310,
+      "at": 1788484380335,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Explícame todas las opciones."
+    },
+    {
+      "t": 50316,
+      "at": 1788484380341,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "source": "audio",
+      "transcript": "Explícame todas las opciones.",
+      "kind": "reply"
+    },
+    {
+      "t": 50866,
+      "at": 1788484380891,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "Claro. Encontré tres opciones. La primera es UberX, un vehículo estándar por veintisiete dólares con noventa y cinco, que le recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, por cuarenta y un dólares con sesenta y ocho, y le recoge a las nueve cuarenta. La tercera es Uber WAV, accesible en silla de ruedas, por treinta y tres dólares, y le recoge a las nueve treinta y cinco. Todas llegan antes de las diez y diez.",
+      "seconds": 34.17,
+      "chunks": 143
+    },
+    {
+      "t": 50870,
+      "at": 1788484380895,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 1
+    },
+    {
+      "t": 50877,
+      "at": 1788484380902,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "Claro."
+    },
+    {
+      "t": 51001,
+      "at": 1788484381026,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 2
+    },
+    {
+      "t": 51006,
+      "at": 1788484381031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "Encontré"
+    },
+    {
+      "t": 51249,
+      "at": 1788484381274,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 3
+    },
+    {
+      "t": 51253,
+      "at": 1788484381278,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "tres"
+    },
+    {
+      "t": 51496,
+      "at": 1788484381521,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 4
+    },
+    {
+      "t": 51500,
+      "at": 1788484381525,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "opciones."
+    },
+    {
+      "t": 51744,
+      "at": 1788484381769,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 5
+    },
+    {
+      "t": 51747,
+      "at": 1788484381772,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "La"
+    },
+    {
+      "t": 51990,
+      "at": 1788484382015,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 6
+    },
+    {
+      "t": 51992,
+      "at": 1788484382017,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "primera"
+    },
+    {
+      "t": 52235,
+      "at": 1788484382260,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "chunk": 7
+    },
+    {
+      "t": 52238,
+      "at": 1788484382263,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9f7w5_5xy3",
+      "text": "es"
+    },
+    {
+      "t": 52380,
+      "at": 1788484382405,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": true
+    },
+    {
+      "t": 52380,
+      "at": 1788484382405,
+      "dir": "model",
+      "type": "generation_cancelled",
+      "reason": "barge_in",
+      "sentChunks": 7,
+      "totalChunks": 143
+    },
+    {
+      "t": 52381,
+      "at": 1788484382405,
+      "dir": "out",
+      "type": "serverContent",
+      "reason": "barge_in"
+    },
+    {
+      "t": 54090,
+      "at": 1788484384115,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 455,
+      "speechLastAt": 52835
+    },
+    {
+      "t": 54090,
+      "at": 1788484384115,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Espera."
+    },
+    {
+      "t": 54090,
+      "at": 1788484384115,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Espera."
+    },
+    {
+      "t": 54093,
+      "at": 1788484384118,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "source": "audio",
+      "transcript": "Espera.",
+      "kind": "reply"
+    },
+    {
+      "t": 54643,
+      "at": 1788484384668,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "text": "Claro, dígame.",
+      "seconds": 0.83,
+      "chunks": 4
+    },
+    {
+      "t": 54645,
+      "at": 1788484384670,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "chunk": 1
+    },
+    {
+      "t": 54649,
+      "at": 1788484384674,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "text": "Claro,"
+    },
+    {
+      "t": 54771,
+      "at": 1788484384796,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "chunk": 2
+    },
+    {
+      "t": 54774,
+      "at": 1788484384799,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "text": "dígame."
+    },
+    {
+      "t": 55017,
+      "at": 1788484385041,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "chunk": 3
+    },
+    {
+      "t": 55260,
+      "at": 1788484385285,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe",
+      "chunk": 4
+    },
+    {
+      "t": 55262,
+      "at": 1788484385287,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe"
+    },
+    {
+      "t": 55262,
+      "at": 1788484385287,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fat2_z7fe"
+    },
+    {
+      "t": 55262,
+      "at": 1788484385287,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9fat2_z7fe"
+    },
+    {
+      "t": 57115,
+      "at": 1788484387140,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 61350,
+      "at": 1788484391375,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3010,
+      "speechLastAt": 60125
+    },
+    {
+      "t": 61350,
+      "at": 1788484391375,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "No, quiero otra cosa. ¿Cuál tiene más espacio?"
+    },
+    {
+      "t": 61350,
+      "at": 1788484391375,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "No, quiero otra cosa. ¿Cuál tiene más espacio?"
+    },
+    {
+      "t": 61355,
+      "at": 1788484391380,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9fges_38c2",
+      "source": "audio",
+      "transcript": "No, quiero otra cosa. ¿Cuál tiene más espacio?",
+      "kind": "reply"
+    },
+    {
+      "t": 61906,
+      "at": 1788484391931,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 61906,
+      "at": 1788484391931,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 61910,
+      "at": 1788484391934,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_6p0rnr\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_TRANSPORTATION_OPTIONS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"OPTIONS\",\"stepNumber\":6,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"9:45 a. m.\"}],\"choices\":[{\"n\":1,\"id\":\"STANDARD_1788788700000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 9:45 a. m.\",\"selected\":false,\"pickupTime\":\"9:45 a. m.\",\"arrivesAbout\":\"10:10 a. m.\",\"estimatedCost\":\"$27.95\",\"estimatedCostValue\":27.95,\"seats\":3,\"wheelchairAccessible\":\"false\"},{\"n\":2,\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 9:40 a. m.\",\"selected\":false,\"pickupTime\":\"9:40 a. m.\",\"arrivesAbout\":\"10:06 a. m.\",\"estimatedCost\":\"$41.68\",\"estimatedCostValue\":41.68,\"seats\":5,\"wheelchairAccessible\":\"false\"},{\"n\":3,\"id\":\"ACCESSIBLE_1788788100000\",\"label\":\"Uber WAV\",\"detail\":\"Accesible en silla de ruedas · $33.00 · 9:35 a. m.\",\"selected\":false,\"pickupTime\":\"9:35 a. m.\",\"arrivesAbout\":\"9:59 a. m.\",\"estimatedCost\":\"$33.00\",\"estimatedCostValue\":33,\"seats\":2,\"wheelchairAccessible\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[],\"youMayPressTheseYourself\":true}}}]"
+    },
+    {
+      "t": 61914,
+      "at": 1788484391939,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9fges_38c2",
+      "text": "UberXL tiene más espacio.",
+      "seconds": 1.67,
+      "chunks": 7
+    },
+    {
+      "t": 61916,
+      "at": 1788484391941,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 1
+    },
+    {
+      "t": 61921,
+      "at": 1788484391946,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "text": "UberXL"
+    },
+    {
+      "t": 62044,
+      "at": 1788484392069,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 2
+    },
+    {
+      "t": 62047,
+      "at": 1788484392072,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "text": "tiene"
+    },
+    {
+      "t": 62291,
+      "at": 1788484392316,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 3
+    },
+    {
+      "t": 62294,
+      "at": 1788484392319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "text": "más"
+    },
+    {
+      "t": 62538,
+      "at": 1788484392563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 4
+    },
+    {
+      "t": 62540,
+      "at": 1788484392565,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "text": "espacio."
+    },
+    {
+      "t": 62784,
+      "at": 1788484392809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 5
+    },
+    {
+      "t": 63029,
+      "at": 1788484393054,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 6
+    },
+    {
+      "t": 63273,
+      "at": 1788484393298,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2",
+      "chunk": 7
+    },
+    {
+      "t": 63276,
+      "at": 1788484393301,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2"
+    },
+    {
+      "t": 63276,
+      "at": 1788484393301,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fges_38c2"
+    },
+    {
+      "t": 63276,
+      "at": 1788484393301,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9fges_38c2"
+    },
+    {
+      "t": 65215,
+      "at": 1788484395240,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 68670,
+      "at": 1788484398695,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2230,
+      "speechLastAt": 67445
+    },
+    {
+      "t": 68670,
+      "at": 1788484398695,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Explícame las tres otra vez, despacio."
+    },
+    {
+      "t": 68670,
+      "at": 1788484398695,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Explícame las tres otra vez, despacio."
+    },
+    {
+      "t": 68673,
+      "at": 1788484398698,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "source": "audio",
+      "transcript": "Explícame las tres otra vez, despacio.",
+      "kind": "reply"
+    },
+    {
+      "t": 69224,
+      "at": 1788484399248,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "Con gusto. La primera es UberX, vehículo estándar, veintisiete noventa y cinco, recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, cuarenta y uno sesenta y ocho, recoge a las nueve cuarenta. La tercera es Uber WAV, accesible, treinta y tres dólares, recoge a las nueve treinta y cinco.",
+      "seconds": 22.5,
+      "chunks": 94
+    },
+    {
+      "t": 69226,
+      "at": 1788484399251,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 1
+    },
+    {
+      "t": 69229,
+      "at": 1788484399254,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "Con"
+    },
+    {
+      "t": 69352,
+      "at": 1788484399377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 2
+    },
+    {
+      "t": 69355,
+      "at": 1788484399380,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "gusto."
+    },
+    {
+      "t": 69598,
+      "at": 1788484399623,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 3
+    },
+    {
+      "t": 69601,
+      "at": 1788484399626,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "La"
+    },
+    {
+      "t": 69845,
+      "at": 1788484399870,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 4
+    },
+    {
+      "t": 69849,
+      "at": 1788484399874,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "primera"
+    },
+    {
+      "t": 70093,
+      "at": 1788484400118,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 5
+    },
+    {
+      "t": 70098,
+      "at": 1788484400123,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "es"
+    },
+    {
+      "t": 70341,
+      "at": 1788484400366,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 6
+    },
+    {
+      "t": 70345,
+      "at": 1788484400370,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "UberX,"
+    },
+    {
+      "t": 70588,
+      "at": 1788484400613,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 7
+    },
+    {
+      "t": 70590,
+      "at": 1788484400615,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "vehículo"
+    },
+    {
+      "t": 70833,
+      "at": 1788484400858,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "chunk": 8
+    },
+    {
+      "t": 70836,
+      "at": 1788484400861,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fm22_6hi8",
+      "text": "estándar,"
+    },
+    {
+      "t": 70932,
+      "at": 1788484400957,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": true
+    },
+    {
+      "t": 70932,
+      "at": 1788484400957,
+      "dir": "model",
+      "type": "generation_cancelled",
+      "reason": "barge_in",
+      "sentChunks": 8,
+      "totalChunks": 94
+    },
+    {
+      "t": 70932,
+      "at": 1788484400957,
+      "dir": "out",
+      "type": "serverContent",
+      "reason": "barge_in"
+    },
+    {
+      "t": 73950,
+      "at": 1788484403975,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1803,
+      "speechLastAt": 72735
+    },
+    {
+      "t": 73950,
+      "at": 1788484403975,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí, ya entendí. La segunda."
+    },
+    {
+      "t": 73950,
+      "at": 1788484403975,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí, ya entendí. La segunda."
+    },
+    {
+      "t": 73954,
+      "at": 1788484403979,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "source": "audio",
+      "transcript": "Sí, ya entendí. La segunda.",
+      "kind": "reply"
+    },
+    {
+      "t": 74505,
+      "at": 1788484404530,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "2"
+      }
+    },
+    {
+      "t": 74505,
+      "at": 1788484404530,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 74524,
+      "at": 1788484404549,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_y82ru0\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Revise el viaje. Solo se reserva cuando presione el botón de reservar.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"REVIEW\",\"stepNumber\":7,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"9:45 a. m.\"}],\"selected\":{\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 9:40 a. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[\"El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\",\"effect\":\"Esto reserva el viaje\"}],\"notes\":[\"Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado.\"]}}}}]"
+    },
+    {
+      "t": 74531,
+      "at": 1788484404556,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "Seleccioné UberXL. Todavía falta confirmar la reserva.",
+      "seconds": 2.92,
+      "chunks": 13
+    },
+    {
+      "t": 74533,
+      "at": 1788484404558,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 1
+    },
+    {
+      "t": 74537,
+      "at": 1788484404562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "Seleccioné"
+    },
+    {
+      "t": 74659,
+      "at": 1788484404684,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 2
+    },
+    {
+      "t": 74663,
+      "at": 1788484404688,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "UberXL."
+    },
+    {
+      "t": 74906,
+      "at": 1788484404931,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 3
+    },
+    {
+      "t": 74909,
+      "at": 1788484404934,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "Todavía"
+    },
+    {
+      "t": 75152,
+      "at": 1788484405177,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 4
+    },
+    {
+      "t": 75155,
+      "at": 1788484405180,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "falta"
+    },
+    {
+      "t": 75398,
+      "at": 1788484405423,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 5
+    },
+    {
+      "t": 75401,
+      "at": 1788484405425,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "confirmar"
+    },
+    {
+      "t": 75643,
+      "at": 1788484405668,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 6
+    },
+    {
+      "t": 75647,
+      "at": 1788484405672,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "la"
+    },
+    {
+      "t": 75894,
+      "at": 1788484405919,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 7
+    },
+    {
+      "t": 75902,
+      "at": 1788484405926,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "text": "reserva."
+    },
+    {
+      "t": 76147,
+      "at": 1788484406172,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 8
+    },
+    {
+      "t": 76391,
+      "at": 1788484406416,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 9
+    },
+    {
+      "t": 76638,
+      "at": 1788484406663,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 10
+    },
+    {
+      "t": 76882,
+      "at": 1788484406907,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 11
+    },
+    {
+      "t": 77127,
+      "at": 1788484407152,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 12
+    },
+    {
+      "t": 77370,
+      "at": 1788484407395,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab",
+      "chunk": 13
+    },
+    {
+      "t": 77372,
+      "at": 1788484407397,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab"
+    },
+    {
+      "t": 77372,
+      "at": 1788484407397,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fq4r_o8ab"
+    },
+    {
+      "t": 77372,
+      "at": 1788484407397,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9fq4r_o8ab"
+    },
+    {
+      "t": 79085,
+      "at": 1788484409110,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 85290,
+      "at": 1788484415315,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 4970,
+      "speechLastAt": 84055
+    },
+    {
+      "t": 85290,
+      "at": 1788484415315,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?"
+    },
+    {
+      "t": 85290,
+      "at": 1788484415315,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?"
+    },
+    {
+      "t": 85295,
+      "at": 1788484415320,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "source": "audio",
+      "transcript": "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?",
+      "kind": "reply"
+    },
+    {
+      "t": 85845,
+      "at": 1788484415870,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "Puedo reservarla ahora. Antes de hacerlo: le recogería a las nueve cuarenta en su casa, y el costo estimado es cuarenta y un dólares con sesenta y ocho. ¿Confirma?",
+      "seconds": 12.08,
+      "chunks": 51
+    },
+    {
+      "t": 85847,
+      "at": 1788484415871,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 1
+    },
+    {
+      "t": 85851,
+      "at": 1788484415876,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "Puedo"
+    },
+    {
+      "t": 85973,
+      "at": 1788484415998,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 2
+    },
+    {
+      "t": 85977,
+      "at": 1788484416001,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "reservarla"
+    },
+    {
+      "t": 86220,
+      "at": 1788484416245,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 3
+    },
+    {
+      "t": 86223,
+      "at": 1788484416248,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "ahora."
+    },
+    {
+      "t": 86466,
+      "at": 1788484416491,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 4
+    },
+    {
+      "t": 86468,
+      "at": 1788484416493,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "Antes"
+    },
+    {
+      "t": 86711,
+      "at": 1788484416736,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 5
+    },
+    {
+      "t": 86714,
+      "at": 1788484416739,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "de"
+    },
+    {
+      "t": 86958,
+      "at": 1788484416982,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "chunk": 6
+    },
+    {
+      "t": 86960,
+      "at": 1788484416985,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9fyvs_pig1",
+      "text": "hacerlo:"
+    },
+    {
+      "t": 87101,
+      "at": 1788484417126,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": true
+    },
+    {
+      "t": 87101,
+      "at": 1788484417126,
+      "dir": "model",
+      "type": "generation_cancelled",
+      "reason": "barge_in",
+      "sentChunks": 6,
+      "totalChunks": 51
+    },
+    {
+      "t": 87101,
+      "at": 1788484417126,
+      "dir": "out",
+      "type": "serverContent",
+      "reason": "barge_in"
+    },
+    {
+      "t": 88890,
+      "at": 1788484418915,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 574,
+      "speechLastAt": 87675
+    },
+    {
+      "t": 88890,
+      "at": 1788484418915,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Para."
+    },
+    {
+      "t": 88890,
+      "at": 1788484418915,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Para."
+    },
+    {
+      "t": 88893,
+      "at": 1788484418918,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "source": "audio",
+      "transcript": "Para.",
+      "kind": "reply"
+    },
+    {
+      "t": 89444,
+      "at": 1788484419469,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "text": "De acuerdo, me detengo.",
+      "seconds": 1.67,
+      "chunks": 7
+    },
+    {
+      "t": 89445,
+      "at": 1788484419470,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 1
+    },
+    {
+      "t": 89449,
+      "at": 1788484419474,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "text": "De"
+    },
+    {
+      "t": 89581,
+      "at": 1788484419606,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 2
+    },
+    {
+      "t": 89584,
+      "at": 1788484419609,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "text": "acuerdo,"
+    },
+    {
+      "t": 89828,
+      "at": 1788484419853,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 3
+    },
+    {
+      "t": 89832,
+      "at": 1788484419857,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "text": "me"
+    },
+    {
+      "t": 90075,
+      "at": 1788484420100,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 4
+    },
+    {
+      "t": 90078,
+      "at": 1788484420102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "text": "detengo."
+    },
+    {
+      "t": 90321,
+      "at": 1788484420346,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 5
+    },
+    {
+      "t": 90566,
+      "at": 1788484420591,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 6
+    },
+    {
+      "t": 90811,
+      "at": 1788484420836,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md",
+      "chunk": 7
+    },
+    {
+      "t": 90813,
+      "at": 1788484420838,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md"
+    },
+    {
+      "t": 90813,
+      "at": 1788484420838,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g1nq_w4md"
+    },
+    {
+      "t": 90813,
+      "at": 1788484420838,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9g1nq_w4md"
+    },
+    {
+      "t": 92705,
+      "at": 1788484422730,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 96570,
+      "at": 1788484426595,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2621,
+      "speechLastAt": 95326
+    },
+    {
+      "t": 96570,
+      "at": 1788484426595,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Me equivoqué. Quiero volver a las opciones."
+    },
+    {
+      "t": 96570,
+      "at": 1788484426595,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Me equivoqué. Quiero volver a las opciones."
+    },
+    {
+      "t": 96575,
+      "at": 1788484426600,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "source": "audio",
+      "transcript": "Me equivoqué. Quiero volver a las opciones.",
+      "kind": "reply"
+    },
+    {
+      "t": 97126,
+      "at": 1788484427150,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-back"
+      }
+    },
+    {
+      "t": 97126,
+      "at": 1788484427150,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 97128,
+      "at": 1788484427153,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ovi7k7\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableActions\":[{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\"}]}}}]"
+    },
+    {
+      "t": 97133,
+      "at": 1788484427157,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "text": "Aquí puede continuar.",
+      "seconds": 1.25,
+      "chunks": 6
+    },
+    {
+      "t": 97134,
+      "at": 1788484427159,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 1
+    },
+    {
+      "t": 97142,
+      "at": 1788484427167,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "text": "Aquí"
+    },
+    {
+      "t": 97266,
+      "at": 1788484427291,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 2
+    },
+    {
+      "t": 97269,
+      "at": 1788484427293,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "text": "puede"
+    },
+    {
+      "t": 97513,
+      "at": 1788484427538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 3
+    },
+    {
+      "t": 97517,
+      "at": 1788484427542,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "text": "continuar."
+    },
+    {
+      "t": 97761,
+      "at": 1788484427786,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 4
+    },
+    {
+      "t": 98005,
+      "at": 1788484428030,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 5
+    },
+    {
+      "t": 98248,
+      "at": 1788484428273,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia",
+      "chunk": 6
+    },
+    {
+      "t": 98251,
+      "at": 1788484428276,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia"
+    },
+    {
+      "t": 98251,
+      "at": 1788484428276,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9g7l4_pfia"
+    },
+    {
+      "t": 98251,
+      "at": 1788484428276,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9g7l4_pfia"
+    },
+    {
+      "t": 100015,
+      "at": 1788484430040,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 102390,
+      "at": 1788484432415,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1130,
+      "speechLastAt": 101145
+    },
+    {
+      "t": 102390,
+      "at": 1788484432415,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Mejor la primera."
+    },
+    {
+      "t": 102390,
+      "at": 1788484432415,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Mejor la primera."
+    },
+    {
+      "t": 102395,
+      "at": 1788484432420,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "source": "audio",
+      "transcript": "Mejor la primera.",
+      "kind": "reply"
+    },
+    {
+      "t": 102945,
+      "at": 1788484432970,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "1"
+      }
+    },
+    {
+      "t": 102945,
+      "at": 1788484432970,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 102948,
+      "at": 1788484432973,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_of1dke\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableChoices\":[],\"availableActions\":[{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\"}],\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Revise el viaje. Solo se reserva cuando presione el botón de reservar.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"REVIEW\",\"stepNumber\":7,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"9:45 a. m.\"}],\"selected\":{\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 9:40 a. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[\"El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\",\"effect\":\"Esto reserva el viaje\"}],\"notes\":[\"Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado.\"]}}}}]"
+    },
+    {
+      "t": 102953,
+      "at": 1788484432978,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "Seleccioné UberXL. Todavía falta confirmar la reserva.",
+      "seconds": 2.92,
+      "chunks": 13
+    },
+    {
+      "t": 102954,
+      "at": 1788484432979,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 1
+    },
+    {
+      "t": 102958,
+      "at": 1788484432982,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "Seleccioné"
+    },
+    {
+      "t": 103080,
+      "at": 1788484433105,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 2
+    },
+    {
+      "t": 103083,
+      "at": 1788484433108,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "UberXL."
+    },
+    {
+      "t": 103326,
+      "at": 1788484433351,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 3
+    },
+    {
+      "t": 103329,
+      "at": 1788484433354,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "Todavía"
+    },
+    {
+      "t": 103572,
+      "at": 1788484433597,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 4
+    },
+    {
+      "t": 103575,
+      "at": 1788484433600,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "falta"
+    },
+    {
+      "t": 103818,
+      "at": 1788484433843,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 5
+    },
+    {
+      "t": 103821,
+      "at": 1788484433846,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "confirmar"
+    },
+    {
+      "t": 104065,
+      "at": 1788484434090,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 6
+    },
+    {
+      "t": 104068,
+      "at": 1788484434093,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "la"
+    },
+    {
+      "t": 104311,
+      "at": 1788484434336,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 7
+    },
+    {
+      "t": 104314,
+      "at": 1788484434338,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "text": "reserva."
+    },
+    {
+      "t": 104557,
+      "at": 1788484434582,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 8
+    },
+    {
+      "t": 104801,
+      "at": 1788484434826,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 9
+    },
+    {
+      "t": 105046,
+      "at": 1788484435071,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 10
+    },
+    {
+      "t": 105290,
+      "at": 1788484435315,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 11
+    },
+    {
+      "t": 105534,
+      "at": 1788484435559,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 12
+    },
+    {
+      "t": 105777,
+      "at": 1788484435802,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db",
+      "chunk": 13
+    },
+    {
+      "t": 105779,
+      "at": 1788484435803,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db"
+    },
+    {
+      "t": 105779,
+      "at": 1788484435803,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gc2s_d2db"
+    },
+    {
+      "t": 105779,
+      "at": 1788484435803,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9gc2s_d2db"
+    },
+    {
+      "t": 107535,
+      "at": 1788484437560,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 109410,
+      "at": 1788484439435,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 650,
+      "speechLastAt": 108185
+    },
+    {
+      "t": 109410,
+      "at": 1788484439435,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ok, resérvala."
+    },
+    {
+      "t": 109410,
+      "at": 1788484439435,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ok, resérvala."
+    },
+    {
+      "t": 109417,
+      "at": 1788484439442,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "source": "audio",
+      "transcript": "Ok, resérvala.",
+      "kind": "reply"
+    },
+    {
+      "t": 109967,
+      "at": 1788484439992,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "Antes de reservar: UberX, le recoge a las nueve cuarenta y cinco, veintisiete noventa y cinco. ¿Confirma?",
+      "seconds": 7.08,
+      "chunks": 30
+    },
+    {
+      "t": 109968,
+      "at": 1788484439993,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 1
+    },
+    {
+      "t": 109973,
+      "at": 1788484439998,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "Antes"
+    },
+    {
+      "t": 110096,
+      "at": 1788484440121,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 2
+    },
+    {
+      "t": 110099,
+      "at": 1788484440124,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "de"
+    },
+    {
+      "t": 110343,
+      "at": 1788484440368,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 3
+    },
+    {
+      "t": 110346,
+      "at": 1788484440371,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "reservar:"
+    },
+    {
+      "t": 110590,
+      "at": 1788484440615,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 4
+    },
+    {
+      "t": 110593,
+      "at": 1788484440618,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "UberX,"
+    },
+    {
+      "t": 110837,
+      "at": 1788484440862,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 5
+    },
+    {
+      "t": 110840,
+      "at": 1788484440865,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "le"
+    },
+    {
+      "t": 111084,
+      "at": 1788484441109,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "chunk": 6
+    },
+    {
+      "t": 111087,
+      "at": 1788484441112,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9ghhu_t45t",
+      "text": "recoge"
+    },
+    {
+      "t": 111127,
+      "at": 1788484441152,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": true
+    },
+    {
+      "t": 111127,
+      "at": 1788484441152,
+      "dir": "model",
+      "type": "generation_cancelled",
+      "reason": "barge_in",
+      "sentChunks": 6,
+      "totalChunks": 30
+    },
+    {
+      "t": 111127,
+      "at": 1788484441152,
+      "dir": "out",
+      "type": "serverContent",
+      "reason": "barge_in"
+    },
+    {
+      "t": 112890,
+      "at": 1788484442915,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 518,
+      "speechLastAt": 111645
+    },
+    {
+      "t": 112890,
+      "at": 1788484442915,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí."
+    },
+    {
+      "t": 112890,
+      "at": 1788484442915,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí."
+    },
+    {
+      "t": 112896,
+      "at": 1788484442921,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "source": "audio",
+      "transcript": "Sí.",
+      "kind": "reply"
+    },
+    {
+      "t": 113447,
+      "at": 1788484443471,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-reserve-confirm",
+        "confirmed": true
+      }
+    },
+    {
+      "t": 113447,
+      "at": 1788484443472,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 114338,
+      "at": 1788484444363,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_if868m\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\"},\"backgroundWork\":\"COMPLETED\",\"waitedMs\":867,\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_RETURN_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"El viaje de ida está reservado. Decida si también quiere el regreso.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"RETURN_OFFER\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"9:45 a. m.\"},{\"Viaje reservado\":\"UberXL · UB-89388\"}],\"selected\":{\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 9:40 a. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\",\"Viaje reservado\"],\"stillPending\":[\"Si también quiere transporte de regreso\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-return-yes\",\"label\":\"Sí, coordinar el regreso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-return-no\",\"label\":\"No\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 114343,
+      "at": 1788484444368,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "Listo. El viaje quedó reservado.",
+      "seconds": 2.08,
+      "chunks": 9
+    },
+    {
+      "t": 114345,
+      "at": 1788484444370,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 1
+    },
+    {
+      "t": 114353,
+      "at": 1788484444378,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "Listo."
+    },
+    {
+      "t": 114478,
+      "at": 1788484444503,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 2
+    },
+    {
+      "t": 114481,
+      "at": 1788484444505,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "El"
+    },
+    {
+      "t": 114726,
+      "at": 1788484444751,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 3
+    },
+    {
+      "t": 114729,
+      "at": 1788484444754,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "viaje"
+    },
+    {
+      "t": 114974,
+      "at": 1788484444999,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 4
+    },
+    {
+      "t": 114978,
+      "at": 1788484445003,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "quedó"
+    },
+    {
+      "t": 115225,
+      "at": 1788484445250,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 5
+    },
+    {
+      "t": 115227,
+      "at": 1788484445252,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "text": "reservado."
+    },
+    {
+      "t": 115471,
+      "at": 1788484445496,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 6
+    },
+    {
+      "t": 115716,
+      "at": 1788484445740,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 7
+    },
+    {
+      "t": 115960,
+      "at": 1788484445985,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 8
+    },
+    {
+      "t": 116204,
+      "at": 1788484446229,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3",
+      "chunk": 9
+    },
+    {
+      "t": 116206,
+      "at": 1788484446231,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3"
+    },
+    {
+      "t": 116206,
+      "at": 1788484446231,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gk6h_3cv3"
+    },
+    {
+      "t": 116206,
+      "at": 1788484446231,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9gk6h_3cv3"
+    },
+    {
+      "t": 121185,
+      "at": 1788484451210,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 123150,
+      "at": 1788484453175,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 750,
+      "speechLastAt": 121935
+    },
+    {
+      "t": 123150,
+      "at": 1788484453175,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Ya quedó?"
+    },
+    {
+      "t": 123150,
+      "at": 1788484453175,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Ya quedó?"
+    },
+    {
+      "t": 123155,
+      "at": 1788484453180,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "source": "audio",
+      "transcript": "¿Ya quedó?",
+      "kind": "reply"
+    },
+    {
+      "t": 123706,
+      "at": 1788484453731,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 123706,
+      "at": 1788484453731,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 123709,
+      "at": 1788484453734,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_8imwr7\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_TRANSPORTATION_RETURN_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"El viaje de ida está reservado. Decida si también quiere el regreso.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"RETURN_OFFER\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"9:45 a. m.\"},{\"Viaje reservado\":\"UberXL · UB-89388\"}],\"selected\":{\"id\":\"EXTRA_ROOM_1788788400000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 9:40 a. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\",\"Viaje reservado\"],\"stillPending\":[\"Si también quiere transporte de regreso\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-return-yes\",\"label\":\"Sí, coordinar el regreso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-return-no\",\"label\":\"No\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 123714,
+      "at": 1788484453739,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "Sí, el viaje ya quedó reservado.",
+      "seconds": 2.5,
+      "chunks": 11
+    },
+    {
+      "t": 123717,
+      "at": 1788484453741,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 1
+    },
+    {
+      "t": 123721,
+      "at": 1788484453746,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "Sí,"
+    },
+    {
+      "t": 123845,
+      "at": 1788484453870,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 2
+    },
+    {
+      "t": 123847,
+      "at": 1788484453872,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "el"
+    },
+    {
+      "t": 124093,
+      "at": 1788484454118,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 3
+    },
+    {
+      "t": 124098,
+      "at": 1788484454122,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "viaje"
+    },
+    {
+      "t": 124343,
+      "at": 1788484454368,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 4
+    },
+    {
+      "t": 124346,
+      "at": 1788484454371,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "ya"
+    },
+    {
+      "t": 124590,
+      "at": 1788484454615,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 5
+    },
+    {
+      "t": 124594,
+      "at": 1788484454618,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "quedó"
+    },
+    {
+      "t": 124838,
+      "at": 1788484454863,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 6
+    },
+    {
+      "t": 124841,
+      "at": 1788484454866,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "text": "reservado."
+    },
+    {
+      "t": 125085,
+      "at": 1788484455110,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 7
+    },
+    {
+      "t": 125330,
+      "at": 1788484455355,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 8
+    },
+    {
+      "t": 125577,
+      "at": 1788484455602,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 9
+    },
+    {
+      "t": 125822,
+      "at": 1788484455847,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 10
+    },
+    {
+      "t": 126067,
+      "at": 1788484456092,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3",
+      "chunk": 11
+    },
+    {
+      "t": 126070,
+      "at": 1788484456095,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3"
+    },
+    {
+      "t": 126070,
+      "at": 1788484456095,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9gs3g_2bz3"
+    },
+    {
+      "t": 126070,
+      "at": 1788484456095,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9gs3g_2bz3"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 12,
+    "total_turns": 22,
+    "response_start_p50_ms": 1802,
+    "response_start_p95_ms": 2675,
+    "response_start_avg_ms": 1866,
+    "app_overhead_p50_ms": 4,
+    "barge_ins": 4,
+    "barge_in_stop_p50_ms": 161,
+    "barge_in_stop_max_ms": 279,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 20: response start 2675 ms"
+    ]
+  }
+}

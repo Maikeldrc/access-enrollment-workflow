@@ -27,15 +27,16 @@
   const nativeGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
   navigator.mediaDevices.getUserMedia = async constraints => {
     if (!constraints || !constraints.audio) return nativeGetUserMedia(constraints);
-    if (!patient.ctx) {
-      patient.ctx = new AudioContext();
-      patient.dest = patient.ctx.createMediaStreamDestination();
-      // A silent constant source keeps the stream "live" so the worklet keeps receiving quanta.
-      const silent = patient.ctx.createConstantSource();
-      silent.offset.value = 0;
-      silent.connect(patient.dest);
-      silent.start();
-    }
+    if (!patient.ctx) patient.ctx = new AudioContext();
+    // A fresh stream per call: the app stops the tracks of the stream it releases when it rebuilds a
+    // session (language switch, rotation), and a stopped MediaStreamDestination stream never comes
+    // back. Injected speech always goes to the most recently opened microphone.
+    patient.dest = patient.ctx.createMediaStreamDestination();
+    // A silent constant source keeps the stream "live" so the worklet keeps receiving quanta.
+    const silent = patient.ctx.createConstantSource();
+    silent.offset.value = 0;
+    silent.connect(patient.dest);
+    silent.start();
     if (patient.ctx.state === "suspended") await patient.ctx.resume().catch(() => {});
     patient.installed = true;
     mark("fake_microphone_opened", { sampleRate: patient.ctx.sampleRate });

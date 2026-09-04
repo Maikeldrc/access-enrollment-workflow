@@ -1,0 +1,4177 @@
+{
+  "session_id": "S10-enrollment-en",
+  "patient_profile": "G (asks many questions before deciding)",
+  "language": "en",
+  "flow": "enrollment: Home → who is completing → identity → care recommendation, with questions and a barge-in on the welcome",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "Screen narration is spoken through the TTS route; the patient interrupts it and asks about the screens while moving by hand.",
+  "startedAt": "2026-09-04T01:29:49.570Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "speech",
+      "screen": "SCREEN_INVITATION",
+      "patient_utterance": "Wait. What is ACCESS?",
+      "recognized_text": "Wait. What is ACCESS?",
+      "EMMI_response": "ACCESS is a Medicare care option that gives you extra support between doctor visits. Your doctors stay the same.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "SCREEN_INVITATION",
+          "task": "Care through Medicare’sACCESS Model",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "barge_in_target_state": "EMMI_SPEAKING",
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@133",
+          "EMMI_THINKING@2810",
+          "EMMI_SPEAKING@3392",
+          "LISTENING@11334"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "SCREEN_INVITATION",
+          "task": "Care through Medicare’sACCESS Model",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": true,
+      "timing": {
+        "speech_started_at": 4931,
+        "speech_ended_at": 6469,
+        "provider_speech_end_detected_at": 7699,
+        "provider_vad_window_ms": 1230,
+        "provider_first_chunk_at": 8254,
+        "app_first_audio_at": 8260,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 6469,
+        "T2_first_audible_response": 8260,
+        "T3_response_complete": 16194,
+        "response_start_latency_ms": 1791,
+        "response_completion_latency_ms": 9725,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1237,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "interruption": {
+        "emmi_was_speaking": true,
+        "app_detected_barge_in": true,
+        "app_source": "local_vad",
+        "stop_latency_from_speech_start_ms": 159,
+        "app_reported_interruption_latency_ms": 81,
+        "provider_interrupted_after_ms": null,
+        "provider_speech_start_after_ms": 126,
+        "previous_generation_continued": false,
+        "chunks_played_after_interruption": 0
+      },
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "SCREEN_INVITATION",
+      "patient_utterance": "Does it cost money?",
+      "recognized_text": "Does it cost money?",
+      "EMMI_response": "Your expected payment is 0 dollars a month for this service.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "SCREEN_INVITATION",
+          "task": "Care through Medicare’sACCESS Model",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@183",
+          "EMMI_THINKING@2773",
+          "EMMI_SPEAKING@3357",
+          "LISTENING@7952"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "SCREEN_INVITATION",
+          "task": "Care through Medicare’sACCESS Model",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "getExpectedAccessCost",
+          "args": {
+            "patientId": "DEMO-P001",
+            "accessTrack": "ECKM"
+          },
+          "result": {
+            "program": "ACCESS",
+            "currency": "USD",
+            "responsibilityType": "EXPECTED",
+            "track": "eCKM",
+            "grossBeneficiaryResponsibility": 6,
+            "coverageVerifiedAt": "2026-09-02T01:29:51.119Z",
+            "verificationSource": "DEMO_ELIGIBILITY_FIXTURE",
+            "medicareCoverageType": "ORIGINAL_MEDICARE",
+            "supplementalCoverageVerified": true,
+            "supplementalExpectedPayment": 6,
+            "expectedPatientPayment": 0,
+            "verificationStatus": "VERIFIED",
+            "explanationCode": "SUPPLEMENTAL_COVERS_COST_SHARE",
+            "supplementalCarrierName": "Demo Mutual Supplement",
+            "supplementalPlanName": "Demo Medigap Plan G"
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 17748,
+        "speech_ended_at": 19286,
+        "provider_speech_end_detected_at": 20479,
+        "provider_vad_window_ms": 1193,
+        "provider_first_chunk_at": 21040,
+        "app_first_audio_at": 21044,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 19286,
+        "T2_first_audible_response": 21044,
+        "T3_response_complete": 25624,
+        "response_start_latency_ms": 1758,
+        "response_completion_latency_ms": 6338,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1203,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "navigation",
+      "label": "Start your care journey",
+      "screen": "SCREEN_INVITATION",
+      "navigation_result": "SCREEN_INVITATION → ENROLLMENT_DECISION_MAKER",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "What do I do here?",
+      "recognized_text": "What do I do here?",
+      "EMMI_response": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@275",
+          "EMMI_THINKING@3188",
+          "EMMI_SPEAKING@3782",
+          "LISTENING@12141"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "ENROLLMENT_DECISION_MAKER",
+            "screen": "DECISION_MAKER",
+            "title": "We’ll help you choose who should complete this process.",
+            "whatThePatientMustDoHere": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+            "selected": null,
+            "alreadyDone": [],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "back",
+                "label": "Back",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "help",
+                "label": "Ask EMMI",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "notes": [
+              "You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone."
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "EMMI was not idle before the patient spoke (state EMMI_SPEAKING)",
+        "the app sent no screen context to the provider before it answered this spoken turn"
+      ],
+      "severity": "P2",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 47413,
+        "speech_ended_at": 49336,
+        "provider_speech_end_detected_at": 50539,
+        "provider_vad_window_ms": 1203,
+        "provider_first_chunk_at": 51102,
+        "app_first_audio_at": 51106,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 49336,
+        "T2_first_audible_response": 51106,
+        "T3_response_complete": 59514,
+        "response_start_latency_ms": 1770,
+        "response_completion_latency_ms": 10178,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1214,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "I'm doing it myself.",
+      "recognized_text": "I'm doing it myself.",
+      "EMMI_response": "Then choose 'For myself' and continue.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@166",
+          "EMMI_THINKING@2839",
+          "EMMI_SPEAKING@3445",
+          "LISTENING@5868"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "ENROLLMENT_DECISION_MAKER",
+            "screen": "DECISION_MAKER",
+            "title": "We’ll help you choose who should complete this process.",
+            "whatThePatientMustDoHere": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+            "selected": null,
+            "alreadyDone": [],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "back",
+                "label": "Back",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "help",
+                "label": "Ask EMMI",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "notes": [
+              "You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone."
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 61082,
+        "speech_ended_at": 62620,
+        "provider_speech_end_detected_at": 63859,
+        "provider_vad_window_ms": 1239,
+        "provider_first_chunk_at": 64426,
+        "app_first_audio_at": 64431,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 62620,
+        "T2_first_audible_response": 64431,
+        "T3_response_complete": 66925,
+        "response_start_latency_ms": 1811,
+        "response_completion_latency_ms": 4305,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1248,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "Can you pick it for me?",
+      "recognized_text": "Can you pick it for me?",
+      "EMMI_response": "Done.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@167",
+          "EMMI_THINKING@3587",
+          "EMMI_SPEAKING@4092",
+          "LISTENING@4757"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "1"
+          },
+          "result": {
+            "success": false,
+            "status": "UNKNOWN_ACTION",
+            "availableChoices": [],
+            "availableActions": [
+              {
+                "id": "back",
+                "label": "Back",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "help",
+                "label": "Ask EMMI",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "currentView": {
+              "viewId": "ENROLLMENT_DECISION_MAKER",
+              "screen": "DECISION_MAKER",
+              "title": "We’ll help you choose who should complete this process.",
+              "whatThePatientMustDoHere": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "back",
+                  "label": "Back",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "help",
+                  "label": "Ask EMMI",
+                  "kind": "NAVIGATE"
+                }
+              ],
+              "notes": [
+                "You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone."
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 68564,
+        "speech_ended_at": 70872,
+        "provider_speech_end_detected_at": 72079,
+        "provider_vad_window_ms": 1207,
+        "provider_first_chunk_at": 72645,
+        "app_first_audio_at": 72648,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 70872,
+        "T2_first_audible_response": 72648,
+        "T3_response_complete": 73241,
+        "response_start_latency_ms": 1776,
+        "response_completion_latency_ms": 2369,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1217,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 7,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "Why do you need my date of birth?",
+      "recognized_text": "Why do you need my date of birth?",
+      "EMMI_response": "It helps match you to your care invitation securely. I won't ask you to say it out loud.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@156",
+          "EMMI_THINKING@4337",
+          "EMMI_SPEAKING@4924",
+          "LISTENING@12495"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 74834,
+        "speech_ended_at": 77911,
+        "provider_speech_end_detected_at": 79159,
+        "provider_vad_window_ms": 1248,
+        "provider_first_chunk_at": 79714,
+        "app_first_audio_at": 79717,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 77911,
+        "T2_first_audible_response": 79717,
+        "T3_response_complete": 87290,
+        "response_start_latency_ms": 1806,
+        "response_completion_latency_ms": 9379,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1254,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 8,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "I want to do this later.",
+      "recognized_text": "I want to do this later.",
+      "EMMI_response": "That's fine. Your progress is saved and you can come back whenever you like.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@160",
+          "EMMI_THINKING@3502",
+          "EMMI_SPEAKING@4087",
+          "LISTENING@9915"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 88932,
+        "speech_ended_at": 91240,
+        "provider_speech_end_detected_at": 92419,
+        "provider_vad_window_ms": 1179,
+        "provider_first_chunk_at": 92976,
+        "app_first_audio_at": 92979,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 91240,
+        "T2_first_audible_response": 92979,
+        "T3_response_complete": 98838,
+        "response_start_latency_ms": 1739,
+        "response_completion_latency_ms": 7598,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1187,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "ENROLLMENT_DECISION_MAKER",
+      "patient_utterance": "Actually, let's keep going. What's next?",
+      "recognized_text": "Actually, let's keep going. What's next?",
+      "EMMI_response": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@163",
+          "EMMI_THINKING@3586",
+          "EMMI_SPEAKING@4193",
+          "LISTENING@12565"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "ENROLLMENT_DECISION_MAKER",
+          "task": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "ENROLLMENT_DECISION_MAKER",
+            "screen": "DECISION_MAKER",
+            "title": "We’ll help you choose who should complete this process.",
+            "whatThePatientMustDoHere": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+            "selected": null,
+            "alreadyDone": [],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "back",
+                "label": "Back",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "help",
+                "label": "Ask EMMI",
+                "kind": "NAVIGATE"
+              }
+            ],
+            "notes": [
+              "You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone."
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 100442,
+        "speech_ended_at": 102750,
+        "provider_speech_end_detected_at": 103999,
+        "provider_vad_window_ms": 1249,
+        "provider_first_chunk_at": 104570,
+        "app_first_audio_at": 104573,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 102750,
+        "T2_first_audible_response": 104573,
+        "T3_response_complete": 112986,
+        "response_start_latency_ms": 1823,
+        "response_completion_latency_ms": 10236,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1257,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T01:29:52.883Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 892 ms after tap"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: INVITATION}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788485392261,
+      "words": 80,
+      "seconds": 33.333333333333336,
+      "text": "Hi, I'm EMMI, your ITERA Care Assistant. Dr. Fresner Lee's care team invited you to learn about additional support available through Medicare. Your doctor remains part of your care, while ITERA can support you between visits. ACCESS is a Medicare care option that gives you extra support between doctor visits, not to replace your doctors. Taking part is your choice, and I will explain each step in ",
+      "locale": "EN"
+    },
+    {
+      "at": 1788485416953,
+      "words": 62,
+      "seconds": 25.833333333333336,
+      "text": "Before we continue, we just need to know who is filling this out today. Knowing this lets us set up the rest of the experience correctly for you. If someone is simply helping you, you still make the decisions about your care. Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "locale": "EN"
+    }
+  ],
+  "finishedAt": "2026-09-04T01:31:44.339Z",
+  "state_transitions": [
+    {
+      "t": 1617,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 2374,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 2465,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 5064,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 7741,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 8323,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 16265,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 17931,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 20521,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 21105,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 25700,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 26918,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 27002,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 47688,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 50601,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 51195,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 59554,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 61248,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 63921,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 64527,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 66950,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 68731,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 72151,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 72656,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 73321,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 74990,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 79171,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 79758,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 87329,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 89092,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 92434,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 93019,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 98847,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 100605,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 104028,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 104635,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 113007,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 1657,
+      "at": 1788485392166,
+      "dir": "socket",
+      "type": "open",
+      "session": 1
+    },
+    {
+      "t": 1691,
+      "at": 1788485392200,
+      "dir": "in",
+      "type": "setup",
+      "session": 1,
+      "systemInstructionChars": 29016,
+      "toolCount": 44,
+      "realtimeInputConfig": {
+        "automaticActivityDetection": {
+          "disabled": false,
+          "startOfSpeechSensitivity": "START_SENSITIVITY_HIGH",
+          "endOfSpeechSensitivity": "END_SENSITIVITY_LOW",
+          "prefixPaddingMs": 300,
+          "silenceDurationMs": 1200
+        },
+        "activityHandling": "START_OF_ACTIVITY_INTERRUPTS"
+      },
+      "sessionResumption": {}
+    },
+    {
+      "t": 1732,
+      "at": 1788485392240,
+      "dir": "out",
+      "type": "setupComplete"
+    },
+    {
+      "t": 1732,
+      "at": 1788485392240,
+      "dir": "out",
+      "type": "sessionResumptionUpdate"
+    },
+    {
+      "t": 5057,
+      "at": 1788485395565,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 7699,
+      "at": 1788485398207,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1412,
+      "speechLastAt": 6469
+    },
+    {
+      "t": 7699,
+      "at": 1788485398207,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Wait. What is ACCESS?"
+    },
+    {
+      "t": 7699,
+      "at": 1788485398207,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Wait. What is ACCESS?"
+    },
+    {
+      "t": 7704,
+      "at": 1788485398212,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma11ac_e45g",
+      "source": "audio",
+      "transcript": "Wait. What is ACCESS?",
+      "kind": "reply"
+    },
+    {
+      "t": 8254,
+      "at": 1788485398763,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "ACCESS is a Medicare care option that gives you extra support between doctor visits. Your doctors stay the same.",
+      "seconds": 7.92,
+      "chunks": 33
+    },
+    {
+      "t": 8258,
+      "at": 1788485398766,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 1
+    },
+    {
+      "t": 8261,
+      "at": 1788485398769,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "ACCESS"
+    },
+    {
+      "t": 8384,
+      "at": 1788485398893,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 2
+    },
+    {
+      "t": 8387,
+      "at": 1788485398895,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "is"
+    },
+    {
+      "t": 8631,
+      "at": 1788485399140,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 3
+    },
+    {
+      "t": 8634,
+      "at": 1788485399142,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "a"
+    },
+    {
+      "t": 8877,
+      "at": 1788485399385,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 4
+    },
+    {
+      "t": 8879,
+      "at": 1788485399387,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "Medicare"
+    },
+    {
+      "t": 9121,
+      "at": 1788485399630,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 5
+    },
+    {
+      "t": 9123,
+      "at": 1788485399632,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "care"
+    },
+    {
+      "t": 9366,
+      "at": 1788485399874,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 6
+    },
+    {
+      "t": 9367,
+      "at": 1788485399876,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "option"
+    },
+    {
+      "t": 9610,
+      "at": 1788485400118,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 7
+    },
+    {
+      "t": 9614,
+      "at": 1788485400122,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "that"
+    },
+    {
+      "t": 9859,
+      "at": 1788485400368,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 8
+    },
+    {
+      "t": 9861,
+      "at": 1788485400369,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "gives"
+    },
+    {
+      "t": 10103,
+      "at": 1788485400612,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 9
+    },
+    {
+      "t": 10105,
+      "at": 1788485400614,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "you"
+    },
+    {
+      "t": 10348,
+      "at": 1788485400857,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 10
+    },
+    {
+      "t": 10350,
+      "at": 1788485400858,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "extra"
+    },
+    {
+      "t": 10592,
+      "at": 1788485401101,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 11
+    },
+    {
+      "t": 10594,
+      "at": 1788485401102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "support"
+    },
+    {
+      "t": 10837,
+      "at": 1788485401345,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 12
+    },
+    {
+      "t": 10838,
+      "at": 1788485401347,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "between"
+    },
+    {
+      "t": 11081,
+      "at": 1788485401590,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 13
+    },
+    {
+      "t": 11083,
+      "at": 1788485401591,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "doctor"
+    },
+    {
+      "t": 11326,
+      "at": 1788485401834,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 14
+    },
+    {
+      "t": 11327,
+      "at": 1788485401836,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "visits."
+    },
+    {
+      "t": 11571,
+      "at": 1788485402079,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 15
+    },
+    {
+      "t": 11573,
+      "at": 1788485402082,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "Your"
+    },
+    {
+      "t": 11816,
+      "at": 1788485402324,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 16
+    },
+    {
+      "t": 11818,
+      "at": 1788485402326,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "doctors"
+    },
+    {
+      "t": 12060,
+      "at": 1788485402569,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 17
+    },
+    {
+      "t": 12062,
+      "at": 1788485402570,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "stay"
+    },
+    {
+      "t": 12305,
+      "at": 1788485402813,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 18
+    },
+    {
+      "t": 12306,
+      "at": 1788485402815,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "the"
+    },
+    {
+      "t": 12549,
+      "at": 1788485403057,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 19
+    },
+    {
+      "t": 12551,
+      "at": 1788485403059,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "text": "same."
+    },
+    {
+      "t": 12794,
+      "at": 1788485403302,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 20
+    },
+    {
+      "t": 13037,
+      "at": 1788485403545,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 21
+    },
+    {
+      "t": 13280,
+      "at": 1788485403788,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 22
+    },
+    {
+      "t": 13523,
+      "at": 1788485404032,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 23
+    },
+    {
+      "t": 13767,
+      "at": 1788485404275,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 24
+    },
+    {
+      "t": 14010,
+      "at": 1788485404518,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 25
+    },
+    {
+      "t": 14254,
+      "at": 1788485404762,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 26
+    },
+    {
+      "t": 14498,
+      "at": 1788485405007,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 27
+    },
+    {
+      "t": 14742,
+      "at": 1788485405250,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 28
+    },
+    {
+      "t": 14985,
+      "at": 1788485405493,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 29
+    },
+    {
+      "t": 15228,
+      "at": 1788485405736,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 30
+    },
+    {
+      "t": 15471,
+      "at": 1788485405979,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 31
+    },
+    {
+      "t": 15714,
+      "at": 1788485406223,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 32
+    },
+    {
+      "t": 15957,
+      "at": 1788485406466,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g",
+      "chunk": 33
+    },
+    {
+      "t": 15959,
+      "at": 1788485406467,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g"
+    },
+    {
+      "t": 15959,
+      "at": 1788485406467,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma11ac_e45g"
+    },
+    {
+      "t": 15959,
+      "at": 1788485406467,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma11ac_e45g"
+    },
+    {
+      "t": 17799,
+      "at": 1788485408308,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 20479,
+      "at": 1788485410987,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1440,
+      "speechLastAt": 19239
+    },
+    {
+      "t": 20479,
+      "at": 1788485410987,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Does it cost money?"
+    },
+    {
+      "t": 20479,
+      "at": 1788485410987,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Does it cost money?"
+    },
+    {
+      "t": 20482,
+      "at": 1788485410990,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "source": "audio",
+      "transcript": "Does it cost money?",
+      "kind": "reply"
+    },
+    {
+      "t": 21032,
+      "at": 1788485411540,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "getExpectedAccessCost",
+      "args": {
+        "patientId": "DEMO-P001",
+        "accessTrack": "ECKM"
+      }
+    },
+    {
+      "t": 21032,
+      "at": 1788485411540,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "getExpectedAccessCost"
+    },
+    {
+      "t": 21036,
+      "at": 1788485411544,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_r4hhdv\",\"name\":\"getExpectedAccessCost\",\"response\":{\"result\":{\"program\":\"ACCESS\",\"currency\":\"USD\",\"responsibilityType\":\"EXPECTED\",\"track\":\"eCKM\",\"grossBeneficiaryResponsibility\":6,\"coverageVerifiedAt\":\"2026-09-02T01:29:51.119Z\",\"verificationSource\":\"DEMO_ELIGIBILITY_FIXTURE\",\"medicareCoverageType\":\"ORIGINAL_MEDICARE\",\"supplementalCoverageVerified\":true,\"supplementalExpectedPayment\":6,\"expectedPatientPayment\":0,\"verificationStatus\":\"VERIFIED\",\"explanationCode\":\"SUPPLEMENTAL_COVERS_COST_SHARE\",\"supplementalCarrierName\":\"Demo Mutual Supplement\",\"supplementalPlanName\":\"Demo Medigap Plan G\"}}}]"
+    },
+    {
+      "t": 21040,
+      "at": 1788485411548,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "Your expected payment is 0 dollars a month for this service.",
+      "seconds": 4.58,
+      "chunks": 20
+    },
+    {
+      "t": 21042,
+      "at": 1788485411550,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 1
+    },
+    {
+      "t": 21045,
+      "at": 1788485411553,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "Your"
+    },
+    {
+      "t": 21168,
+      "at": 1788485411676,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 2
+    },
+    {
+      "t": 21169,
+      "at": 1788485411678,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "expected"
+    },
+    {
+      "t": 21412,
+      "at": 1788485411920,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 3
+    },
+    {
+      "t": 21414,
+      "at": 1788485411922,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "payment"
+    },
+    {
+      "t": 21657,
+      "at": 1788485412165,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 4
+    },
+    {
+      "t": 21658,
+      "at": 1788485412167,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "is"
+    },
+    {
+      "t": 21901,
+      "at": 1788485412409,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 5
+    },
+    {
+      "t": 21903,
+      "at": 1788485412411,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "0"
+    },
+    {
+      "t": 22145,
+      "at": 1788485412653,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 6
+    },
+    {
+      "t": 22147,
+      "at": 1788485412655,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "dollars"
+    },
+    {
+      "t": 22389,
+      "at": 1788485412898,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 7
+    },
+    {
+      "t": 22391,
+      "at": 1788485412899,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "a"
+    },
+    {
+      "t": 22634,
+      "at": 1788485413142,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 8
+    },
+    {
+      "t": 22636,
+      "at": 1788485413144,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "month"
+    },
+    {
+      "t": 22878,
+      "at": 1788485413386,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 9
+    },
+    {
+      "t": 22880,
+      "at": 1788485413388,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "for"
+    },
+    {
+      "t": 23122,
+      "at": 1788485413631,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 10
+    },
+    {
+      "t": 23124,
+      "at": 1788485413632,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "this"
+    },
+    {
+      "t": 23367,
+      "at": 1788485413875,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 11
+    },
+    {
+      "t": 23369,
+      "at": 1788485413877,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "text": "service."
+    },
+    {
+      "t": 23612,
+      "at": 1788485414120,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 12
+    },
+    {
+      "t": 23855,
+      "at": 1788485414363,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 13
+    },
+    {
+      "t": 24098,
+      "at": 1788485414606,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 14
+    },
+    {
+      "t": 24341,
+      "at": 1788485414850,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 15
+    },
+    {
+      "t": 24584,
+      "at": 1788485415093,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 16
+    },
+    {
+      "t": 24828,
+      "at": 1788485415336,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 17
+    },
+    {
+      "t": 25071,
+      "at": 1788485415580,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 18
+    },
+    {
+      "t": 25315,
+      "at": 1788485415823,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 19
+    },
+    {
+      "t": 25557,
+      "at": 1788485416065,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3",
+      "chunk": 20
+    },
+    {
+      "t": 25557,
+      "at": 1788485416066,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3"
+    },
+    {
+      "t": 25557,
+      "at": 1788485416066,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1b5a_i4e3"
+    },
+    {
+      "t": 25557,
+      "at": 1788485416066,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma1b5a_i4e3"
+    },
+    {
+      "t": 47636,
+      "at": 1788485438144,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 50539,
+      "at": 1788485441047,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1683,
+      "speechLastAt": 49319
+    },
+    {
+      "t": 50539,
+      "at": 1788485441047,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "What do I do here?"
+    },
+    {
+      "t": 50539,
+      "at": 1788485441047,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "What do I do here?"
+    },
+    {
+      "t": 50544,
+      "at": 1788485441053,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma1ycd_xocl",
+      "source": "audio",
+      "transcript": "What do I do here?",
+      "kind": "reply"
+    },
+    {
+      "t": 51094,
+      "at": 1788485441603,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 51095,
+      "at": 1788485441603,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 51097,
+      "at": 1788485441606,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_5cnq3g\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"ENROLLMENT_DECISION_MAKER\",\"screen\":\"DECISION_MAKER\",\"title\":\"We’ll help you choose who should complete this process.\",\"whatThePatientMustDoHere\":\"Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.\",\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"back\",\"label\":\"Back\",\"kind\":\"NAVIGATE\"},{\"id\":\"help\",\"label\":\"Ask EMMI\",\"kind\":\"NAVIGATE\"}],\"notes\":[\"You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone.\"]}}}]"
+    },
+    {
+      "t": 51102,
+      "at": 1788485441610,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "seconds": 8.33,
+      "chunks": 35
+    },
+    {
+      "t": 51103,
+      "at": 1788485441612,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 1
+    },
+    {
+      "t": 51109,
+      "at": 1788485441617,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "Choose"
+    },
+    {
+      "t": 51232,
+      "at": 1788485441740,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 2
+    },
+    {
+      "t": 51235,
+      "at": 1788485441743,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "the"
+    },
+    {
+      "t": 51478,
+      "at": 1788485441986,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 3
+    },
+    {
+      "t": 51481,
+      "at": 1788485441990,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "option"
+    },
+    {
+      "t": 51724,
+      "at": 1788485442233,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 4
+    },
+    {
+      "t": 51728,
+      "at": 1788485442237,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "that"
+    },
+    {
+      "t": 51971,
+      "at": 1788485442480,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 5
+    },
+    {
+      "t": 51975,
+      "at": 1788485442484,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "describes"
+    },
+    {
+      "t": 52219,
+      "at": 1788485442727,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 6
+    },
+    {
+      "t": 52222,
+      "at": 1788485442730,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "you:"
+    },
+    {
+      "t": 52466,
+      "at": 1788485442974,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 7
+    },
+    {
+      "t": 52468,
+      "at": 1788485442977,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "for"
+    },
+    {
+      "t": 52711,
+      "at": 1788485443220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 8
+    },
+    {
+      "t": 52715,
+      "at": 1788485443223,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "yourself,"
+    },
+    {
+      "t": 52958,
+      "at": 1788485443466,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 9
+    },
+    {
+      "t": 52961,
+      "at": 1788485443469,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "someone"
+    },
+    {
+      "t": 53204,
+      "at": 1788485443712,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 10
+    },
+    {
+      "t": 53206,
+      "at": 1788485443715,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "helping"
+    },
+    {
+      "t": 53450,
+      "at": 1788485443958,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 11
+    },
+    {
+      "t": 53452,
+      "at": 1788485443960,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "you,"
+    },
+    {
+      "t": 53695,
+      "at": 1788485444204,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 12
+    },
+    {
+      "t": 53699,
+      "at": 1788485444207,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "or"
+    },
+    {
+      "t": 53943,
+      "at": 1788485444451,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 13
+    },
+    {
+      "t": 53946,
+      "at": 1788485444454,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "a"
+    },
+    {
+      "t": 54189,
+      "at": 1788485444697,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 14
+    },
+    {
+      "t": 54192,
+      "at": 1788485444700,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "personal"
+    },
+    {
+      "t": 54435,
+      "at": 1788485444944,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 15
+    },
+    {
+      "t": 54438,
+      "at": 1788485444946,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "representative"
+    },
+    {
+      "t": 54681,
+      "at": 1788485445189,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 16
+    },
+    {
+      "t": 54683,
+      "at": 1788485445192,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "authorized"
+    },
+    {
+      "t": 54926,
+      "at": 1788485445435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 17
+    },
+    {
+      "t": 54929,
+      "at": 1788485445437,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "to"
+    },
+    {
+      "t": 55172,
+      "at": 1788485445680,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 18
+    },
+    {
+      "t": 55175,
+      "at": 1788485445683,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "make"
+    },
+    {
+      "t": 55417,
+      "at": 1788485445926,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 19
+    },
+    {
+      "t": 55421,
+      "at": 1788485445930,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "healthcare"
+    },
+    {
+      "t": 55665,
+      "at": 1788485446173,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 20
+    },
+    {
+      "t": 55668,
+      "at": 1788485446176,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "text": "decisions."
+    },
+    {
+      "t": 55912,
+      "at": 1788485446420,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 21
+    },
+    {
+      "t": 56156,
+      "at": 1788485446665,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 22
+    },
+    {
+      "t": 56401,
+      "at": 1788485446909,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 23
+    },
+    {
+      "t": 56647,
+      "at": 1788485447155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 24
+    },
+    {
+      "t": 56890,
+      "at": 1788485447399,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 25
+    },
+    {
+      "t": 57135,
+      "at": 1788485447643,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 26
+    },
+    {
+      "t": 57379,
+      "at": 1788485447887,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 27
+    },
+    {
+      "t": 57623,
+      "at": 1788485448131,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 28
+    },
+    {
+      "t": 57868,
+      "at": 1788485448377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 29
+    },
+    {
+      "t": 58113,
+      "at": 1788485448622,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 30
+    },
+    {
+      "t": 58357,
+      "at": 1788485448866,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 31
+    },
+    {
+      "t": 58602,
+      "at": 1788485449110,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 32
+    },
+    {
+      "t": 58846,
+      "at": 1788485449355,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 33
+    },
+    {
+      "t": 59091,
+      "at": 1788485449599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 34
+    },
+    {
+      "t": 59335,
+      "at": 1788485449843,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl",
+      "chunk": 35
+    },
+    {
+      "t": 59337,
+      "at": 1788485449846,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl"
+    },
+    {
+      "t": 59338,
+      "at": 1788485449846,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma1ycd_xocl"
+    },
+    {
+      "t": 59338,
+      "at": 1788485449846,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma1ycd_xocl"
+    },
+    {
+      "t": 61160,
+      "at": 1788485451668,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 63859,
+      "at": 1788485454367,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1490,
+      "speechLastAt": 62649
+    },
+    {
+      "t": 63859,
+      "at": 1788485454367,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "I'm doing it myself."
+    },
+    {
+      "t": 63859,
+      "at": 1788485454367,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "I'm doing it myself."
+    },
+    {
+      "t": 63865,
+      "at": 1788485454374,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma28me_vfdo",
+      "source": "audio",
+      "transcript": "I'm doing it myself.",
+      "kind": "reply"
+    },
+    {
+      "t": 64416,
+      "at": 1788485454925,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 64416,
+      "at": 1788485454925,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 64421,
+      "at": 1788485454930,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_a24bvc\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"ENROLLMENT_DECISION_MAKER\",\"screen\":\"DECISION_MAKER\",\"title\":\"We’ll help you choose who should complete this process.\",\"whatThePatientMustDoHere\":\"Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.\",\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"back\",\"label\":\"Back\",\"kind\":\"NAVIGATE\"},{\"id\":\"help\",\"label\":\"Ask EMMI\",\"kind\":\"NAVIGATE\"}],\"notes\":[\"You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone.\"]}}}]"
+    },
+    {
+      "t": 64426,
+      "at": 1788485454934,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "Then choose 'For myself' and continue.",
+      "seconds": 2.5,
+      "chunks": 11
+    },
+    {
+      "t": 64427,
+      "at": 1788485454936,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 1
+    },
+    {
+      "t": 64434,
+      "at": 1788485454943,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "Then"
+    },
+    {
+      "t": 64559,
+      "at": 1788485455067,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 2
+    },
+    {
+      "t": 64562,
+      "at": 1788485455070,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "choose"
+    },
+    {
+      "t": 64805,
+      "at": 1788485455314,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 3
+    },
+    {
+      "t": 64808,
+      "at": 1788485455316,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "'For"
+    },
+    {
+      "t": 65051,
+      "at": 1788485455560,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 4
+    },
+    {
+      "t": 65054,
+      "at": 1788485455563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "myself'"
+    },
+    {
+      "t": 65297,
+      "at": 1788485455806,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 5
+    },
+    {
+      "t": 65300,
+      "at": 1788485455809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "and"
+    },
+    {
+      "t": 65544,
+      "at": 1788485456052,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 6
+    },
+    {
+      "t": 65546,
+      "at": 1788485456055,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "text": "continue."
+    },
+    {
+      "t": 65790,
+      "at": 1788485456298,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 7
+    },
+    {
+      "t": 66034,
+      "at": 1788485456543,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 8
+    },
+    {
+      "t": 66279,
+      "at": 1788485456787,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 9
+    },
+    {
+      "t": 66523,
+      "at": 1788485457031,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 10
+    },
+    {
+      "t": 66767,
+      "at": 1788485457275,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo",
+      "chunk": 11
+    },
+    {
+      "t": 66768,
+      "at": 1788485457277,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo"
+    },
+    {
+      "t": 66769,
+      "at": 1788485457277,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma28me_vfdo"
+    },
+    {
+      "t": 66769,
+      "at": 1788485457277,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma28me_vfdo"
+    },
+    {
+      "t": 68619,
+      "at": 1788485459128,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 72079,
+      "at": 1788485462587,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2250,
+      "speechLastAt": 70869
+    },
+    {
+      "t": 72079,
+      "at": 1788485462587,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Can you pick it for me?"
+    },
+    {
+      "t": 72079,
+      "at": 1788485462587,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Can you pick it for me?"
+    },
+    {
+      "t": 72086,
+      "at": 1788485462594,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "source": "audio",
+      "transcript": "Can you pick it for me?",
+      "kind": "reply"
+    },
+    {
+      "t": 72636,
+      "at": 1788485463144,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "1"
+      }
+    },
+    {
+      "t": 72636,
+      "at": 1788485463144,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 72640,
+      "at": 1788485463149,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_kb5up5\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":false,\"status\":\"UNKNOWN_ACTION\",\"availableChoices\":[],\"availableActions\":[{\"id\":\"back\",\"label\":\"Back\",\"kind\":\"NAVIGATE\"},{\"id\":\"help\",\"label\":\"Ask EMMI\",\"kind\":\"NAVIGATE\"}],\"currentView\":{\"viewId\":\"ENROLLMENT_DECISION_MAKER\",\"screen\":\"DECISION_MAKER\",\"title\":\"We’ll help you choose who should complete this process.\",\"whatThePatientMustDoHere\":\"Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.\",\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"back\",\"label\":\"Back\",\"kind\":\"NAVIGATE\"},{\"id\":\"help\",\"label\":\"Ask EMMI\",\"kind\":\"NAVIGATE\"}],\"notes\":[\"You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone.\"]}}}}]"
+    },
+    {
+      "t": 72645,
+      "at": 1788485463153,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "text": "Done.",
+      "seconds": 0.6,
+      "chunks": 3
+    },
+    {
+      "t": 72646,
+      "at": 1788485463155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "chunk": 1
+    },
+    {
+      "t": 72650,
+      "at": 1788485463159,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "text": "Done."
+    },
+    {
+      "t": 72773,
+      "at": 1788485463282,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "chunk": 2
+    },
+    {
+      "t": 73017,
+      "at": 1788485463525,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y",
+      "chunk": 3
+    },
+    {
+      "t": 73019,
+      "at": 1788485463527,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y"
+    },
+    {
+      "t": 73019,
+      "at": 1788485463527,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2eyq_gw3y"
+    },
+    {
+      "t": 73019,
+      "at": 1788485463527,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma2eyq_gw3y"
+    },
+    {
+      "t": 74889,
+      "at": 1788485465398,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 79159,
+      "at": 1788485469667,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3040,
+      "speechLastAt": 77929
+    },
+    {
+      "t": 79159,
+      "at": 1788485469667,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Why do you need my date of birth?"
+    },
+    {
+      "t": 79159,
+      "at": 1788485469667,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Why do you need my date of birth?"
+    },
+    {
+      "t": 79163,
+      "at": 1788485469672,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma2kfc_0ate",
+      "source": "audio",
+      "transcript": "Why do you need my date of birth?",
+      "kind": "reply"
+    },
+    {
+      "t": 79714,
+      "at": 1788485470222,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "It helps match you to your care invitation securely. I won't ask you to say it out loud.",
+      "seconds": 7.5,
+      "chunks": 32
+    },
+    {
+      "t": 79715,
+      "at": 1788485470224,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 1
+    },
+    {
+      "t": 79721,
+      "at": 1788485470229,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "It"
+    },
+    {
+      "t": 79845,
+      "at": 1788485470353,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 2
+    },
+    {
+      "t": 79848,
+      "at": 1788485470357,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "helps"
+    },
+    {
+      "t": 80092,
+      "at": 1788485470601,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 3
+    },
+    {
+      "t": 80095,
+      "at": 1788485470604,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "match"
+    },
+    {
+      "t": 80339,
+      "at": 1788485470848,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 4
+    },
+    {
+      "t": 80342,
+      "at": 1788485470850,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "you"
+    },
+    {
+      "t": 80586,
+      "at": 1788485471094,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 5
+    },
+    {
+      "t": 80589,
+      "at": 1788485471097,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "to"
+    },
+    {
+      "t": 80833,
+      "at": 1788485471341,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 6
+    },
+    {
+      "t": 80835,
+      "at": 1788485471343,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "your"
+    },
+    {
+      "t": 81078,
+      "at": 1788485471587,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 7
+    },
+    {
+      "t": 81081,
+      "at": 1788485471589,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "care"
+    },
+    {
+      "t": 81324,
+      "at": 1788485471833,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 8
+    },
+    {
+      "t": 81327,
+      "at": 1788485471836,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "invitation"
+    },
+    {
+      "t": 81571,
+      "at": 1788485472079,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 9
+    },
+    {
+      "t": 81574,
+      "at": 1788485472082,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "securely."
+    },
+    {
+      "t": 81818,
+      "at": 1788485472327,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 10
+    },
+    {
+      "t": 81821,
+      "at": 1788485472330,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "I"
+    },
+    {
+      "t": 82065,
+      "at": 1788485472574,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 11
+    },
+    {
+      "t": 82068,
+      "at": 1788485472576,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "won't"
+    },
+    {
+      "t": 82312,
+      "at": 1788485472820,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 12
+    },
+    {
+      "t": 82315,
+      "at": 1788485472823,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "ask"
+    },
+    {
+      "t": 82558,
+      "at": 1788485473067,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 13
+    },
+    {
+      "t": 82561,
+      "at": 1788485473070,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "you"
+    },
+    {
+      "t": 82805,
+      "at": 1788485473313,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 14
+    },
+    {
+      "t": 82807,
+      "at": 1788485473316,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "to"
+    },
+    {
+      "t": 83051,
+      "at": 1788485473559,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 15
+    },
+    {
+      "t": 83054,
+      "at": 1788485473562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "say"
+    },
+    {
+      "t": 83297,
+      "at": 1788485473806,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 16
+    },
+    {
+      "t": 83300,
+      "at": 1788485473809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "it"
+    },
+    {
+      "t": 83545,
+      "at": 1788485474053,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 17
+    },
+    {
+      "t": 83548,
+      "at": 1788485474057,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "out"
+    },
+    {
+      "t": 83793,
+      "at": 1788485474301,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 18
+    },
+    {
+      "t": 83796,
+      "at": 1788485474304,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "text": "loud."
+    },
+    {
+      "t": 84040,
+      "at": 1788485474548,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 19
+    },
+    {
+      "t": 84285,
+      "at": 1788485474794,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 20
+    },
+    {
+      "t": 84529,
+      "at": 1788485475038,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 21
+    },
+    {
+      "t": 84773,
+      "at": 1788485475281,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 22
+    },
+    {
+      "t": 85017,
+      "at": 1788485475525,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 23
+    },
+    {
+      "t": 85262,
+      "at": 1788485475770,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 24
+    },
+    {
+      "t": 85507,
+      "at": 1788485476015,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 25
+    },
+    {
+      "t": 85752,
+      "at": 1788485476260,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 26
+    },
+    {
+      "t": 85997,
+      "at": 1788485476505,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 27
+    },
+    {
+      "t": 86242,
+      "at": 1788485476750,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 28
+    },
+    {
+      "t": 86492,
+      "at": 1788485477000,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 29
+    },
+    {
+      "t": 86738,
+      "at": 1788485477246,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 30
+    },
+    {
+      "t": 86984,
+      "at": 1788485477492,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 31
+    },
+    {
+      "t": 87227,
+      "at": 1788485477735,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate",
+      "chunk": 32
+    },
+    {
+      "t": 87228,
+      "at": 1788485477737,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate"
+    },
+    {
+      "t": 87228,
+      "at": 1788485477737,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2kfc_0ate"
+    },
+    {
+      "t": 87228,
+      "at": 1788485477737,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma2kfc_0ate"
+    },
+    {
+      "t": 88979,
+      "at": 1788485479488,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 92419,
+      "at": 1788485482927,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2210,
+      "speechLastAt": 91189
+    },
+    {
+      "t": 92419,
+      "at": 1788485482927,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "I want to do this later."
+    },
+    {
+      "t": 92419,
+      "at": 1788485482927,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "I want to do this later."
+    },
+    {
+      "t": 92425,
+      "at": 1788485482934,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma2unq_jrq8",
+      "source": "audio",
+      "transcript": "I want to do this later.",
+      "kind": "reply"
+    },
+    {
+      "t": 92976,
+      "at": 1788485483484,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "That's fine. Your progress is saved and you can come back whenever you like.",
+      "seconds": 5.83,
+      "chunks": 25
+    },
+    {
+      "t": 92977,
+      "at": 1788485483485,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 1
+    },
+    {
+      "t": 92981,
+      "at": 1788485483490,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "That's"
+    },
+    {
+      "t": 93105,
+      "at": 1788485483613,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 2
+    },
+    {
+      "t": 93107,
+      "at": 1788485483616,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "fine."
+    },
+    {
+      "t": 93352,
+      "at": 1788485483860,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 3
+    },
+    {
+      "t": 93354,
+      "at": 1788485483862,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "Your"
+    },
+    {
+      "t": 93599,
+      "at": 1788485484107,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 4
+    },
+    {
+      "t": 93601,
+      "at": 1788485484109,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "progress"
+    },
+    {
+      "t": 93845,
+      "at": 1788485484354,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 5
+    },
+    {
+      "t": 93848,
+      "at": 1788485484357,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "is"
+    },
+    {
+      "t": 94092,
+      "at": 1788485484601,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 6
+    },
+    {
+      "t": 94095,
+      "at": 1788485484604,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "saved"
+    },
+    {
+      "t": 94340,
+      "at": 1788485484849,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 7
+    },
+    {
+      "t": 94343,
+      "at": 1788485484851,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "and"
+    },
+    {
+      "t": 94586,
+      "at": 1788485485095,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 8
+    },
+    {
+      "t": 94589,
+      "at": 1788485485098,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "you"
+    },
+    {
+      "t": 94834,
+      "at": 1788485485342,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 9
+    },
+    {
+      "t": 94836,
+      "at": 1788485485344,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "can"
+    },
+    {
+      "t": 95080,
+      "at": 1788485485588,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 10
+    },
+    {
+      "t": 95082,
+      "at": 1788485485591,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "come"
+    },
+    {
+      "t": 95327,
+      "at": 1788485485835,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 11
+    },
+    {
+      "t": 95329,
+      "at": 1788485485838,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "back"
+    },
+    {
+      "t": 95575,
+      "at": 1788485486083,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 12
+    },
+    {
+      "t": 95577,
+      "at": 1788485486086,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "whenever"
+    },
+    {
+      "t": 95821,
+      "at": 1788485486330,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 13
+    },
+    {
+      "t": 95825,
+      "at": 1788485486333,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "you"
+    },
+    {
+      "t": 96069,
+      "at": 1788485486578,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 14
+    },
+    {
+      "t": 96072,
+      "at": 1788485486580,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "text": "like."
+    },
+    {
+      "t": 96316,
+      "at": 1788485486825,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 15
+    },
+    {
+      "t": 96561,
+      "at": 1788485487069,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 16
+    },
+    {
+      "t": 96805,
+      "at": 1788485487313,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 17
+    },
+    {
+      "t": 97049,
+      "at": 1788485487558,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 18
+    },
+    {
+      "t": 97294,
+      "at": 1788485487802,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 19
+    },
+    {
+      "t": 97539,
+      "at": 1788485488047,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 20
+    },
+    {
+      "t": 97783,
+      "at": 1788485488291,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 21
+    },
+    {
+      "t": 98027,
+      "at": 1788485488535,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 22
+    },
+    {
+      "t": 98273,
+      "at": 1788485488781,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 23
+    },
+    {
+      "t": 98520,
+      "at": 1788485489028,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 24
+    },
+    {
+      "t": 98763,
+      "at": 1788485489271,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8",
+      "chunk": 25
+    },
+    {
+      "t": 98764,
+      "at": 1788485489273,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8"
+    },
+    {
+      "t": 98764,
+      "at": 1788485489273,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma2unq_jrq8"
+    },
+    {
+      "t": 98764,
+      "at": 1788485489273,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma2unq_jrq8"
+    },
+    {
+      "t": 100499,
+      "at": 1788485491008,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 103999,
+      "at": 1788485494507,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2270,
+      "speechLastAt": 102769
+    },
+    {
+      "t": 103999,
+      "at": 1788485494507,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Actually, let's keep going. What's next?"
+    },
+    {
+      "t": 103999,
+      "at": 1788485494507,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Actually, let's keep going. What's next?"
+    },
+    {
+      "t": 104005,
+      "at": 1788485494513,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtma33ld_vp5z",
+      "source": "audio",
+      "transcript": "Actually, let's keep going. What's next?",
+      "kind": "reply"
+    },
+    {
+      "t": 104555,
+      "at": 1788485495064,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 104555,
+      "at": 1788485495064,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 104559,
+      "at": 1788485495068,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_gzk4js\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"ENROLLMENT_DECISION_MAKER\",\"screen\":\"DECISION_MAKER\",\"title\":\"We’ll help you choose who should complete this process.\",\"whatThePatientMustDoHere\":\"Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.\",\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"back\",\"label\":\"Back\",\"kind\":\"NAVIGATE\"},{\"id\":\"help\",\"label\":\"Ask EMMI\",\"kind\":\"NAVIGATE\"}],\"notes\":[\"You may explain consent, identity and authority, but never mark a checkbox, consent, sign, enroll or attest authority for anyone.\"]}}}]"
+    },
+    {
+      "t": 104570,
+      "at": 1788485495078,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "Choose the option that describes you: for yourself, someone helping you, or a personal representative authorized to make healthcare decisions.",
+      "seconds": 8.33,
+      "chunks": 35
+    },
+    {
+      "t": 104571,
+      "at": 1788485495080,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 1
+    },
+    {
+      "t": 104575,
+      "at": 1788485495084,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "Choose"
+    },
+    {
+      "t": 104699,
+      "at": 1788485495207,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 2
+    },
+    {
+      "t": 104701,
+      "at": 1788485495210,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "the"
+    },
+    {
+      "t": 104945,
+      "at": 1788485495454,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 3
+    },
+    {
+      "t": 104948,
+      "at": 1788485495457,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "option"
+    },
+    {
+      "t": 105192,
+      "at": 1788485495700,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 4
+    },
+    {
+      "t": 105194,
+      "at": 1788485495703,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "that"
+    },
+    {
+      "t": 105438,
+      "at": 1788485495947,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 5
+    },
+    {
+      "t": 105441,
+      "at": 1788485495950,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "describes"
+    },
+    {
+      "t": 105685,
+      "at": 1788485496194,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 6
+    },
+    {
+      "t": 105688,
+      "at": 1788485496197,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "you:"
+    },
+    {
+      "t": 105932,
+      "at": 1788485496440,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 7
+    },
+    {
+      "t": 105934,
+      "at": 1788485496443,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "for"
+    },
+    {
+      "t": 106178,
+      "at": 1788485496686,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 8
+    },
+    {
+      "t": 106181,
+      "at": 1788485496689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "yourself,"
+    },
+    {
+      "t": 106425,
+      "at": 1788485496933,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 9
+    },
+    {
+      "t": 106427,
+      "at": 1788485496936,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "someone"
+    },
+    {
+      "t": 106671,
+      "at": 1788485497180,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 10
+    },
+    {
+      "t": 106674,
+      "at": 1788485497182,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "helping"
+    },
+    {
+      "t": 106918,
+      "at": 1788485497427,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 11
+    },
+    {
+      "t": 106921,
+      "at": 1788485497429,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "you,"
+    },
+    {
+      "t": 107164,
+      "at": 1788485497673,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 12
+    },
+    {
+      "t": 107167,
+      "at": 1788485497675,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "or"
+    },
+    {
+      "t": 107410,
+      "at": 1788485497919,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 13
+    },
+    {
+      "t": 107413,
+      "at": 1788485497921,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "a"
+    },
+    {
+      "t": 107657,
+      "at": 1788485498165,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 14
+    },
+    {
+      "t": 107660,
+      "at": 1788485498168,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "personal"
+    },
+    {
+      "t": 107905,
+      "at": 1788485498413,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 15
+    },
+    {
+      "t": 107907,
+      "at": 1788485498416,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "representative"
+    },
+    {
+      "t": 108151,
+      "at": 1788485498660,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 16
+    },
+    {
+      "t": 108155,
+      "at": 1788485498664,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "authorized"
+    },
+    {
+      "t": 108400,
+      "at": 1788485498908,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 17
+    },
+    {
+      "t": 108402,
+      "at": 1788485498911,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "to"
+    },
+    {
+      "t": 108647,
+      "at": 1788485499155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 18
+    },
+    {
+      "t": 108649,
+      "at": 1788485499158,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "make"
+    },
+    {
+      "t": 108894,
+      "at": 1788485499402,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 19
+    },
+    {
+      "t": 108896,
+      "at": 1788485499405,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "healthcare"
+    },
+    {
+      "t": 109141,
+      "at": 1788485499649,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 20
+    },
+    {
+      "t": 109143,
+      "at": 1788485499652,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "text": "decisions."
+    },
+    {
+      "t": 109387,
+      "at": 1788485499896,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 21
+    },
+    {
+      "t": 109631,
+      "at": 1788485500140,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 22
+    },
+    {
+      "t": 109876,
+      "at": 1788485500385,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 23
+    },
+    {
+      "t": 110122,
+      "at": 1788485500630,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 24
+    },
+    {
+      "t": 110367,
+      "at": 1788485500875,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 25
+    },
+    {
+      "t": 110610,
+      "at": 1788485501119,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 26
+    },
+    {
+      "t": 110854,
+      "at": 1788485501363,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 27
+    },
+    {
+      "t": 111099,
+      "at": 1788485501607,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 28
+    },
+    {
+      "t": 111343,
+      "at": 1788485501852,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 29
+    },
+    {
+      "t": 111588,
+      "at": 1788485502096,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 30
+    },
+    {
+      "t": 111832,
+      "at": 1788485502341,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 31
+    },
+    {
+      "t": 112077,
+      "at": 1788485502585,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 32
+    },
+    {
+      "t": 112320,
+      "at": 1788485502829,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 33
+    },
+    {
+      "t": 112565,
+      "at": 1788485503073,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 34
+    },
+    {
+      "t": 112809,
+      "at": 1788485503317,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z",
+      "chunk": 35
+    },
+    {
+      "t": 112811,
+      "at": 1788485503319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z"
+    },
+    {
+      "t": 112811,
+      "at": 1788485503319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtma33ld_vp5z"
+    },
+    {
+      "t": 112811,
+      "at": 1788485503319,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtma33ld_vp5z"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 8,
+    "total_turns": 9,
+    "response_start_p50_ms": 1776,
+    "response_start_p95_ms": 1823,
+    "response_start_avg_ms": 1784,
+    "app_overhead_p50_ms": 3,
+    "barge_ins": 1,
+    "barge_in_stop_p50_ms": 159,
+    "barge_in_stop_max_ms": 159,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 4: EMMI was not idle before the patient spoke (state EMMI_SPEAKING)",
+      "turn 4: the app sent no screen context to the provider before it answered this spoken turn"
+    ]
+  }
+}

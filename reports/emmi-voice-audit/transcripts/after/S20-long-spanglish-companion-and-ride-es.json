@@ -1,0 +1,2563 @@
+{
+  "session_id": "S20-long-spanglish-companion-and-ride-es",
+  "patient_profile": "F (utiliza Spanglish)",
+  "language": "es",
+  "flow": "long: companion invitation then a ride, all in Spanglish, with the confirmation gate exercised in both",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "17 spoken turns. 'appointment', 'daughter', 'ride', 'walker', 'pick up', 'cheap', 'booked': every turn mixes English words into Spanish. Before the guard change, several of these were discarded as unreliable.",
+  "startedAt": "2026-09-04T01:24:30.345Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Necesito que mi daughter venga conmigo al appointment.",
+      "recognized_text": "Necesito que mi daughter venga conmigo al appointment.",
+      "EMMI_response": "Puede pedírselo a Maria (Hija) o a Carlos (Hijo). ¿A quién?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@167",
+          "EMMI_THINKING@4325",
+          "TOOL_RUNNING@4915",
+          "EMMI_SPEAKING@4998",
+          "LISTENING@9596"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-open-barrier"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "appointment-open-barrier",
+              "label": "Algo lo dificulta",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "APPOINTMENT_PRE_VISIT_CHECK",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "¿Hay algo que pueda dificultar llegar a esta visita?",
+              "whatThePatientMustDoHere": "Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "ALL_SET",
+                  "label": "Todo listo",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 2,
+                  "id": "TRANSPORTATION",
+                  "label": "Transporte",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 3,
+                  "id": "CAREGIVER_AVAILABILITY",
+                  "label": "Necesito acompañante",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 4,
+                  "id": "TIME_CONFLICT",
+                  "label": "Necesito cambiar la hora",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 5,
+                  "id": "OTHER",
+                  "label": "Otra cosa",
+                  "detail": "",
+                  "selected": false
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "3"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "CAREGIVER_AVAILABILITY",
+              "label": "Necesito acompañante",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_COMPANION_OFFER",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Pedir a alguien que acompañe a la cita",
+              "whatThePatientMustDoHere": "Diga si hay alguien que normalmente le acompaña.",
+              "flow": {
+                "id": "COMPANION",
+                "name": "Pedir a alguien que acompañe a la cita",
+                "step": "OFFER",
+                "stepNumber": 1,
+                "totalSteps": 6
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-companion-answer",
+                  "label": "Responder sí o no",
+                  "kind": "SELECT"
+                },
+                {
+                  "id": "barrier-close",
+                  "label": "Volver a mi cita",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-companion-answer"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-companion-answer",
+              "label": "Responder sí o no",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_COMPANION_CONTACTS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Pedir a alguien que acompañe a la cita",
+              "whatThePatientMustDoHere": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+              "flow": {
+                "id": "COMPANION",
+                "name": "Pedir a alguien que acompañe a la cita",
+                "step": "CONTACTS",
+                "stepNumber": 2,
+                "totalSteps": 6
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "10:30 a. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "demo-maria",
+                  "label": "Maria",
+                  "detail": "Hija",
+                  "selected": false,
+                  "relationship": "Hija"
+                },
+                {
+                  "n": 2,
+                  "id": "demo-carlos",
+                  "label": "Carlos",
+                  "detail": "Hijo",
+                  "selected": false,
+                  "relationship": "Hijo"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-companion-new",
+                  "label": "Otra persona",
+                  "kind": "INPUT"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "APPOINTMENT_CONFIRMED → BARRIER_COMPANION_CONTACTS",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 41548,
+        "speech_ended_at": 44625,
+        "provider_speech_end_detected_at": 45860,
+        "provider_vad_window_ms": 1235,
+        "provider_first_chunk_at": 46511,
+        "app_first_audio_at": 46523,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 44625,
+        "T2_first_audible_response": 46523,
+        "T3_response_complete": 51107,
+        "response_start_latency_ms": 1898,
+        "response_completion_latency_ms": 6482,
+        "app_overhead_first_chunk_to_audible_ms": 12,
+        "local_speech_end_detected_ms_after_T1": 1243,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "¿Qué va a ver ella?",
+      "recognized_text": "¿Qué va a ver ella?",
+      "EMMI_response": "Solo la fecha, la hora y el lugar de la cita. No ve su información de salud.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@125",
+          "EMMI_THINKING@3216",
+          "EMMI_SPEAKING@3800",
+          "LISTENING@10906"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 52699,
+        "speech_ended_at": 54622,
+        "provider_speech_end_detected_at": 55880,
+        "provider_vad_window_ms": 1258,
+        "provider_first_chunk_at": 56436,
+        "app_first_audio_at": 56440,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 54622,
+        "T2_first_audible_response": 56440,
+        "T3_response_complete": 63569,
+        "response_start_latency_ms": 1818,
+        "response_completion_latency_ms": 8947,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1269,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Ella habla English, ¿le llega en English?",
+      "recognized_text": "Ella habla English, ¿le llega en English?",
+      "EMMI_response": "(empty generation)",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Elija a quién pedírselo. Elegir a alguien todavía no envía nada.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [
+          {
+            "detected": "es",
+            "request": "en"
+          }
+        ],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@265",
+          "CONNECTING@3986",
+          "EMMI_THINKING@4084",
+          "EMMI_SPEAKING@4168",
+          "LISTENING@4999"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 65091,
+        "speech_ended_at": 67783,
+        "provider_speech_end_detected_at": 69020,
+        "provider_vad_window_ms": 1237,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": 69185,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 67783,
+        "T2_first_audible_response": 69185,
+        "T3_response_complete": 70026,
+        "response_start_latency_ms": 1402,
+        "response_completion_latency_ms": 2243,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "ACCEPTABLE"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": [
+        "[object Object]"
+      ]
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Okay, send it a María.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "the gate: select is not send",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 71648,
+        "speech_ended_at": 73571,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 73571,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Yes, mándala.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "send invitation",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 75114,
+        "speech_ended_at": 75883,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 75883,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 7,
+      "kind": "silence",
+      "label": "invitation sending",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 8,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "¿Ya le llegó el text?",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 80460,
+        "speech_ended_at": 82383,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 82383,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Ahora el ride. No tengo car.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [
+        "expected view PICKUP, got BARRIER_COMPANION_CONTACTS"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 83925,
+        "speech_ended_at": 86233,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 86233,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 10,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Mi home address está bien.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 87770,
+        "speech_ended_at": 89693,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 89693,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 11,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Uso walker.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 91237,
+        "speech_ended_at": 92006,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 92006,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 12,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "¿A qué hora me pick up?",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 93552,
+        "speech_ended_at": 95860,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 95860,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 13,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Okay, search.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 97406,
+        "speech_ended_at": 98175,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 98175,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 14,
+      "kind": "silence",
+      "label": "search",
+      "silence_ms": 2500,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 15,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "¿Cuál es más cheap?",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [
+        "the app sent no screen context to the provider before it answered this spoken turn"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 102259,
+        "speech_ended_at": 103797,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 103797,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 16,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Book that one.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 105342,
+        "speech_ended_at": 106496,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 106496,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 17,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Sí.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "book ride",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 108062,
+        "speech_ended_at": 108762,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 108762,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 18,
+      "kind": "silence",
+      "label": "booking",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 19,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "¿Está booked?",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 113336,
+        "speech_ended_at": 114105,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 114105,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 20,
+      "kind": "speech",
+      "screen": "BARRIER_COMPANION_CONTACTS",
+      "patient_utterance": "Gracias, bye.",
+      "recognized_text": null,
+      "EMMI_response": null,
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "choices": [
+            "Maria",
+            "Carlos"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 0,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_COMPANION_CONTACTS",
+          "task": "Choose who to ask. Choosing someone does not send anything yet.",
+          "selected": null,
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 115648,
+        "speech_ended_at": 116417,
+        "provider_speech_end_detected_at": null,
+        "provider_vad_window_ms": null,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": null,
+        "app_scheduled_playback_delay_ms": null,
+        "T1_patient_speech_end": 116417,
+        "T2_first_audible_response": null,
+        "T3_response_complete": null,
+        "response_start_latency_ms": null,
+        "response_completion_latency_ms": null,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": null,
+        "perceived": "N/A"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T01:24:33.789Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 969 ms after tap"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788485073092,
+      "words": 88,
+      "seconds": 36.66666666666667,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó a conocer un apoyo adicional disponible a través de Medicare. Su médico sigue siendo parte de su cuidado, mientras ITERA puede apoyarle entre visitas. ACCESS es una opción de cuidado de Medicare que le brinda apoyo adicional entre sus visitas, no para reemplazar a sus médicos. Participar es su decisión, y le e",
+      "locale": "ES"
+    },
+    {
+      "at": 1788485111172,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    },
+    {
+      "at": 1788485140439,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "EN"
+    }
+  ],
+  "finishedAt": "2026-09-04T01:26:28.466Z",
+  "state_transitions": [
+    {
+      "t": 1683,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 2524,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 39046,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 39959,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 40793,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 41715,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 45873,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 46463,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 46546,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 51144,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 52824,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 55915,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 56499,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 63605,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 65356,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 69077,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 69175,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 69259,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 70090,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 1722,
+      "at": 1788485072997,
+      "dir": "socket",
+      "type": "open",
+      "session": 1
+    },
+    {
+      "t": 1756,
+      "at": 1788485073030,
+      "dir": "in",
+      "type": "setup",
+      "session": 1,
+      "systemInstructionChars": 29846,
+      "toolCount": 44,
+      "realtimeInputConfig": {
+        "automaticActivityDetection": {
+          "disabled": false,
+          "startOfSpeechSensitivity": "START_SENSITIVITY_HIGH",
+          "endOfSpeechSensitivity": "END_SENSITIVITY_LOW",
+          "prefixPaddingMs": 300,
+          "silenceDurationMs": 1200
+        },
+        "activityHandling": "START_OF_ACTIVITY_INTERRUPTS"
+      },
+      "sessionResumption": {}
+    },
+    {
+      "t": 1796,
+      "at": 1788485073070,
+      "dir": "out",
+      "type": "setupComplete"
+    },
+    {
+      "t": 1796,
+      "at": 1788485073071,
+      "dir": "out",
+      "type": "sessionResumptionUpdate"
+    },
+    {
+      "t": 41592,
+      "at": 1788485112866,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 45860,
+      "at": 1788485117135,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3040,
+      "speechLastAt": 44631
+    },
+    {
+      "t": 45861,
+      "at": 1788485117135,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Necesito que mi daughter venga conmigo al appointment."
+    },
+    {
+      "t": 45861,
+      "at": 1788485117135,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Necesito que mi daughter venga conmigo al appointment."
+    },
+    {
+      "t": 45865,
+      "at": 1788485117140,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9v0es_9g83",
+      "source": "audio",
+      "transcript": "Necesito que mi daughter venga conmigo al appointment.",
+      "kind": "reply"
+    },
+    {
+      "t": 46416,
+      "at": 1788485117690,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "appointment-open-barrier"
+      }
+    },
+    {
+      "t": 46416,
+      "at": 1788485117690,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 46436,
+      "at": 1788485117710,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_z2qr5o\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"APPOINTMENT_PRE_VISIT_CHECK\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"¿Hay algo que pueda dificultar llegar a esta visita?\",\"whatThePatientMustDoHere\":\"Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"ALL_SET\",\"label\":\"Todo listo\",\"detail\":\"\",\"selected\":false},{\"n\":2,\"id\":\"TRANSPORTATION\",\"label\":\"Transporte\",\"detail\":\"\",\"selected\":false},{\"n\":3,\"id\":\"CAREGIVER_AVAILABILITY\",\"label\":\"Necesito acompañante\",\"detail\":\"\",\"selected\":false},{\"n\":4,\"id\":\"TIME_CONFLICT\",\"label\":\"Necesito cambiar la hora\",\"detail\":\"\",\"selected\":false},{\"n\":5,\"id\":\"OTHER\",\"label\":\"Otra cosa\",\"detail\":\"\",\"selected\":false}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 46440,
+      "at": 1788485117714,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "3"
+      }
+    },
+    {
+      "t": 46440,
+      "at": 1788485117714,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 46475,
+      "at": 1788485117750,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_acqetq\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"CAREGIVER_AVAILABILITY\",\"label\":\"Necesito acompañante\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_COMPANION_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Pedir a alguien que acompañe a la cita\",\"whatThePatientMustDoHere\":\"Diga si hay alguien que normalmente le acompaña.\",\"flow\":{\"id\":\"COMPANION\",\"name\":\"Pedir a alguien que acompañe a la cita\",\"step\":\"OFFER\",\"stepNumber\":1,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-companion-answer\",\"label\":\"Responder sí o no\",\"kind\":\"SELECT\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 46479,
+      "at": 1788485117753,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-companion-answer"
+      }
+    },
+    {
+      "t": 46479,
+      "at": 1788485117753,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 46508,
+      "at": 1788485117782,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_k2ykmb\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-companion-answer\",\"label\":\"Responder sí o no\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_COMPANION_CONTACTS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Pedir a alguien que acompañe a la cita\",\"whatThePatientMustDoHere\":\"Elija a quién pedírselo. Elegir a alguien todavía no envía nada.\",\"flow\":{\"id\":\"COMPANION\",\"name\":\"Pedir a alguien que acompañe a la cita\",\"step\":\"CONTACTS\",\"stepNumber\":2,\"totalSteps\":6},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"10:30 a. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"demo-maria\",\"label\":\"Maria\",\"detail\":\"Hija\",\"selected\":false,\"relationship\":\"Hija\"},{\"n\":2,\"id\":\"demo-carlos\",\"label\":\"Carlos\",\"detail\":\"Hijo\",\"selected\":false,\"relationship\":\"Hijo\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-companion-new\",\"label\":\"Otra persona\",\"kind\":\"INPUT\"}]}}}}]"
+    },
+    {
+      "t": 46511,
+      "at": 1788485117785,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "Puede pedírselo a Maria (Hija) o a Carlos (Hijo). ¿A quién?",
+      "seconds": 4.58,
+      "chunks": 20
+    },
+    {
+      "t": 46519,
+      "at": 1788485117794,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 1
+    },
+    {
+      "t": 46525,
+      "at": 1788485117799,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "Puede"
+    },
+    {
+      "t": 46648,
+      "at": 1788485117923,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 2
+    },
+    {
+      "t": 46652,
+      "at": 1788485117926,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "pedírselo"
+    },
+    {
+      "t": 46895,
+      "at": 1788485118170,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 3
+    },
+    {
+      "t": 46899,
+      "at": 1788485118173,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "a"
+    },
+    {
+      "t": 47142,
+      "at": 1788485118416,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 4
+    },
+    {
+      "t": 47145,
+      "at": 1788485118419,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "Maria"
+    },
+    {
+      "t": 47388,
+      "at": 1788485118663,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 5
+    },
+    {
+      "t": 47391,
+      "at": 1788485118665,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "(Hija)"
+    },
+    {
+      "t": 47633,
+      "at": 1788485118908,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 6
+    },
+    {
+      "t": 47637,
+      "at": 1788485118911,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "o"
+    },
+    {
+      "t": 47880,
+      "at": 1788485119155,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 7
+    },
+    {
+      "t": 47883,
+      "at": 1788485119158,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "a"
+    },
+    {
+      "t": 48126,
+      "at": 1788485119401,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 8
+    },
+    {
+      "t": 48129,
+      "at": 1788485119404,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "Carlos"
+    },
+    {
+      "t": 48373,
+      "at": 1788485119647,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 9
+    },
+    {
+      "t": 48376,
+      "at": 1788485119650,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "(Hijo)."
+    },
+    {
+      "t": 48619,
+      "at": 1788485119894,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 10
+    },
+    {
+      "t": 48623,
+      "at": 1788485119897,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "¿A"
+    },
+    {
+      "t": 48866,
+      "at": 1788485120140,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 11
+    },
+    {
+      "t": 48869,
+      "at": 1788485120143,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "text": "quién?"
+    },
+    {
+      "t": 49113,
+      "at": 1788485120387,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 12
+    },
+    {
+      "t": 49357,
+      "at": 1788485120631,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 13
+    },
+    {
+      "t": 49601,
+      "at": 1788485120875,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 14
+    },
+    {
+      "t": 49845,
+      "at": 1788485121120,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 15
+    },
+    {
+      "t": 50090,
+      "at": 1788485121365,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 16
+    },
+    {
+      "t": 50334,
+      "at": 1788485121609,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 17
+    },
+    {
+      "t": 50579,
+      "at": 1788485121853,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 18
+    },
+    {
+      "t": 50824,
+      "at": 1788485122098,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 19
+    },
+    {
+      "t": 51067,
+      "at": 1788485122341,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83",
+      "chunk": 20
+    },
+    {
+      "t": 51068,
+      "at": 1788485122342,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83"
+    },
+    {
+      "t": 51068,
+      "at": 1788485122343,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v0es_9g83"
+    },
+    {
+      "t": 51068,
+      "at": 1788485122343,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9v0es_9g83"
+    },
+    {
+      "t": 52741,
+      "at": 1788485124016,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 55880,
+      "at": 1788485127155,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1880,
+      "speechLastAt": 54621
+    },
+    {
+      "t": 55880,
+      "at": 1788485127155,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Qué va a ver ella?"
+    },
+    {
+      "t": 55880,
+      "at": 1788485127155,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Qué va a ver ella?"
+    },
+    {
+      "t": 55886,
+      "at": 1788485127160,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9v854_qi3g",
+      "source": "audio",
+      "transcript": "¿Qué va a ver ella?",
+      "kind": "reply"
+    },
+    {
+      "t": 56436,
+      "at": 1788485127711,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "Solo la fecha, la hora y el lugar de la cita. No ve su información de salud.",
+      "seconds": 7.08,
+      "chunks": 30
+    },
+    {
+      "t": 56438,
+      "at": 1788485127712,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 1
+    },
+    {
+      "t": 56442,
+      "at": 1788485127716,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "Solo"
+    },
+    {
+      "t": 56567,
+      "at": 1788485127841,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 2
+    },
+    {
+      "t": 56569,
+      "at": 1788485127844,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "la"
+    },
+    {
+      "t": 56813,
+      "at": 1788485128087,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 3
+    },
+    {
+      "t": 56815,
+      "at": 1788485128090,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "fecha,"
+    },
+    {
+      "t": 57058,
+      "at": 1788485128333,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 4
+    },
+    {
+      "t": 57061,
+      "at": 1788485128335,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "la"
+    },
+    {
+      "t": 57303,
+      "at": 1788485128578,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 5
+    },
+    {
+      "t": 57306,
+      "at": 1788485128581,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "hora"
+    },
+    {
+      "t": 57550,
+      "at": 1788485128825,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 6
+    },
+    {
+      "t": 57554,
+      "at": 1788485128828,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "y"
+    },
+    {
+      "t": 57797,
+      "at": 1788485129071,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 7
+    },
+    {
+      "t": 57799,
+      "at": 1788485129074,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "el"
+    },
+    {
+      "t": 58042,
+      "at": 1788485129316,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 8
+    },
+    {
+      "t": 58045,
+      "at": 1788485129319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "lugar"
+    },
+    {
+      "t": 58288,
+      "at": 1788485129562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 9
+    },
+    {
+      "t": 58291,
+      "at": 1788485129566,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "de"
+    },
+    {
+      "t": 58533,
+      "at": 1788485129808,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 10
+    },
+    {
+      "t": 58536,
+      "at": 1788485129810,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "la"
+    },
+    {
+      "t": 58778,
+      "at": 1788485130053,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 11
+    },
+    {
+      "t": 58782,
+      "at": 1788485130056,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "cita."
+    },
+    {
+      "t": 59025,
+      "at": 1788485130299,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 12
+    },
+    {
+      "t": 59027,
+      "at": 1788485130302,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "No"
+    },
+    {
+      "t": 59270,
+      "at": 1788485130544,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 13
+    },
+    {
+      "t": 59273,
+      "at": 1788485130547,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "ve"
+    },
+    {
+      "t": 59516,
+      "at": 1788485130790,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 14
+    },
+    {
+      "t": 59519,
+      "at": 1788485130793,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "su"
+    },
+    {
+      "t": 59762,
+      "at": 1788485131036,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 15
+    },
+    {
+      "t": 59765,
+      "at": 1788485131040,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "información"
+    },
+    {
+      "t": 60008,
+      "at": 1788485131283,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 16
+    },
+    {
+      "t": 60011,
+      "at": 1788485131286,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "de"
+    },
+    {
+      "t": 60254,
+      "at": 1788485131528,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 17
+    },
+    {
+      "t": 60257,
+      "at": 1788485131531,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "text": "salud."
+    },
+    {
+      "t": 60499,
+      "at": 1788485131774,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 18
+    },
+    {
+      "t": 60744,
+      "at": 1788485132019,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 19
+    },
+    {
+      "t": 60988,
+      "at": 1788485132263,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 20
+    },
+    {
+      "t": 61232,
+      "at": 1788485132507,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 21
+    },
+    {
+      "t": 61476,
+      "at": 1788485132751,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 22
+    },
+    {
+      "t": 61721,
+      "at": 1788485132996,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 23
+    },
+    {
+      "t": 61968,
+      "at": 1788485133242,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 24
+    },
+    {
+      "t": 62213,
+      "at": 1788485133487,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 25
+    },
+    {
+      "t": 62459,
+      "at": 1788485133734,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 26
+    },
+    {
+      "t": 62706,
+      "at": 1788485133981,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 27
+    },
+    {
+      "t": 62952,
+      "at": 1788485134226,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 28
+    },
+    {
+      "t": 63196,
+      "at": 1788485134470,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 29
+    },
+    {
+      "t": 63439,
+      "at": 1788485134714,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g",
+      "chunk": 30
+    },
+    {
+      "t": 63442,
+      "at": 1788485134717,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g"
+    },
+    {
+      "t": 63442,
+      "at": 1788485134717,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtm9v854_qi3g"
+    },
+    {
+      "t": 63442,
+      "at": 1788485134717,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtm9v854_qi3g"
+    },
+    {
+      "t": 65161,
+      "at": 1788485136436,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 69020,
+      "at": 1788485140295,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2630,
+      "speechLastAt": 67791
+    },
+    {
+      "t": 69020,
+      "at": 1788485140295,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ella habla English, ¿le llega en English?"
+    },
+    {
+      "t": 69020,
+      "at": 1788485140295,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ella habla English, ¿le llega en English?"
+    },
+    {
+      "t": 69031,
+      "at": 1788485140306,
+      "dir": "socket",
+      "type": "close",
+      "session": 1
+    },
+    {
+      "t": 69063,
+      "at": 1788485140337,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtm9vib5_pa4b",
+      "source": "audio",
+      "transcript": "Ella habla English, ¿le llega en English?",
+      "kind": "reply"
+    },
+    {
+      "t": 69072,
+      "at": 1788485140346,
+      "dir": "socket",
+      "type": "open",
+      "session": 2
+    },
+    {
+      "t": 69104,
+      "at": 1788485140379,
+      "dir": "in",
+      "type": "setup",
+      "session": 2,
+      "systemInstructionChars": 31315,
+      "toolCount": 44,
+      "realtimeInputConfig": {
+        "automaticActivityDetection": {
+          "disabled": false,
+          "startOfSpeechSensitivity": "START_SENSITIVITY_HIGH",
+          "endOfSpeechSensitivity": "END_SENSITIVITY_LOW",
+          "prefixPaddingMs": 300,
+          "silenceDurationMs": 1200
+        },
+        "activityHandling": "START_OF_ACTIVITY_INTERRUPTS"
+      },
+      "sessionResumption": {}
+    },
+    {
+      "t": 69145,
+      "at": 1788485140419,
+      "dir": "out",
+      "type": "setupComplete"
+    },
+    {
+      "t": 69145,
+      "at": 1788485140419,
+      "dir": "out",
+      "type": "sessionResumptionUpdate"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 16,
+    "total_turns": 20,
+    "response_start_p50_ms": 1818,
+    "response_start_p95_ms": 1898,
+    "response_start_avg_ms": 1706,
+    "app_overhead_p50_ms": 4,
+    "barge_ins": 0,
+    "barge_in_stop_p50_ms": null,
+    "barge_in_stop_max_ms": -1,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 9: expected view PICKUP, got BARRIER_COMPANION_CONTACTS",
+      "turn 15: the app sent no screen context to the provider before it answered this spoken turn"
+    ]
+  }
+}
