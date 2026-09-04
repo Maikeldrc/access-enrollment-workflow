@@ -4,7 +4,10 @@
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { launchHarness, openApp, startVoice, SessionRecorder, appointment, waitForIdle, BASE, PROVIDER, viewProbe } from "./voice-harness.mjs";
-import { SCENARIOS } from "./scenarios.mjs";
+import { SCENARIOS as CORE_SCENARIOS } from "./scenarios.mjs";
+import { LONG_SCENARIOS } from "./scenarios-long.mjs";
+
+const SCENARIOS = [...CORE_SCENARIOS, ...LONG_SCENARIOS];
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.OUT_DIR || join(HERE, "..", "transcripts");
@@ -23,7 +26,8 @@ for (const scenario of selected) {
     if (scenario.before) await scenario.before({ page, recorder });
     const start = await startVoice(page);
     recorder.observe(`voice start: state ${start.probe?.state}, socket ${start.probe?.socket}, error "${start.probe?.error}", ${start.connectMs} ms after tap`);
-    await waitForIdle(page, { timeoutMs: 60000 });
+    // A scenario that interrupts the welcome must not wait for the welcome to finish.
+    if (!scenario.startBargeIn) await waitForIdle(page, { timeoutMs: 60000 });
     for (const step of scenario.steps) {
       if (step.speak) await recorder.speak({ ...step.speak });
       else if (step.navigate) await recorder.navigate({ ...step.navigate });

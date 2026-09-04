@@ -95,6 +95,7 @@
         chunkMs: 240,             // audio chunk size streamed to the app
         wordsPerSecond: 2.4,      // calm senior-friendly pace used to size the synthetic audio
         toolLatencyMs: 0,
+        transcriptLagMs: 0,       // >0: deliver the last output transcript piece AFTER turnComplete, as real providers sometimes do
         respondToText: true,      // app-initiated text turns produce a spoken reply, as Gemini does
         transcribe: true,         // set false to simulate a provider that returns no transcript
         respond: true             // set false to simulate a provider that never answers
@@ -255,6 +256,7 @@
       generation.totalChunks = chunks;
       const wordsPerChunk = Math.max(1, Math.ceil(words.length / chunks));
       this.entry({ dir: "model", type: "first_audio", generationId: generation.id, text, seconds: Number(seconds.toFixed(2)), chunks });
+      let laggingPiece = "";
       for (let index = 0; index < chunks; index += 1) {
         if (generation.cancelled || this.generation !== generation) return;
         const audio = pcmBase64(Math.min(chunkSeconds, seconds - index * chunkSeconds), 24000, 0.3, index + 3);
@@ -262,7 +264,9 @@
         const payload = { serverContent: { modelTurn: { parts: [{ inlineData: { mimeType: "audio/pcm;rate=24000", data: audio } }] } } };
         this.emit(payload, { generationId: generation.id, chunk: index + 1 });
         generation.sentChunks += 1;
-        if (piece) this.emit({ serverContent: { outputTranscription: { text: `${piece} ` } } }, { generationId: generation.id, text: piece });
+        const last = index === chunks - 1 || !words.slice((index + 1) * wordsPerChunk).length;
+        if (piece && last && this.options.transcriptLagMs > 0) laggingPiece = piece;
+        else if (piece) this.emit({ serverContent: { outputTranscription: { text: `${piece} ` } } }, { generationId: generation.id, text: piece });
         // Real-time pacing with a small lead so the app's playback queue never starves.
         if (index < chunks - 1) await wait(index === 0 ? this.options.chunkMs * 0.5 : this.options.chunkMs);
       }
@@ -271,6 +275,7 @@
       this.emit({ serverContent: { generationComplete: true } }, { generationId: generation.id });
       this.emit({ serverContent: { turnComplete: true } }, { generationId: generation.id });
       this.entry({ dir: "model", type: "generation_complete", generationId: generation.id });
+      if (laggingPiece) setTimeout(() => this.emit({ serverContent: { outputTranscription: { text: `${laggingPiece} ` } } }, { generationId: generation.id, text: laggingPiece, lagging: true }), this.options.transcriptLagMs);
     }
     goAway(timeLeft = "10s") { this.emit({ goAway: { timeLeft } }, { timeLeft }); }
     dropConnection() { const socket = this.active; if (!socket) return false; socket.readyState = 3; this.detach(socket); setTimeout(() => socket.onclose?.({ code: 1006, reason: "simulated_drop" }), 0); return true; }

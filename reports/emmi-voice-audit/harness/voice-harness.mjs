@@ -187,7 +187,7 @@ export class SessionRecorder {
   }
   // A spoken patient turn: declare what the "ASR" hears and what the "model" answers, inject the
   // audio, then wait for EMMI to finish and measure everything the app made observable.
-  async speak({ text, durationMs, model = null, bargeIn = false, bargeInAfterMs = 900, screen = "", intent = "", action_requested = "", expect = {}, timeoutMs = 30000, waitIdleFirst = true, notes = "" }) {
+  async speak({ text, durationMs, model = null, bargeIn = false, bargeInAfterMs = 900, holdFloor = false, screen = "", intent = "", action_requested = "", expect = {}, timeoutMs = 30000, waitIdleFirst = true, notes = "" }) {
     const page = this.page;
     this.turnIndex += 1;
     const turn = { turn: this.turnIndex, kind: "speech", screen, patient_utterance: text, recognized_text: null, EMMI_response: null, EMMI_response_source: PROVIDER === "fake" ? "scripted double" : "gemini-live", conversation_context: {}, action_requested, action_result: null, navigation_result: null, problem_detected: [], severity: "", notes, intent, bargeIn };
@@ -207,9 +207,14 @@ export class SessionRecorder {
     const wallStart = Date.now();
     const speech = await page.evaluate(opts => window.__patientSpeak(opts), { durationMs: durationMs || Math.max(700, Math.round(text.split(/\s+/).length / 2.6 * 1000)), transcript: text, id: `t${this.turnIndex}` });
     turn.timing = { speech_started_at: speech.startedAt, speech_ended_at: speech.endsAt };
-    // Let the injected audio finish, then wait for the reply to drain.
+    // Let the injected audio finish, then wait for the reply to drain — or, when the next step is
+    // going to interrupt this reply, only until it has started playing.
     await wait(speech.durationMs + 50);
-    const finished = await waitForIdle(page, { timeoutMs });
+    let finished;
+    if (holdFloor) {
+      const speaking = await waitForState(page, ["EMMI_SPEAKING"], { timeoutMs });
+      finished = { idle: Boolean(speaking), probe: speaking || await voiceProbe(page), heldFloor: true };
+    } else finished = await waitForIdle(page, { timeoutMs });
     const after = await this.snapshot();
     this.analyseTurn(turn, before, after, speech, finished);
     turn.app_spoke_itself = this.ttsSince(wallStart);
@@ -218,7 +223,8 @@ export class SessionRecorder {
     turn.navigation_result = before.view?.viewId === after.view?.viewId ? "same view" : `${before.view?.viewId} → ${after.view?.viewId}`;
     if (expect.viewId && !String(after.view?.viewId || "").includes(expect.viewId)) turn.problem_detected.push(`expected view ${expect.viewId}, got ${after.view?.viewId}`);
     if (expect.contextBeforeAnswer && !turn.conversation_context.context_envelope_sent_before_answer) turn.problem_detected.push("the app sent no screen context to the provider before it answered this spoken turn");
-    if (!finished.idle) turn.problem_detected.push(`turn did not finish within ${timeoutMs} ms (state ${finished.probe?.state})`);
+    if (!finished.idle && !finished.heldFloor) turn.problem_detected.push(`turn did not finish within ${timeoutMs} ms (state ${finished.probe?.state})`);
+    if (finished.heldFloor) { turn.notes = `${turn.notes ? turn.notes + " " : ""}reply left playing for the next step to interrupt`; turn.timing.response_completion_latency_ms = null; }
     this.session.turns.push(turn);
     return turn;
   }
@@ -239,7 +245,9 @@ export class SessionRecorder {
     const toolResponses = log.filter(e => e.dir === "in" && e.type === "toolResponse");
     const contextTexts = log.filter(e => e.dir === "in" && e.type === "text" && e.contextEnvelope);
     const recoveryTexts = log.filter(e => e.dir === "in" && e.type === "text" && e.recovery);
-    const appFirstAudio = events.find(e => e.type === "EMMI_FIRST_AUDIO_CHUNK");
+    // The first audible audio of THIS turn: narration that was already playing when the patient started
+    // speaking (a screen change a moment earlier) must not be counted as the reply.
+    const appFirstAudio = events.find(e => e.type === "EMMI_FIRST_AUDIO_CHUNK" && Number(e.firstAudioReceivedAt) >= Number(speech.startedAt || 0));
     const drained = [...events].reverse().find(e => e.type === "EMMI_AUDIO_TURN_DRAINED");
     const bargeIn = events.find(e => e.type === "EMMI_BARGE_IN");
     const localSpeechEnd = events.find(e => e.type === "EMMI_PATIENT_SPEECH_ENDED");

@@ -81,12 +81,16 @@ server RAG on `gemini-2.5-flash`) sharing the visible thread and a 12-turn conve
 3. **Real application probes** in Chromium (`harness/baseline-probes.mjs`): voice activation without
    a provider, every appointment/transportation/reschedule/companion/video/topics/enrollment/My Care
    view, tool results, the action gate, and the deterministic chat path.
-4. **Voice sessions on the harness** (`harness/run-sessions.mjs`): 12 baseline sessions and 15
-   regression sessions (the same 12 plus three new), eight patient profiles, Spanish primary, one
-   English enrollment session, with barge-ins, silences, corrections, multi-intent, topic switching,
-   safety mid-task, provider failures, a lagging transcript, a spoken language switch and a session
-   outliving its token. Patient speech is synthesized audio injected through the real capture
-   pipeline; the provider is the scripted double described in `harness/README.md`.
+4. **Voice sessions on the harness** (`harness/run-sessions.mjs`): 24 scripted conversations
+   (S01–S24), each run once on the pristine baseline commit and once on the fixed branch — ten of
+   them long (15–20 spoken turns), eight patient profiles, Spanish primary, English (S10, S22, and
+   the start of S14), Spanglish (S07, S20), a Haitian Creole sample (S23) — with barge-ins, silences,
+   corrections, change of mind, multi-intent, topic switching, safety mid-task, provider failures,
+   a lagging transcript, spoken language switches and a session outliving its token. Patient speech
+   is synthesized audio injected through the real capture pipeline; the provider is the scripted
+   double described in `harness/README.md`. Sessions S03 and S10 were re-run on the baseline after a
+   harness fix (the first barge-in script interrupted a silent EMMI); the re-run replaced the first
+   result.
 5. **Historical production evidence** (real Gemini Live, 2026-08-30) for model-layer behaviour.
 
 Latency vocabulary: **T1** end of patient speech, **T2** first audible EMMI audio, **T3** audio
@@ -97,30 +101,31 @@ VERY POOR > 4 s.
 
 | Profile | Style | Sessions |
 |---|---|---|
-| A | Older adult, answers with one or two words ("Sí.", "Esa.", "Gracias.") | S01, S09, S13 |
-| B | Talks a lot, information out of order | S04, S11 |
-| C | Gets confused easily ("No sé qué tengo que hacer", "Mi hija me dijo…") | S02, S12 |
-| D | Changes their mind | S05 |
+| A | Older adult, answers with one or two words ("Sí.", "Esa.", "Gracias."), long pauses | S01, S09, S13, S21, S23 |
+| B | Talks a lot, information out of order | S04, S11, S19 |
+| C | Gets confused easily ("No sé qué tengo que hacer", "¿Eh? No entendí", "Mi hija me dijo…") | S02, S12, S16 |
+| D | Changes their mind | S05, S22 |
 | E | Interrupts frequently | S03 |
-| F | Spanglish ("No tengo ride", "Uso walker", "el appointment") | S07, S14 |
-| G | Asks many questions before deciding | S06, S10, S15 |
-| H | Wants to finish fast, multi-intent | S08 |
+| F | Spanglish ("No tengo ride", "Uso walker", "el appointment", "Book that one") | S07, S14, S20 |
+| G | Asks many questions before deciding | S06, S10, S15, S17, S24 |
+| H | Wants to finish fast, multi-intent | S08, S18 |
 
 ## 5. Conversation Coverage
 
 | Flow | Sessions | What was exercised |
 |---|---|---|
-| Transportation (offer → pickup → needs → time → search → options → review → booked → return) | S01, S02, S03, S08, S11 | EMMI-driven navigation by tool calls, patient-driven navigation by taps, ordinals, "la más barata", "la que tiene más espacio", confirmation gate, background booking |
-| Appointment topics | S04, S11 | Anaphora ("son", "eso", "ese"), list, remove last, correction, ordinal read, topic switch and return |
-| Reschedule | S05 | Slots as choices with dates, "la del jueves", retraction, "¿seguro que no cambió nada?" |
-| Companion | S06 | Who can come, privacy, "¿Y la otra?", invitation gate, multi-intent |
-| Video visit | S12 | Device check results, step-by-step help, recheck |
-| Enrollment (EN) | S10 | Barge-in on the welcome, cost via tool, screens EMMI may not press, "do it later" |
-| My Care hub | all (start screen) | Voice start, first spoken turn, navigation |
-| Spanglish / language | S07, S14 | Guard behaviour, explicit and implicit language switch |
-| Safety mid-task | S08 | Chest pain during transportation, emergency tool, resume task |
-| Silence / recovery | S09 | 12 s silence, no transcript, stalled provider |
+| Transportation (offer → pickup → needs → time → search → options → review → booked → return / cancel) | S01, S02, S03, S08, S11, S16, S20, S22 | EMMI-driven navigation by tool calls, patient-driven navigation by taps, ordinals, "la más barata", "la que tiene más espacio", "la que llega más temprano", confirmation gate, background booking, return trip, cancel through the destructive gate, rebook |
+| Appointment topics | S04, S11, S19 | Anaphora ("son", "eso", "ese", "el segundo", "el de la rodilla"), list, remove last, correction, ordinal read, topic switch and return |
+| Reschedule | S05, S18 | Slots as choices with dates, "la del jueves", "mejor por la tarde", retraction, "¿seguro que no cambió nada?", confirmation |
+| Companion | S06, S18, S20 | Who can come, privacy, "¿Y la otra?", invitation gate, second intent, Spanglish |
+| Video visit | S12, S21 | Device check results, step-by-step help, recheck, one-word answers with long silences, an inaudible turn mid-task |
+| Enrollment | S10 (EN), S17 (ES, full journey) | Barge-in on the welcome, cost via tool, screens EMMI may not press, "do it later", invitation → who is completing → identity typed → care → eligibility → consent → enrolled → care setup |
+| My Care hub | S24 and every session's start | Next step, goals, care team, next appointment, medications, monitor, a home reading with a symptom, "Abre mi cita" |
+| Spanglish / language | S07, S14, S20, S23 | Guard behaviour, explicit and implicit language switch, Kreyòl session |
+| Safety mid-task | S08, S24 | Chest pain during transportation, a 150/95 reading with headache, emergency tool, resume task |
+| Silence / recovery | S09, S21 | 12 s silence, no transcript, stalled provider, "¿sigues ahí?" |
 | Session lifetime | S15 | Rotation across the token limit |
+| Confusion / repetition | S02, S16, S21 | "No entendí", "¿Qué me dijiste?", "Más despacio", "¿Eh?", known data asked back |
 
 {{BASELINE_TURN_COUNTS}}
 

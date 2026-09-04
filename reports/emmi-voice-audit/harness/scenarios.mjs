@@ -27,7 +27,7 @@ const P = {
   afterReschedule: `const v = view || {}; const done = (v.alreadyDone || []).join(" "); return /cambiada|moved/i.test(done) ? "Listo. La cita cambió." : \`Estoy cambiando la cita. \${(v.stillPending || [])[0] || ""}\`;`,
   companions: `const c = (view?.choices || []); return c.length ? \`Puede pedírselo a \${c.map(x => x.label + (x.relationship ? " (" + x.relationship + ")" : "")).join(" o a ")}. ¿A quién?\` : "No veo a nadie en su Círculo de cuidado.";`,
   afterCompanionSelect: `const v = view || {}; return \`Elegí a \${v.selected?.label || "esa persona"}. La invitación no se envía hasta que confirme.\`;`,
-  afterSend: `const v = view || {}; const done = (v.alreadyDone || []).join(" "); return /enviada|sent/i.test(done) ? "Listo. La invitación fue enviada." : \`Estoy enviando la invitación. \${(v.stillPending || [])[0] || ""}\`;`
+  afterSend: `const v = view || {}; const done = (v.alreadyDone || []).join(" "); return /enviada|sent|dijo que s[ií]|acompañar|said yes|will come/i.test(done) ? \`Listo. La invitación fue enviada. \${done}\` : \`Estoy enviando la invitación. \${(v.stillPending || [])[0] || ""}\`;`
 };
 const describe = policy => ({ toolCalls: [{ name: "describeCurrentView", args: {}, then: policy }] });
 const act = (args, policy) => ({ toolCalls: [{ name: "performViewAction", args, then: policy }] });
@@ -108,16 +108,16 @@ export const SCENARIOS = [
       { navigate: { selector: '[data-action="barrier-needs-continue"]', label: "Continuar" } },
       { navigate: { selector: '[data-action="barrier-time-accept"]', label: "Buscar vehículos" } },
       { silence: { ms: 2500, label: "search in progress" } },
-      { speak: { text: "Explícame todas las opciones.", model: { text: "Claro. Encontré tres opciones. La primera es UberX, un vehículo estándar por veintisiete dólares con noventa y cinco, que le recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, por cuarenta y un dólares con sesenta y ocho, y le recoge a las nueve cuarenta. La tercera es Uber WAV, accesible en silla de ruedas, por treinta y tres dólares, y le recoge a las nueve treinta y cinco. Todas llegan antes de las diez y diez." } } },
+      { speak: { text: "Explícame todas las opciones.", holdFloor: true, model: { text: "Claro. Encontré tres opciones. La primera es UberX, un vehículo estándar por veintisiete dólares con noventa y cinco, que le recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, por cuarenta y un dólares con sesenta y ocho, y le recoge a las nueve cuarenta. La tercera es Uber WAV, accesible en silla de ruedas, por treinta y tres dólares, y le recoge a las nueve treinta y cinco. Todas llegan antes de las diez y diez." } } },
       { speak: { text: "Espera.", bargeIn: true, bargeInAfterMs: 1200, model: { text: "Claro, dígame." } } },
       { speak: { text: "No, quiero otra cosa. ¿Cuál tiene más espacio?", model: describe(P.moreRoom) } },
-      { speak: { text: "Explícame las tres otra vez, despacio.", model: { text: "Con gusto. La primera es UberX, vehículo estándar, veintisiete noventa y cinco, recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, cuarenta y uno sesenta y ocho, recoge a las nueve cuarenta. La tercera es Uber WAV, accesible, treinta y tres dólares, recoge a las nueve treinta y cinco." } } },
+      { speak: { text: "Explícame las tres otra vez, despacio.", holdFloor: true, model: { text: "Con gusto. La primera es UberX, vehículo estándar, veintisiete noventa y cinco, recoge a las nueve cuarenta y cinco. La segunda es UberXL, con más espacio, cuarenta y uno sesenta y ocho, recoge a las nueve cuarenta. La tercera es Uber WAV, accesible, treinta y tres dólares, recoge a las nueve treinta y cinco." } } },
       { speak: { text: "Sí, ya entendí. La segunda.", bargeIn: true, bargeInAfterMs: 1500, model: act({ optionRef: "2" }, P.afterSelect), expect: { viewId: "REVIEW" } } },
-      { speak: { text: "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?", model: { text: "Puedo reservarla ahora. Antes de hacerlo: le recogería a las nueve cuarenta en su casa, y el costo estimado es cuarenta y un dólares con sesenta y ocho. ¿Confirma?" } } },
+      { speak: { text: "¿Y me la puedes reservar ahora mismo o tengo que hacer algo más?", holdFloor: true, model: { text: "Puedo reservarla ahora. Antes de hacerlo: le recogería a las nueve cuarenta en su casa, y el costo estimado es cuarenta y un dólares con sesenta y ocho. ¿Confirma?" } } },
       { speak: { text: "Para.", bargeIn: true, bargeInAfterMs: 1000, model: { text: "De acuerdo, me detengo." } } },
       { speak: { text: "Me equivoqué. Quiero volver a las opciones.", model: act({ actionId: "barrier-back" }, P.whatHere) } },
       { speak: { text: "Mejor la primera.", model: act({ optionRef: "1" }, P.afterSelect) } },
-      { speak: { text: "Ok, resérvala.", model: { text: "Antes de reservar: UberX, le recoge a las nueve cuarenta y cinco, veintisiete noventa y cinco. ¿Confirma?" } } },
+      { speak: { text: "Ok, resérvala.", holdFloor: true, model: { text: "Antes de reservar: UberX, le recoge a las nueve cuarenta y cinco, veintisiete noventa y cinco. ¿Confirma?" } } },
       { speak: { text: "Sí.", bargeIn: true, bargeInAfterMs: 900, model: act({ actionId: "barrier-reserve-confirm", confirmed: true }, P.afterConfirm) } },
       { silence: { ms: 3000, label: "booking completes" } },
       { speak: { text: "¿Ya quedó?", model: describe(P.isBooked) } }
@@ -182,7 +182,7 @@ export const SCENARIOS = [
       { speak: { text: "Invita a María y después muéstrame la cita.", model: act({ optionRef: "1" }, `const v = view || {}; return \`Elegí a \${v.selected?.label || "María"}. Antes de enviar la invitación, ¿confirma que se la mande? Después le muestro la cita.\`;`) } },
       { speak: { text: "Sí, mándala.", model: { toolCalls: [{ name: "performViewAction", args: { actionId: "barrier-companion-send", confirmed: true }, then: P.afterSend }] } } },
       { silence: { ms: 3000, label: "invitation sending" } },
-      { speak: { text: "¿Se envió?", model: describe(`const v = view || {}; const done = (v.alreadyDone || []).join(" "); return /enviada|sent/i.test(done) ? "Sí, la invitación se envió y está esperando respuesta." : \`Todavía no. \${(v.stillPending || [])[0] || ""}\`;`) } },
+      { speak: { text: "¿Se envió?", model: describe(`const v = view || {}; const done = (v.alreadyDone || []).join(" "); return /enviada|sent|dijo que s[ií]|acompañar|said yes|will come/i.test(done) ? \`Sí. \${done}\` : \`Todavía no. \${(v.stillPending || [])[0] || ""}\`;`) } },
       { speak: { text: "Ahora enséñame la cita.", model: act({ actionId: "barrier-close" }, P.whatHere), expect: { viewId: "APPOINTMENT_CONFIRMED" } } },
       { speak: { text: "¿Con qué médico es?", model: describe(`const f = (view?.onScreen || []).find(x => x.Doctor); return f ? \`Con \${f.Doctor}.\` : "No veo el médico en pantalla.";`) } },
       { speak: { text: "¿A qué hora?", model: describe(`const f = (view?.onScreen || []).find(x => x.Hora); const d = (view?.onScreen || []).find(x => x.Fecha); return f ? \`El \${d?.Fecha || ""} a las \${f.Hora}.\` : "No veo la hora.";`) } }
@@ -258,6 +258,7 @@ export const SCENARIOS = [
     flow: "enrollment: Home → who is completing → identity → care recommendation, with questions and a barge-in on the welcome",
     url: "/?scenario=access-happy",
     seed: null,
+    startBargeIn: true,
     notes: "Screen narration is spoken through the TTS route; the patient interrupts it and asks about the screens while moving by hand.",
     steps: [
       { speak: { text: "Wait. What is ACCESS?", bargeIn: true, bargeInAfterMs: 2500, model: { text: "ACCESS is a Medicare care option that gives you extra support between doctor visits. Your doctors stay the same." } } },
@@ -317,7 +318,7 @@ export const SCENARIOS = [
     seed: appt => ({ language: ES, appointments: [appt({ modality: "TELEHEALTH", joinUrl: "https://example.invalid/visit" })] }),
     steps: [
       { navigate: { selector: '[data-action="appointment-open"]', label: "open the appointment" } },
-      { speak: { text: "No sé cómo entrar a la visita por video.", model: { toolCalls: [{ name: "performViewAction", args: { actionId: "appointment-open-barrier" } }, { name: "performViewAction", args: { optionRef: "4" } }, { name: "performViewAction", args: { actionId: "barrier-video-start" }, then: `return "Estoy revisando el micrófono, la cámara, la conexión y el enlace de la visita.";` }] } } },
+      { speak: { text: "No sé cómo entrar a la visita por video.", model: { toolCalls: [{ name: "performViewAction", args: { actionId: "appointment-open-barrier" } }, { name: "performViewAction", args: { optionRef: "2" } }, { name: "performViewAction", args: { actionId: "barrier-video-start" }, then: `return "Estoy revisando el micrófono, la cámara, la conexión y el enlace de la visita.";` }] } } },
       { silence: { ms: 3000, label: "device check" } },
       { speak: { text: "¿Qué falta?", model: describe(`const p = view?.stillPending || []; return p.length ? \`Falta: \${p.join("; ")}. ¿Quiere que le guíe paso a paso?\` : "No falta nada.";`) } },
       { speak: { text: "Sí.", model: act({ actionId: "barrier-video-guide" }, P.whatHere) } },
@@ -404,3 +405,5 @@ export const SCENARIOS = [
     ]
   }
 ];
+
+export { P, describe, act, seedVisit, ES, EN };

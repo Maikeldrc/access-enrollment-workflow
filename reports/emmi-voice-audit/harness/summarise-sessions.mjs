@@ -24,6 +24,7 @@ const summary = {
   spoken_turns: speech.length,
   total_turns: sessions.reduce((n, s) => n + s.turns.length, 0),
   long_sessions_15_plus_turns: sessions.filter(s => s.turns.length >= 15).length,
+  long_sessions_15_plus_spoken_turns: sessions.filter(s => s.turns.filter(t => t.kind === "speech").length >= 15).length,
   response_start: { p50: percentile(starts, 0.5), p95: percentile(starts, 0.95), min: Math.min(...starts), max: Math.max(...starts), avg: Math.round(starts.reduce((a, b) => a + b, 0) / Math.max(1, starts.length)), perceived_p50: classifyLatency(percentile(starts, 0.5)) },
   provider_vad_window: { p50: percentile(vad, 0.5), p95: percentile(vad, 0.95) },
   app_overhead_first_chunk_to_audible: { p50: percentile(overhead, 0.5), p95: percentile(overhead, 0.95), max: Math.max(...overhead) },
