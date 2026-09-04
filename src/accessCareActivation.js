@@ -58,8 +58,10 @@ const uniqueGoals = types => [...new Set(types.filter(Boolean))];
 
 // Assignment is derived from the offer, never stored as a patient choice. A patient cannot add,
 // remove or decline an assigned ACCESS goal, so nothing here reads a selection.
-export function assignedAccessGoals(offer = {}) {
-  if (offer.pathway !== "ACCESS") return [];
+// The offer is null until eligibility resolves, and a default parameter only covers undefined, so
+// every caller that reads state.offer during OFFER_LOADING reached the property access on null.
+export function assignedAccessGoals(offer) {
+  if (!offer || offer.pathway !== "ACCESS") return [];
   const conditions = (offer.qualifyingConditions || []).map(condition => condition?.name).filter(Boolean);
   const fromConditions = conditions.flatMap(name => ASSIGNED_GOALS_BY_CONDITION[name] || []);
   const fromTrack = TRACK_WIDE_GOALS[offer.accessTrack] || [];

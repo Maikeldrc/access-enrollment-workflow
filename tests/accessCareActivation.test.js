@@ -9,6 +9,14 @@ describe("assigned ACCESS health goals", () => {
     expect(assignedAccessGoals(hypertensionOffer)).toEqual(["BLOOD_PRESSURE_CONTROL", "WEIGHT_MANAGEMENT"]);
   });
 
+  // The offer is null while eligibility is still resolving, and every screen that reads it renders
+  // in that window. Asking for the assigned goals then is a question with a real answer: none yet.
+  it("answers with no goals while the offer is still null", () => {
+    expect(assignedAccessGoals(null)).toEqual([]);
+    expect(assignedAccessGoals(undefined)).toEqual([]);
+    expect(isAssignedAccessGoal(null, "BLOOD_PRESSURE_CONTROL")).toBe(false);
+  });
+
   // Section 20: ACCESS may still collect HbA1c and LDL-C as baseline clinical data, but presenting
   // them as this patient's health goals invents a condition they do not have.
   it("does not present HbA1c or LDL as goals for a patient without those conditions", () => {
