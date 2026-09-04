@@ -1,0 +1,5120 @@
+{
+  "session_id": "S08-safety-mid-task-es",
+  "patient_profile": "H (quiere completar todo rápido)",
+  "language": "es",
+  "flow": "transportation task interrupted by a chest-pain report",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "Safety priority must win over the task; the recovery prompt wording is also captured.",
+  "startedAt": "2026-09-04T21:20:40.262Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Rápido, necesito transporte para la cita y también quiero cambiar la hora.",
+      "recognized_text": "Rápido, necesito transporte para la cita y también quiero cambiar la hora.",
+      "EMMI_response": "Empecemos con el transporte y después vemos la hora. ¿Le recogemos en su casa, 123 Oak Avenue?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@132",
+          "EMMI_THINKING@5788",
+          "TOOL_RUNNING@6371",
+          "EMMI_SPEAKING@6458",
+          "LISTENING@13632"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-open-barrier"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "appointment-open-barrier",
+              "label": "Algo lo dificulta",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "APPOINTMENT_PRE_VISIT_CHECK",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "¿Hay algo que pueda dificultar llegar a esta visita?",
+              "whatThePatientMustDoHere": "Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "ALL_SET",
+                  "label": "Todo listo",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 2,
+                  "id": "TRANSPORTATION",
+                  "label": "Transporte",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 3,
+                  "id": "CAREGIVER_AVAILABILITY",
+                  "label": "Necesito acompañante",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 4,
+                  "id": "TIME_CONFLICT",
+                  "label": "Necesito cambiar la hora",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 5,
+                  "id": "OTHER",
+                  "label": "Otra cosa",
+                  "detail": "",
+                  "selected": false
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "2"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "TRANSPORTATION",
+              "label": "Transporte",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_OFFER",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Decida si quiere que busque un viaje para esta cita.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "OFFER",
+                "stepNumber": 1,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-accept",
+                  "label": "Sí, buscar transporte",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-decline",
+                  "label": "No por ahora",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-accept"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-accept",
+              "label": "Sí, buscar transporte",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "PICKUP",
+                "stepNumber": 2,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "HOME",
+                  "label": "Casa",
+                  "detail": "123 Oak Avenue, Apt 4B · Miami, FL 33176",
+                  "selected": true
+                }
+              ],
+              "selected": {
+                "id": "HOME",
+                "label": "Casa",
+                "detail": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+              },
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-back",
+                  "label": "Volver al paso anterior",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-pickup-home",
+                  "label": "Usar la dirección de casa",
+                  "kind": "SELECT"
+                },
+                {
+                  "id": "barrier-pickup-other",
+                  "label": "Usar otra dirección",
+                  "kind": "INPUT"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "APPOINTMENT_CONFIRMED → BARRIER_TRANSPORTATION_PICKUP",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 26733,
+        "speech_ended_at": 31348,
+        "provider_speech_end_detected_at": 32484,
+        "provider_vad_window_ms": 1136,
+        "provider_first_chunk_at": 33130,
+        "app_first_audio_at": 33136,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 31348,
+        "T2_first_audible_response": 33136,
+        "T3_response_complete": 40359,
+        "response_start_latency_ms": 1788,
+        "response_completion_latency_ms": 9011,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1152,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_PICKUP",
+      "patient_utterance": "Sí, y también tengo dolor fuerte en el pecho ahora.",
+      "recognized_text": "Sí, y también tengo dolor fuerte en el pecho ahora.",
+      "EMMI_response": "Esto puede ser una emergencia. Llame al 911 ahora mismo. El transporte puede esperar.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "choices": [
+            "Casa"
+          ],
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@104",
+          "EMMI_THINKING@5044",
+          "EMMI_SPEAKING@5653",
+          "LISTENING@11630"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "evaluateClinicalEscalation",
+          "args": {
+            "systolic": 0,
+            "diastolic": 0,
+            "symptoms": "dolor fuerte en el pecho ahora"
+          },
+          "result": {
+            "severity": "EMERGENCY",
+            "instruction": "CALL_911",
+            "clinicalState": "DATA_QUALITY_ISSUE",
+            "ruleId": "demo-bp-monitoring-v1",
+            "ruleVersion": "demo-bp-monitoring-v1",
+            "policy": "PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE"
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 42066,
+        "speech_ended_at": 45912,
+        "provider_speech_end_detected_at": 47130,
+        "provider_vad_window_ms": 1218,
+        "provider_first_chunk_at": 47701,
+        "app_first_audio_at": 47704,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 45912,
+        "T2_first_audible_response": 47704,
+        "T3_response_complete": 53629,
+        "response_start_latency_ms": 1792,
+        "response_completion_latency_ms": 7717,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1179,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_PICKUP",
+      "patient_utterance": "Ya llamé, estoy bien. Sigamos con el transporte.",
+      "recognized_text": "Ya llamé, estoy bien. Sigamos con el transporte.",
+      "EMMI_response": "Me alegra que esté bien. Si el dolor vuelve, llame al 911 de nuevo. Seguimos: ¿le recogemos en su casa?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "choices": [
+            "Casa"
+          ],
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@168",
+          "EMMI_THINKING@4297",
+          "EMMI_SPEAKING@4868",
+          "LISTENING@13453"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 55338,
+        "speech_ended_at": 58415,
+        "provider_speech_end_detected_at": 59612,
+        "provider_vad_window_ms": 1197,
+        "provider_first_chunk_at": 60165,
+        "app_first_audio_at": 60171,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 58415,
+        "T2_first_audible_response": 60171,
+        "T3_response_complete": 68713,
+        "response_start_latency_ms": 1756,
+        "response_completion_latency_ms": 10298,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1199,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_PICKUP",
+      "patient_utterance": "Sí.",
+      "recognized_text": "Sí.",
+      "EMMI_response": "Elija la ayuda especial que necesite para el viaje y continúe.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_PICKUP",
+          "task": "Confirme dónde debe recogerle el vehículo, o indique otra dirección.",
+          "choices": [
+            "Casa"
+          ],
+          "selected": "Casa",
+          "pending": [],
+          "done": []
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@185",
+          "EMMI_THINKING@1927",
+          "TOOL_RUNNING@2504",
+          "EMMI_SPEAKING@2601",
+          "LISTENING@7162"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_NEEDS",
+          "task": "Elija la ayuda especial que necesite para el viaje y continúe.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-pickup-home"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-pickup-home",
+              "label": "Usar la dirección de casa",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_NEEDS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Elija la ayuda especial que necesite para el viaje y continúe.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "NEEDS",
+                "stepNumber": 3,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "NONE",
+                  "label": "No, ninguna",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 2,
+                  "id": "CANE_WALKER",
+                  "label": "Uso bastón o andador",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 3,
+                  "id": "WHEELCHAIR",
+                  "label": "Uso silla de ruedas",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 4,
+                  "id": "COMPANION_RIDING",
+                  "label": "Viajará alguien conmigo",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 5,
+                  "id": "HELP_IN_OUT",
+                  "label": "Necesito ayuda para entrar o salir del vehículo",
+                  "detail": "",
+                  "selected": false
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Dirección de recogida confirmada"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-needs-continue",
+                  "label": "Continuar",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-back",
+                  "label": "Volver a la dirección de recogida",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_PICKUP → BARRIER_TRANSPORTATION_NEEDS",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 70422,
+        "speech_ended_at": 71122,
+        "provider_speech_end_detected_at": 72338,
+        "provider_vad_window_ms": 1216,
+        "provider_first_chunk_at": 72927,
+        "app_first_audio_at": 72930,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 71122,
+        "T2_first_audible_response": 72930,
+        "T3_response_complete": 77563,
+        "response_start_latency_ms": 1808,
+        "response_completion_latency_ms": 6441,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1215,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_NEEDS",
+      "patient_utterance": "Ninguna ayuda. Busca ya.",
+      "recognized_text": "Ninguna ayuda. Busca ya.",
+      "EMMI_response": "Buscando vehículos.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_NEEDS",
+          "task": "Elija la ayuda especial que necesite para el viaje y continúe.",
+          "choices": [
+            "No, ninguna",
+            "Uso bastón o andador",
+            "Uso silla de ruedas",
+            "Viajará alguien conmigo",
+            "Necesito ayuda para entrar o salir del vehículo"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@118",
+          "EMMI_THINKING@2839",
+          "TOOL_RUNNING@3435",
+          "EMMI_SPEAKING@4236",
+          "LISTENING@5150"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "1"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "NONE",
+              "label": "No, ninguna",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_NEEDS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Elija la ayuda especial que necesite para el viaje y continúe.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "NEEDS",
+                "stepNumber": 3,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "NONE",
+                  "label": "No, ninguna",
+                  "detail": "",
+                  "selected": true
+                },
+                {
+                  "n": 2,
+                  "id": "CANE_WALKER",
+                  "label": "Uso bastón o andador",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 3,
+                  "id": "WHEELCHAIR",
+                  "label": "Uso silla de ruedas",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 4,
+                  "id": "COMPANION_RIDING",
+                  "label": "Viajará alguien conmigo",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 5,
+                  "id": "HELP_IN_OUT",
+                  "label": "Necesito ayuda para entrar o salir del vehículo",
+                  "detail": "",
+                  "selected": false
+                }
+              ],
+              "selected": {
+                "id": "NONE",
+                "label": "No, ninguna",
+                "detail": ""
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-needs-continue",
+                  "label": "Continuar",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-back",
+                  "label": "Volver a la dirección de recogida",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-needs-continue"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-needs-continue",
+              "label": "Continuar",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_TIME",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Revise la hora de recogida sugerida y busque vehículos, o elija otra hora.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "TIME",
+                "stepNumber": 4,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "1:45 p. m."
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-time-accept",
+                  "label": "Buscar vehículos",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-time-change",
+                  "label": "Elegir otra hora de recogida",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-back",
+                  "label": "Volver a las necesidades del viaje",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-time-accept"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-time-accept",
+              "label": "Buscar vehículos",
+              "kind": "NAVIGATE"
+            },
+            "backgroundWork": "COMPLETED",
+            "waitedMs": 766,
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "OPTIONS",
+                "stepNumber": 6,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "1:45 p. m."
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "STANDARD_1788803100000",
+                  "label": "UberX",
+                  "detail": "Vehículo estándar · $27.95 · 1:45 p. m.",
+                  "selected": false,
+                  "pickupTime": "1:45 p. m.",
+                  "arrivesAbout": "2:10 p. m.",
+                  "estimatedCost": "$27.95",
+                  "estimatedCostValue": 27.95,
+                  "seats": 3,
+                  "wheelchairAccessible": "false"
+                },
+                {
+                  "n": 2,
+                  "id": "EXTRA_ROOM_1788802800000",
+                  "label": "UberXL",
+                  "detail": "Más espacio · $41.68 · 1:40 p. m.",
+                  "selected": false,
+                  "pickupTime": "1:40 p. m.",
+                  "arrivesAbout": "2:06 p. m.",
+                  "estimatedCost": "$41.68",
+                  "estimatedCostValue": 41.68,
+                  "seats": 5,
+                  "wheelchairAccessible": "false"
+                },
+                {
+                  "n": 3,
+                  "id": "ACCESSIBLE_1788802500000",
+                  "label": "Uber WAV",
+                  "detail": "Accesible en silla de ruedas · $33.00 · 1:35 p. m.",
+                  "selected": false,
+                  "pickupTime": "1:35 p. m.",
+                  "arrivesAbout": "1:59 p. m.",
+                  "estimatedCost": "$33.00",
+                  "estimatedCostValue": 33,
+                  "seats": 2,
+                  "wheelchairAccessible": "true"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida"
+              ],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-back",
+                  "label": "Volver a la hora de recogida",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_NEEDS → BARRIER_TRANSPORTATION_OPTIONS",
+      "problem_detected": [
+        "response start 2691 ms"
+      ],
+      "severity": "P2",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 79301,
+        "speech_ended_at": 80839,
+        "provider_speech_end_detected_at": 82104,
+        "provider_vad_window_ms": 1265,
+        "provider_first_chunk_at": 83526,
+        "app_first_audio_at": 83530,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 80839,
+        "T2_first_audible_response": 83530,
+        "T3_response_complete": 84373,
+        "response_start_latency_ms": 2691,
+        "response_completion_latency_ms": 3534,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1228,
+        "perceived": "POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 7,
+      "kind": "silence",
+      "label": "search",
+      "silence_ms": 2500,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 8,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_OPTIONS",
+      "patient_utterance": "La más barata y resérvala.",
+      "recognized_text": "La más barata y resérvala.",
+      "EMMI_response": "Seleccioné UberX. Para reservarla necesito su confirmación: Vehículo estándar · $27.95 · 1:45 p. m.. ¿Confirma?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+          "task": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+          "choices": [
+            "UberX",
+            "UberXL",
+            "Uber WAV"
+          ],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@115",
+          "EMMI_THINKING@3184",
+          "EMMI_SPEAKING@3882",
+          "LISTENING@10658"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "selected": "UberX",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_TRANSPORTATION_OPTIONS",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Coordinar transporte para la cita",
+            "whatThePatientMustDoHere": "Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.",
+            "flow": {
+              "id": "TRANSPORTATION",
+              "name": "Coordinar transporte para la cita",
+              "step": "OPTIONS",
+              "stepNumber": 6,
+              "totalSteps": 9
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              },
+              {
+                "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+              },
+              {
+                "Hora de recogida": "1:45 p. m."
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "STANDARD_1788803100000",
+                "label": "UberX",
+                "detail": "Vehículo estándar · $27.95 · 1:45 p. m.",
+                "selected": false,
+                "pickupTime": "1:45 p. m.",
+                "arrivesAbout": "2:10 p. m.",
+                "estimatedCost": "$27.95",
+                "estimatedCostValue": 27.95,
+                "seats": 3,
+                "wheelchairAccessible": "false"
+              },
+              {
+                "n": 2,
+                "id": "EXTRA_ROOM_1788802800000",
+                "label": "UberXL",
+                "detail": "Más espacio · $41.68 · 1:40 p. m.",
+                "selected": false,
+                "pickupTime": "1:40 p. m.",
+                "arrivesAbout": "2:06 p. m.",
+                "estimatedCost": "$41.68",
+                "estimatedCostValue": 41.68,
+                "seats": 5,
+                "wheelchairAccessible": "false"
+              },
+              {
+                "n": 3,
+                "id": "ACCESSIBLE_1788802500000",
+                "label": "Uber WAV",
+                "detail": "Accesible en silla de ruedas · $33.00 · 1:35 p. m.",
+                "selected": false,
+                "pickupTime": "1:35 p. m.",
+                "arrivesAbout": "1:59 p. m.",
+                "estimatedCost": "$33.00",
+                "estimatedCostValue": 33,
+                "seats": 2,
+                "wheelchairAccessible": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Dirección de recogida confirmada",
+              "Ayuda especial para el viaje respondida",
+              "Hora de recogida definida"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-back",
+                "label": "Volver a la hora de recogida",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "1"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "STANDARD_1788803100000",
+              "label": "UberX",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "REVIEW",
+                "stepNumber": 7,
+                "totalSteps": 9
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "1:45 p. m."
+                }
+              ],
+              "selected": {
+                "id": "STANDARD_1788803100000",
+                "label": "UberX",
+                "detail": "Vehículo estándar · $27.95 · 1:45 p. m."
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida"
+              ],
+              "stillPending": [
+                "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-back",
+                  "label": "Volver y cambiar la elección",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-reserve-confirm",
+                  "label": "Reservar este viaje",
+                  "kind": "CONFIRM",
+                  "effect": "Esto reserva el viaje"
+                }
+              ],
+              "notes": [
+                "Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado."
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_OPTIONS → BARRIER_TRANSPORTATION_REVIEW",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 88653,
+        "speech_ended_at": 90576,
+        "provider_speech_end_detected_at": 91829,
+        "provider_vad_window_ms": 1253,
+        "provider_first_chunk_at": 92451,
+        "app_first_audio_at": 92459,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 90576,
+        "T2_first_audible_response": 92459,
+        "T3_response_complete": 99293,
+        "response_start_latency_ms": 1883,
+        "response_completion_latency_ms": 8717,
+        "app_overhead_first_chunk_to_audible_ms": 8,
+        "local_speech_end_detected_ms_after_T1": 1221,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_REVIEW",
+      "patient_utterance": "Sí, confirmo.",
+      "recognized_text": "Sí, confirmo.",
+      "EMMI_response": "Listo. El viaje quedó reservado.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_REVIEW",
+          "task": "Revise el viaje. Solo se reserva cuando presione el botón de reservar.",
+          "choices": [],
+          "selected": "UberX",
+          "pending": [
+            "El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@124",
+          "EMMI_THINKING@2064",
+          "TOOL_RUNNING@2606",
+          "EMMI_SPEAKING@3416",
+          "LISTENING@5508"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "selected": "UberX",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-reserve-confirm",
+            "confirmed": true
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-reserve-confirm",
+              "label": "Reservar este viaje",
+              "kind": "CONFIRM"
+            },
+            "backgroundWork": "COMPLETED",
+            "waitedMs": 775,
+            "currentView": {
+              "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Coordinar transporte para la cita",
+              "whatThePatientMustDoHere": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+              "flow": {
+                "id": "TRANSPORTATION",
+                "name": "Coordinar transporte para la cita",
+                "step": "RETURN_OFFER",
+                "stepNumber": null,
+                "totalSteps": null
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                },
+                {
+                  "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+                },
+                {
+                  "Hora de recogida": "1:45 p. m."
+                },
+                {
+                  "Viaje reservado": "UberX · UB-57896"
+                }
+              ],
+              "selected": {
+                "id": "STANDARD_1788803100000",
+                "label": "UberX",
+                "detail": "Vehículo estándar · $27.95 · 1:45 p. m."
+              },
+              "alreadyDone": [
+                "Dirección de recogida confirmada",
+                "Ayuda especial para el viaje respondida",
+                "Hora de recogida definida",
+                "Viaje reservado"
+              ],
+              "stillPending": [
+                "Si también quiere transporte de regreso"
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-return-yes",
+                  "label": "Sí, coordinar el regreso",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-return-no",
+                  "label": "No",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-close",
+                  "label": "Volver a mi cita",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_TRANSPORTATION_REVIEW → BARRIER_TRANSPORTATION_RETURN_OFFER",
+      "problem_detected": [
+        "response start 2589 ms"
+      ],
+      "severity": "P2",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 100993,
+        "speech_ended_at": 101762,
+        "provider_speech_end_detected_at": 102994,
+        "provider_vad_window_ms": 1232,
+        "provider_first_chunk_at": 104346,
+        "app_first_audio_at": 104351,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 101762,
+        "T2_first_audible_response": 104351,
+        "T3_response_complete": 106443,
+        "response_start_latency_ms": 2589,
+        "response_completion_latency_ms": 4681,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1233,
+        "perceived": "POOR"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 10,
+      "kind": "silence",
+      "label": "booking",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 11,
+      "kind": "speech",
+      "screen": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+      "patient_utterance": "¿Listo? ¿Y la hora de la cita?",
+      "recognized_text": "¿Listo? ¿Y la hora de la cita?",
+      "EMMI_response": "El viaje quedó reservado. Para cambiar la hora de la cita, vuelvo a la cita y busco otros horarios. ¿Lo hago?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "choices": [],
+          "selected": "UberX",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@177",
+          "EMMI_THINKING@3913",
+          "EMMI_SPEAKING@4492",
+          "LISTENING@13450"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+          "task": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+          "selected": "UberX",
+          "pending": [
+            "Si también quiere transporte de regreso"
+          ],
+          "done": [
+            "Dirección de recogida confirmada",
+            "Ayuda especial para el viaje respondida",
+            "Hora de recogida definida",
+            "Viaje reservado"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_TRANSPORTATION_RETURN_OFFER",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Coordinar transporte para la cita",
+            "whatThePatientMustDoHere": "El viaje de ida está reservado. Decida si también quiere el regreso.",
+            "flow": {
+              "id": "TRANSPORTATION",
+              "name": "Coordinar transporte para la cita",
+              "step": "RETURN_OFFER",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              },
+              {
+                "Dirección de recogida": "123 Oak Avenue, Apt 4B · Miami, FL 33176"
+              },
+              {
+                "Hora de recogida": "1:45 p. m."
+              },
+              {
+                "Viaje reservado": "UberX · UB-57896"
+              }
+            ],
+            "selected": {
+              "id": "STANDARD_1788803100000",
+              "label": "UberX",
+              "detail": "Vehículo estándar · $27.95 · 1:45 p. m."
+            },
+            "alreadyDone": [
+              "Dirección de recogida confirmada",
+              "Ayuda especial para el viaje respondida",
+              "Hora de recogida definida",
+              "Viaje reservado"
+            ],
+            "stillPending": [
+              "Si también quiere transporte de regreso"
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-return-yes",
+                "label": "Sí, coordinar el regreso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-return-no",
+                "label": "No",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 111280,
+        "speech_ended_at": 113972,
+        "provider_speech_end_detected_at": 115173,
+        "provider_vad_window_ms": 1201,
+        "provider_first_chunk_at": 115754,
+        "app_first_audio_at": 115760,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 113972,
+        "T2_first_audible_response": 115760,
+        "T3_response_complete": 124728,
+        "response_start_latency_ms": 1788,
+        "response_completion_latency_ms": 10756,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1202,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T21:20:43.362Z",
+      "text": "voice start: state EMMI_SPEAKING, socket true, error \"\", 606 ms after tap"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788556843002,
+      "words": 53,
+      "seconds": 22.083333333333336,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó; su médico sigue en su cuidado. ACCESS es una opción de Medicare para más apoyo entre visitas, no para reemplazar a sus médicos. Participar es su decisión. Cuando esté listo, elija 'Comience su recorrido de cuidado'.",
+      "locale": "ES"
+    },
+    {
+      "at": 1788556866196,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    }
+  ],
+  "finishedAt": "2026-09-04T21:22:46.814Z",
+  "state_transitions": [
+    {
+      "t": 1691,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 2159,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 24225,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 25024,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 25854,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 26865,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 32521,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 33104,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 33191,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 40365,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 42170,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 47110,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 47719,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 53696,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 55506,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 59635,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 60206,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 68791,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 70607,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 72349,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 72926,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 73023,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 77584,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 79419,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 82140,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 82736,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 83537,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 84451,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 88768,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 91837,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 92535,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 99311,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 101117,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 103057,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 103599,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 104409,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 106501,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 111457,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 115193,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 115772,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 124730,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 32484,
+      "at": 1788556873688,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Rápido, necesito transporte para la cita y también quiero cambiar la hora."
+    },
+    {
+      "t": 32484,
+      "at": 1788556873688,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Rápido, necesito transporte para la cita y también quiero cambiar la hora."
+    },
+    {
+      "t": 32488,
+      "at": 1788556873693,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngl04d_e609",
+      "source": "audio",
+      "transcript": "Rápido, necesito transporte para la cita y también quiero cambiar la hora.",
+      "kind": "reply"
+    },
+    {
+      "t": 33048,
+      "at": 1788556874253,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "appointment-open-barrier"
+      }
+    },
+    {
+      "t": 33048,
+      "at": 1788556874253,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 33074,
+      "at": 1788556874279,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_4d6iy8\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"APPOINTMENT_PRE_VISIT_CHECK\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"¿Hay algo que pueda dificultar llegar a esta visita?\",\"whatThePatientMustDoHere\":\"Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"ALL_SET\",\"label\":\"Todo listo\",\"detail\":\"\",\"selected\":false},{\"n\":2,\"id\":\"TRANSPORTATION\",\"label\":\"Transporte\",\"detail\":\"\",\"selected\":false},{\"n\":3,\"id\":\"CAREGIVER_AVAILABILITY\",\"label\":\"Necesito acompañante\",\"detail\":\"\",\"selected\":false},{\"n\":4,\"id\":\"TIME_CONFLICT\",\"label\":\"Necesito cambiar la hora\",\"detail\":\"\",\"selected\":false},{\"n\":5,\"id\":\"OTHER\",\"label\":\"Otra cosa\",\"detail\":\"\",\"selected\":false}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 33077,
+      "at": 1788556874281,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "2"
+      }
+    },
+    {
+      "t": 33077,
+      "at": 1788556874281,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 33102,
+      "at": 1788556874306,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ykm5fb\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"TRANSPORTATION\",\"label\":\"Transporte\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Decida si quiere que busque un viaje para esta cita.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"OFFER\",\"stepNumber\":1,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-accept\",\"label\":\"Sí, buscar transporte\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-decline\",\"label\":\"No por ahora\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 33104,
+      "at": 1788556874309,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-accept"
+      }
+    },
+    {
+      "t": 33105,
+      "at": 1788556874309,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 33127,
+      "at": 1788556874331,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_073zky\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-accept\",\"label\":\"Sí, buscar transporte\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_PICKUP\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Confirme dónde debe recogerle el vehículo, o indique otra dirección.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"PICKUP\",\"stepNumber\":2,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"HOME\",\"label\":\"Casa\",\"detail\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\",\"selected\":true}],\"selected\":{\"id\":\"HOME\",\"label\":\"Casa\",\"detail\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-back\",\"label\":\"Volver al paso anterior\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-pickup-home\",\"label\":\"Usar la dirección de casa\",\"kind\":\"SELECT\"},{\"id\":\"barrier-pickup-other\",\"label\":\"Usar otra dirección\",\"kind\":\"INPUT\"}]}}}}]"
+    },
+    {
+      "t": 33130,
+      "at": 1788556874334,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "Empecemos con el transporte y después vemos la hora. ¿Le recogemos en su casa, 123 Oak Avenue?",
+      "seconds": 7.08,
+      "chunks": 30
+    },
+    {
+      "t": 33133,
+      "at": 1788556874338,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 1
+    },
+    {
+      "t": 33138,
+      "at": 1788556874342,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "Empecemos"
+    },
+    {
+      "t": 33261,
+      "at": 1788556874465,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 2
+    },
+    {
+      "t": 33263,
+      "at": 1788556874468,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "con"
+    },
+    {
+      "t": 33506,
+      "at": 1788556874711,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 3
+    },
+    {
+      "t": 33509,
+      "at": 1788556874713,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "el"
+    },
+    {
+      "t": 33754,
+      "at": 1788556874959,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 4
+    },
+    {
+      "t": 33756,
+      "at": 1788556874960,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "transporte"
+    },
+    {
+      "t": 34004,
+      "at": 1788556875208,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 5
+    },
+    {
+      "t": 34006,
+      "at": 1788556875210,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "y"
+    },
+    {
+      "t": 34251,
+      "at": 1788556875456,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 6
+    },
+    {
+      "t": 34254,
+      "at": 1788556875458,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "después"
+    },
+    {
+      "t": 34497,
+      "at": 1788556875701,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 7
+    },
+    {
+      "t": 34499,
+      "at": 1788556875703,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "vemos"
+    },
+    {
+      "t": 34754,
+      "at": 1788556875958,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 8
+    },
+    {
+      "t": 34756,
+      "at": 1788556875961,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "la"
+    },
+    {
+      "t": 35001,
+      "at": 1788556876206,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 9
+    },
+    {
+      "t": 35003,
+      "at": 1788556876208,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "hora."
+    },
+    {
+      "t": 35251,
+      "at": 1788556876455,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 10
+    },
+    {
+      "t": 35253,
+      "at": 1788556876457,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "¿Le"
+    },
+    {
+      "t": 35499,
+      "at": 1788556876704,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 11
+    },
+    {
+      "t": 35501,
+      "at": 1788556876706,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "recogemos"
+    },
+    {
+      "t": 35754,
+      "at": 1788556876959,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 12
+    },
+    {
+      "t": 35756,
+      "at": 1788556876961,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "en"
+    },
+    {
+      "t": 36001,
+      "at": 1788556877206,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 13
+    },
+    {
+      "t": 36004,
+      "at": 1788556877209,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "su"
+    },
+    {
+      "t": 36251,
+      "at": 1788556877455,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 14
+    },
+    {
+      "t": 36252,
+      "at": 1788556877457,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "casa,"
+    },
+    {
+      "t": 36501,
+      "at": 1788556877705,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 15
+    },
+    {
+      "t": 36502,
+      "at": 1788556877707,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "123"
+    },
+    {
+      "t": 36750,
+      "at": 1788556877955,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 16
+    },
+    {
+      "t": 36753,
+      "at": 1788556877957,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "Oak"
+    },
+    {
+      "t": 37000,
+      "at": 1788556878204,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 17
+    },
+    {
+      "t": 37001,
+      "at": 1788556878206,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "text": "Avenue?"
+    },
+    {
+      "t": 37247,
+      "at": 1788556878452,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 18
+    },
+    {
+      "t": 37497,
+      "at": 1788556878702,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 19
+    },
+    {
+      "t": 37741,
+      "at": 1788556878946,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 20
+    },
+    {
+      "t": 37988,
+      "at": 1788556879193,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 21
+    },
+    {
+      "t": 38237,
+      "at": 1788556879441,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 22
+    },
+    {
+      "t": 38481,
+      "at": 1788556879686,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 23
+    },
+    {
+      "t": 38730,
+      "at": 1788556879934,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 24
+    },
+    {
+      "t": 38981,
+      "at": 1788556880185,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 25
+    },
+    {
+      "t": 39231,
+      "at": 1788556880435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 26
+    },
+    {
+      "t": 39481,
+      "at": 1788556880685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 27
+    },
+    {
+      "t": 39731,
+      "at": 1788556880935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 28
+    },
+    {
+      "t": 39981,
+      "at": 1788556881185,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 29
+    },
+    {
+      "t": 40230,
+      "at": 1788556881434,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609",
+      "chunk": 30
+    },
+    {
+      "t": 40231,
+      "at": 1788556881435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609"
+    },
+    {
+      "t": 40231,
+      "at": 1788556881435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngl04d_e609"
+    },
+    {
+      "t": 40231,
+      "at": 1788556881435,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngl04d_e609"
+    },
+    {
+      "t": 42100,
+      "at": 1788556883304,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 47130,
+      "at": 1788556888335,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3780,
+      "speechLastAt": 45880
+    },
+    {
+      "t": 47130,
+      "at": 1788556888335,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí, y también tengo dolor fuerte en el pecho ahora."
+    },
+    {
+      "t": 47130,
+      "at": 1788556888335,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí, y también tengo dolor fuerte en el pecho ahora."
+    },
+    {
+      "t": 47133,
+      "at": 1788556888338,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnglbf5_dsft",
+      "source": "audio",
+      "transcript": "Sí, y también tengo dolor fuerte en el pecho ahora.",
+      "kind": "reply"
+    },
+    {
+      "t": 47685,
+      "at": 1788556888889,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "evaluateClinicalEscalation",
+      "args": {
+        "systolic": 0,
+        "diastolic": 0,
+        "symptoms": "dolor fuerte en el pecho ahora"
+      }
+    },
+    {
+      "t": 47685,
+      "at": 1788556888889,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "evaluateClinicalEscalation"
+    },
+    {
+      "t": 47688,
+      "at": 1788556888892,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_6qe66y\",\"name\":\"evaluateClinicalEscalation\",\"response\":{\"result\":{\"severity\":\"EMERGENCY\",\"instruction\":\"CALL_911\",\"clinicalState\":\"DATA_QUALITY_ISSUE\",\"ruleId\":\"demo-bp-monitoring-v1\",\"ruleVersion\":\"demo-bp-monitoring-v1\",\"policy\":\"PROTOTYPE_MOCK_RULES_NOT_FOR_CLINICAL_USE\"}}}]"
+    },
+    {
+      "t": 47701,
+      "at": 1788556888905,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "Esto puede ser una emergencia. Llame al 911 ahora mismo. El transporte puede esperar.",
+      "seconds": 5.83,
+      "chunks": 25
+    },
+    {
+      "t": 47702,
+      "at": 1788556888907,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 1
+    },
+    {
+      "t": 47705,
+      "at": 1788556888910,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "Esto"
+    },
+    {
+      "t": 47836,
+      "at": 1788556889040,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 2
+    },
+    {
+      "t": 47838,
+      "at": 1788556889043,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "puede"
+    },
+    {
+      "t": 48084,
+      "at": 1788556889289,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 3
+    },
+    {
+      "t": 48087,
+      "at": 1788556889291,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "ser"
+    },
+    {
+      "t": 48331,
+      "at": 1788556889536,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 4
+    },
+    {
+      "t": 48334,
+      "at": 1788556889538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "una"
+    },
+    {
+      "t": 48582,
+      "at": 1788556889787,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 5
+    },
+    {
+      "t": 48584,
+      "at": 1788556889788,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "emergencia."
+    },
+    {
+      "t": 48833,
+      "at": 1788556890037,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 6
+    },
+    {
+      "t": 48835,
+      "at": 1788556890039,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "Llame"
+    },
+    {
+      "t": 49081,
+      "at": 1788556890286,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 7
+    },
+    {
+      "t": 49083,
+      "at": 1788556890288,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "al"
+    },
+    {
+      "t": 49331,
+      "at": 1788556890536,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 8
+    },
+    {
+      "t": 49334,
+      "at": 1788556890538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "911"
+    },
+    {
+      "t": 49582,
+      "at": 1788556890786,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 9
+    },
+    {
+      "t": 49584,
+      "at": 1788556890788,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "ahora"
+    },
+    {
+      "t": 49839,
+      "at": 1788556891043,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 10
+    },
+    {
+      "t": 49841,
+      "at": 1788556891045,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "mismo."
+    },
+    {
+      "t": 50084,
+      "at": 1788556891289,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 11
+    },
+    {
+      "t": 50086,
+      "at": 1788556891291,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "El"
+    },
+    {
+      "t": 50331,
+      "at": 1788556891536,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 12
+    },
+    {
+      "t": 50333,
+      "at": 1788556891537,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "transporte"
+    },
+    {
+      "t": 50581,
+      "at": 1788556891786,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 13
+    },
+    {
+      "t": 50583,
+      "at": 1788556891788,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "puede"
+    },
+    {
+      "t": 50831,
+      "at": 1788556892035,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 14
+    },
+    {
+      "t": 50833,
+      "at": 1788556892037,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "text": "esperar."
+    },
+    {
+      "t": 51080,
+      "at": 1788556892285,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 15
+    },
+    {
+      "t": 51323,
+      "at": 1788556892527,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 16
+    },
+    {
+      "t": 51569,
+      "at": 1788556892774,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 17
+    },
+    {
+      "t": 51819,
+      "at": 1788556893024,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 18
+    },
+    {
+      "t": 52067,
+      "at": 1788556893271,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 19
+    },
+    {
+      "t": 52311,
+      "at": 1788556893515,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 20
+    },
+    {
+      "t": 52556,
+      "at": 1788556893760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 21
+    },
+    {
+      "t": 52801,
+      "at": 1788556894005,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 22
+    },
+    {
+      "t": 53051,
+      "at": 1788556894256,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 23
+    },
+    {
+      "t": 53302,
+      "at": 1788556894506,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 24
+    },
+    {
+      "t": 53550,
+      "at": 1788556894755,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft",
+      "chunk": 25
+    },
+    {
+      "t": 53552,
+      "at": 1788556894756,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft"
+    },
+    {
+      "t": 53552,
+      "at": 1788556894756,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnglbf5_dsft"
+    },
+    {
+      "t": 53552,
+      "at": 1788556894756,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnglbf5_dsft"
+    },
+    {
+      "t": 55390,
+      "at": 1788556896594,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 59612,
+      "at": 1788556900821,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 3011,
+      "speechLastAt": 58400
+    },
+    {
+      "t": 59612,
+      "at": 1788556900821,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ya llamé, estoy bien. Sigamos con el transporte."
+    },
+    {
+      "t": 59612,
+      "at": 1788556900821,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ya llamé, estoy bien. Sigamos con el transporte."
+    },
+    {
+      "t": 59614,
+      "at": 1788556900823,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngll1z_f3kl",
+      "source": "audio",
+      "transcript": "Ya llamé, estoy bien. Sigamos con el transporte.",
+      "kind": "reply"
+    },
+    {
+      "t": 60165,
+      "at": 1788556901374,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "Me alegra que esté bien. Si el dolor vuelve, llame al 911 de nuevo. Seguimos: ¿le recogemos en su casa?",
+      "seconds": 8.33,
+      "chunks": 35
+    },
+    {
+      "t": 60168,
+      "at": 1788556901377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 1
+    },
+    {
+      "t": 60173,
+      "at": 1788556901382,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "Me"
+    },
+    {
+      "t": 60299,
+      "at": 1788556901508,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 2
+    },
+    {
+      "t": 60301,
+      "at": 1788556901510,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "alegra"
+    },
+    {
+      "t": 60552,
+      "at": 1788556901760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 3
+    },
+    {
+      "t": 60554,
+      "at": 1788556901762,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "que"
+    },
+    {
+      "t": 60797,
+      "at": 1788556902006,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 4
+    },
+    {
+      "t": 60799,
+      "at": 1788556902008,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "esté"
+    },
+    {
+      "t": 61058,
+      "at": 1788556902267,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 5
+    },
+    {
+      "t": 61061,
+      "at": 1788556902270,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "bien."
+    },
+    {
+      "t": 61308,
+      "at": 1788556902517,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 6
+    },
+    {
+      "t": 61312,
+      "at": 1788556902520,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "Si"
+    },
+    {
+      "t": 61555,
+      "at": 1788556902764,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 7
+    },
+    {
+      "t": 61558,
+      "at": 1788556902766,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "el"
+    },
+    {
+      "t": 61802,
+      "at": 1788556903011,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 8
+    },
+    {
+      "t": 61804,
+      "at": 1788556903013,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "dolor"
+    },
+    {
+      "t": 62054,
+      "at": 1788556903263,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 9
+    },
+    {
+      "t": 62058,
+      "at": 1788556903267,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "vuelve,"
+    },
+    {
+      "t": 62305,
+      "at": 1788556903513,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 10
+    },
+    {
+      "t": 62306,
+      "at": 1788556903515,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "llame"
+    },
+    {
+      "t": 62555,
+      "at": 1788556903763,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 11
+    },
+    {
+      "t": 62560,
+      "at": 1788556903768,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "al"
+    },
+    {
+      "t": 62805,
+      "at": 1788556904013,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 12
+    },
+    {
+      "t": 62807,
+      "at": 1788556904015,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "911"
+    },
+    {
+      "t": 63051,
+      "at": 1788556904259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 13
+    },
+    {
+      "t": 63052,
+      "at": 1788556904261,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "de"
+    },
+    {
+      "t": 63303,
+      "at": 1788556904511,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 14
+    },
+    {
+      "t": 63307,
+      "at": 1788556904515,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "nuevo."
+    },
+    {
+      "t": 63551,
+      "at": 1788556904760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 15
+    },
+    {
+      "t": 63553,
+      "at": 1788556904762,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "Seguimos:"
+    },
+    {
+      "t": 63801,
+      "at": 1788556905010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 16
+    },
+    {
+      "t": 63803,
+      "at": 1788556905012,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "¿le"
+    },
+    {
+      "t": 64052,
+      "at": 1788556905260,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 17
+    },
+    {
+      "t": 64054,
+      "at": 1788556905263,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "recogemos"
+    },
+    {
+      "t": 64302,
+      "at": 1788556905510,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 18
+    },
+    {
+      "t": 64304,
+      "at": 1788556905513,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "en"
+    },
+    {
+      "t": 64550,
+      "at": 1788556905759,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 19
+    },
+    {
+      "t": 64551,
+      "at": 1788556905760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "su"
+    },
+    {
+      "t": 64800,
+      "at": 1788556906009,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 20
+    },
+    {
+      "t": 64802,
+      "at": 1788556906010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "text": "casa?"
+    },
+    {
+      "t": 65050,
+      "at": 1788556906259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 21
+    },
+    {
+      "t": 65296,
+      "at": 1788556906504,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 22
+    },
+    {
+      "t": 65547,
+      "at": 1788556906756,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 23
+    },
+    {
+      "t": 65801,
+      "at": 1788556907010,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 24
+    },
+    {
+      "t": 66051,
+      "at": 1788556907259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 25
+    },
+    {
+      "t": 66300,
+      "at": 1788556907509,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 26
+    },
+    {
+      "t": 66551,
+      "at": 1788556907759,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 27
+    },
+    {
+      "t": 66795,
+      "at": 1788556908004,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 28
+    },
+    {
+      "t": 67039,
+      "at": 1788556908247,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 29
+    },
+    {
+      "t": 67283,
+      "at": 1788556908492,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 30
+    },
+    {
+      "t": 67531,
+      "at": 1788556908740,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 31
+    },
+    {
+      "t": 67781,
+      "at": 1788556908990,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 32
+    },
+    {
+      "t": 68031,
+      "at": 1788556909240,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 33
+    },
+    {
+      "t": 68279,
+      "at": 1788556909488,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 34
+    },
+    {
+      "t": 68531,
+      "at": 1788556909739,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl",
+      "chunk": 35
+    },
+    {
+      "t": 68533,
+      "at": 1788556909741,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl"
+    },
+    {
+      "t": 68533,
+      "at": 1788556909741,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngll1z_f3kl"
+    },
+    {
+      "t": 68533,
+      "at": 1788556909741,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngll1z_f3kl"
+    },
+    {
+      "t": 70520,
+      "at": 1788556911729,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 72338,
+      "at": 1788556913546,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 590,
+      "speechLastAt": 71110
+    },
+    {
+      "t": 72338,
+      "at": 1788556913546,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí."
+    },
+    {
+      "t": 72338,
+      "at": 1788556913546,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí."
+    },
+    {
+      "t": 72343,
+      "at": 1788556913552,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngluvk_pj1u",
+      "source": "audio",
+      "transcript": "Sí.",
+      "kind": "reply"
+    },
+    {
+      "t": 72901,
+      "at": 1788556914110,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-pickup-home"
+      }
+    },
+    {
+      "t": 72901,
+      "at": 1788556914110,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 72924,
+      "at": 1788556914133,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_eh4wk4\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-pickup-home\",\"label\":\"Usar la dirección de casa\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_NEEDS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Elija la ayuda especial que necesite para el viaje y continúe.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"NEEDS\",\"stepNumber\":3,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"}],\"choices\":[{\"n\":1,\"id\":\"NONE\",\"label\":\"No, ninguna\",\"detail\":\"\",\"selected\":false},{\"n\":2,\"id\":\"CANE_WALKER\",\"label\":\"Uso bastón o andador\",\"detail\":\"\",\"selected\":false},{\"n\":3,\"id\":\"WHEELCHAIR\",\"label\":\"Uso silla de ruedas\",\"detail\":\"\",\"selected\":false},{\"n\":4,\"id\":\"COMPANION_RIDING\",\"label\":\"Viajará alguien conmigo\",\"detail\":\"\",\"selected\":false},{\"n\":5,\"id\":\"HELP_IN_OUT\",\"label\":\"Necesito ayuda para entrar o salir del vehículo\",\"detail\":\"\",\"selected\":false}],\"selected\":null,\"alreadyDone\":[\"Dirección de recogida confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-needs-continue\",\"label\":\"Continuar\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-back\",\"label\":\"Volver a la dirección de recogida\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 72927,
+      "at": 1788556914135,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "Elija la ayuda especial que necesite para el viaje y continúe.",
+      "seconds": 4.58,
+      "chunks": 20
+    },
+    {
+      "t": 72928,
+      "at": 1788556914137,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 1
+    },
+    {
+      "t": 72931,
+      "at": 1788556914140,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "Elija"
+    },
+    {
+      "t": 73054,
+      "at": 1788556914263,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 2
+    },
+    {
+      "t": 73056,
+      "at": 1788556914265,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "la"
+    },
+    {
+      "t": 73302,
+      "at": 1788556914511,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 3
+    },
+    {
+      "t": 73304,
+      "at": 1788556914513,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "ayuda"
+    },
+    {
+      "t": 73550,
+      "at": 1788556914759,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 4
+    },
+    {
+      "t": 73551,
+      "at": 1788556914760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "especial"
+    },
+    {
+      "t": 73804,
+      "at": 1788556915013,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 5
+    },
+    {
+      "t": 73808,
+      "at": 1788556915017,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "que"
+    },
+    {
+      "t": 74053,
+      "at": 1788556915262,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 6
+    },
+    {
+      "t": 74056,
+      "at": 1788556915264,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "necesite"
+    },
+    {
+      "t": 74306,
+      "at": 1788556915515,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 7
+    },
+    {
+      "t": 74308,
+      "at": 1788556915517,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "para"
+    },
+    {
+      "t": 74551,
+      "at": 1788556915760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 8
+    },
+    {
+      "t": 74553,
+      "at": 1788556915761,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "el"
+    },
+    {
+      "t": 74799,
+      "at": 1788556916007,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 9
+    },
+    {
+      "t": 74800,
+      "at": 1788556916008,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "viaje"
+    },
+    {
+      "t": 75055,
+      "at": 1788556916264,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 10
+    },
+    {
+      "t": 75056,
+      "at": 1788556916265,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "y"
+    },
+    {
+      "t": 75303,
+      "at": 1788556916512,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 11
+    },
+    {
+      "t": 75305,
+      "at": 1788556916514,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "text": "continúe."
+    },
+    {
+      "t": 75551,
+      "at": 1788556916760,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 12
+    },
+    {
+      "t": 75804,
+      "at": 1788556917012,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 13
+    },
+    {
+      "t": 76050,
+      "at": 1788556917259,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 14
+    },
+    {
+      "t": 76300,
+      "at": 1788556917508,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 15
+    },
+    {
+      "t": 76554,
+      "at": 1788556917763,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 16
+    },
+    {
+      "t": 76802,
+      "at": 1788556918011,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 17
+    },
+    {
+      "t": 77050,
+      "at": 1788556918258,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 18
+    },
+    {
+      "t": 77294,
+      "at": 1788556918502,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 19
+    },
+    {
+      "t": 77538,
+      "at": 1788556918747,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u",
+      "chunk": 20
+    },
+    {
+      "t": 77539,
+      "at": 1788556918747,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u"
+    },
+    {
+      "t": 77539,
+      "at": 1788556918747,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngluvk_pj1u"
+    },
+    {
+      "t": 77539,
+      "at": 1788556918747,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngluvk_pj1u"
+    },
+    {
+      "t": 79370,
+      "at": 1788556920578,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 82104,
+      "at": 1788556923312,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1491,
+      "speechLastAt": 80860
+    },
+    {
+      "t": 82104,
+      "at": 1788556923312,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ninguna ayuda. Busca ya."
+    },
+    {
+      "t": 82104,
+      "at": 1788556923312,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ninguna ayuda. Busca ya."
+    },
+    {
+      "t": 82108,
+      "at": 1788556923317,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngm2et_75pm",
+      "source": "audio",
+      "transcript": "Ninguna ayuda. Busca ya.",
+      "kind": "reply"
+    },
+    {
+      "t": 82659,
+      "at": 1788556923868,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "1"
+      }
+    },
+    {
+      "t": 82659,
+      "at": 1788556923868,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 82683,
+      "at": 1788556923892,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_sreymp\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"NONE\",\"label\":\"No, ninguna\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_NEEDS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Elija la ayuda especial que necesite para el viaje y continúe.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"NEEDS\",\"stepNumber\":3,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"}],\"choices\":[{\"n\":1,\"id\":\"NONE\",\"label\":\"No, ninguna\",\"detail\":\"\",\"selected\":true},{\"n\":2,\"id\":\"CANE_WALKER\",\"label\":\"Uso bastón o andador\",\"detail\":\"\",\"selected\":false},{\"n\":3,\"id\":\"WHEELCHAIR\",\"label\":\"Uso silla de ruedas\",\"detail\":\"\",\"selected\":false},{\"n\":4,\"id\":\"COMPANION_RIDING\",\"label\":\"Viajará alguien conmigo\",\"detail\":\"\",\"selected\":false},{\"n\":5,\"id\":\"HELP_IN_OUT\",\"label\":\"Necesito ayuda para entrar o salir del vehículo\",\"detail\":\"\",\"selected\":false}],\"selected\":{\"id\":\"NONE\",\"label\":\"No, ninguna\",\"detail\":\"\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-needs-continue\",\"label\":\"Continuar\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-back\",\"label\":\"Volver a la dirección de recogida\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 82686,
+      "at": 1788556923895,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-needs-continue"
+      }
+    },
+    {
+      "t": 82686,
+      "at": 1788556923895,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 82738,
+      "at": 1788556923947,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_84dnkw\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-needs-continue\",\"label\":\"Continuar\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_TIME\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Revise la hora de recogida sugerida y busque vehículos, o elija otra hora.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"TIME\",\"stepNumber\":4,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"}],\"selected\":null,\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-time-accept\",\"label\":\"Buscar vehículos\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-time-change\",\"label\":\"Elegir otra hora de recogida\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-back\",\"label\":\"Volver a las necesidades del viaje\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 82741,
+      "at": 1788556923949,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-time-accept"
+      }
+    },
+    {
+      "t": 82741,
+      "at": 1788556923949,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 83524,
+      "at": 1788556924733,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_83431v\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-time-accept\",\"label\":\"Buscar vehículos\",\"kind\":\"NAVIGATE\"},\"backgroundWork\":\"COMPLETED\",\"waitedMs\":766,\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_OPTIONS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"OPTIONS\",\"stepNumber\":6,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"}],\"choices\":[{\"n\":1,\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 1:45 p. m.\",\"selected\":false,\"pickupTime\":\"1:45 p. m.\",\"arrivesAbout\":\"2:10 p. m.\",\"estimatedCost\":\"$27.95\",\"estimatedCostValue\":27.95,\"seats\":3,\"wheelchairAccessible\":\"false\"},{\"n\":2,\"id\":\"EXTRA_ROOM_1788802800000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 1:40 p. m.\",\"selected\":false,\"pickupTime\":\"1:40 p. m.\",\"arrivesAbout\":\"2:06 p. m.\",\"estimatedCost\":\"$41.68\",\"estimatedCostValue\":41.68,\"seats\":5,\"wheelchairAccessible\":\"false\"},{\"n\":3,\"id\":\"ACCESSIBLE_1788802500000\",\"label\":\"Uber WAV\",\"detail\":\"Accesible en silla de ruedas · $33.00 · 1:35 p. m.\",\"selected\":false,\"pickupTime\":\"1:35 p. m.\",\"arrivesAbout\":\"1:59 p. m.\",\"estimatedCost\":\"$33.00\",\"estimatedCostValue\":33,\"seats\":2,\"wheelchairAccessible\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-back\",\"label\":\"Volver a la hora de recogida\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 83526,
+      "at": 1788556924735,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngm2et_75pm",
+      "text": "Buscando vehículos.",
+      "seconds": 0.83,
+      "chunks": 4
+    },
+    {
+      "t": 83528,
+      "at": 1788556924737,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "chunk": 1
+    },
+    {
+      "t": 83531,
+      "at": 1788556924740,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "text": "Buscando"
+    },
+    {
+      "t": 83655,
+      "at": 1788556924864,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "chunk": 2
+    },
+    {
+      "t": 83657,
+      "at": 1788556924865,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "text": "vehículos."
+    },
+    {
+      "t": 83902,
+      "at": 1788556925111,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "chunk": 3
+    },
+    {
+      "t": 84150,
+      "at": 1788556925359,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm",
+      "chunk": 4
+    },
+    {
+      "t": 84152,
+      "at": 1788556925360,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm"
+    },
+    {
+      "t": 84152,
+      "at": 1788556925360,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm2et_75pm"
+    },
+    {
+      "t": 84152,
+      "at": 1788556925360,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngm2et_75pm"
+    },
+    {
+      "t": 88690,
+      "at": 1788556929898,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 91829,
+      "at": 1788556933038,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1900,
+      "speechLastAt": 90590
+    },
+    {
+      "t": 91829,
+      "at": 1788556933038,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "La más barata y resérvala."
+    },
+    {
+      "t": 91829,
+      "at": 1788556933038,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "La más barata y resérvala."
+    },
+    {
+      "t": 91833,
+      "at": 1788556933041,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngm9wx_08gl",
+      "source": "audio",
+      "transcript": "La más barata y resérvala.",
+      "kind": "reply"
+    },
+    {
+      "t": 92387,
+      "at": 1788556933596,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 92388,
+      "at": 1788556933596,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 92393,
+      "at": 1788556933602,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_5c6crp\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_TRANSPORTATION_OPTIONS\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Elija uno de los vehículos. Elegirlo no lo reserva: primero lo revisa.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"OPTIONS\",\"stepNumber\":6,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"}],\"choices\":[{\"n\":1,\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 1:45 p. m.\",\"selected\":false,\"pickupTime\":\"1:45 p. m.\",\"arrivesAbout\":\"2:10 p. m.\",\"estimatedCost\":\"$27.95\",\"estimatedCostValue\":27.95,\"seats\":3,\"wheelchairAccessible\":\"false\"},{\"n\":2,\"id\":\"EXTRA_ROOM_1788802800000\",\"label\":\"UberXL\",\"detail\":\"Más espacio · $41.68 · 1:40 p. m.\",\"selected\":false,\"pickupTime\":\"1:40 p. m.\",\"arrivesAbout\":\"2:06 p. m.\",\"estimatedCost\":\"$41.68\",\"estimatedCostValue\":41.68,\"seats\":5,\"wheelchairAccessible\":\"false\"},{\"n\":3,\"id\":\"ACCESSIBLE_1788802500000\",\"label\":\"Uber WAV\",\"detail\":\"Accesible en silla de ruedas · $33.00 · 1:35 p. m.\",\"selected\":false,\"pickupTime\":\"1:35 p. m.\",\"arrivesAbout\":\"1:59 p. m.\",\"estimatedCost\":\"$33.00\",\"estimatedCostValue\":33,\"seats\":2,\"wheelchairAccessible\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-back\",\"label\":\"Volver a la hora de recogida\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 92400,
+      "at": 1788556933609,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "1"
+      }
+    },
+    {
+      "t": 92400,
+      "at": 1788556933609,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 92447,
+      "at": 1788556933656,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_4rjhui\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_REVIEW\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"Revise el viaje. Solo se reserva cuando presione el botón de reservar.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"REVIEW\",\"stepNumber\":7,\"totalSteps\":9},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"}],\"selected\":{\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 1:45 p. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\"],\"stillPending\":[\"El viaje está elegido pero NO reservado: falta su confirmación en la pantalla de revisión\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-back\",\"label\":\"Volver y cambiar la elección\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\",\"effect\":\"Esto reserva el viaje\"}],\"notes\":[\"Hay un viaje seleccionado. NO está reservado. Nunca diga que está reservado.\"]}}}}]"
+    },
+    {
+      "t": 92451,
+      "at": 1788556933660,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "Seleccioné UberX. Para reservarla necesito su confirmación: Vehículo estándar · $27.95 · 1:45 p. m.. ¿Confirma?",
+      "seconds": 6.67,
+      "chunks": 28
+    },
+    {
+      "t": 92454,
+      "at": 1788556933663,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 1
+    },
+    {
+      "t": 92462,
+      "at": 1788556933671,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "Seleccioné"
+    },
+    {
+      "t": 92588,
+      "at": 1788556933797,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 2
+    },
+    {
+      "t": 92590,
+      "at": 1788556933798,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "UberX."
+    },
+    {
+      "t": 92840,
+      "at": 1788556934048,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 3
+    },
+    {
+      "t": 92841,
+      "at": 1788556934049,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "Para"
+    },
+    {
+      "t": 93093,
+      "at": 1788556934302,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 4
+    },
+    {
+      "t": 93096,
+      "at": 1788556934305,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "reservarla"
+    },
+    {
+      "t": 93342,
+      "at": 1788556934550,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 5
+    },
+    {
+      "t": 93347,
+      "at": 1788556934555,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "necesito"
+    },
+    {
+      "t": 93601,
+      "at": 1788556934810,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 6
+    },
+    {
+      "t": 93603,
+      "at": 1788556934812,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "su"
+    },
+    {
+      "t": 93854,
+      "at": 1788556935063,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 7
+    },
+    {
+      "t": 93861,
+      "at": 1788556935069,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "confirmación:"
+    },
+    {
+      "t": 94107,
+      "at": 1788556935315,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 8
+    },
+    {
+      "t": 94108,
+      "at": 1788556935317,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "Vehículo"
+    },
+    {
+      "t": 94352,
+      "at": 1788556935561,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 9
+    },
+    {
+      "t": 94354,
+      "at": 1788556935562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "estándar"
+    },
+    {
+      "t": 94600,
+      "at": 1788556935809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 10
+    },
+    {
+      "t": 94602,
+      "at": 1788556935811,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "·"
+    },
+    {
+      "t": 94848,
+      "at": 1788556936057,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 11
+    },
+    {
+      "t": 94851,
+      "at": 1788556936059,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "$27.95"
+    },
+    {
+      "t": 95102,
+      "at": 1788556936311,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 12
+    },
+    {
+      "t": 95106,
+      "at": 1788556936315,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "·"
+    },
+    {
+      "t": 95351,
+      "at": 1788556936560,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 13
+    },
+    {
+      "t": 95353,
+      "at": 1788556936562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "1:45"
+    },
+    {
+      "t": 95601,
+      "at": 1788556936810,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 14
+    },
+    {
+      "t": 95604,
+      "at": 1788556936812,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "p."
+    },
+    {
+      "t": 95847,
+      "at": 1788556937056,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 15
+    },
+    {
+      "t": 95851,
+      "at": 1788556937060,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "m.."
+    },
+    {
+      "t": 96101,
+      "at": 1788556937309,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 16
+    },
+    {
+      "t": 96103,
+      "at": 1788556937311,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "text": "¿Confirma?"
+    },
+    {
+      "t": 96354,
+      "at": 1788556937562,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 17
+    },
+    {
+      "t": 96601,
+      "at": 1788556937809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 18
+    },
+    {
+      "t": 96851,
+      "at": 1788556938060,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 19
+    },
+    {
+      "t": 97103,
+      "at": 1788556938311,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 20
+    },
+    {
+      "t": 97351,
+      "at": 1788556938560,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 21
+    },
+    {
+      "t": 97601,
+      "at": 1788556938809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 22
+    },
+    {
+      "t": 97851,
+      "at": 1788556939059,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 23
+    },
+    {
+      "t": 98100,
+      "at": 1788556939308,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 24
+    },
+    {
+      "t": 98350,
+      "at": 1788556939559,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 25
+    },
+    {
+      "t": 98601,
+      "at": 1788556939809,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 26
+    },
+    {
+      "t": 98851,
+      "at": 1788556940059,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 27
+    },
+    {
+      "t": 99100,
+      "at": 1788556940309,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl",
+      "chunk": 28
+    },
+    {
+      "t": 99102,
+      "at": 1788556940310,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl"
+    },
+    {
+      "t": 99102,
+      "at": 1788556940310,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngm9wx_08gl"
+    },
+    {
+      "t": 99102,
+      "at": 1788556940310,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngm9wx_08gl"
+    },
+    {
+      "t": 101039,
+      "at": 1788556942248,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 102994,
+      "at": 1788556944203,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 730,
+      "speechLastAt": 101769
+    },
+    {
+      "t": 102994,
+      "at": 1788556944203,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí, confirmo."
+    },
+    {
+      "t": 102994,
+      "at": 1788556944203,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí, confirmo."
+    },
+    {
+      "t": 102997,
+      "at": 1788556944206,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngmij2_a2ao",
+      "source": "audio",
+      "transcript": "Sí, confirmo.",
+      "kind": "reply"
+    },
+    {
+      "t": 103550,
+      "at": 1788556944758,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-reserve-confirm",
+        "confirmed": true
+      }
+    },
+    {
+      "t": 103550,
+      "at": 1788556944758,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 104343,
+      "at": 1788556945551,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ncy2gq\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-reserve-confirm\",\"label\":\"Reservar este viaje\",\"kind\":\"CONFIRM\"},\"backgroundWork\":\"COMPLETED\",\"waitedMs\":775,\"currentView\":{\"viewId\":\"BARRIER_TRANSPORTATION_RETURN_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"El viaje de ida está reservado. Decida si también quiere el regreso.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"RETURN_OFFER\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"},{\"Viaje reservado\":\"UberX · UB-57896\"}],\"selected\":{\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 1:45 p. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\",\"Viaje reservado\"],\"stillPending\":[\"Si también quiere transporte de regreso\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-return-yes\",\"label\":\"Sí, coordinar el regreso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-return-no\",\"label\":\"No\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 104346,
+      "at": 1788556945555,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "Listo. El viaje quedó reservado.",
+      "seconds": 2.08,
+      "chunks": 9
+    },
+    {
+      "t": 104349,
+      "at": 1788556945557,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 1
+    },
+    {
+      "t": 104352,
+      "at": 1788556945561,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "Listo."
+    },
+    {
+      "t": 104477,
+      "at": 1788556945686,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 2
+    },
+    {
+      "t": 104480,
+      "at": 1788556945689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "El"
+    },
+    {
+      "t": 104731,
+      "at": 1788556945939,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 3
+    },
+    {
+      "t": 104733,
+      "at": 1788556945941,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "viaje"
+    },
+    {
+      "t": 104986,
+      "at": 1788556946195,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 4
+    },
+    {
+      "t": 104990,
+      "at": 1788556946198,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "quedó"
+    },
+    {
+      "t": 105241,
+      "at": 1788556946450,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 5
+    },
+    {
+      "t": 105243,
+      "at": 1788556946452,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "text": "reservado."
+    },
+    {
+      "t": 105489,
+      "at": 1788556946697,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 6
+    },
+    {
+      "t": 105736,
+      "at": 1788556946944,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 7
+    },
+    {
+      "t": 105987,
+      "at": 1788556947195,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 8
+    },
+    {
+      "t": 106240,
+      "at": 1788556947449,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao",
+      "chunk": 9
+    },
+    {
+      "t": 106242,
+      "at": 1788556947451,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao"
+    },
+    {
+      "t": 106242,
+      "at": 1788556947451,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmij2_a2ao"
+    },
+    {
+      "t": 106242,
+      "at": 1788556947451,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngmij2_a2ao"
+    },
+    {
+      "t": 111330,
+      "at": 1788556952538,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 115173,
+      "at": 1788556956381,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2622,
+      "speechLastAt": 113951
+    },
+    {
+      "t": 115173,
+      "at": 1788556956381,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Listo? ¿Y la hora de la cita?"
+    },
+    {
+      "t": 115173,
+      "at": 1788556956381,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Listo? ¿Y la hora de la cita?"
+    },
+    {
+      "t": 115176,
+      "at": 1788556956384,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "source": "audio",
+      "transcript": "¿Listo? ¿Y la hora de la cita?",
+      "kind": "reply"
+    },
+    {
+      "t": 115739,
+      "at": 1788556956948,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 115739,
+      "at": 1788556956948,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 115743,
+      "at": 1788556956951,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_0k862y\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_TRANSPORTATION_RETURN_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Coordinar transporte para la cita\",\"whatThePatientMustDoHere\":\"El viaje de ida está reservado. Decida si también quiere el regreso.\",\"flow\":{\"id\":\"TRANSPORTATION\",\"name\":\"Coordinar transporte para la cita\",\"step\":\"RETURN_OFFER\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"},{\"Dirección de recogida\":\"123 Oak Avenue, Apt 4B · Miami, FL 33176\"},{\"Hora de recogida\":\"1:45 p. m.\"},{\"Viaje reservado\":\"UberX · UB-57896\"}],\"selected\":{\"id\":\"STANDARD_1788803100000\",\"label\":\"UberX\",\"detail\":\"Vehículo estándar · $27.95 · 1:45 p. m.\"},\"alreadyDone\":[\"Dirección de recogida confirmada\",\"Ayuda especial para el viaje respondida\",\"Hora de recogida definida\",\"Viaje reservado\"],\"stillPending\":[\"Si también quiere transporte de regreso\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-return-yes\",\"label\":\"Sí, coordinar el regreso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-return-no\",\"label\":\"No\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 115754,
+      "at": 1788556956963,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "El viaje quedó reservado. Para cambiar la hora de la cita, vuelvo a la cita y busco otros horarios. ¿Lo hago?",
+      "seconds": 8.75,
+      "chunks": 37
+    },
+    {
+      "t": 115757,
+      "at": 1788556956966,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 1
+    },
+    {
+      "t": 115763,
+      "at": 1788556956971,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "El"
+    },
+    {
+      "t": 115892,
+      "at": 1788556957101,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 2
+    },
+    {
+      "t": 115893,
+      "at": 1788556957102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "viaje"
+    },
+    {
+      "t": 116139,
+      "at": 1788556957347,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 3
+    },
+    {
+      "t": 116140,
+      "at": 1788556957349,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "quedó"
+    },
+    {
+      "t": 116391,
+      "at": 1788556957599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 4
+    },
+    {
+      "t": 116395,
+      "at": 1788556957603,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "reservado."
+    },
+    {
+      "t": 116643,
+      "at": 1788556957851,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 5
+    },
+    {
+      "t": 116646,
+      "at": 1788556957854,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "Para"
+    },
+    {
+      "t": 116890,
+      "at": 1788556958099,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 6
+    },
+    {
+      "t": 116892,
+      "at": 1788556958101,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "cambiar"
+    },
+    {
+      "t": 117141,
+      "at": 1788556958350,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 7
+    },
+    {
+      "t": 117143,
+      "at": 1788556958351,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "la"
+    },
+    {
+      "t": 117389,
+      "at": 1788556958598,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 8
+    },
+    {
+      "t": 117392,
+      "at": 1788556958600,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "hora"
+    },
+    {
+      "t": 117641,
+      "at": 1788556958850,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 9
+    },
+    {
+      "t": 117643,
+      "at": 1788556958852,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "de"
+    },
+    {
+      "t": 117891,
+      "at": 1788556959100,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 10
+    },
+    {
+      "t": 117894,
+      "at": 1788556959102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "la"
+    },
+    {
+      "t": 118142,
+      "at": 1788556959350,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 11
+    },
+    {
+      "t": 118144,
+      "at": 1788556959352,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "cita,"
+    },
+    {
+      "t": 118391,
+      "at": 1788556959599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 12
+    },
+    {
+      "t": 118394,
+      "at": 1788556959603,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "vuelvo"
+    },
+    {
+      "t": 118639,
+      "at": 1788556959848,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 13
+    },
+    {
+      "t": 118641,
+      "at": 1788556959850,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "a"
+    },
+    {
+      "t": 118891,
+      "at": 1788556960100,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 14
+    },
+    {
+      "t": 118893,
+      "at": 1788556960102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "la"
+    },
+    {
+      "t": 119141,
+      "at": 1788556960350,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 15
+    },
+    {
+      "t": 119143,
+      "at": 1788556960352,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "cita"
+    },
+    {
+      "t": 119390,
+      "at": 1788556960599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 16
+    },
+    {
+      "t": 119392,
+      "at": 1788556960600,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "y"
+    },
+    {
+      "t": 119636,
+      "at": 1788556960849,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 17
+    },
+    {
+      "t": 119638,
+      "at": 1788556960850,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "busco"
+    },
+    {
+      "t": 119892,
+      "at": 1788556961104,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 18
+    },
+    {
+      "t": 119893,
+      "at": 1788556961106,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "otros"
+    },
+    {
+      "t": 120141,
+      "at": 1788556961353,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 19
+    },
+    {
+      "t": 120143,
+      "at": 1788556961355,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "horarios."
+    },
+    {
+      "t": 120390,
+      "at": 1788556961603,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 20
+    },
+    {
+      "t": 120392,
+      "at": 1788556961604,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "¿Lo"
+    },
+    {
+      "t": 120640,
+      "at": 1788556961853,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 21
+    },
+    {
+      "t": 120643,
+      "at": 1788556961855,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "text": "hago?"
+    },
+    {
+      "t": 120893,
+      "at": 1788556962106,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 22
+    },
+    {
+      "t": 121140,
+      "at": 1788556962352,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 23
+    },
+    {
+      "t": 121389,
+      "at": 1788556962602,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 24
+    },
+    {
+      "t": 121641,
+      "at": 1788556962854,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 25
+    },
+    {
+      "t": 121891,
+      "at": 1788556963103,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 26
+    },
+    {
+      "t": 122137,
+      "at": 1788556963349,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 27
+    },
+    {
+      "t": 122383,
+      "at": 1788556963596,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 28
+    },
+    {
+      "t": 122631,
+      "at": 1788556963844,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 29
+    },
+    {
+      "t": 122876,
+      "at": 1788556964088,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 30
+    },
+    {
+      "t": 123121,
+      "at": 1788556964333,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 31
+    },
+    {
+      "t": 123368,
+      "at": 1788556964581,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 32
+    },
+    {
+      "t": 123614,
+      "at": 1788556964826,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 33
+    },
+    {
+      "t": 123862,
+      "at": 1788556965075,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 34
+    },
+    {
+      "t": 124107,
+      "at": 1788556965319,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 35
+    },
+    {
+      "t": 124351,
+      "at": 1788556965563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 36
+    },
+    {
+      "t": 124600,
+      "at": 1788556965812,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0",
+      "chunk": 37
+    },
+    {
+      "t": 124601,
+      "at": 1788556965814,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0"
+    },
+    {
+      "t": 124602,
+      "at": 1788556965814,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtngmrxc_6ss0"
+    },
+    {
+      "t": 124602,
+      "at": 1788556965814,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtngmrxc_6ss0"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 8,
+    "total_turns": 11,
+    "response_start_p50_ms": 1792,
+    "response_start_p95_ms": 2691,
+    "response_start_avg_ms": 2012,
+    "app_overhead_p50_ms": 5,
+    "barge_ins": 0,
+    "barge_in_stop_p50_ms": null,
+    "barge_in_stop_max_ms": -1,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 6: response start 2691 ms",
+      "turn 9: response start 2589 ms"
+    ]
+  }
+}

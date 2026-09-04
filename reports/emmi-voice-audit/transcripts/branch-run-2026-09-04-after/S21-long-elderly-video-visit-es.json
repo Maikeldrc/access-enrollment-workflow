@@ -1,0 +1,5983 @@
+{
+  "session_id": "S21-long-elderly-video-visit-es",
+  "patient_profile": "A (adulto mayor, responde muy poco)",
+  "language": "es",
+  "flow": "long: video-visit device check with one-word answers, long silences, '¿eh?', 'más despacio', an unrecognisable utterance, and a recheck",
+  "provider": "fake",
+  "provider_note": "SIMULATED PROVIDER: transcripts are declared by the harness and EMMI replies are scripted. Only application-side mechanics are evidence.",
+  "notes": "16 spoken turns, most of them one or two words, with 5–8 s silences between them. Also the no-transcript recovery in the middle of a task.",
+  "startedAt": "2026-09-04T21:53:32.928Z",
+  "turns": [
+    {
+      "turn": 1,
+      "kind": "navigation",
+      "label": "open the appointment",
+      "screen": "SCREEN_MY_CARE",
+      "navigation_result": "SCREEN_MY_CARE → APPOINTMENT_CONFIRMED",
+      "conversation_context": {
+        "context_pushed_to_provider": 0,
+        "narration_turns_sent_to_provider": 0,
+        "provider_generations": 0,
+        "tts_narration_started": true,
+        "context_updated_events": 0,
+        "state": "EMMI_SPEAKING"
+      },
+      "problem_detected": [],
+      "severity": "",
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "Hola.",
+      "recognized_text": "Hola.",
+      "EMMI_response": "Hola. Estoy aquí para ayudarle con su visita por video. ¿Qué necesita?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@190",
+          "EMMI_THINKING@1971",
+          "EMMI_SPEAKING@2514",
+          "LISTENING@7536"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 26300,
+        "speech_ended_at": 27000,
+        "provider_speech_end_detected_at": 28221,
+        "provider_vad_window_ms": 1221,
+        "provider_first_chunk_at": 28781,
+        "app_first_audio_at": 28784,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 27000,
+        "T2_first_audible_response": 28784,
+        "T3_response_complete": 33796,
+        "response_start_latency_ms": 1784,
+        "response_completion_latency_ms": 6796,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1232,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 3,
+      "kind": "silence",
+      "label": "long pause",
+      "silence_ms": 6000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 4,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Eh?",
+      "recognized_text": "¿Eh?",
+      "EMMI_response": "Decía que puedo ayudarle con su visita por video. ¿Quiere que revisemos su teléfono?",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@134",
+          "EMMI_THINKING@1974",
+          "EMMI_SPEAKING@2543",
+          "LISTENING@8480"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 41502,
+        "speech_ended_at": 42202,
+        "provider_speech_end_detected_at": 43454,
+        "provider_vad_window_ms": 1252,
+        "provider_first_chunk_at": 44017,
+        "app_first_audio_at": 44023,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 42202,
+        "T2_first_audible_response": 44023,
+        "T3_response_complete": 49946,
+        "response_start_latency_ms": 1821,
+        "response_completion_latency_ms": 7744,
+        "app_overhead_first_chunk_to_audible_ms": 6,
+        "local_speech_end_detected_ms_after_T1": 1217,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 5,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Con quién es?",
+      "recognized_text": "¿Con quién es?",
+      "EMMI_response": "Con Dr. Fresner Lee.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@194",
+          "EMMI_THINKING@2381",
+          "EMMI_SPEAKING@3030",
+          "LISTENING@4662"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_CONFIRMED",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Cita confirmada",
+            "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "La cita está confirmada"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [
+        "the app sent no screen context to the provider before it answered this spoken turn"
+      ],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 51623,
+        "speech_ended_at": 52777,
+        "provider_speech_end_detected_at": 54018,
+        "provider_vad_window_ms": 1241,
+        "provider_first_chunk_at": 54586,
+        "app_first_audio_at": 54587,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 52777,
+        "T2_first_audible_response": 54587,
+        "T3_response_complete": 56255,
+        "response_start_latency_ms": 1810,
+        "response_completion_latency_ms": 3478,
+        "app_overhead_first_chunk_to_audible_ms": 1,
+        "local_speech_end_detected_ms_after_T1": 1220,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 6,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "¿Cuándo?",
+      "recognized_text": "¿Cuándo?",
+      "EMMI_response": "El lunes, 7 de septiembre.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@150",
+          "EMMI_THINKING@1979",
+          "EMMI_SPEAKING@2514",
+          "LISTENING@4631"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "APPOINTMENT_CONFIRMED",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Cita confirmada",
+            "whatThePatientMustDoHere": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "La cita está confirmada"
+            ],
+            "stillPending": [],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "appointment-open-prep",
+                "label": "Preparar temas para la visita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-brief",
+                "label": "Ver mi lista de temas",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-barrier",
+                "label": "Algo lo dificulta",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-reminder",
+                "label": "Recordármelo en la aplicación",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-open-share",
+                "label": "Compartir con mi Círculo de cuidado",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-get-directions",
+                "label": "Cómo llegar",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "appointment-request-reschedule",
+                "label": "Cambiar la hora",
+                "kind": "CONFIRM"
+              },
+              {
+                "id": "appointment-request-cancel",
+                "label": "Cancelar la cita",
+                "kind": "DESTRUCTIVE"
+              },
+              {
+                "id": "appointment-back",
+                "label": "Volver a Mi cuidado",
+                "kind": "NAVIGATE"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 57989,
+        "speech_ended_at": 58689,
+        "provider_speech_end_detected_at": 59903,
+        "provider_vad_window_ms": 1214,
+        "provider_first_chunk_at": 60464,
+        "app_first_audio_at": 60467,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 58689,
+        "T2_first_audible_response": 60467,
+        "T3_response_complete": 62558,
+        "response_start_latency_ms": 1778,
+        "response_completion_latency_ms": 3869,
+        "app_overhead_first_chunk_to_audible_ms": 3,
+        "local_speech_end_detected_ms_after_T1": 1223,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 7,
+      "kind": "speech",
+      "screen": "APPOINTMENT_CONFIRMED",
+      "patient_utterance": "La visita… por video… no sé.",
+      "recognized_text": "La visita… por video… no sé.",
+      "EMMI_response": "Estoy revisando el micrófono, la cámara, la conexión y el enlace.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "APPOINTMENT_CONFIRMED",
+          "task": "Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.",
+          "choices": [],
+          "selected": null,
+          "pending": [],
+          "done": [
+            "La cita está confirmada"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@161",
+          "EMMI_THINKING@3561",
+          "TOOL_RUNNING@4202",
+          "EMMI_SPEAKING@4845",
+          "LISTENING@9459"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "appointment-open-barrier"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "appointment-open-barrier",
+              "label": "Algo lo dificulta",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "APPOINTMENT_PRE_VISIT_CHECK",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "¿Hay algo que pueda dificultar llegar a esta visita?",
+              "whatThePatientMustDoHere": "Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.",
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "ALL_SET",
+                  "label": "Todo listo",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 2,
+                  "id": "TECHNOLOGY_TELEHEALTH",
+                  "label": "Ayuda con la visita por video",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 3,
+                  "id": "CAREGIVER_AVAILABILITY",
+                  "label": "Necesito acompañante",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 4,
+                  "id": "TIME_CONFLICT",
+                  "label": "Necesito cambiar la hora",
+                  "detail": "",
+                  "selected": false
+                },
+                {
+                  "n": 5,
+                  "id": "OTHER",
+                  "label": "Otra cosa",
+                  "detail": "",
+                  "selected": false
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "appointment-back",
+                  "label": "Volver a Mi cuidado",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "optionRef": "2"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "TECHNOLOGY_TELEHEALTH",
+              "label": "Ayuda con la visita por video",
+              "kind": "SELECT"
+            },
+            "currentView": {
+              "viewId": "BARRIER_VIDEO_VISIT_OFFER",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Preparar el dispositivo para la visita por video",
+              "whatThePatientMustDoHere": "Decida si debo comprobar que su teléfono está listo para la visita por video.",
+              "flow": {
+                "id": "VIDEO_VISIT",
+                "name": "Preparar el dispositivo para la visita por video",
+                "step": "OFFER",
+                "stepNumber": 1,
+                "totalSteps": 3
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [],
+              "stillPending": [],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-video-start",
+                  "label": "Revisar mi dispositivo",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-decline",
+                  "label": "No por ahora",
+                  "kind": "NAVIGATE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-video-start"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-video-start",
+              "label": "Revisar mi dispositivo",
+              "kind": "NAVIGATE"
+            },
+            "backgroundWork": "COMPLETED",
+            "waitedMs": 634,
+            "currentView": {
+              "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Preparar el dispositivo para la visita por video",
+              "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+              "flow": {
+                "id": "VIDEO_VISIT",
+                "name": "Preparar el dispositivo para la visita por video",
+                "step": "ISSUES",
+                "stepNumber": null,
+                "totalSteps": null
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "MICROPHONE",
+                  "label": "Micrófono",
+                  "detail": "Funciona",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 2,
+                  "id": "CAMERA",
+                  "label": "Cámara",
+                  "detail": "No pude detectar su cámara.",
+                  "selected": false,
+                  "passed": "false"
+                },
+                {
+                  "n": 3,
+                  "id": "CONNECTION",
+                  "label": "Conexión a internet",
+                  "detail": "Buena conexión",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 4,
+                  "id": "APPOINTMENT_LINK",
+                  "label": "Enlace de la cita",
+                  "detail": "Disponible",
+                  "selected": false,
+                  "passed": "true"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Micrófono: Funciona",
+                "Conexión a internet: Buena conexión",
+                "Enlace de la cita: Disponible"
+              ],
+              "stillPending": [
+                "Cámara: No pude detectar su cámara."
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-video-guide",
+                  "label": "Guíeme paso a paso",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-close",
+                  "label": "Volver a mi cita",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-escalate",
+                  "label": "Pedir ayuda al equipo de cuidado",
+                  "kind": "CONFIRM",
+                  "effect": "Abre una tarea para el equipo de cuidado"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "APPOINTMENT_CONFIRMED → BARRIER_VIDEO_VISIT_ISSUES",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 64252,
+        "speech_ended_at": 66560,
+        "provider_speech_end_detected_at": 67755,
+        "provider_vad_window_ms": 1195,
+        "provider_first_chunk_at": 69027,
+        "app_first_audio_at": 69029,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 66560,
+        "T2_first_audible_response": 69029,
+        "T3_response_complete": 73678,
+        "response_start_latency_ms": 2469,
+        "response_completion_latency_ms": 7118,
+        "app_overhead_first_chunk_to_audible_ms": 2,
+        "local_speech_end_detected_ms_after_T1": 1210,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 8,
+      "kind": "silence",
+      "label": "device check",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 9,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "¿Qué?",
+      "recognized_text": "¿Qué?",
+      "EMMI_response": "Falta: Cámara: No pude detectar su cámara..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@125",
+          "EMMI_THINKING@1903",
+          "EMMI_SPEAKING@2533",
+          "LISTENING@5437"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Preparar el dispositivo para la visita por video",
+            "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+            "flow": {
+              "id": "VIDEO_VISIT",
+              "name": "Preparar el dispositivo para la visita por video",
+              "step": "ISSUES",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "MICROPHONE",
+                "label": "Micrófono",
+                "detail": "Funciona",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 2,
+                "id": "CAMERA",
+                "label": "Cámara",
+                "detail": "No pude detectar su cámara.",
+                "selected": false,
+                "passed": "false"
+              },
+              {
+                "n": 3,
+                "id": "CONNECTION",
+                "label": "Conexión a internet",
+                "detail": "Buena conexión",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 4,
+                "id": "APPOINTMENT_LINK",
+                "label": "Enlace de la cita",
+                "detail": "Disponible",
+                "selected": false,
+                "passed": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Micrófono: Funciona",
+              "Conexión a internet: Buena conexión",
+              "Enlace de la cita: Disponible"
+            ],
+            "stillPending": [
+              "Cámara: No pude detectar su cámara."
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-video-guide",
+                "label": "Guíeme paso a paso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-escalate",
+                "label": "Pedir ayuda al equipo de cuidado",
+                "kind": "CONFIRM",
+                "effect": "Abre una tarea para el equipo de cuidado"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 78461,
+        "speech_ended_at": 79161,
+        "provider_speech_end_detected_at": 80354,
+        "provider_vad_window_ms": 1193,
+        "provider_first_chunk_at": 80922,
+        "app_first_audio_at": 80924,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 79161,
+        "T2_first_audible_response": 80924,
+        "T3_response_complete": 83847,
+        "response_start_latency_ms": 1763,
+        "response_completion_latency_ms": 4686,
+        "app_overhead_first_chunk_to_audible_ms": 2,
+        "local_speech_end_detected_ms_after_T1": 1170,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 10,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "Más despacio.",
+      "recognized_text": "Más despacio.",
+      "EMMI_response": "Despacio: falta Cámara: No pude detectar su cámara..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@104",
+          "EMMI_THINKING@2043",
+          "EMMI_SPEAKING@2612",
+          "LISTENING@5952"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Preparar el dispositivo para la visita por video",
+            "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+            "flow": {
+              "id": "VIDEO_VISIT",
+              "name": "Preparar el dispositivo para la visita por video",
+              "step": "ISSUES",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "MICROPHONE",
+                "label": "Micrófono",
+                "detail": "Funciona",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 2,
+                "id": "CAMERA",
+                "label": "Cámara",
+                "detail": "No pude detectar su cámara.",
+                "selected": false,
+                "passed": "false"
+              },
+              {
+                "n": 3,
+                "id": "CONNECTION",
+                "label": "Conexión a internet",
+                "detail": "Buena conexión",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 4,
+                "id": "APPOINTMENT_LINK",
+                "label": "Enlace de la cita",
+                "detail": "Disponible",
+                "selected": false,
+                "passed": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Micrófono: Funciona",
+              "Conexión a internet: Buena conexión",
+              "Enlace de la cita: Disponible"
+            ],
+            "stillPending": [
+              "Cámara: No pude detectar su cámara."
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-video-guide",
+                "label": "Guíeme paso a paso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-escalate",
+                "label": "Pedir ayuda al equipo de cuidado",
+                "kind": "CONFIRM",
+                "effect": "Abre una tarea para el equipo de cuidado"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 85529,
+        "speech_ended_at": 86298,
+        "provider_speech_end_detected_at": 87554,
+        "provider_vad_window_ms": 1256,
+        "provider_first_chunk_at": 88124,
+        "app_first_audio_at": 88128,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 86298,
+        "T2_first_audible_response": 88128,
+        "T3_response_complete": 91468,
+        "response_start_latency_ms": 1830,
+        "response_completion_latency_ms": 5170,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1223,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 11,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "¿Qué hago?",
+      "recognized_text": "¿Qué hago?",
+      "EMMI_response": "Siga los pasos y vuelva a revisar. Falta: Cámara: No pude detectar su cámara..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@114",
+          "EMMI_THINKING@2013",
+          "EMMI_SPEAKING@2584",
+          "LISTENING@8551"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-video-guide"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-video-guide",
+              "label": "Guíeme paso a paso",
+              "kind": "NAVIGATE"
+            },
+            "currentView": {
+              "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Preparar el dispositivo para la visita por video",
+              "whatThePatientMustDoHere": "Siga los pasos y vuelva a revisar.",
+              "flow": {
+                "id": "VIDEO_VISIT",
+                "name": "Preparar el dispositivo para la visita por video",
+                "step": "GUIDE",
+                "stepNumber": null,
+                "totalSteps": null
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "MICROPHONE",
+                  "label": "Micrófono",
+                  "detail": "Funciona",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 2,
+                  "id": "CAMERA",
+                  "label": "Cámara",
+                  "detail": "No pude detectar su cámara.",
+                  "selected": false,
+                  "passed": "false"
+                },
+                {
+                  "n": 3,
+                  "id": "CONNECTION",
+                  "label": "Conexión a internet",
+                  "detail": "Buena conexión",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 4,
+                  "id": "APPOINTMENT_LINK",
+                  "label": "Enlace de la cita",
+                  "detail": "Disponible",
+                  "selected": false,
+                  "passed": "true"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Micrófono: Funciona",
+                "Conexión a internet: Buena conexión",
+                "Enlace de la cita: Disponible"
+              ],
+              "stillPending": [
+                "Cámara: No pude detectar su cámara."
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-video-recheck",
+                  "label": "Revisar de nuevo",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-back",
+                  "label": "Volver a lo que se encontró",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-escalate",
+                  "label": "Pedir ayuda al equipo de cuidado",
+                  "kind": "CONFIRM",
+                  "effect": "Abre una tarea para el equipo de cuidado"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_VIDEO_VISIT_ISSUES → BARRIER_VIDEO_VISIT_GUIDE",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 93106,
+        "speech_ended_at": 93875,
+        "provider_speech_end_detected_at": 95113,
+        "provider_vad_window_ms": 1238,
+        "provider_first_chunk_at": 95680,
+        "app_first_audio_at": 95681,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 93875,
+        "T2_first_audible_response": 95681,
+        "T3_response_complete": 101588,
+        "response_start_latency_ms": 1806,
+        "response_completion_latency_ms": 7713,
+        "app_overhead_first_chunk_to_audible_ms": 1,
+        "local_speech_end_detected_ms_after_T1": 1217,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 12,
+      "kind": "silence",
+      "label": "the patient tries",
+      "silence_ms": 5000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 13,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_GUIDE",
+      "patient_utterance": "Sí.",
+      "recognized_text": "Sí.",
+      "EMMI_response": "Bien. Cuando termine, dígame 'ya' y reviso de nuevo.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@206",
+          "EMMI_THINKING@1930",
+          "EMMI_SPEAKING@2565",
+          "LISTENING@6318"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 108362,
+        "speech_ended_at": 109062,
+        "provider_speech_end_detected_at": 110293,
+        "provider_vad_window_ms": 1231,
+        "provider_first_chunk_at": 110847,
+        "app_first_audio_at": 110851,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 109062,
+        "T2_first_audible_response": 110851,
+        "T3_response_complete": 114628,
+        "response_start_latency_ms": 1789,
+        "response_completion_latency_ms": 5566,
+        "app_overhead_first_chunk_to_audible_ms": 4,
+        "local_speech_end_detected_ms_after_T1": 1218,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 14,
+      "kind": "silence",
+      "label": "the patient tries",
+      "silence_ms": 5000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 15,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_GUIDE",
+      "patient_utterance": "(inaudible)",
+      "recognized_text": "(inaudible)",
+      "EMMI_response": "(empty generation)",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [
+          "EMMI_MISSING_TRANSCRIPT_RECOVERED"
+        ],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [
+          "transcript_not_received"
+        ],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@161",
+          "EMMI_THINKING@1934",
+          "EMMI_SPEAKING@7042",
+          "LISTENING@10761"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [
+        "response start 6233 ms"
+      ],
+      "severity": "P2",
+      "notes": "no transcript; the app's recovery is measured",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 121443,
+        "speech_ended_at": 122143,
+        "provider_speech_end_detected_at": 123373,
+        "provider_vad_window_ms": 1230,
+        "provider_first_chunk_at": null,
+        "app_first_audio_at": 128376,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 122143,
+        "T2_first_audible_response": 128376,
+        "T3_response_complete": 132140,
+        "response_start_latency_ms": 6233,
+        "response_completion_latency_ms": 9997,
+        "app_overhead_first_chunk_to_audible_ms": null,
+        "local_speech_end_detected_ms_after_T1": 1200,
+        "perceived": "VERY POOR"
+      },
+      "transcript_note": "provider returned no transcript (simulated)",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": [
+        "Perdón, no le entendí bien. ¿Me lo puede repetir?"
+      ]
+    },
+    {
+      "turn": 16,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_GUIDE",
+      "patient_utterance": "Ya.",
+      "recognized_text": "Ya.",
+      "EMMI_response": "Revisando de nuevo.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_GUIDE",
+          "task": "Siga los pasos y vuelva a revisar.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@160",
+          "EMMI_THINKING@1920",
+          "TOOL_RUNNING@2485",
+          "EMMI_THINKING@3134",
+          "EMMI_SPEAKING@3220",
+          "LISTENING@4407"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "performViewAction",
+          "args": {
+            "actionId": "barrier-video-recheck"
+          },
+          "result": {
+            "success": true,
+            "status": "PERFORMED",
+            "performed": {
+              "id": "barrier-video-recheck",
+              "label": "Revisar de nuevo",
+              "kind": "NAVIGATE"
+            },
+            "backgroundWork": "COMPLETED",
+            "waitedMs": 645,
+            "currentView": {
+              "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+              "screen": "APPOINTMENT_DETAIL",
+              "title": "Preparar el dispositivo para la visita por video",
+              "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+              "flow": {
+                "id": "VIDEO_VISIT",
+                "name": "Preparar el dispositivo para la visita por video",
+                "step": "ISSUES",
+                "stepNumber": null,
+                "totalSteps": null
+              },
+              "onScreen": [
+                {
+                  "Doctor": "Dr. Fresner Lee"
+                },
+                {
+                  "Fecha": "lunes, 7 de septiembre"
+                },
+                {
+                  "Hora": "2:30 p. m."
+                },
+                {
+                  "Dónde": "Fresner Medical Group"
+                }
+              ],
+              "choices": [
+                {
+                  "n": 1,
+                  "id": "MICROPHONE",
+                  "label": "Micrófono",
+                  "detail": "Funciona",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 2,
+                  "id": "CAMERA",
+                  "label": "Cámara",
+                  "detail": "No pude detectar su cámara.",
+                  "selected": false,
+                  "passed": "false"
+                },
+                {
+                  "n": 3,
+                  "id": "CONNECTION",
+                  "label": "Conexión a internet",
+                  "detail": "Buena conexión",
+                  "selected": false,
+                  "passed": "true"
+                },
+                {
+                  "n": 4,
+                  "id": "APPOINTMENT_LINK",
+                  "label": "Enlace de la cita",
+                  "detail": "Disponible",
+                  "selected": false,
+                  "passed": "true"
+                }
+              ],
+              "selected": null,
+              "alreadyDone": [
+                "Micrófono: Funciona",
+                "Conexión a internet: Buena conexión",
+                "Enlace de la cita: Disponible"
+              ],
+              "stillPending": [
+                "Cámara: No pude detectar su cámara."
+              ],
+              "youMayPressTheseYourself": true,
+              "availableActions": [
+                {
+                  "id": "barrier-video-guide",
+                  "label": "Guíeme paso a paso",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-close",
+                  "label": "Volver a mi cita",
+                  "kind": "NAVIGATE"
+                },
+                {
+                  "id": "barrier-escalate",
+                  "label": "Pedir ayuda al equipo de cuidado",
+                  "kind": "CONFIRM",
+                  "effect": "Abre una tarea para el equipo de cuidado"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "navigation_result": "BARRIER_VIDEO_VISIT_GUIDE → BARRIER_VIDEO_VISIT_ISSUES",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 133834,
+        "speech_ended_at": 134534,
+        "provider_speech_end_detected_at": 135738,
+        "provider_vad_window_ms": 1204,
+        "provider_first_chunk_at": 136964,
+        "app_first_audio_at": 136966,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 134534,
+        "T2_first_audible_response": 136966,
+        "T3_response_complete": 138229,
+        "response_start_latency_ms": 2432,
+        "response_completion_latency_ms": 3695,
+        "app_overhead_first_chunk_to_audible_ms": 2,
+        "local_speech_end_detected_ms_after_T1": 1202,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 17,
+      "kind": "silence",
+      "label": "recheck",
+      "silence_ms": 3000,
+      "conversation_context": {
+        "provider_generations": [],
+        "app_text_turns": [],
+        "app_spoke_itself": [],
+        "app_events": [],
+        "state_before": "LISTENING",
+        "state_after": "LISTENING"
+      },
+      "problem_detected": [],
+      "severity": ""
+    },
+    {
+      "turn": 18,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "¿Sirve?",
+      "recognized_text": "¿Sirve?",
+      "EMMI_response": "Todavía falta: Cámara: No pude detectar su cámara..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@135",
+          "EMMI_THINKING@1895",
+          "EMMI_SPEAKING@2527",
+          "LISTENING@5828"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Preparar el dispositivo para la visita por video",
+            "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+            "flow": {
+              "id": "VIDEO_VISIT",
+              "name": "Preparar el dispositivo para la visita por video",
+              "step": "ISSUES",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "MICROPHONE",
+                "label": "Micrófono",
+                "detail": "Funciona",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 2,
+                "id": "CAMERA",
+                "label": "Cámara",
+                "detail": "No pude detectar su cámara.",
+                "selected": false,
+                "passed": "false"
+              },
+              {
+                "n": 3,
+                "id": "CONNECTION",
+                "label": "Conexión a internet",
+                "detail": "Buena conexión",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 4,
+                "id": "APPOINTMENT_LINK",
+                "label": "Enlace de la cita",
+                "detail": "Disponible",
+                "selected": false,
+                "passed": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Micrófono: Funciona",
+              "Conexión a internet: Buena conexión",
+              "Enlace de la cita: Disponible"
+            ],
+            "stillPending": [
+              "Cámara: No pude detectar su cámara."
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-video-guide",
+                "label": "Guíeme paso a paso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-escalate",
+                "label": "Pedir ayuda al equipo de cuidado",
+                "kind": "CONFIRM",
+                "effect": "Abre una tarea para el equipo de cuidado"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 143018,
+        "speech_ended_at": 143718,
+        "provider_speech_end_detected_at": 144913,
+        "provider_vad_window_ms": 1195,
+        "provider_first_chunk_at": 145482,
+        "app_first_audio_at": 145484,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 143718,
+        "T2_first_audible_response": 145484,
+        "T3_response_complete": 148819,
+        "response_start_latency_ms": 1766,
+        "response_completion_latency_ms": 5101,
+        "app_overhead_first_chunk_to_audible_ms": 2,
+        "local_speech_end_detected_ms_after_T1": 1164,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 19,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "Repita.",
+      "recognized_text": "Repita.",
+      "EMMI_response": "Falta Cámara: No pude detectar su cámara..",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@118",
+          "EMMI_THINKING@1930",
+          "EMMI_SPEAKING@2478",
+          "LISTENING@5463"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": [
+        {
+          "name": "describeCurrentView",
+          "args": {},
+          "result": {
+            "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+            "screen": "APPOINTMENT_DETAIL",
+            "title": "Preparar el dispositivo para la visita por video",
+            "whatThePatientMustDoHere": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+            "flow": {
+              "id": "VIDEO_VISIT",
+              "name": "Preparar el dispositivo para la visita por video",
+              "step": "ISSUES",
+              "stepNumber": null,
+              "totalSteps": null
+            },
+            "onScreen": [
+              {
+                "Doctor": "Dr. Fresner Lee"
+              },
+              {
+                "Fecha": "lunes, 7 de septiembre"
+              },
+              {
+                "Hora": "2:30 p. m."
+              },
+              {
+                "Dónde": "Fresner Medical Group"
+              }
+            ],
+            "choices": [
+              {
+                "n": 1,
+                "id": "MICROPHONE",
+                "label": "Micrófono",
+                "detail": "Funciona",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 2,
+                "id": "CAMERA",
+                "label": "Cámara",
+                "detail": "No pude detectar su cámara.",
+                "selected": false,
+                "passed": "false"
+              },
+              {
+                "n": 3,
+                "id": "CONNECTION",
+                "label": "Conexión a internet",
+                "detail": "Buena conexión",
+                "selected": false,
+                "passed": "true"
+              },
+              {
+                "n": 4,
+                "id": "APPOINTMENT_LINK",
+                "label": "Enlace de la cita",
+                "detail": "Disponible",
+                "selected": false,
+                "passed": "true"
+              }
+            ],
+            "selected": null,
+            "alreadyDone": [
+              "Micrófono: Funciona",
+              "Conexión a internet: Buena conexión",
+              "Enlace de la cita: Disponible"
+            ],
+            "stillPending": [
+              "Cámara: No pude detectar su cámara."
+            ],
+            "youMayPressTheseYourself": true,
+            "availableActions": [
+              {
+                "id": "barrier-video-guide",
+                "label": "Guíeme paso a paso",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-close",
+                "label": "Volver a mi cita",
+                "kind": "NAVIGATE"
+              },
+              {
+                "id": "barrier-escalate",
+                "label": "Pedir ayuda al equipo de cuidado",
+                "kind": "CONFIRM",
+                "effect": "Abre una tarea para el equipo de cuidado"
+              }
+            ]
+          }
+        }
+      ],
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 150523,
+        "speech_ended_at": 151223,
+        "provider_speech_end_detected_at": 152420,
+        "provider_vad_window_ms": 1197,
+        "provider_first_chunk_at": 152984,
+        "app_first_audio_at": 152989,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 151223,
+        "T2_first_audible_response": 152989,
+        "T3_response_complete": 155910,
+        "response_start_latency_ms": 1766,
+        "response_completion_latency_ms": 4687,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1217,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 20,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "Gracias.",
+      "recognized_text": "Gracias.",
+      "EMMI_response": "De nada.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@98",
+          "EMMI_THINKING@1954",
+          "EMMI_SPEAKING@2566",
+          "LISTENING@3408"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 157598,
+        "speech_ended_at": 158298,
+        "provider_speech_end_detected_at": 159553,
+        "provider_vad_window_ms": 1255,
+        "provider_first_chunk_at": 160115,
+        "app_first_audio_at": 160120,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 158298,
+        "T2_first_audible_response": 160120,
+        "T3_response_complete": 160959,
+        "response_start_latency_ms": 1822,
+        "response_completion_latency_ms": 2661,
+        "app_overhead_first_chunk_to_audible_ms": 5,
+        "local_speech_end_detected_ms_after_T1": 1226,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    },
+    {
+      "turn": 21,
+      "kind": "speech",
+      "screen": "BARRIER_VIDEO_VISIT_ISSUES",
+      "patient_utterance": "Adiós.",
+      "recognized_text": "Adiós.",
+      "EMMI_response": "Hasta luego. Aquí estaré.",
+      "EMMI_response_source": "scripted double",
+      "conversation_context": {
+        "view_before": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "choices": [
+            "Micrófono",
+            "Cámara",
+            "Conexión a internet",
+            "Enlace de la cita"
+          ],
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        },
+        "context_envelope_sent_before_answer": false,
+        "context_envelopes_in_turn": 0,
+        "recovery_prompts_sent_by_app": [],
+        "app_transcript_suppression_events": [],
+        "provider_generations": 1,
+        "generations_cancelled": [],
+        "stale_audio_chunks_discarded": 0,
+        "timeouts_or_errors": [],
+        "local_notices_spoken_by_app": [],
+        "language_signals": [],
+        "session_lifecycle_events": [],
+        "states": [
+          "USER_SPEAKING@224",
+          "EMMI_THINKING@1959",
+          "EMMI_SPEAKING@2594",
+          "LISTENING@4249"
+        ],
+        "final_state": "LISTENING",
+        "view_after": {
+          "viewId": "BARRIER_VIDEO_VISIT_ISSUES",
+          "task": "Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.",
+          "selected": null,
+          "pending": [
+            "Cámara: No pude detectar su cámara."
+          ],
+          "done": [
+            "Micrófono: Funciona",
+            "Conexión a internet: Buena conexión",
+            "Enlace de la cita: Disponible"
+          ]
+        }
+      },
+      "action_requested": "",
+      "action_result": null,
+      "navigation_result": "same view",
+      "problem_detected": [],
+      "severity": "",
+      "notes": "",
+      "intent": "",
+      "bargeIn": false,
+      "timing": {
+        "speech_started_at": 162639,
+        "speech_ended_at": 163339,
+        "provider_speech_end_detected_at": 164593,
+        "provider_vad_window_ms": 1254,
+        "provider_first_chunk_at": 165146,
+        "app_first_audio_at": 165147,
+        "app_scheduled_playback_delay_ms": 0,
+        "T1_patient_speech_end": 163339,
+        "T2_first_audible_response": 165147,
+        "T3_response_complete": 166819,
+        "response_start_latency_ms": 1808,
+        "response_completion_latency_ms": 3480,
+        "app_overhead_first_chunk_to_audible_ms": 1,
+        "local_speech_end_detected_ms_after_T1": 1232,
+        "perceived": "NOTICEABLE DELAY"
+      },
+      "transcript_note": "",
+      "EMMI_response_kinds": [
+        "reply"
+      ],
+      "app_spoke_itself": []
+    }
+  ],
+  "observations": [
+    {
+      "at": "2026-09-04T21:53:35.236Z",
+      "text": "voice start: state EMMI_THINKING, socket true, error \"\", 427 ms after tap"
+    },
+    {
+      "at": "2026-09-04T21:55:34.177Z",
+      "text": "provider set to return no transcript for the next turn"
+    }
+  ],
+  "console_issues": [
+    {
+      "type": "warning",
+      "text": "[EMMI continuity guard] {source: screen_guidance, mode: TECHNICAL_RECONNECT, screen: MY_CARE}"
+    },
+    {
+      "type": "warning",
+      "text": "Warning: Ephemeral token support is experimental and may change in future versions."
+    }
+  ],
+  "tts_requests": [
+    {
+      "at": 1788558815056,
+      "words": 53,
+      "seconds": 22.083333333333336,
+      "text": "Hola, soy EMMI, su Asistente de cuidado de ITERA. El equipo de Dr. Fresner Lee le invitó; su médico sigue en su cuidado. ACCESS es una opción de Medicare para más apoyo entre visitas, no para reemplazar a sus médicos. Participar es su decisión. Cuando esté listo, elija 'Comience su recorrido de cuidado'.",
+      "locale": "ES"
+    },
+    {
+      "at": 1788558838153,
+      "words": 2,
+      "seconds": 0.8333333333333334,
+      "text": "[object Object]",
+      "locale": "ES"
+    },
+    {
+      "at": 1788558941920,
+      "words": 9,
+      "seconds": 3.75,
+      "text": "Perdón, no le entendí bien. ¿Me lo puede repetir?",
+      "locale": "ES"
+    }
+  ],
+  "finishedAt": "2026-09-04T21:56:21.198Z",
+  "state_transitions": [
+    {
+      "t": 1388,
+      "state": "CONNECTING",
+      "error": ""
+    },
+    {
+      "t": 1671,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 23736,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 24624,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 25438,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 26490,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 28271,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 28814,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 33836,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 41636,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 43476,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 44045,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 49982,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 51817,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 54004,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 54653,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 56285,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 58139,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 59968,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 60503,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 62620,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 64413,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 67813,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 68454,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 69097,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 73711,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 78586,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 80364,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 80994,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 83898,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 85633,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 87572,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 88141,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 91481,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 93220,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 95119,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 95690,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 101657,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 108568,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 110292,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 110927,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 114680,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 121604,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 123377,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 128485,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 132204,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 133994,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 135754,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 136319,
+      "state": "TOOL_RUNNING",
+      "error": ""
+    },
+    {
+      "t": 136968,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 137054,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 138241,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 143153,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 144913,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 145545,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 148846,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 150641,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 152453,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 153001,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 155986,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 157696,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 159552,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 160164,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 161006,
+      "state": "LISTENING",
+      "error": ""
+    },
+    {
+      "t": 162863,
+      "state": "USER_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 164598,
+      "state": "EMMI_THINKING",
+      "error": ""
+    },
+    {
+      "t": 165233,
+      "state": "EMMI_SPEAKING",
+      "error": ""
+    },
+    {
+      "t": 166888,
+      "state": "LISTENING",
+      "error": ""
+    }
+  ],
+  "provider_log_tail": [
+    {
+      "t": 46144,
+      "at": 1788558859712,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "text": "¿Quiere"
+    },
+    {
+      "t": 46389,
+      "at": 1788558859957,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 11
+    },
+    {
+      "t": 46392,
+      "at": 1788558859960,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "text": "que"
+    },
+    {
+      "t": 46637,
+      "at": 1788558860205,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 12
+    },
+    {
+      "t": 46639,
+      "at": 1788558860207,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "text": "revisemos"
+    },
+    {
+      "t": 46890,
+      "at": 1788558860458,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 13
+    },
+    {
+      "t": 46892,
+      "at": 1788558860459,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "text": "su"
+    },
+    {
+      "t": 47137,
+      "at": 1788558860705,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 14
+    },
+    {
+      "t": 47139,
+      "at": 1788558860707,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "text": "teléfono?"
+    },
+    {
+      "t": 47388,
+      "at": 1788558860956,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 15
+    },
+    {
+      "t": 47636,
+      "at": 1788558861204,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 16
+    },
+    {
+      "t": 47886,
+      "at": 1788558861454,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 17
+    },
+    {
+      "t": 48139,
+      "at": 1788558861707,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 18
+    },
+    {
+      "t": 48388,
+      "at": 1788558861956,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 19
+    },
+    {
+      "t": 48636,
+      "at": 1788558862203,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 20
+    },
+    {
+      "t": 48886,
+      "at": 1788558862454,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 21
+    },
+    {
+      "t": 49132,
+      "at": 1788558862699,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 22
+    },
+    {
+      "t": 49376,
+      "at": 1788558862944,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 23
+    },
+    {
+      "t": 49623,
+      "at": 1788558863191,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 24
+    },
+    {
+      "t": 49866,
+      "at": 1788558863434,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp",
+      "chunk": 25
+    },
+    {
+      "t": 49867,
+      "at": 1788558863434,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp"
+    },
+    {
+      "t": 49867,
+      "at": 1788558863434,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrigw_umqp"
+    },
+    {
+      "t": 49867,
+      "at": 1788558863434,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhrigw_umqp"
+    },
+    {
+      "t": 51676,
+      "at": 1788558865244,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 54018,
+      "at": 1788558867586,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 1111,
+      "speechLastAt": 52787
+    },
+    {
+      "t": 54018,
+      "at": 1788558867586,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Con quién es?"
+    },
+    {
+      "t": 54018,
+      "at": 1788558867586,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Con quién es?"
+    },
+    {
+      "t": 54020,
+      "at": 1788558867588,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "source": "audio",
+      "transcript": "¿Con quién es?",
+      "kind": "reply"
+    },
+    {
+      "t": 54575,
+      "at": 1788558868142,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 54575,
+      "at": 1788558868143,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 54581,
+      "at": 1788558868148,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ii80vf\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 54586,
+      "at": 1788558868154,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "text": "Con Dr. Fresner Lee.",
+      "seconds": 1.67,
+      "chunks": 7
+    },
+    {
+      "t": 54586,
+      "at": 1788558868154,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 1
+    },
+    {
+      "t": 54588,
+      "at": 1788558868156,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "text": "Con"
+    },
+    {
+      "t": 54716,
+      "at": 1788558868283,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 2
+    },
+    {
+      "t": 54719,
+      "at": 1788558868287,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "text": "Dr."
+    },
+    {
+      "t": 54973,
+      "at": 1788558868540,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 3
+    },
+    {
+      "t": 54974,
+      "at": 1788558868542,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "text": "Fresner"
+    },
+    {
+      "t": 55217,
+      "at": 1788558868784,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 4
+    },
+    {
+      "t": 55217,
+      "at": 1788558868785,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "text": "Lee."
+    },
+    {
+      "t": 55464,
+      "at": 1788558869032,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 5
+    },
+    {
+      "t": 55722,
+      "at": 1788558869290,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 6
+    },
+    {
+      "t": 55968,
+      "at": 1788558869536,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk",
+      "chunk": 7
+    },
+    {
+      "t": 55970,
+      "at": 1788558869538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk"
+    },
+    {
+      "t": 55970,
+      "at": 1788558869538,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrqmc_j5bk"
+    },
+    {
+      "t": 55970,
+      "at": 1788558869538,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhrqmc_j5bk"
+    },
+    {
+      "t": 58076,
+      "at": 1788558871644,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 59903,
+      "at": 1788558873473,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 621,
+      "speechLastAt": 58696
+    },
+    {
+      "t": 59903,
+      "at": 1788558873473,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Cuándo?"
+    },
+    {
+      "t": 59903,
+      "at": 1788558873473,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Cuándo?"
+    },
+    {
+      "t": 59906,
+      "at": 1788558873476,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "source": "audio",
+      "transcript": "¿Cuándo?",
+      "kind": "reply"
+    },
+    {
+      "t": 60456,
+      "at": 1788558874026,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 60456,
+      "at": 1788558874026,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 60459,
+      "at": 1788558874029,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_wgixrp\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"APPOINTMENT_CONFIRMED\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Cita confirmada\",\"whatThePatientMustDoHere\":\"Esta visita está confirmada. Desde aquí puede prepararse, pedir ayuda para llegar, cambiarla o cancelarla.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[\"La cita está confirmada\"],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-open-prep\",\"label\":\"Preparar temas para la visita\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-brief\",\"label\":\"Ver mi lista de temas\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-reminder\",\"label\":\"Recordármelo en la aplicación\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-open-share\",\"label\":\"Compartir con mi Círculo de cuidado\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-get-directions\",\"label\":\"Cómo llegar\",\"kind\":\"NAVIGATE\"},{\"id\":\"appointment-request-reschedule\",\"label\":\"Cambiar la hora\",\"kind\":\"CONFIRM\"},{\"id\":\"appointment-request-cancel\",\"label\":\"Cancelar la cita\",\"kind\":\"DESTRUCTIVE\"},{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}]"
+    },
+    {
+      "t": 60464,
+      "at": 1788558874034,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "El lunes, 7 de septiembre.",
+      "seconds": 2.08,
+      "chunks": 9
+    },
+    {
+      "t": 60466,
+      "at": 1788558874036,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 1
+    },
+    {
+      "t": 60468,
+      "at": 1788558874038,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "El"
+    },
+    {
+      "t": 60592,
+      "at": 1788558874161,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 2
+    },
+    {
+      "t": 60594,
+      "at": 1788558874164,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "lunes,"
+    },
+    {
+      "t": 60841,
+      "at": 1788558874411,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 3
+    },
+    {
+      "t": 60842,
+      "at": 1788558874412,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "7"
+    },
+    {
+      "t": 61089,
+      "at": 1788558874658,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 4
+    },
+    {
+      "t": 61092,
+      "at": 1788558874662,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "de"
+    },
+    {
+      "t": 61337,
+      "at": 1788558874906,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 5
+    },
+    {
+      "t": 61337,
+      "at": 1788558874907,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "text": "septiembre."
+    },
+    {
+      "t": 61591,
+      "at": 1788558875161,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 6
+    },
+    {
+      "t": 61841,
+      "at": 1788558875411,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 7
+    },
+    {
+      "t": 62089,
+      "at": 1788558875659,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 8
+    },
+    {
+      "t": 62342,
+      "at": 1788558875912,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa",
+      "chunk": 9
+    },
+    {
+      "t": 62345,
+      "at": 1788558875915,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa"
+    },
+    {
+      "t": 62345,
+      "at": 1788558875915,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhrv5w_ldsa"
+    },
+    {
+      "t": 62345,
+      "at": 1788558875915,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhrv5w_ldsa"
+    },
+    {
+      "t": 64306,
+      "at": 1788558877876,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 67755,
+      "at": 1788558881325,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 2240,
+      "speechLastAt": 66546
+    },
+    {
+      "t": 67755,
+      "at": 1788558881325,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "La visita… por video… no sé."
+    },
+    {
+      "t": 67755,
+      "at": 1788558881325,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "La visita… por video… no sé."
+    },
+    {
+      "t": 67764,
+      "at": 1788558881334,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhs186_u46o",
+      "source": "audio",
+      "transcript": "La visita… por video… no sé.",
+      "kind": "reply"
+    },
+    {
+      "t": 68317,
+      "at": 1788558881887,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "appointment-open-barrier"
+      }
+    },
+    {
+      "t": 68317,
+      "at": 1788558881887,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 68338,
+      "at": 1788558881908,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_fyitls\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"appointment-open-barrier\",\"label\":\"Algo lo dificulta\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"APPOINTMENT_PRE_VISIT_CHECK\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"¿Hay algo que pueda dificultar llegar a esta visita?\",\"whatThePatientMustDoHere\":\"Elija lo que pueda dificultar llegar a esta visita y trataré de resolverlo con usted.\",\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"ALL_SET\",\"label\":\"Todo listo\",\"detail\":\"\",\"selected\":false},{\"n\":2,\"id\":\"TECHNOLOGY_TELEHEALTH\",\"label\":\"Ayuda con la visita por video\",\"detail\":\"\",\"selected\":false},{\"n\":3,\"id\":\"CAREGIVER_AVAILABILITY\",\"label\":\"Necesito acompañante\",\"detail\":\"\",\"selected\":false},{\"n\":4,\"id\":\"TIME_CONFLICT\",\"label\":\"Necesito cambiar la hora\",\"detail\":\"\",\"selected\":false},{\"n\":5,\"id\":\"OTHER\",\"label\":\"Otra cosa\",\"detail\":\"\",\"selected\":false}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"appointment-back\",\"label\":\"Volver a Mi cuidado\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 68340,
+      "at": 1788558881910,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "optionRef": "2"
+      }
+    },
+    {
+      "t": 68340,
+      "at": 1788558881910,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 68358,
+      "at": 1788558881928,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_ny9evt\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"TECHNOLOGY_TELEHEALTH\",\"label\":\"Ayuda con la visita por video\",\"kind\":\"SELECT\"},\"currentView\":{\"viewId\":\"BARRIER_VIDEO_VISIT_OFFER\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Decida si debo comprobar que su teléfono está listo para la visita por video.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"OFFER\",\"stepNumber\":1,\"totalSteps\":3},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"selected\":null,\"alreadyDone\":[],\"stillPending\":[],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-start\",\"label\":\"Revisar mi dispositivo\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-decline\",\"label\":\"No por ahora\",\"kind\":\"NAVIGATE\"}]}}}}]"
+    },
+    {
+      "t": 68360,
+      "at": 1788558881930,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-video-start"
+      }
+    },
+    {
+      "t": 68360,
+      "at": 1788558881930,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 69025,
+      "at": 1788558882595,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_47xbla\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-video-start\",\"label\":\"Revisar mi dispositivo\",\"kind\":\"NAVIGATE\"},\"backgroundWork\":\"COMPLETED\",\"waitedMs\":634,\"currentView\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}}]"
+    },
+    {
+      "t": 69027,
+      "at": 1788558882597,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "Estoy revisando el micrófono, la cámara, la conexión y el enlace.",
+      "seconds": 4.58,
+      "chunks": 20
+    },
+    {
+      "t": 69028,
+      "at": 1788558882598,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 1
+    },
+    {
+      "t": 69029,
+      "at": 1788558882599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "Estoy"
+    },
+    {
+      "t": 69160,
+      "at": 1788558882729,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 2
+    },
+    {
+      "t": 69161,
+      "at": 1788558882731,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "revisando"
+    },
+    {
+      "t": 69407,
+      "at": 1788558882977,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 3
+    },
+    {
+      "t": 69408,
+      "at": 1788558882978,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "el"
+    },
+    {
+      "t": 69657,
+      "at": 1788558883226,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 4
+    },
+    {
+      "t": 69658,
+      "at": 1788558883228,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "micrófono,"
+    },
+    {
+      "t": 69908,
+      "at": 1788558883478,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 5
+    },
+    {
+      "t": 69910,
+      "at": 1788558883480,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "la"
+    },
+    {
+      "t": 70160,
+      "at": 1788558883730,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 6
+    },
+    {
+      "t": 70163,
+      "at": 1788558883733,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "cámara,"
+    },
+    {
+      "t": 70407,
+      "at": 1788558883977,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 7
+    },
+    {
+      "t": 70409,
+      "at": 1788558883978,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "la"
+    },
+    {
+      "t": 70655,
+      "at": 1788558884225,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 8
+    },
+    {
+      "t": 70656,
+      "at": 1788558884226,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "conexión"
+    },
+    {
+      "t": 70908,
+      "at": 1788558884478,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 9
+    },
+    {
+      "t": 70910,
+      "at": 1788558884480,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "y"
+    },
+    {
+      "t": 71158,
+      "at": 1788558884728,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 10
+    },
+    {
+      "t": 71161,
+      "at": 1788558884731,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "el"
+    },
+    {
+      "t": 71408,
+      "at": 1788558884978,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 11
+    },
+    {
+      "t": 71410,
+      "at": 1788558884980,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "text": "enlace."
+    },
+    {
+      "t": 71655,
+      "at": 1788558885225,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 12
+    },
+    {
+      "t": 71908,
+      "at": 1788558885478,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 13
+    },
+    {
+      "t": 72156,
+      "at": 1788558885726,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 14
+    },
+    {
+      "t": 72407,
+      "at": 1788558885977,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 15
+    },
+    {
+      "t": 72659,
+      "at": 1788558886229,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 16
+    },
+    {
+      "t": 72906,
+      "at": 1788558886476,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 17
+    },
+    {
+      "t": 73156,
+      "at": 1788558886726,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 18
+    },
+    {
+      "t": 73406,
+      "at": 1788558886976,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 19
+    },
+    {
+      "t": 73650,
+      "at": 1788558887220,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o",
+      "chunk": 20
+    },
+    {
+      "t": 73652,
+      "at": 1788558887222,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o"
+    },
+    {
+      "t": 73652,
+      "at": 1788558887222,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhs186_u46o"
+    },
+    {
+      "t": 73652,
+      "at": 1788558887222,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhs186_u46o"
+    },
+    {
+      "t": 78516,
+      "at": 1788558892086,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 80354,
+      "at": 1788558893924,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 591,
+      "speechLastAt": 79107
+    },
+    {
+      "t": 80354,
+      "at": 1788558893924,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Qué?"
+    },
+    {
+      "t": 80354,
+      "at": 1788558893924,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Qué?"
+    },
+    {
+      "t": 80360,
+      "at": 1788558893930,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "source": "audio",
+      "transcript": "¿Qué?",
+      "kind": "reply"
+    },
+    {
+      "t": 80916,
+      "at": 1788558894486,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 80916,
+      "at": 1788558894486,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 80918,
+      "at": 1788558894488,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_89buzi\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}]"
+    },
+    {
+      "t": 80922,
+      "at": 1788558894492,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "Falta: Cámara: No pude detectar su cámara..",
+      "seconds": 2.92,
+      "chunks": 13
+    },
+    {
+      "t": 80923,
+      "at": 1788558894493,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 1
+    },
+    {
+      "t": 80926,
+      "at": 1788558894495,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "Falta:"
+    },
+    {
+      "t": 81057,
+      "at": 1788558894627,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 2
+    },
+    {
+      "t": 81060,
+      "at": 1788558894630,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "Cámara:"
+    },
+    {
+      "t": 81307,
+      "at": 1788558894877,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 3
+    },
+    {
+      "t": 81309,
+      "at": 1788558894879,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "No"
+    },
+    {
+      "t": 81558,
+      "at": 1788558895128,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 4
+    },
+    {
+      "t": 81560,
+      "at": 1788558895130,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "pude"
+    },
+    {
+      "t": 81806,
+      "at": 1788558895376,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 5
+    },
+    {
+      "t": 81808,
+      "at": 1788558895378,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "detectar"
+    },
+    {
+      "t": 82057,
+      "at": 1788558895627,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 6
+    },
+    {
+      "t": 82059,
+      "at": 1788558895629,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "su"
+    },
+    {
+      "t": 82304,
+      "at": 1788558895874,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 7
+    },
+    {
+      "t": 82306,
+      "at": 1788558895875,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "text": "cámara.."
+    },
+    {
+      "t": 82560,
+      "at": 1788558896130,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 8
+    },
+    {
+      "t": 82806,
+      "at": 1788558896376,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 9
+    },
+    {
+      "t": 83057,
+      "at": 1788558896627,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 10
+    },
+    {
+      "t": 83308,
+      "at": 1788558896878,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 11
+    },
+    {
+      "t": 83557,
+      "at": 1788558897127,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 12
+    },
+    {
+      "t": 83806,
+      "at": 1788558897376,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q",
+      "chunk": 13
+    },
+    {
+      "t": 83807,
+      "at": 1788558897377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q"
+    },
+    {
+      "t": 83807,
+      "at": 1788558897377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsay2_sh4q"
+    },
+    {
+      "t": 83807,
+      "at": 1788558897377,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhsay2_sh4q"
+    },
+    {
+      "t": 85576,
+      "at": 1788558899145,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 87554,
+      "at": 1788558901124,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 740,
+      "speechLastAt": 86316
+    },
+    {
+      "t": 87554,
+      "at": 1788558901124,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Más despacio."
+    },
+    {
+      "t": 87554,
+      "at": 1788558901124,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Más despacio."
+    },
+    {
+      "t": 87558,
+      "at": 1788558901128,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "source": "audio",
+      "transcript": "Más despacio.",
+      "kind": "reply"
+    },
+    {
+      "t": 88116,
+      "at": 1788558901686,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 88117,
+      "at": 1788558901686,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 88119,
+      "at": 1788558901689,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_taql29\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}]"
+    },
+    {
+      "t": 88124,
+      "at": 1788558901694,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "Despacio: falta Cámara: No pude detectar su cámara..",
+      "seconds": 3.33,
+      "chunks": 14
+    },
+    {
+      "t": 88126,
+      "at": 1788558901696,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 1
+    },
+    {
+      "t": 88129,
+      "at": 1788558901699,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "Despacio:"
+    },
+    {
+      "t": 88257,
+      "at": 1788558901827,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 2
+    },
+    {
+      "t": 88259,
+      "at": 1788558901829,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "falta"
+    },
+    {
+      "t": 88509,
+      "at": 1788558902079,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 3
+    },
+    {
+      "t": 88510,
+      "at": 1788558902080,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "Cámara:"
+    },
+    {
+      "t": 88757,
+      "at": 1788558902327,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 4
+    },
+    {
+      "t": 88759,
+      "at": 1788558902329,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "No"
+    },
+    {
+      "t": 89009,
+      "at": 1788558902579,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 5
+    },
+    {
+      "t": 89010,
+      "at": 1788558902580,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "pude"
+    },
+    {
+      "t": 89259,
+      "at": 1788558902829,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 6
+    },
+    {
+      "t": 89260,
+      "at": 1788558902830,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "detectar"
+    },
+    {
+      "t": 89509,
+      "at": 1788558903079,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 7
+    },
+    {
+      "t": 89510,
+      "at": 1788558903080,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "su"
+    },
+    {
+      "t": 89756,
+      "at": 1788558903325,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 8
+    },
+    {
+      "t": 89757,
+      "at": 1788558903327,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "text": "cámara.."
+    },
+    {
+      "t": 90005,
+      "at": 1788558903575,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 9
+    },
+    {
+      "t": 90260,
+      "at": 1788558903830,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 10
+    },
+    {
+      "t": 90504,
+      "at": 1788558904074,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 11
+    },
+    {
+      "t": 90756,
+      "at": 1788558904326,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 12
+    },
+    {
+      "t": 91006,
+      "at": 1788558904576,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 13
+    },
+    {
+      "t": 91257,
+      "at": 1788558904827,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5",
+      "chunk": 14
+    },
+    {
+      "t": 91260,
+      "at": 1788558904830,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5"
+    },
+    {
+      "t": 91260,
+      "at": 1788558904830,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsgi0_deo5"
+    },
+    {
+      "t": 91260,
+      "at": 1788558904830,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhsgi0_deo5"
+    },
+    {
+      "t": 93146,
+      "at": 1788558906715,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 95113,
+      "at": 1788558908683,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 751,
+      "speechLastAt": 93897
+    },
+    {
+      "t": 95113,
+      "at": 1788558908683,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Qué hago?"
+    },
+    {
+      "t": 95113,
+      "at": 1788558908683,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Qué hago?"
+    },
+    {
+      "t": 95115,
+      "at": 1788558908685,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhsmbx_41or",
+      "source": "audio",
+      "transcript": "¿Qué hago?",
+      "kind": "reply"
+    },
+    {
+      "t": 95666,
+      "at": 1788558909236,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-video-guide"
+      }
+    },
+    {
+      "t": 95666,
+      "at": 1788558909236,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 95678,
+      "at": 1788558909248,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_xu3jia\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},\"currentView\":{\"viewId\":\"BARRIER_VIDEO_VISIT_GUIDE\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Siga los pasos y vuelva a revisar.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"GUIDE\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-recheck\",\"label\":\"Revisar de nuevo\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-back\",\"label\":\"Volver a lo que se encontró\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}}]"
+    },
+    {
+      "t": 95680,
+      "at": 1788558909249,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "Siga los pasos y vuelva a revisar. Falta: Cámara: No pude detectar su cámara..",
+      "seconds": 5.83,
+      "chunks": 25
+    },
+    {
+      "t": 95680,
+      "at": 1788558909250,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 1
+    },
+    {
+      "t": 95682,
+      "at": 1788558909252,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "Siga"
+    },
+    {
+      "t": 95806,
+      "at": 1788558909376,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 2
+    },
+    {
+      "t": 95807,
+      "at": 1788558909377,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "los"
+    },
+    {
+      "t": 96054,
+      "at": 1788558909624,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 3
+    },
+    {
+      "t": 96055,
+      "at": 1788558909625,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "pasos"
+    },
+    {
+      "t": 96307,
+      "at": 1788558909877,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 4
+    },
+    {
+      "t": 96310,
+      "at": 1788558909880,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "y"
+    },
+    {
+      "t": 96556,
+      "at": 1788558910126,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 5
+    },
+    {
+      "t": 96557,
+      "at": 1788558910127,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "vuelva"
+    },
+    {
+      "t": 96801,
+      "at": 1788558910371,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 6
+    },
+    {
+      "t": 96803,
+      "at": 1788558910372,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "a"
+    },
+    {
+      "t": 97047,
+      "at": 1788558910617,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 7
+    },
+    {
+      "t": 97048,
+      "at": 1788558910618,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "revisar."
+    },
+    {
+      "t": 97293,
+      "at": 1788558910863,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 8
+    },
+    {
+      "t": 97294,
+      "at": 1788558910864,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "Falta:"
+    },
+    {
+      "t": 97536,
+      "at": 1788558911106,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 9
+    },
+    {
+      "t": 97537,
+      "at": 1788558911107,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "Cámara:"
+    },
+    {
+      "t": 97783,
+      "at": 1788558911352,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 10
+    },
+    {
+      "t": 97785,
+      "at": 1788558911355,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "No"
+    },
+    {
+      "t": 98028,
+      "at": 1788558911598,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 11
+    },
+    {
+      "t": 98029,
+      "at": 1788558911599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "pude"
+    },
+    {
+      "t": 98277,
+      "at": 1788558911846,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 12
+    },
+    {
+      "t": 98277,
+      "at": 1788558911847,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "detectar"
+    },
+    {
+      "t": 98525,
+      "at": 1788558912095,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 13
+    },
+    {
+      "t": 98526,
+      "at": 1788558912096,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "su"
+    },
+    {
+      "t": 98777,
+      "at": 1788558912347,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 14
+    },
+    {
+      "t": 98778,
+      "at": 1788558912348,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "text": "cámara.."
+    },
+    {
+      "t": 99029,
+      "at": 1788558912599,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 15
+    },
+    {
+      "t": 99275,
+      "at": 1788558912845,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 16
+    },
+    {
+      "t": 99526,
+      "at": 1788558913096,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 17
+    },
+    {
+      "t": 99773,
+      "at": 1788558913343,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 18
+    },
+    {
+      "t": 100018,
+      "at": 1788558913588,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 19
+    },
+    {
+      "t": 100266,
+      "at": 1788558913836,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 20
+    },
+    {
+      "t": 100510,
+      "at": 1788558914080,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 21
+    },
+    {
+      "t": 100756,
+      "at": 1788558914326,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 22
+    },
+    {
+      "t": 101006,
+      "at": 1788558914576,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 23
+    },
+    {
+      "t": 101256,
+      "at": 1788558914826,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 24
+    },
+    {
+      "t": 101506,
+      "at": 1788558915076,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or",
+      "chunk": 25
+    },
+    {
+      "t": 101506,
+      "at": 1788558915076,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or"
+    },
+    {
+      "t": 101506,
+      "at": 1788558915076,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsmbx_41or"
+    },
+    {
+      "t": 101506,
+      "at": 1788558915076,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhsmbx_41or"
+    },
+    {
+      "t": 108396,
+      "at": 1788558921966,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 110293,
+      "at": 1788558923863,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 690,
+      "speechLastAt": 109086
+    },
+    {
+      "t": 110293,
+      "at": 1788558923863,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Sí."
+    },
+    {
+      "t": 110293,
+      "at": 1788558923863,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Sí."
+    },
+    {
+      "t": 110295,
+      "at": 1788558923865,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "source": "audio",
+      "transcript": "Sí.",
+      "kind": "reply"
+    },
+    {
+      "t": 110847,
+      "at": 1788558924417,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "Bien. Cuando termine, dígame 'ya' y reviso de nuevo.",
+      "seconds": 3.75,
+      "chunks": 16
+    },
+    {
+      "t": 110849,
+      "at": 1788558924419,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 1
+    },
+    {
+      "t": 110853,
+      "at": 1788558924422,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "Bien."
+    },
+    {
+      "t": 110977,
+      "at": 1788558924547,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 2
+    },
+    {
+      "t": 110979,
+      "at": 1788558924549,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "Cuando"
+    },
+    {
+      "t": 111221,
+      "at": 1788558924791,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 3
+    },
+    {
+      "t": 111222,
+      "at": 1788558924792,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "termine,"
+    },
+    {
+      "t": 111478,
+      "at": 1788558925048,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 4
+    },
+    {
+      "t": 111481,
+      "at": 1788558925051,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "dígame"
+    },
+    {
+      "t": 111726,
+      "at": 1788558925296,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 5
+    },
+    {
+      "t": 111728,
+      "at": 1788558925298,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "'ya'"
+    },
+    {
+      "t": 111979,
+      "at": 1788558925549,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 6
+    },
+    {
+      "t": 111981,
+      "at": 1788558925551,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "y"
+    },
+    {
+      "t": 112230,
+      "at": 1788558925799,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 7
+    },
+    {
+      "t": 112233,
+      "at": 1788558925803,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "reviso"
+    },
+    {
+      "t": 112476,
+      "at": 1788558926046,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 8
+    },
+    {
+      "t": 112477,
+      "at": 1788558926047,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "de"
+    },
+    {
+      "t": 112726,
+      "at": 1788558926296,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 9
+    },
+    {
+      "t": 112727,
+      "at": 1788558926297,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "text": "nuevo."
+    },
+    {
+      "t": 112974,
+      "at": 1788558926544,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 10
+    },
+    {
+      "t": 113227,
+      "at": 1788558926797,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 11
+    },
+    {
+      "t": 113479,
+      "at": 1788558927049,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 12
+    },
+    {
+      "t": 113729,
+      "at": 1788558927299,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 13
+    },
+    {
+      "t": 113978,
+      "at": 1788558927548,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 14
+    },
+    {
+      "t": 114226,
+      "at": 1788558927796,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 15
+    },
+    {
+      "t": 114473,
+      "at": 1788558928043,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz",
+      "chunk": 16
+    },
+    {
+      "t": 114477,
+      "at": 1788558928047,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz"
+    },
+    {
+      "t": 114477,
+      "at": 1788558928047,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhsy1l_4twz"
+    },
+    {
+      "t": 114477,
+      "at": 1788558928047,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhsy1l_4twz"
+    },
+    {
+      "t": 121546,
+      "at": 1788558935118,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 123373,
+      "at": 1788558936945,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 590,
+      "speechLastAt": 122136
+    },
+    {
+      "t": 123373,
+      "at": 1788558936946,
+      "dir": "asr",
+      "type": "input_transcription_withheld",
+      "text": "(inaudible)"
+    },
+    {
+      "t": 123373,
+      "at": 1788558936946,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnht84y_ktu0",
+      "source": "audio",
+      "transcript": "(inaudible)",
+      "kind": "reply"
+    },
+    {
+      "t": 123925,
+      "at": 1788558937498,
+      "dir": "model",
+      "type": "generation_empty",
+      "generationId": "gen_mtnht84y_ktu0"
+    },
+    {
+      "t": 123925,
+      "at": 1788558937498,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnht84y_ktu0",
+      "empty": true
+    },
+    {
+      "t": 133897,
+      "at": 1788558947469,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 135738,
+      "at": 1788558949310,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 619,
+      "speechLastAt": 134516
+    },
+    {
+      "t": 135738,
+      "at": 1788558949310,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Ya."
+    },
+    {
+      "t": 135738,
+      "at": 1788558949310,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Ya."
+    },
+    {
+      "t": 135745,
+      "at": 1788558949317,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhthol_m2mm",
+      "source": "audio",
+      "transcript": "Ya.",
+      "kind": "reply"
+    },
+    {
+      "t": 136306,
+      "at": 1788558949878,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "performViewAction",
+      "args": {
+        "actionId": "barrier-video-recheck"
+      }
+    },
+    {
+      "t": 136306,
+      "at": 1788558949878,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "performViewAction"
+    },
+    {
+      "t": 136962,
+      "at": 1788558950535,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_agzv9s\",\"name\":\"performViewAction\",\"response\":{\"result\":{\"success\":true,\"status\":\"PERFORMED\",\"performed\":{\"id\":\"barrier-video-recheck\",\"label\":\"Revisar de nuevo\",\"kind\":\"NAVIGATE\"},\"backgroundWork\":\"COMPLETED\",\"waitedMs\":645,\"currentView\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}}]"
+    },
+    {
+      "t": 136964,
+      "at": 1788558950536,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhthol_m2mm",
+      "text": "Revisando de nuevo.",
+      "seconds": 1.25,
+      "chunks": 6
+    },
+    {
+      "t": 136965,
+      "at": 1788558950537,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 1
+    },
+    {
+      "t": 136967,
+      "at": 1788558950539,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "text": "Revisando"
+    },
+    {
+      "t": 137095,
+      "at": 1788558950668,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 2
+    },
+    {
+      "t": 137096,
+      "at": 1788558950669,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "text": "de"
+    },
+    {
+      "t": 137345,
+      "at": 1788558950917,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 3
+    },
+    {
+      "t": 137347,
+      "at": 1788558950919,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "text": "nuevo."
+    },
+    {
+      "t": 137598,
+      "at": 1788558951170,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 4
+    },
+    {
+      "t": 137845,
+      "at": 1788558951417,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 5
+    },
+    {
+      "t": 138094,
+      "at": 1788558951667,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm",
+      "chunk": 6
+    },
+    {
+      "t": 138095,
+      "at": 1788558951667,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm"
+    },
+    {
+      "t": 138095,
+      "at": 1788558951667,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhthol_m2mm"
+    },
+    {
+      "t": 138095,
+      "at": 1788558951667,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhthol_m2mm"
+    },
+    {
+      "t": 143065,
+      "at": 1788558956637,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 144913,
+      "at": 1788558958486,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 620,
+      "speechLastAt": 143686
+    },
+    {
+      "t": 144913,
+      "at": 1788558958486,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "¿Sirve?"
+    },
+    {
+      "t": 144913,
+      "at": 1788558958486,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "¿Sirve?"
+    },
+    {
+      "t": 144916,
+      "at": 1788558958488,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhtorc_e27f",
+      "source": "audio",
+      "transcript": "¿Sirve?",
+      "kind": "reply"
+    },
+    {
+      "t": 145475,
+      "at": 1788558959047,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 145475,
+      "at": 1788558959047,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 145476,
+      "at": 1788558959048,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_2igoxe\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}]"
+    },
+    {
+      "t": 145482,
+      "at": 1788558959054,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "Todavía falta: Cámara: No pude detectar su cámara..",
+      "seconds": 3.33,
+      "chunks": 14
+    },
+    {
+      "t": 145483,
+      "at": 1788558959055,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 1
+    },
+    {
+      "t": 145485,
+      "at": 1788558959057,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "Todavía"
+    },
+    {
+      "t": 145608,
+      "at": 1788558959180,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 2
+    },
+    {
+      "t": 145609,
+      "at": 1788558959181,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "falta:"
+    },
+    {
+      "t": 145861,
+      "at": 1788558959433,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 3
+    },
+    {
+      "t": 145863,
+      "at": 1788558959435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "Cámara:"
+    },
+    {
+      "t": 146110,
+      "at": 1788558959682,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 4
+    },
+    {
+      "t": 146114,
+      "at": 1788558959686,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "No"
+    },
+    {
+      "t": 146362,
+      "at": 1788558959934,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 5
+    },
+    {
+      "t": 146363,
+      "at": 1788558959935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "pude"
+    },
+    {
+      "t": 146606,
+      "at": 1788558960178,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 6
+    },
+    {
+      "t": 146607,
+      "at": 1788558960179,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "detectar"
+    },
+    {
+      "t": 146860,
+      "at": 1788558960432,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 7
+    },
+    {
+      "t": 146861,
+      "at": 1788558960433,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "su"
+    },
+    {
+      "t": 147111,
+      "at": 1788558960683,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 8
+    },
+    {
+      "t": 147113,
+      "at": 1788558960686,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "text": "cámara.."
+    },
+    {
+      "t": 147362,
+      "at": 1788558960934,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 9
+    },
+    {
+      "t": 147607,
+      "at": 1788558961179,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 10
+    },
+    {
+      "t": 147853,
+      "at": 1788558961425,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 11
+    },
+    {
+      "t": 148106,
+      "at": 1788558961678,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 12
+    },
+    {
+      "t": 148355,
+      "at": 1788558961927,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 13
+    },
+    {
+      "t": 148599,
+      "at": 1788558962171,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f",
+      "chunk": 14
+    },
+    {
+      "t": 148602,
+      "at": 1788558962174,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f"
+    },
+    {
+      "t": 148602,
+      "at": 1788558962174,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtorc_e27f"
+    },
+    {
+      "t": 148602,
+      "at": 1788558962174,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhtorc_e27f"
+    },
+    {
+      "t": 150556,
+      "at": 1788558964128,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 152420,
+      "at": 1788558965992,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 660,
+      "speechLastAt": 151215
+    },
+    {
+      "t": 152420,
+      "at": 1788558965992,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Repita."
+    },
+    {
+      "t": 152420,
+      "at": 1788558965992,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Repita."
+    },
+    {
+      "t": 152422,
+      "at": 1788558965994,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "source": "audio",
+      "transcript": "Repita.",
+      "kind": "reply"
+    },
+    {
+      "t": 152975,
+      "at": 1788558966547,
+      "dir": "model",
+      "type": "tool_call",
+      "name": "describeCurrentView",
+      "args": {}
+    },
+    {
+      "t": 152975,
+      "at": 1788558966547,
+      "dir": "out",
+      "type": "toolCall",
+      "name": "describeCurrentView"
+    },
+    {
+      "t": 152979,
+      "at": 1788558966551,
+      "dir": "in",
+      "type": "toolResponse",
+      "responses": "[{\"id\":\"call_zkf3v1\",\"name\":\"describeCurrentView\",\"response\":{\"result\":{\"viewId\":\"BARRIER_VIDEO_VISIT_ISSUES\",\"screen\":\"APPOINTMENT_DETAIL\",\"title\":\"Preparar el dispositivo para la visita por video\",\"whatThePatientMustDoHere\":\"Algo no funcionó. Elija ayuda paso a paso o pida al equipo de cuidado.\",\"flow\":{\"id\":\"VIDEO_VISIT\",\"name\":\"Preparar el dispositivo para la visita por video\",\"step\":\"ISSUES\",\"stepNumber\":null,\"totalSteps\":null},\"onScreen\":[{\"Doctor\":\"Dr. Fresner Lee\"},{\"Fecha\":\"lunes, 7 de septiembre\"},{\"Hora\":\"2:30 p. m.\"},{\"Dónde\":\"Fresner Medical Group\"}],\"choices\":[{\"n\":1,\"id\":\"MICROPHONE\",\"label\":\"Micrófono\",\"detail\":\"Funciona\",\"selected\":false,\"passed\":\"true\"},{\"n\":2,\"id\":\"CAMERA\",\"label\":\"Cámara\",\"detail\":\"No pude detectar su cámara.\",\"selected\":false,\"passed\":\"false\"},{\"n\":3,\"id\":\"CONNECTION\",\"label\":\"Conexión a internet\",\"detail\":\"Buena conexión\",\"selected\":false,\"passed\":\"true\"},{\"n\":4,\"id\":\"APPOINTMENT_LINK\",\"label\":\"Enlace de la cita\",\"detail\":\"Disponible\",\"selected\":false,\"passed\":\"true\"}],\"selected\":null,\"alreadyDone\":[\"Micrófono: Funciona\",\"Conexión a internet: Buena conexión\",\"Enlace de la cita: Disponible\"],\"stillPending\":[\"Cámara: No pude detectar su cámara.\"],\"youMayPressTheseYourself\":true,\"availableActions\":[{\"id\":\"barrier-video-guide\",\"label\":\"Guíeme paso a paso\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-close\",\"label\":\"Volver a mi cita\",\"kind\":\"NAVIGATE\"},{\"id\":\"barrier-escalate\",\"label\":\"Pedir ayuda al equipo de cuidado\",\"kind\":\"CONFIRM\",\"effect\":\"Abre una tarea para el equipo de cuidado\"}]}}}]"
+    },
+    {
+      "t": 152984,
+      "at": 1788558966556,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "Falta Cámara: No pude detectar su cámara..",
+      "seconds": 2.92,
+      "chunks": 13
+    },
+    {
+      "t": 152987,
+      "at": 1788558966559,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 1
+    },
+    {
+      "t": 152991,
+      "at": 1788558966563,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "Falta"
+    },
+    {
+      "t": 153116,
+      "at": 1788558966688,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 2
+    },
+    {
+      "t": 153117,
+      "at": 1788558966689,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "Cámara:"
+    },
+    {
+      "t": 153362,
+      "at": 1788558966934,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 3
+    },
+    {
+      "t": 153363,
+      "at": 1788558966935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "No"
+    },
+    {
+      "t": 153606,
+      "at": 1788558967178,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 4
+    },
+    {
+      "t": 153607,
+      "at": 1788558967179,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "pude"
+    },
+    {
+      "t": 153855,
+      "at": 1788558967427,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 5
+    },
+    {
+      "t": 153856,
+      "at": 1788558967428,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "detectar"
+    },
+    {
+      "t": 154112,
+      "at": 1788558967685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 6
+    },
+    {
+      "t": 154114,
+      "at": 1788558967687,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "su"
+    },
+    {
+      "t": 154363,
+      "at": 1788558967935,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 7
+    },
+    {
+      "t": 154364,
+      "at": 1788558967936,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "text": "cámara.."
+    },
+    {
+      "t": 154608,
+      "at": 1788558968180,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 8
+    },
+    {
+      "t": 154862,
+      "at": 1788558968435,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 9
+    },
+    {
+      "t": 155112,
+      "at": 1788558968685,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 10
+    },
+    {
+      "t": 155356,
+      "at": 1788558968928,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 11
+    },
+    {
+      "t": 155606,
+      "at": 1788558969178,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 12
+    },
+    {
+      "t": 155860,
+      "at": 1788558969432,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9",
+      "chunk": 13
+    },
+    {
+      "t": 155860,
+      "at": 1788558969432,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9"
+    },
+    {
+      "t": 155860,
+      "at": 1788558969432,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhtuju_gvz9"
+    },
+    {
+      "t": 155860,
+      "at": 1788558969433,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhtuju_gvz9"
+    },
+    {
+      "t": 157636,
+      "at": 1788558971208,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 159553,
+      "at": 1788558973125,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 680,
+      "speechLastAt": 158315
+    },
+    {
+      "t": 159553,
+      "at": 1788558973125,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Gracias."
+    },
+    {
+      "t": 159553,
+      "at": 1788558973125,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Gracias."
+    },
+    {
+      "t": 159560,
+      "at": 1788558973132,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhu024_lnaf",
+      "source": "audio",
+      "transcript": "Gracias.",
+      "kind": "reply"
+    },
+    {
+      "t": 160115,
+      "at": 1788558973687,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhu024_lnaf",
+      "text": "De nada.",
+      "seconds": 0.83,
+      "chunks": 4
+    },
+    {
+      "t": 160118,
+      "at": 1788558973690,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "chunk": 1
+    },
+    {
+      "t": 160122,
+      "at": 1788558973694,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "text": "De"
+    },
+    {
+      "t": 160246,
+      "at": 1788558973819,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "chunk": 2
+    },
+    {
+      "t": 160248,
+      "at": 1788558973820,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "text": "nada."
+    },
+    {
+      "t": 160494,
+      "at": 1788558974066,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "chunk": 3
+    },
+    {
+      "t": 160744,
+      "at": 1788558974316,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf",
+      "chunk": 4
+    },
+    {
+      "t": 160746,
+      "at": 1788558974318,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf"
+    },
+    {
+      "t": 160746,
+      "at": 1788558974318,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu024_lnaf"
+    },
+    {
+      "t": 160746,
+      "at": 1788558974318,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhu024_lnaf"
+    },
+    {
+      "t": 162696,
+      "at": 1788558976269,
+      "dir": "vad",
+      "type": "speech_start",
+      "generating": false
+    },
+    {
+      "t": 164593,
+      "at": 1788558978165,
+      "dir": "vad",
+      "type": "speech_end",
+      "durationMs": 659,
+      "speechLastAt": 163355
+    },
+    {
+      "t": 164593,
+      "at": 1788558978165,
+      "dir": "asr",
+      "type": "input_transcription",
+      "text": "Adiós."
+    },
+    {
+      "t": 164593,
+      "at": 1788558978165,
+      "dir": "out",
+      "type": "serverContent",
+      "text": "Adiós."
+    },
+    {
+      "t": 164596,
+      "at": 1788558978168,
+      "dir": "model",
+      "type": "generation_started",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "source": "audio",
+      "transcript": "Adiós.",
+      "kind": "reply"
+    },
+    {
+      "t": 165146,
+      "at": 1788558978718,
+      "dir": "model",
+      "type": "first_audio",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "text": "Hasta luego. Aquí estaré.",
+      "seconds": 1.67,
+      "chunks": 7
+    },
+    {
+      "t": 165146,
+      "at": 1788558978719,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 1
+    },
+    {
+      "t": 165149,
+      "at": 1788558978721,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "text": "Hasta"
+    },
+    {
+      "t": 165277,
+      "at": 1788558978849,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 2
+    },
+    {
+      "t": 165280,
+      "at": 1788558978852,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "text": "luego."
+    },
+    {
+      "t": 165529,
+      "at": 1788558979102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 3
+    },
+    {
+      "t": 165533,
+      "at": 1788558979105,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "text": "Aquí"
+    },
+    {
+      "t": 165780,
+      "at": 1788558979353,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 4
+    },
+    {
+      "t": 165782,
+      "at": 1788558979354,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "text": "estaré."
+    },
+    {
+      "t": 166027,
+      "at": 1788558979600,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 5
+    },
+    {
+      "t": 166276,
+      "at": 1788558979848,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 6
+    },
+    {
+      "t": 166530,
+      "at": 1788558980102,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff",
+      "chunk": 7
+    },
+    {
+      "t": 166531,
+      "at": 1788558980103,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff"
+    },
+    {
+      "t": 166531,
+      "at": 1788558980103,
+      "dir": "out",
+      "type": "serverContent",
+      "generationId": "gen_mtnhu3y0_rcff"
+    },
+    {
+      "t": 166531,
+      "at": 1788558980103,
+      "dir": "model",
+      "type": "generation_complete",
+      "generationId": "gen_mtnhu3y0_rcff"
+    }
+  ],
+  "summary": {
+    "spoken_turns": 15,
+    "total_turns": 21,
+    "response_start_p50_ms": 1808,
+    "response_start_p95_ms": 6233,
+    "response_start_avg_ms": 2178,
+    "app_overhead_p50_ms": 2,
+    "barge_ins": 0,
+    "barge_in_stop_p50_ms": null,
+    "barge_in_stop_max_ms": -1,
+    "spoken_turns_with_context_before_answer": 0,
+    "problems": [
+      "turn 5: the app sent no screen context to the provider before it answered this spoken turn",
+      "turn 15: response start 6233 ms"
+    ]
+  }
+}
