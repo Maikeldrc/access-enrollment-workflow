@@ -299,9 +299,9 @@ expiry), 282 spoken patient turns, 364 recorded turns,
 9 sessions with 15 or more spoken turns. The double's model delay is fixed at 550 ms and
 its speech rate at 2.4 words/s.
 
-- **Response start (T2−T1)**: p50 **1815 ms**, p95 **5342 ms**, mean
-  2266 ms, max 11681 ms (NOTICEABLE DELAY at the median).
-  Decomposition of an ordinary turn: provider end-of-speech window 1234 ms (locked 1200 ms)
+- **Response start (T2−T1)**: p50 **1813 ms**, p95 **5342 ms**, mean
+  2268 ms, max 11681 ms (NOTICEABLE DELAY at the median).
+  Decomposition of an ordinary turn: provider end-of-speech window 1233 ms (locked 1200 ms)
   + simulated model 550 ms + tool round trips (~30 ms each) + **application overhead
   4 ms** from first chunk to audible. The application adds nothing measurable
   on a direct answer; the floor is the VAD window. The p95 and the maximum are the turns that went
@@ -311,7 +311,7 @@ its speech rate at 2.4 words/s.
 - **Context before answer**: 42/282 spoken turns, every one of them an
   app-initiated text turn (recovery prompt), none a spoken turn. Navigation taps that pushed the new
   screen to the provider: 0 of 40.
-- **Transcript guard**: 42 natural turns discarded, 43 tool calls blocked with
+- **Transcript guard**: 42 natural turns discarded, 44 tool calls blocked with
   `unreliable_voice_input`, 42 English "I didn't hear that clearly… call 911" lines heard in Spanish
   sessions. The discarded turns:
   - S02-transport-by-hand-es: "Pon la primera."
