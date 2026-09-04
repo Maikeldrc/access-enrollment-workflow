@@ -115,13 +115,16 @@ export async function synthesizePatientLine(page, text, locale) {
   const key = createHash("sha1").update(`${locale}\n${text}`).digest("hex");
   const file = join(TTS_CACHE, `${key}.pcm`);
   if (existsSync(file)) return readFileSync(file).toString("base64");
-  const response = await page.request.post(`${BASE}/api/emmi/tts`, { data: { text, locale, harness: true }, headers: { "content-type": "application/json" }, timeout: 60000 });
+  const response = await page.request.post(`${BASE}/api/emmi/tts`, { data: { text, locale, harness: true }, headers: { "content-type": "application/json", origin: BASE }, timeout: 60000 });
   if (!response.ok()) {
     const detail = await response.text().catch(() => "");
     // The one failure worth naming: PROVIDER=real needs a key on the dev server for both the patient
     // voice (this route) and the Live session; without it nothing about the model can be measured.
     if (response.status() === 503 && detail.includes("gemini_not_configured")) {
       throw new Error(`PROVIDER=real needs GEMINI_API_KEY on the server at ${BASE} (POST /api/emmi/tts answered 503 gemini_not_configured). Put it in .env.local and restart the dev server.`);
+    }
+    if (response.status() === 403 && detail.includes("origin_not_allowed")) {
+      throw new Error(`The server at ${BASE} rejects this origin. Its allow-list is built from EMMI_ALLOWED_ORIGINS/VERCEL_URL plus localhost:5173 and 127.0.0.1:5173, so run the dev server on port 5173 or add BASE_URL to EMMI_ALLOWED_ORIGINS.`);
     }
     throw new Error(`tts ${response.status()} for "${text.slice(0, 40)}" — ${detail.slice(0, 120)}`);
   }
@@ -169,10 +172,14 @@ export async function openApp(page, { seed = null, url = `${BASE}/?scenario=acce
 // Better to say so before the first utterance than to write 24 empty transcripts.
 export async function assertRealProviderReady() {
   if (PROVIDER === "fake") return true;
-  const response = await fetch(`${BASE}/api/emmi/tts`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: "ok", locale: "EN", harness: true }) }).catch(error => ({ ok: false, status: 0, text: async () => String(error) }));
+  const response = await fetch(`${BASE}/api/emmi/tts`, { method: "POST", headers: { "content-type": "application/json", origin: BASE }, body: JSON.stringify({ text: "ok", locale: "EN", harness: true }) }).catch(error => ({ ok: false, status: 0, text: async () => String(error) }));
   if (response.ok) return true;
   const detail = await response.text?.().catch(() => "") || "";
-  throw new Error(`PROVIDER=real cannot reach a configured server at ${BASE}: POST /api/emmi/tts answered ${response.status}${detail ? ` (${detail.slice(0, 120)})` : ""}. Start the dev server with GEMINI_API_KEY set (.env.local) and pass BASE_URL if it is not the default.`);
+  const hint = response.status === 0 ? "Nothing is listening there — start the dev server (npm run dev -- --port 5173) in another terminal."
+    : detail.includes("origin_not_allowed") ? "The server's origin allow-list rejects this call; run the dev server on port 5173 or add BASE_URL to EMMI_ALLOWED_ORIGINS."
+    : detail.includes("gemini_not_configured") ? "The server has no GEMINI_API_KEY; put it in .env.local (no quotes) and restart the dev server."
+    : "Start the dev server with GEMINI_API_KEY set (.env.local) and pass BASE_URL if it is not the default.";
+  throw new Error(`PROVIDER=real cannot use the server at ${BASE}: POST /api/emmi/tts answered ${response.status}${detail ? ` (${detail.slice(0, 120)})` : ""}. ${hint}`);
 }
 
 export async function startVoice(page, { timeoutMs = 20000 } = {}) {
